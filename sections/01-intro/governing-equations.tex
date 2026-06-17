@@ -2,64 +2,162 @@
 \label{subsec:governing-equations-model-hierarchy}
 
 The continuum assumptions of
-Section~\ref{subsec:continuum-constitutive-assumptions} lead naturally to a
-hierarchy of mathematical models used throughout computational hemodynamics.
-The hierarchy ranges from fully resolved three-dimensional descriptions to
-highly reduced lumped-parameter models.
+Section~\ref{subsec:continuum-constitutive-assumptions} lead to a layered
+modeling hierarchy. The high-fidelity starting point is the incompressible
+Navier--Stokes or generalized-Newtonian system on a three-dimensional lumen.
+The report then uses cross-sectional reduction to identify the selected 1D
+area-flow variables and to state the closure assumptions that must be fixed
+before any reduced numerical study is interpreted.
 
 \subsubsection{Conservation Laws and Navier--Stokes Specialization}
 \label{subsubsec:conservation-laws}
 
-The governing equations originate from the conservation of mass and linear
-momentum applied to an incompressible continuum fluid; the derivation details
-and row-divergence convention are recorded in
+The governing equations originate from conservation of mass and linear momentum
+applied to an incompressible continuum fluid. The derivation details and
+row-divergence convention are recorded in
 Appendix~\ref{app:continuum-derivation-details} and
 Definition~\ref{def:foundation-differential-operator-conventions}.
+Figure~\ref{fig:ns-derivation-map} summarizes the route from these balance laws
+to the forms used in the report
+\cite[Part~I, Ch.~1, Secs.~2.2--3.1, pp.~11--19; Part~IV, Ch.~1,
+Sec.~1.1, pp.~380--383]{hemodynamics}
+\cite[Sec.~6]{QuarteroniFormaggia2004CardiovascularModeling}.
 
-Mass conservation requires that fluid volume be preserved, yielding
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{ns-derivation-map}
+    \caption{From conservation laws to incompressible Navier--Stokes. Mass
+    conservation reduces to $\Div\vu=0$ under constant density. Momentum
+    balance closes through the Cauchy stress law; the Newtonian limit uses
+    constant dynamic viscosity, while the generalized-Newtonian form keeps
+    $\eta_{\mathrm{eff}}(\dot\gamma)$ explicit.}
+    \label{fig:ns-derivation-map}
+\end{figure}
+
+Mass conservation for the constant-density incompressible model gives
 \begin{flalign*}
     \quad \Div\vu = 0 \qquad \text{in } \OmgBt. &&
 \end{flalign*}
-Linear momentum conservation balances inertial, pressure, viscous, and body
-forces,
+Linear momentum conservation balances inertia, pressure, viscous stress, and
+body forces:
 \begin{flalign*}
     \quad
     \rho \left(\partial_t\vu+(\vu\cdot\nabla)\vu\right)
-    \equals \Divbf(\vT)+\rho\vfb, &&
+    \equals \Divbf(\vT)+\rho\vfb. &&
 \end{flalign*}
-where $\rho$ denotes density, $\vT$ is the Cauchy stress tensor, and $\vfb$
-represents body forces per unit mass
-\cite[Part~I, Ch.~1]{hemodynamics}
-\cite{QuarteroniFormaggia2004CardiovascularModeling}.
 
-Substituting the incompressible Newtonian stress law from
-Definition~\ref{def:incompressible-stress-tensor}, and assuming constant
-dynamic viscosity, gives the incompressible Navier--Stokes specialization
-\begin{flalign*}
-    \quad
-    \rho\left(\partial_t\vu+(\vu\cdot\nabla)\vu\right)
-    &=
-    -\nabla p+\eta\Delta\vu+\rho\vfb, \\
-    \Div\vu&=0.
-    &&
-\end{flalign*}
-The corresponding generalized-Newtonian incompressible model keeps the same
-kinematic constraint but replaces the constant-viscosity diffusion term by a
-shear-rate-dependent viscous stress:
-\begin{flalign*}
-    \quad
-    \rho\left(\partial_t\vu+(\vu\cdot\nabla)\vu\right)
-    &=
-    -\nabla p
-    +\Divbf\!\left(2\eta_{\mathrm{eff}}(\dot{\gamma})\vct{D}(\vu)\right)
-    +\rho\vfb, \\
-    \Div\vu&=0.
-    &&
-\end{flalign*}
-Together with boundary and initial data, these conservation principles form the
-foundation of the cardiovascular flow models considered throughout this report.
+\begin{definition}[Conservative incompressible Navier--Stokes]
+    \label{def:nsconservative}
+    On \(\OmgBt\), the constant-density Newtonian system may be written in
+    conservative tensor-divergence form as
+    \begin{flalign*}
+        \quad & \begin{cases*}
+            \partial_t(\rho \vu)
+            + \Divbf(\rho \vu\otimes\vu)
+            =
+            -\nabla p+\Divbf(2\eta\vct{D}(\vu))+\rho\vf, \\
+            \Div\vu=0,\qquad \rho\equiv\rho_0>0.
+        \end{cases*} &&
+    \end{flalign*}
+\end{definition}
 
-\subsubsection{Boundary and Initial Data Vocabulary}
+For constant density and divergence-free velocity,
+\(\Divbf(\rho\vu\otimes\vu)=\rho(\vu\cdot\nabla)\vu\). Thus the same Newtonian
+momentum equation can be read in advective form.
+
+\begin{definition}[Generalized-Newtonian incompressible Navier--Stokes]
+    \label{def:NSEquations}
+    For an incompressible generalized-Newtonian fluid, use the shear-rate
+    convention
+    \begin{flalign*}
+        \quad
+        \dot{\gamma}\defined\sqrt{2\vct{D}(\vu):\vct{D}(\vu)}. &&
+    \end{flalign*}
+    The velocity \(\vu\), pressure \(p\), body force \(\vf\), and constant
+    density \(\rho\equiv\rho_0>0\) satisfy
+    \begin{flalign*}
+        \quad & \begin{cases*}
+            \rho\big(\partial_t\vu+(\vu\cdot\nabla)\vu\big)
+            =
+            -\nabla p
+            +\Divbf\!\Big(
+                2\eta_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu)
+            \Big)
+            +\rho\vf, \\
+            \Div\vu=0.
+        \end{cases*} &&
+    \end{flalign*}
+\end{definition}
+
+\begin{definition}[Density-scaled generalized Navier--Stokes]
+    \label{def:density-scaled-generalized-ns}
+    With
+    \(\nu_{\mathrm{eff}}(\dot\gamma)
+    \defined\eta_{\mathrm{eff}}(\dot\gamma)/\rho\), the divided-by-density form
+    is
+    \begin{flalign*}
+        \quad & \begin{cases*}
+            \partial_t \vu+(\vu\cdot\nabla)\vu
+            =
+            -\rho^{-1}\nabla p
+            +\Divbf\!\Big(
+                2\nu_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu)
+            \Big)
+            +\vf, \\
+            \Div\vu=0.
+        \end{cases*} &&
+    \end{flalign*}
+\end{definition}
+The density-scaled form is particularly useful for numerical simulations,
+because it seperates the convective ($(\vu\cdot\nabla)\vu$) and diffusive ($\Divbf(2\nu_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu))$) contributions in the momentum equation, allowing for more straightforward numerical treatment of each term independently.
+\begin{definition}[Newtonian incompressible Navier--Stokes]
+    \label{def:newtonian-incompressible-ns}
+    If \(\eta_{\mathrm{eff}}\equiv\eta\) is constant, then sufficiently smooth
+    divergence-free velocity fields satisfy
+    \(\Divbf(2\eta\vct{D}(\vu))=\eta\del\vu\). The Newtonian equations are
+    \begin{flalign*}
+        \quad & \begin{cases*}
+            \rho\big(\partial_t\vu+(\vu\cdot\nabla)\vu\big)
+            =
+            -\nabla p+\eta\del\vu+\rho\vf, \\
+            \Div\vu=0,
+        \end{cases*}
+        \qquad
+        \begin{cases*}
+            \partial_t\vu+(\vu\cdot\nabla)\vu
+            =
+            -\rho^{-1}\nabla p+\nu\del\vu+\vf, \\
+            \Div\vu=0,
+        \end{cases*}
+        &&
+    \end{flalign*}
+    where \(\nu\defined\eta/\rho\).
+\end{definition}
+
+\begin{definition}[Navier--Stokes residual notation]
+    \label{def:standard-form-ns}
+    The density-scaled generalized system can be summarized by a momentum
+    residual operator:
+    \begin{flalign*}
+        \quad & \begin{cases*}
+            \mathcal{R}_{\mathrm{NS}}
+            (\partial_t\vu,\nabla\vu,\nabla p,\vu,p;\rho,\nu_{\mathrm{eff}})
+            =\vf, \\
+            \Div\vu=0.
+        \end{cases*} &&
+    \end{flalign*}
+\end{definition}
+
+\begin{remark}[Navier--Stokes system classification]
+    \label{rmk:ns-system-classification}
+    Navier--Stokes is a nonlinear coupled PDE system. The unknowns are the
+    three velocity components and pressure. The convective term transports
+    momentum, the pressure gradient enforces incompressibility, and the viscous
+    term diffuses momentum through the stress tensor.
+\end{remark}
+
+\subsubsection{Boundary Data and Well-Posedness Context}
 \label{subsubsec:boundary-initial-data-vocabulary}
 
 For a single-vessel three-dimensional domain, write the boundary decomposition
@@ -71,52 +169,318 @@ For a single-vessel three-dimensional domain, write the boundary decomposition
     \Gamma_{\mathrm{out}}(t)\cup
     \Gamma_w(t). &&
 \end{flalign*}
-Here $\Gamma_{\mathrm{in}}(t)$ denotes an inlet portion where a velocity,
+Here \(\Gamma_{\mathrm{in}}(t)\) denotes an inlet portion where a velocity,
 flow-rate, or profile condition may be prescribed. The outlet portion
-$\Gamma_{\mathrm{out}}(t)$ carries pressure, traction, or reduced downstream
-network data. The wall portion $\Gamma_w(t)$ carries either a no-slip or
-no-penetration condition for a fixed-wall continuum model, or a
-wall-law/structure closure when wall motion is retained.
-\subsubsection{Model Hierarchy}
+\(\Gamma_{\mathrm{out}}(t)\) carries pressure, traction, or reduced downstream
+network data. The wall portion \(\Gamma_w(t)\) carries either a no-slip or
+no-penetration condition for a fixed-wall continuum model, or a wall-law or
+structure closure when wall motion is retained. A complete initial-boundary
+value problem also states \(\vu(0,\cdot)=\vu_0\), the domain, forcing,
+compatibility assumptions, and the solution class.
+
+\begin{remark}[Global regularity context]
+    \label{rmk:global-regularity}
+    For smooth, spatially localized initial data in three dimensions, global
+    existence and smoothness for Navier--Stokes remains an open Clay Millennium
+    Prize problem \cite[Problem statement]{ClayNavierStokesMillennium}. This is
+    mathematical context for the 3D continuum model, not a direct limitation of
+    the controlled reduced 1D solver introduced below.
+\end{remark}
+
+Classical local well-posedness statements require a domain, boundary
+conditions, forcing, initial-data space, and solution class. Under compatible
+smooth data one obtains a unique strong solution on a maximal time interval.
+The domain and function-space notation used in such statements is summarized in
+Appendix~\ref{app:mathematical-foundations}; coordinate and energy background
+is collected in Appendix~\ref{app:ns-coordinate-details}.
+
+\subsubsection{Cross-Sectional Reduction and Selected 1D Model}
+\label{subsubsec:cross-sectional-reduction-selected-1d-model}
+
+The 1D model reduces the spatial dimension by assuming that the vessel has a
+distinguished axial direction and that pressure and velocity can be averaged
+over cross-sections. This keeps pulse-wave and pressure-drop structure while
+discarding secondary flow, separation, recirculation, and resolved wall
+traction. The reduction follows standard compliant-artery and
+dimension-reduced modeling arguments
+\cite[Sec.~2, pp.~253--257]{FormaggiaLamponiQuarteroni2003}
+\cite[Ch.~3, Secs.~3.2 and~3.6]{KopplHelmig2023DimensionReducedModeling}
+\cite[Sec.~3, pp.~24--26]{ShiLawfordHose2011}.
+
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{compliant-vessel}
+    \caption{Compliant-vessel notation for the 1D reduction. The physical
+    lumen \(\OmgBt\) is represented by a straightened averaging domain with
+    cross-section \(S(z,t)\), area \(A(z,t)\), flow \(Q(z,t)\), radius
+    \(R(z,t)\), and mean gauge pressure \(p_{\mathrm g}(z,t)\).}
+    \label{fig:compliant-vessel-reduction}
+\end{figure}
+
+\begin{assumption}[Straight single-vessel geometry]
+    \label{ass:1d-straight-vessel-geometry}
+    The selected 1D lane assumes a vessel of length \(L\) aligned with the
+    \(z\)-axis and a circular cross-section with radius \(R(z,t)\). For
+    \(0<z<L\), \(S(z,t)\) is the interior cross-section used for averaging, not
+    a boundary component of the open lumen.
+\end{assumption}
+
+\begin{definition}[Section-averaged 1D fields]
+    \label{def:section-averaged-1d-fields}
+    The retained reduced variables are
+    \begin{flalign*}
+        \quad A(z,t) &\defined \int_{S(z,t)} 1 \, dS, &&
+            \text{cross-sectional area}, \\
+        \quad Q(z,t) &\defined \int_{S(z,t)} u_z \, dS, &&
+            \text{volumetric flow rate}, \\
+        \quad \bar u(z,t) &\defined \frac{Q(z,t)}{A(z,t)}, &&
+            \text{mean axial velocity}, \\
+        \quad p_{\mathrm g}(z,t) &\defined \frac{1}{A(z,t)}
+            \int_{S(z,t)} p_{3D,\mathrm g} \, dS, &&
+            \text{mean gauge pressure}.
+    \end{flalign*}
+    Here \(p_{3D,\mathrm g}\) is continuum pressure in the wall-law gauge
+    frame. The pressure-reference convention for reduced ratios is fixed
+    separately in Convention~\ref{conv:appendix-pressure-reference-ratio}.
+\end{definition}
+
+\begin{definition}[Closed 1D area-flow model]
+    \label{def:closed-1d-area-flow-model}
+    For an incompressible fluid with density \(\rho\), the working compliant
+    single-vessel model is
+    \begin{flalign*}
+        \quad \frac{\partial A}{\partial t}
+        + \frac{\partial Q}{\partial z}
+        &= 0, \numberthis\label{eq:1d-mass-aq} && \\
+        \quad \frac{\partial Q}{\partial t}
+        + \frac{\partial}{\partial z}
+            \left(\alpha \frac{Q^2}{A}\right)
+        + \frac{A}{\rho}\frac{\partial p_{\mathrm g}(A,z,t)}{\partial z}
+        &= - C_f(z,A,Q) \frac{Q}{A}.
+        \numberthis\label{eq:1d-momentum-aq} &&
+    \end{flalign*}
+    The parameter \(\alpha\) is the momentum-flux correction factor, \(C_f\) is
+    the wall-friction closure, and \(p_{\mathrm g}(A,z,t)\) is the wall-law
+    gauge pressure closing the reduced system
+    \cite[Sec.~2, pp.~253--255]{FormaggiaLamponiQuarteroni2003}
+    \cite[Ch.~3, Sec.~3.2, pp.~40--47]{KopplHelmig2023DimensionReducedModeling}.
+\end{definition}
+
+\begin{assumption}[First-run momentum-profile and friction closure]
+    \label{ass:1d-first-run-alpha-friction}
+    The baseline reduced numerical lane fixes \(\alpha=1\) and uses a compact
+    Poiseuille-calibrated wall-friction coefficient
+    \begin{flalign*}
+        \quad C_f \defined \frac{8\pi\eta}{\rho}. &&
+    \end{flalign*}
+    This is a numerical contract for the first controlled 1D study. It should
+    not be read as a claim that the flat-profile flux convention, friction law,
+    and any derived shear proxy form a complete resolved velocity-profile model.
+\end{assumption}
+
+\begin{definition}[Elastic pressure--area wall law]
+    \label{def:1d-elastic-wall-law}
+    The baseline pressure closure is the elastic wall law
+    \begin{flalign*}
+        \quad p_{\mathrm g}(A,z,t)
+        =
+        p_{\mathrm{ext}}(z,t)
+        + \frac{\beta(z)}{A_0(z)}
+            \left(\sqrt{A(z,t)}-\sqrt{A_0(z)}\right).
+        \numberthis\label{eq:1d-wall-law} &&
+    \end{flalign*}
+    Here \(A_0(z)\) is the reference area, \(p_{\mathrm{ext}}\) is the external
+    pressure, and \(\beta(z)\) is a wall-stiffness parameter. Some
+    implementations absorb \(A_0^{-1}\) into \(\beta\); the essential closure
+    is that \(p_{\mathrm g}\) is known once \(A_0\), \(\beta\), and
+    \(p_{\mathrm{ext}}\) are supplied.
+\end{definition}
+
+\begin{definition}[Stenosis reference geometry]
+    \label{def:1d-stenosis-reference-geometry}
+    A stenosis is encoded through the reference radius or reference area. Let
+    \(R_{\mathrm{base}}(z)\) be the nominal healthy radius and \(s(z)\in[0,1)\)
+    a fractional radius-reduction profile. Then
+    \begin{flalign*}
+        \quad
+        R_0(z) &= R_{\mathrm{base}}(z)\big(1-s(z)\big),
+        &
+        A_0(z) &= \pi R_0(z)^2 .
+        \numberthis\label{eq:1d-stenosis-area} &&
+    \end{flalign*}
+    A convenient localized test profile is
+    \begin{flalign*}
+        \quad s(z) =
+        \begin{cases}
+            \displaystyle
+            \frac{s_{\max}}{2}
+            \left[
+                1 + \cos\left(\frac{2\pi(z-z_c)}{\ell_s}\right)
+            \right],
+            & |z-z_c| \leq \ell_s/2, \\
+            0, & \text{otherwise}.
+        \end{cases}
+        \numberthis\label{eq:1d-stenosis-profile} &&
+    \end{flalign*}
+    The geometry is an idealized numerical design choice, not a
+    patient-specific plaque morphology or clinical calibration.
+\end{definition}
+
+\begin{remark}[Stenosis-profile and variable-radius boundary]
+    \label{rmk:1d-stenosis-profile-scope}
+    The raised-cosine profile in Eq.~\ref{eq:1d-stenosis-profile} is compactly
+    supported and \(C^1\) at the support endpoints, but it is not a smooth
+    strong-form contract for all variable-radius correction terms. Canic et al.
+    show that standard 1D variable-geometry models may miss stenotic pressure
+    and velocity trends unless additional variable-radius terms are included
+    \cite[Abstract; Secs.~1--2]{CanicEtAl2024Extended1DStenosis}. Those
+    corrections motivate later comparison questions, but they are not active in
+    the baseline model unless a separate closure identifier and numerical
+    contract are declared.
+\end{remark}
+
+\begin{definition}[Conservative flux and source notation]
+    \label{def:1d-conservative-flux-source-notation}
+    The pressure term in Eq.~\ref{eq:1d-momentum-aq} can be represented through
+    an elastic-potential flux plus explicit sources:
+    \begin{flalign*}
+        \quad \partial_t A + \partial_z Q &= 0,
+        \numberthis\label{eq:1d-conservative-mass} && \\
+        \quad \partial_t Q
+        + \partial_z\!\left(
+            \alpha\frac{Q^2}{A}+\Psi(A,z,t)
+        \right)
+        &=
+        S_{\mathrm{geom}}(A,z,t)+S_f(A,Q,z),
+        \numberthis\label{eq:1d-conservative-momentum} &&
+    \end{flalign*}
+    where
+    \begin{flalign*}
+        \quad
+        \partial_A \Psi(A,z,t)
+        &=
+        \frac{A}{\rho}\partial_A p_{\mathrm g}(A,z,t), \\
+        S_f(A,Q,z)
+        &=
+        -C_f(z,A,Q)\frac{Q}{A}.
+        &&
+    \end{flalign*}
+    This notation records the balance-law objects needed by finite-volume
+    schemes; it does not assert that every later implementation treats the flux
+    and source terms identically
+    \cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems}
+    \cite[Summary; Secs.~2.1--2.3; Secs.~5--6]{BoileauEtAl2015Benchmark}.
+\end{definition}
+
+\begin{definition}[Single-vessel boundary data]
+    \label{def:1d-single-vessel-boundary-data}
+    For a single-vessel solve on \(z\in[0,L]\), prescribe one inlet condition
+    and one outlet condition:
+    \begin{flalign*}
+        \quad Q(0,t) &= Q_{\mathrm{in}}(t)
+        \quad \text{or} \quad
+        \bar u(0,t) = \bar u_{\mathrm{in}}(t), && \\
+        \quad p_{\mathrm g}(L,t) &= p_{\mathrm{out},\mathrm g}(t)
+        \quad \text{or} \quad
+        p_{\mathrm g}(L,t) = p_{\mathrm{WK,g}}(Q(L,\cdot),t). &&
+    \end{flalign*}
+    The second outlet option denotes a terminal Windkessel-style relation. The
+    first controlled study uses prescribed \(Q_{\mathrm{in}}(t)\) and
+    \(p_{\mathrm{out},\mathrm g}(t)\) because they give an unambiguous reduced
+    single-vessel contract.
+\end{definition}
+
+\begin{assumption}[Subcritical boundary regime]
+    \label{ass:1d-subcritical-boundary-regime}
+    The baseline boundary treatment is used only in the subcritical regime
+    \(\lambda_-<0<\lambda_+\), where one characteristic enters through the inlet
+    and one characteristic enters through the outlet.
+\end{assumption}
+
+Under this regime, a finite-volume boundary realization constrains the incoming
+information at each boundary and leaves the outgoing state determined by the
+interior solve. This is the reduced-model analogue of declaring enough boundary
+data for the selected equation class; it is not, by itself, a validation of a
+particular boundary discretization.
+
+\subsubsection{Model Hierarchy and Comparison Boundary}
 \label{subsubsec:model-hierarchy}
 
-\begingroup
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}
-    >{\raggedright\arraybackslash}p{0.15\linewidth}
-    >{\raggedright\arraybackslash}p{0.17\linewidth}
-    >{\raggedright\arraybackslash}p{0.18\linewidth}
-    >{\raggedright\arraybackslash}p{0.27\linewidth}
-    >{\raggedright\arraybackslash}p{0.15\linewidth}
-    @{}}
-    \toprule
-    \textbf{Model level}
-        & \textbf{State variables}
-        & \textbf{Domain}
-        & \textbf{Main assumptions}
-        & \textbf{Role in this report} \\
-    \midrule
-    3D Navier--Stokes
-        & $(\vu,p)$
-        & $\vx \in \OmgBt\subset\R^3$
-        & Continuum, incompressible, Newtonian or generalized Newtonian
-        & Reference continuum model \\
-    2D/axisymmetric
-        & Reduced velocity and pressure fields
-        & Meridional or cross-sectional domain
-        & Symmetry or geometric simplification of the 3D setting
-        & Intermediate model class \\
-    1D area-flow
-        & $(A,Q,p_{\mathrm{g}})$
-        & $z\in(0,L)$
-        & Cross-sectional averaging, wall law, and friction closure
-        & Numerical-study target \\
-    0D/lumped
-        & Pressures and flows
-        & Graph or network
-        & Spatially lumped compartments and algebraic/differential closure laws
-        & Boundary and network context \\
-    \bottomrule
-\end{tabular}
-\endgroup
+Reduced hemodynamic models form a hierarchy of modeling roles rather than a
+simple accuracy ranking. A higher-dimensional model becomes a comparison only
+after geometry, wall response, rheology, inlet and outlet data, numerical
+resolution, output operators, and discrepancy metrics are matched.
+
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{model-hierarchy}
+    \caption{Model hierarchy for reading comparison claims. The present
+    manuscript selects a 1D reduced forward model; 3D, FSI, clinical, and
+    independent-solver comparisons require separately matched evidence.}
+    \label{fig:model-hierarchy-overview}
+\end{figure}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Hemodynamic model taxonomy for the idealized stenosis report.}
+    \label{tab:literature-model-taxonomy}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.17\textwidth}
+        >{\raggedright\arraybackslash}X
+        >{\raggedright\arraybackslash}X
+        >{\raggedright\arraybackslash}X
+        @{}}
+        \toprule
+        \textbf{Model family}
+            & \textbf{Typical role}
+            & \textbf{Common states or outputs}
+            & \textbf{Report boundary} \\
+        \midrule
+        0D lumped circulation
+            & Outlet loads, Windkessel context, and network hemodynamic summaries
+            & Compartment pressures, flows, resistances, compliances, inertances
+            & Useful for boundary conditions, not for local stenosis geometry or
+            resolved wall traction \\
+        Classical 1D compliant-vessel models
+            & Distributed area-flow description after cross-sectional averaging
+            & \(A(z,t)\), \(Q(z,t)\), \(p_{\mathrm g}(z,t)\), wave speed, pressure drop
+            & Main reduced model tier under declared wall, friction, inlet, and
+            outlet assumptions \\
+        Stenosis-aware 1D and pressure-loss ROMs
+            & Idealized stenosis trends, variable-radius corrections, or algebraic
+            loss estimates
+            & Stenosis profile, severity, flow rate, \(\Delta p\), pressure ratio,
+            reduced shear proxy
+            & Reduced-order trend context only unless matched against resolved or
+            clinical evidence \\
+        2D, 3D, and FSI models
+            & Higher-fidelity local flow and wall-motion comparison
+            & Velocity, pressure, wall traction, WSS, wall displacement, mesh and
+            time diagnostics
+            & Reference-tier context unless the same geometry, rheology, wall,
+            boundary data, and outputs are compared directly \\
+        Numerical reference problems for 1D solvers
+            & Scheme comparison, reproducibility expectations, and implementation
+            context
+            & Grid, timestep, flux and source choices, boundary states, field and
+            scalar discrepancies
+            & Evidence standard; does not grant solver parity to the present code
+            without a matched comparison \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Across these categories, the recurring descriptors are stenosis geometry, wall
+stiffness or compliance, density, viscosity or effective-viscosity law, inlet
+waveform, outlet pressure or load, pressure-reference convention, and tap
+locations. The recurring outputs are pressure drop, reduced pressure ratio,
+area, flow, radius, and either a reduced wall-friction/shear proxy or a
+resolved traction-based WSS quantity
+\cite{ShiLawfordHose2011,FormaggiaLamponiQuarteroni2003,KopplHelmig2023DimensionReducedModeling}
+\cite{CanicEtAl2024Extended1DStenosis,FormaggiaMouraNobile2007Coupling}.
+The report therefore treats the selected 1D area-flow model as the controlled
+forward map for the first numerical study, while reserving 3D/FSI agreement,
+clinical calibration, and independent-solver parity for later evidence.
