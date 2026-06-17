@@ -1,4 +1,4 @@
-\subsection{Continuum and Constitutive Assumptions}
+\subsection{Continuum and Constitutive Foundations}
 \label{subsec:continuum-constitutive-assumptions}
 
 This section moves from the macroscopic scale assumption,
@@ -6,43 +6,36 @@ to continuum field variables, to blood-dynamics kinematics,
 to balance-law vocabulary, and finally to Newtonian versus
 generalized-Newtonian stress closures.
 
-\subsubsection{Physiological Scale Boundary}
+\subsubsection{Physiological scale and continuum idealization}
 \label{subsubsec:physiological-scale-boundary}
 
 The present work is posed at the macrocirculatory arterial scale. 
 At this scale, blood is commonly modeled as a viscous fluid whose bulk behavior
-can be described by continuum mechanics. The goal is not to resolve the effects of individual
-blood cells, platelets, or plasma constituents but rather to predict
-macroscopic observables such as pressure, flow rate, pressure drop, and
-pressure ratio.
-\cite[Sec.~1.1.2, pp.~9–10]{KopplHelmig2023DimensionReducedModeling}
-\cite[Sec.~1.1.3, pp.~12–14]{KopplHelmig2023DimensionReducedModeling}.
+can be described by continuum mechanics. The point is not to resolve individual red blood cells, platelets, or plasma constituents.
+Instead, the model aims to predict macroscopic observables such as flow rate, pressure,
+pressure drop, pressure ratio, and velocity profiles under declared assumptions.
+This scale separation is standard in large-vessel hemodynamic modeling, while the
+small-vessel and low-shear regimes require additional rheological caution \cite{KopplHelmig2023DimensionReducedModeling,GaldiEtAl2008HemodynamicalFlows,PriesEtAl1992BloodViscosityTubeFlow}.
 
-\subsubsection{Blood as a Continuum}
-\label{subsubsec:blood-as-a-continuum}
-
-Consider a time-dependent family of spatial fluid domains. For a final time
-$T_{\mathrm{final}}>0$, use
-$I_T\defined(0,T_{\mathrm{final}})$ for interior-time PDE statements and
-$\overline{I}_T\defined[0,T_{\mathrm{final}}]$ for initial data and flow maps.
-Define
+For a final time $T_{\mathrm{final}}>0$, let $I_T\defined(0,T_{\mathrm{final}})$ denote
+the open interior-time interval and $\overline I_T=[0,T_{\mathrm{final}}]$ denote the
+closed interval used for initial data and flow maps. Define the time-dependent blood domain
+and it's space-time state space as:
 \begin{flalign*}
     \quad \begin{cases}
      \OmgBt \defined \{\vx \in \R^3 : \vx \text{ lies inside the vessel at time } t\} \\
-     \mathcal{Q}_T \defined \{(t,\vx):t\in I_T,\ \vx\in\OmgBt\},
+     \mathcal{Q}_T \defined \{(t,\vx):t\in I_T,\ \vx\in\OmgBt\}.
     \end{cases}&&
 \end{flalign*}
-where the reference configuration is denoted $\OmgB(0)$, the current
-configuration is $\OmgBt$, and the space-time fluid domain is $\mathcal{Q}_T$.
-This domain notation is the one collected in
-Appendix~\ref{app:mathematical-notation}; boundary and function-space
-conventions are summarized in Appendix~\ref{app:mathematical-foundations}. In
+The reference and current configurations are denoted $\OmgB(0)$ and $\OmgBt$, respectively, and note
+that the current configuration $\OmgBt$ depends on time $t \in \overline{I}_T$.
+This domain notation is defined in Appendix~\ref{app:mathematical-notation}; boundary and function-space conventions are summarized in Appendix~\ref{app:mathematical-foundations}. In
 this report, the continuum assumption is a large-vessel idealization: individual
 blood cells, platelets, and plasma constituents are not resolved, and blood
 velocity, pressure, density, and Cauchy stress are represented by sufficiently
 regular fields on $\mathcal{Q}_T$. Cellular-scale effects may enter only
 through later constitutive choices
-\cite[Part~I, Ch.~1, Secs.~1.1--1.2, pp.~4--5]{hemodynamics}
+\cite[Part~I, Ch.~1, Secs.~1.1--1.2, pp.~4--5]{GaldiEtAl2008HemodynamicalFlows}
 \cite[Secs.~1.1.3 and~3.2, pp.~12--14 and~46--47]{KopplHelmig2023DimensionReducedModeling}.
 The continuum setup is as follows:
 Assumption~\ref{ass:blood-dynamics-kinematic-setting},
@@ -50,27 +43,18 @@ Remark~\ref{rmk:eulerian-lagrangian}, Definition~\ref{def:material-derivative},
 Definitions~\ref{def:material-density-preservation}--\ref{def:incompressible-flow},
 Definitions~\ref{def:linear-momentum-balance}--\ref{def:linear-momentum-balance-strong},
 and Definitions~\ref{def:fluidsmodel}--\ref{def:incompressible-stress-tensor}
-fix the assumptions used in the model hierarchy.
+fix the assumptions and terminology used in the model hierarchy.
 
-
-\subsubsection{Blood Dynamics}
-\label{subsubsec:blood-dynamics}
-
-This subsection fixes the kinematic vocabulary used by the later continuum and
-reduced-order models.
 
 \begin{assumption}[Blood-dynamics kinematic setting]
     \label{ass:blood-dynamics-kinematic-setting}
-    For \(t\in\overline{I}_T\), blood motion is represented by a sufficiently
+    For $t\in\overline{I}_T$, blood motion is represented by a sufficiently
     regular orientation-preserving diffeomorphism
-    \(\La_t:\OmgB(0)\to\OmgB(t)\) with
-    \(\det\nabla_{\vxi}\La_t>0\). The family \(\La_t\) has the time and
-    space regularity needed to differentiate \(\nabla_{\vxi}\La_t\) and
-    \(\det\nabla_{\vxi}\La_t\), define material derivatives, and apply
-    Reynolds transport to material volumes \(V(t)=\La_t(V(0))\) with
-    Lipschitz boundary. It carries each material label \(\vxi\) to its
-    current location \(\vx(t,\vxi)=\La_t(\vxi)\). The Eulerian velocity
-    field \(\vu:\mathcal{Q}_T\to\R^3\) satisfies
+    \begin{flalign*}
+        \quad \La_t:\OmgB(0)\to\OmgB(t), \quad \det \nabla_{\vxi}\La_t > 0 &&
+    \end{flalign*}
+    It carries each material label \(\vxi\) to its current location $\vx(t,\vxi)=\La_t(\vxi)$.
+    The Eulerian velocity field \(\vu:\mathcal{Q}_T\to\R^3\) satisfies
     \begin{flalign*}
         \quad \pd_t \La_t(\vxi)=\vu(t,\La_t(\vxi)). &&
     \end{flalign*}
@@ -112,12 +96,15 @@ notation.
     $\La_t^{-1}$ maps an Eulerian location back to its material label.
 \end{remark}
 
-Under the standard assumption that the prescribed velocity field is continuous in time and uniformly Lipschitz in space, particle trajectories exist uniquely and depend continuously on their initial labels; see \cite[Ch.~2]{Teschl2012OrdinaryDifferentialEquations}. This is a trajectory-level ODE result and should not be confused with Navier--Stokes well-posedness.
+Under the standard assumption that the prescribed velocity field is continuous in time and uniformly Lipschitz in space, particle trajectories exist uniquely and depend continuously on their initial labels; see \cite[Ch.~2]{Teschl2012OrdinaryDifferentialEquations}.
+\todo{cite standard assumption stated in appendix}
+
+\subsubsection{Material derivative, transport, and balance laws}
 
 \begin{definition}[Material derivative]
     \label{def:material-derivative}
     For $\phi\in C^1(\mathcal{Q}_T)$, the material derivative is the derivative
-    of $\phi$ along a particle trajectory:
+    along a particle trajectory:
     \begin{flalign*}
         \quad D_t\phi(t,\vx)
         \defined
@@ -126,13 +113,15 @@ Under the standard assumption that the prescribed velocity field is continuous i
         \pd_t \phi(t,\vx)+\vu(t,\vx)\cdot\nabla\phi(t,\vx),
         \qquad \vxi=\La_t^{-1}(\vx). &&
     \end{flalign*}
-    For vector fields, $D_t$ is applied componentwise.
 \end{definition}
 
-Let $\vFhat_t=\nabla_{\vxi}\La_t$ be the deformation gradient and
-$\Jhatdet_t=\det\vFhat_t$ the Jacobian determinant. In Eulerian notation this
-is written $\Jdet_t(\vx)=\det\vFhat_t(\La_t^{-1}(\vx))$. The standard Jacobian evolution law $D_t\Jdet_t=\Jdet_t\,\Div\vu$ is used implicitly below; derivation details are deferred to Appendix~\ref{app:continuum-derivation-details}.
-
+For vector fields, the material derivative is applied componentwise. Let $\vFhat_t=\nabla_{\vxi}\La_t$ and $\Jhatdet_t=\det\vFhat_t$. In Eulerian notation this
+is written $\vF_t(\vx)=\vFhat_t(\La_t^{-1}(\vx))$ and $\Jdet_t(\vx)=\det\vF_t(\vx)=\det\vFhat_t(\La_t^{-1}(\vx))$.
+The standard Jacobian evolution law is
+\begin{flalign*}
+        \quad D_t\Jdet_t=\Jdet_t\,\Div\vu. &&
+\end{flalign*}
+Such law underlies the Reynolds transport theorem. If material density is preserved, \emph{i.e.}, $D_t\rho=0$, this directly leads to the form of the continuity equation used below; derivation details are deferred to Appendix~\ref{app:continuum-derivation-details}.
 \begin{theorem}[Reynolds Transport Theorem]
     \label{thm:reynolds-transport}
     Let $V(t)=\La_t(V(0))$ be a bounded material volume with Lipschitz boundary.
@@ -148,21 +137,11 @@ is written $\Jdet_t(\vx)=\det\vFhat_t(\La_t^{-1}(\vx))$. The standard Jacobian e
 
 Proof-level details for Theorem~\ref{thm:reynolds-transport} and the momentum balance below are found
 in Appendix~\ref{app:continuum-derivation-details}.
-
-\subsubsection*{Continuum assumptions retained in the main model}
-
-Assumption~\ref{ass:blood-dynamics-kinematic-setting} supplies the 3D
-velocity, pressure, density, and stress fields used below. The balance-law
-vocabulary developed below permits variable density. The reduced arterial
-models considered later adopt the constant-density specialization
-\(\rho\equiv\rho_0>0\), which is standard for large-vessel incompressible
-blood-flow models.
-
-The domains and material control volumes are assumed regular enough for traces,
-outward unit normals, and the divergence theorem; Lipschitz boundaries are
-sufficient for the integral manipulations used here; see
-Convention~\ref{conv:foundation-standing-regularity} in
-Appendix~\ref{app:mathematical-foundations}.
+Here, assumption~\ref{ass:blood-dynamics-kinematic-setting} above supplies the 3D
+velocity, pressure, density, and stress fields used below. Mass conservation and
+linear momentum balances follow from applying Reynolds theorem~\ref{thm:reynolds-transport}
+in integral form for material volumes and in local form for the fluid element $V(t)$,
+providing the basis for the subsequent derivation of the local balance equations.
 
 \begin{definition}[Material density preservation]
     \label{def:material-density-preservation}
@@ -246,7 +225,7 @@ The stress law closes the momentum equation. Let the rate-of-deformation tensor 
     versus diameter- and hematocrit-dependent apparent viscosity in small tubes--not
     a direct cellular-level isotropy claim
     \cite[Sec.~1.1.3, Fig.~1.14, pp.~12--14; Sec.~3.2, pp.~46--47]{KopplHelmig2023DimensionReducedModeling}
-    \cite[Abstract; pp.~H1770--H1772]{bviscosity}.
+    \cite[Abstract; pp.~H1770--H1772]{PriesEtAl1992BloodViscosityTubeFlow}.
 \end{remark}
 
 \begin{remark}[Isotropic constitutive response]
@@ -274,7 +253,7 @@ The stress law closes the momentum equation. Let the rate-of-deformation tensor 
 \end{definition}
 
 More general models allow viscosity to vary with shear rate. For generalized Newtonian blood models, the dynamic viscosity is allowed to depend on the local deformation-rate magnitude
-\cite[Part~I, Ch.~1, Secs.~2.7--3.1, pp.~16--19]{hemodynamics}.
+\cite[Part~I, Ch.~1, Secs.~2.7--3.1, pp.~16--19]{GaldiEtAl2008HemodynamicalFlows}.
 A standard constitutive form is
 \begin{flalign*}
     \quad \dot{\gamma}\defined\sqrt{2\vct{D}(\vu):\vct{D}(\vu)}, &&
@@ -364,7 +343,7 @@ Newtonian form when $\eta_{\mathrm{eff}}$ is constant.
     These are pointwise generalized-Newtonian closures for the viscosity
     coefficient; the reduced 1D implementation uses them as an effective
     viscosity hook, not as a new closure-specific 1D derivation
-    \cite[Part~I, Ch.~1, Secs.~2.7--3.1, pp.~16--19]{hemodynamics}
+    \cite[Part~I, Ch.~1, Secs.~2.7--3.1, pp.~16--19]{GaldiEtAl2008HemodynamicalFlows}
     \cite{KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}.
 \end{definition}
 
@@ -376,7 +355,7 @@ Newtonian form when $\eta_{\mathrm{eff}}$ is constant.
     diameter-dependent, hematocrit-dependent, and shear-dependent effects become
     increasingly important in smaller vessels and low-shear regions
     \cite[Sec.~1.1.3, pp.~12–14]{KopplHelmig2023DimensionReducedModeling}
-    \cite{bviscosity}.
+    \cite{PriesEtAl1992BloodViscosityTubeFlow}.
 \end{remark}
 
 Together, Assumption~\ref{ass:blood-dynamics-kinematic-setting} and the

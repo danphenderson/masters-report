@@ -210,3 +210,4 @@ notes/notes.synctex(busy)
 .julia_depot/
 simulations/output/
 simulations/data/3d/
+*.synctex(busy)

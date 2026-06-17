@@ -25,7 +25,7 @@ Definition~\ref{def:foundation-differential-operator-conventions}.
 Figure~\ref{fig:ns-derivation-map} summarizes the route from these balance laws
 to the forms used in the report
 \cite[Part~I, Ch.~1, Secs.~2.2--3.1, pp.~11--19; Part~IV, Ch.~1,
-Sec.~1.1, pp.~380--383]{hemodynamics}
+Sec.~1.1, pp.~380--383]{GaldiEtAl2008HemodynamicalFlows}
 \cite[Sec.~6]{QuarteroniFormaggia2004CardiovascularModeling}.
 
 \begin{figure}[!htb]
@@ -201,7 +201,7 @@ compatibility assumptions, and the solution class.
     \label{rmk:global-regularity}
     For smooth, spatially localized initial data in three dimensions, global
     existence and smoothness for Navier--Stokes remains an open Clay Millennium
-    Prize problem \cite[Problem statement]{ClayNavierStokesMillennium}. This is
+    Prize problem \cite[Problem statement]{ClayMathematicsInstitute2022NavierStokesEquation}. This is
     mathematical context for the 3D continuum model, not a direct limitation of
     the controlled reduced 1D solver introduced below.
 \end{remark}
@@ -227,9 +227,9 @@ over cross-sections. This keeps pulse-wave and pressure-drop structure while
 discarding secondary flow, separation, recirculation, and resolved wall
 traction. The reduction follows standard compliant-artery and
 dimension-reduced modeling arguments
-\cite[Sec.~2, pp.~253--257]{FormaggiaLamponiQuarteroni2003}
+\cite[Sec.~2, pp.~253--257]{FormaggiaEtAl2003OneDimensionalBloodFlow}
 \cite[Ch.~3, Secs.~3.2 and~3.6]{KopplHelmig2023DimensionReducedModeling}
-\cite[Sec.~3, pp.~24--26]{ShiLawfordHose2011}.
+\cite[Sec.~3, pp.~24--26]{ShiEtAl2011BloodFlowModelReview}.
 The reduced variables \(A\), \(Q\), \(\bar u\), and \(p_{\mathrm g}\) should
 therefore be read as cross-sectional outputs of the continuum fields under
 additional averaging, geometry, wall-law, and profile assumptions, not as
@@ -321,9 +321,9 @@ independent replacements for the blood-dynamics setting above.
     \end{center}
     This separation follows the standard distinction between reduced compliant
     vessel models, geometrical multiscale coupling, and resolved FSI models
-    \cite[Sec.~2, pp.~253--257]{FormaggiaLamponiQuarteroni2003}
+    \cite[Sec.~2, pp.~253--257]{FormaggiaEtAl2003OneDimensionalBloodFlow}
     \cite{QuarteroniVeneziani2003GeometricalMultiscale}
-    \cite{FormaggiaMouraNobile2007Coupling}.
+    \cite{FormaggiaEtAl2007FSICoupling}.
 \end{definition}
 
 \begin{definition}[Closed 1D area-flow model]
@@ -358,7 +358,7 @@ independent replacements for the blood-dynamics setting above.
     \(\mathcal W_{\mathrm{elastic1D}}\) member of the FSI closure axis: wall
     response is represented through the pressure--area law rather than through a
     separate structural PDE
-    \cite[Sec.~2, pp.~253--255]{FormaggiaLamponiQuarteroni2003}
+    \cite[Sec.~2, pp.~253--255]{FormaggiaEtAl2003OneDimensionalBloodFlow}
     \cite[Ch.~3, Sec.~3.2, pp.~40--47]{KopplHelmig2023DimensionReducedModeling}.
 \end{definition}
 
@@ -560,7 +560,7 @@ independent replacements for the blood-dynamics setting above.
     well-balanced or source-split discretization
     \cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems}
     \cite[Summary; Secs.~2.1--2.3; Secs.~5--6]{BoileauEtAl2015Benchmark}
-    \cite{FormaggiaMouraNobile2007Coupling}.
+    \cite{FormaggiaEtAl2007FSICoupling}.
 \end{definition}
 
 \begin{definition}[Single-vessel boundary data]
@@ -681,8 +681,8 @@ effective-viscosity law, inlet waveform, outlet pressure or load,
 pressure-reference convention, and tap locations. The recurring outputs are
 pressure drop, reduced pressure ratio, area, flow, radius, and either a reduced
 wall-friction/shear proxy or a resolved traction-based WSS quantity
-\cite{ShiLawfordHose2011,FormaggiaLamponiQuarteroni2003,KopplHelmig2023DimensionReducedModeling}
-\cite{CanicEtAl2024Extended1DStenosis,FormaggiaMouraNobile2007Coupling}.
+\cite{ShiEtAl2011BloodFlowModelReview,FormaggiaEtAl2003OneDimensionalBloodFlow,KopplHelmig2023DimensionReducedModeling}
+\cite{CanicEtAl2024Extended1DStenosis,FormaggiaEtAl2007FSICoupling}.
 The report therefore treats the selected 1D area-flow model as the controlled
 forward map for the first numerical study, while reserving 3D/FSI agreement,
 clinical calibration, and independent-solver parity for later evidence.
