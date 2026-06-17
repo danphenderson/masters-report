@@ -1,0 +1,314 @@
+\section{Domain Specific Notation}
+\label{app:domain-specific-notation}
+
+\begin{definition}[SI unit convention]
+\label{def:domain-si-unit-convention}
+Unless otherwise stated, physical units are SI: length in meters,
+time in seconds, density in $\mathrm{kg}/\mathrm{m}^3$, pressure in Pa,
+dynamic viscosity in $\mathrm{Pa}\cdot\mathrm{s}$, and kinematic viscosity in
+$\mathrm{m}^2/\mathrm{s}$.
+\end{definition}
+
+\begin{convention}[Pressure-reference and ratio convention]
+\label{conv:appendix-pressure-reference-ratio}
+Pressure-ratio outputs are reported only with a recorded pressure reference
+$p_{\mathrm{ref}}$ and a gauge pressure $p_{\mathrm{g}}$ in the same reference
+frame. The reference-consistent pressure used in ratios is
+\begin{flalign*}
+    \quad p_{\mathrm{ratio}} \defined p_{\mathrm{ref}} + p_{\mathrm{g}}. &&
+\end{flalign*}
+The ratio-output specification is
+\begin{flalign*}
+    \quad \pi_{\mathrm{PR}} \defined (z_{\mathrm{prox}},z_{\mathrm{dist}}, \mathcal{T}_{\mathrm{HF}},p_{\mathrm{ref}}). &&
+\end{flalign*}
+The subscript $\mathrm{HF}$ labels a declared high-flow averaging window in the
+study record; it is not a clinical hyperemia model unless an external
+measurement comparison is separately specified
+\cite[Ch.~5, Sec.~5.5, pp.~72--73]{EscanedDavies2017PhysiologicalAssessment}
+\cite[p.~1703]{PijlsEtAl1996FFRFunctionalSeverity}.
+The ratio-output specification is admissible for a computed pressure trace when
+$\mathcal{T}_{\mathrm{HF}}\subset I_T$ is Lebesgue-measurable with
+$0<|\mathcal{T}_{\mathrm{HF}}|<\infty$, the proximal and distal
+$p_{\mathrm{ratio}}$ traces are integrable on that window, and
+\begin{flalign*}
+    \quad \langle p_{\mathrm{ratio}}(z_{\mathrm{prox}},t) \rangle_{\mathcal{T}_{\mathrm{HF}}}\ne 0. &&
+\end{flalign*}
+For an admissible $\pi_{\mathrm{PR}}$, the corresponding nonclinical
+pressure ratio is
+\begin{flalign*}
+    \quad \mathrm{PR}_{1D}(\pi_{\mathrm{PR}}) \defined
+    \frac{\langle p_{\mathrm{ratio}}(z_{\mathrm{dist}},t)\rangle_{\mathcal{T}_{\mathrm{HF}}}}
+         {\langle p_{\mathrm{ratio}}(z_{\mathrm{prox}},t)\rangle_{\mathcal{T}_{\mathrm{HF}}}}. &&
+\end{flalign*}
+For an integrable scalar trace,
+\begin{flalign*}
+    \quad \langle f\rangle_{\mathcal{T}_{\mathrm{HF}}} \defined \frac{1}{|\mathcal{T}_{\mathrm{HF}}|} \int_{\mathcal{T}_{\mathrm{HF}}} f(t)\,dt. &&
+\end{flalign*}
+This bracket denotes time averaging, not the inner product notation in
+Appendix~\ref{app:mathematical-notation}.
+An FFR-like shorthand refers to this reduced ratio only for records carrying an
+admissible $\pi_{\mathrm{PR}}$; the shorthand does not add a clinical
+measurement model
+\cite[Ch.~5, Sec.~5.5, pp.~72--73]{EscanedDavies2017PhysiologicalAssessment}
+\cite[p.~1703]{PijlsEtAl1996FFRFunctionalSeverity}. If $\pi_{\mathrm{PR}}$ is
+absent or inadmissible, the pressure ratio is outside the reported output space.
+\end{convention}
+
+
+\begin{minipage}[t]{\textwidth}
+    \begin{tabular}{@{}p{0.22\linewidth} p{0.50\linewidth} p{0.18\linewidth}@{}}
+        \toprule
+        \textbf{Symbol} & \textbf{Meaning} & \textbf{Units} \\
+        \midrule
+        $R$ & vessel radius; vessel diameter is $d_v := 2R$ & $\mathrm{m}$ \\
+        $d_v$ & vessel diameter & $\mathrm{m}$ \\
+        $\eta$ & dynamic viscosity & $\mathrm{Pa}\cdot\mathrm{s}$ \\
+        $\nu := \eta/\rho$ & kinematic viscosity & $\mathrm{m}^2/\mathrm{s}$ \\
+        $\eta_{\mathrm{eff}}(\dot{\gamma})$
+            & effective dynamic viscosity for generalized Newtonian models
+            & $\mathrm{Pa}\cdot\mathrm{s}$ \\
+        $\tau$ & shear stress & $\mathrm{Pa}$ \\
+        $\dot{\gamma}$ & shear rate & $\mathrm{s}^{-1}$ \\
+        $\rho$ & density field & $\mathrm{kg}/\mathrm{m}^3$ \\
+        $p$ & pressure field & $\mathrm{Pa}$ \\
+        $\vu$ & velocity field & $\mathrm{m}/\mathrm{s}$ \\
+        $D(\vu)$ & rate-of-deformation tensor,
+        $D(\vu) := \frac{1}{2}\left(\nabla \vu + \nabla \vu^\top\right)$
+        & $\mathrm{s}^{-1}$ \\
+        $W_0:=d_v\sqrt{\frac{\omega\rho}{\eta}}$ & Womersley number, diameter-based convention & $-$ \\
+        $\mathrm{Re}$ & Reynolds number & $-$ \\
+        $\mathrm{Pe}$ & Péclet number & $-$ \\
+        $c_{\mathrm{conc}}$ & concentration field when a transport scalar is discussed & $-$ \\
+        $D_m$ & molecular diffusion coefficient & $\mathrm{m}^2/\mathrm{s}$ \\
+        $t$ & time & $\mathrm{s}$ \\
+        $T$ or $T_{\mathrm{final}}$
+            & terminal time; use $T_{\mathrm{final}}$ where it could be
+            confused with stress tensors
+            & $\mathrm{s}$ \\
+        $\omega$ & angular frequency & $\mathrm{rad}/\mathrm{s}$ \\
+        $(r,\theta,z)$
+            & cylindrical coordinates used only when 3D coordinate forms are
+            written
+            & $\mathrm{m},-,\mathrm{m}$ \\
+        $(\vct{e}_r,\vct{e}_\theta,\vct{e}_z)$ & cylindrical orthonormal basis vectors & $-$ \\
+        $\tau_{ij}$ & cylindrical viscous-stress component & $\mathrm{Pa}$ \\
+        $\vct{f_b}$ & body force per unit mass & $\mathrm{m}/\mathrm{s}^2$ \\
+        $\rho\vct{f_b}$ & body force per unit volume & $\mathrm{N}/\mathrm{m}^3$ \\
+        \bottomrule
+\end{tabular}
+\end{minipage}
+
+\paragraph*{Reduced-model and forward-map notation.}
+\par\smallskip\noindent
+
+\begingroup
+\small
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}
+        >{\raggedright\arraybackslash}p{0.54\linewidth}
+        >{\raggedright\arraybackslash}p{0.14\linewidth}@{}}
+        \toprule
+        \textbf{Symbol} & \textbf{Meaning} & \textbf{Units} \\
+        \midrule
+        \endfirsthead
+        \toprule
+        \textbf{Symbol} & \textbf{Meaning} & \textbf{Units} \\
+        \midrule
+        \endhead
+        $A(z,t)$ & cross-sectional lumen area in the 1D model & $\mathrm{m}^2$ \\
+
+        $Q(z,t)$ & volumetric flow rate through a cross-section & $\mathrm{m}^3/\mathrm{s}$ \\
+
+        $\bar u(z,t):=Q/A$ & section-mean axial velocity & $\mathrm{m}/\mathrm{s}$ \\
+
+        $I_z=(0,L)$ & axial single-vessel interval for a 1D formulation & $\mathrm{m}$ \\
+
+        $\mathbf U=(A,Q)^\top$ & conservative area-flow state vector & $(\mathrm{m}^2,\mathrm{m}^3/\mathrm{s})$ \\
+
+        $\alpha$
+            & prescribed momentum-flux coefficient in the 1D balance-law
+            closure; the baseline flat-profile convention is $\alpha=1$
+            & $-$ \\
+
+        $R(A(z,t))=\sqrt{A(z,t)/\pi}$
+            & current reduced lumen radius derived from the 1D area
+            & $\mathrm{m}$ \\
+
+        $R_0(z)$ & reference stenosed radius used by the wall law & $\mathrm{m}$ \\
+
+        $R_{\mathrm{base}}(z)$ & nominal healthy baseline radius before applying $s(z)$ & $\mathrm{m}$ \\
+
+        $\mathcal R$
+            & rheology descriptor in $a_{1D}$; distinct from radius symbols
+            $R$, $R_0$, and $R_{\mathrm{base}}$
+            & mixed \\
+
+        $s(z)$ & dimensionless stenosis profile, with $0\leq s(z)<1$ & $-$ \\
+
+        $A_0(z)=\pi R_0(z)^2$ & wall-law reference area after applying the stenosis profile & $\mathrm{m}^2$ \\
+
+        $s_{\max}$ & maximum fractional radius-reduction parameter in $s(z)$ & $-$ \\
+
+        $z_c$ & preferred notation for center of the stenosis profile & $\mathrm{m}$ \\
+
+        $z_s$ & alias for center of the stenosis profile used in legacy figures or prior notation & $\mathrm{m}$ \\
+
+        $\ell_s$ & preferred notation for length of the stenosis profile & $\mathrm{m}$ \\
+
+        $L_s$ & alias for length of the stenosis profile used in legacy figures or prior notation & $\mathrm{m}$ \\
+
+        $\beta(z)$ & wall-stiffness parameter in
+        $p_{\mathrm{g}}=p_{\mathrm{ext}}+\beta A_0^{-1}(\sqrt A-\sqrt{A_0})$ & $\mathrm{Pa}\cdot\mathrm{m}$ \\
+
+        $p_{\mathrm{ext}}(z,t)$
+            & external-pressure datum in the wall-law gauge convention;
+            baseline value $p_{\mathrm{ext}}\equiv0$ unless declared otherwise
+            & $\mathrm{Pa}$ \\
+
+        $\Psi(A,z,t)$ & elastic flux potential satisfying
+        $\partial_A\Psi=(A/\rho)\partial_Ap_{\mathrm{g}}$ and normalized by
+        $\Psi(A_0(z),z,t)=0$ & $\mathrm{m}^4/\mathrm{s}^2$ \\
+
+        $\mathbf F$ & area-flow flux map; not a residual or objective functional & problem-dependent \\
+
+        $\mathbf S$ & source-term map in the 1D balance-law template & problem-dependent \\
+
+        $\widehat{\mathbf F}_{i+1/2}^n$
+            & numerical flux at a finite-volume cell interface and time level
+            & problem-dependent \\
+
+        $\widehat{\mathbf S}_i^n$
+            & cell source quadrature used by a computed finite-volume scheme
+            & problem-dependent \\
+
+        $\Delta z_i,\Delta t^n$
+            & finite-volume cell length and timestep in a computed solve
+            & $\mathrm{m},\mathrm{s}$ \\
+
+        $C_f$ or $C_f(z,A)$ & wall-friction coefficient in the 1D source
+        $-C_fQ/A$; first-run value $C_f=8\pi\eta/\rho$ & $\mathrm{m}^2/\mathrm{s}$ \\
+
+        $\eta_{\mathrm{fric}}(z,t)$
+            & dynamic viscosity used by the reduced wall-friction and
+            signed-shear-proxy formula; \(\eta_{\mathrm{fric}}=\eta\) for
+            constant-viscosity records and
+            \(\eta_{\mathrm{fric}}=\eta_{\mathrm{eff}}(\dot\gamma_w)\) for the
+            admitted Carreau--Yasuda wall-friction extension
+            & $\mathrm{Pa}\cdot\mathrm{s}$ \\
+
+        $c_{\mathrm{wave}}$ or $c$ & 1D pulse-wave speed,
+        $c^2=(A/\rho)\partial_Ap_{\mathrm{g}}$ when no concentration field is in scope & $\mathrm{m}/\mathrm{s}$ \\
+
+        $e\in\mathcal E$
+            & expert/closure record for a closure-indexed 1D forward-map
+            family; suppress \(e\) only for single-expert baseline records
+            & mixed \\
+
+        $\mathcal G_{1D,h}^{r_h,e}$
+            & computed fixed-grid 1D map indexed by numerical record \(r_h\)
+            and expert record \(e\)
+            & mixed \\
+        \bottomrule
+\end{longtable}
+\endgroup
+
+
+\begin{minipage}[t]{\textwidth}
+    \small
+    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}
+        >{\raggedright\arraybackslash}p{0.54\linewidth}
+        >{\raggedright\arraybackslash}p{0.14\linewidth}@{}}
+        \toprule
+        \textbf{Symbol} & \textbf{Meaning} & \textbf{Units} \\
+        \midrule
+
+        $p_{3D}$ & continuum pressure in the 3D/NS setting & $\mathrm{Pa}$ \\
+
+        $p_{3D,\mathrm{g}}$
+            & continuum pressure after subtracting the wall-law gauge reference
+            & $\mathrm{Pa}$ \\
+
+        $p_{\mathrm{g}}$ & 1D gauge pressure produced by the wall law & $\mathrm{Pa}$ \\
+
+        $p_{\mathrm{ratio}}:=p_{\mathrm{ref}}+p_{\mathrm{g}}$
+            & reference-consistent pressure used in ratios by
+            Convention~\ref{conv:appendix-pressure-reference-ratio}
+            & $\mathrm{Pa}$ \\
+
+        $p_{\mathrm{ref}}$
+            & fixed pressure reference recorded by the ratio-output
+            specification
+            & $\mathrm{Pa}$ \\
+
+        $\pi_{\Delta p}=(z_{\mathrm{prox}},z_{\mathrm{dist}})$
+            & pressure-drop tap specification for the base 1D output map
+            & $\mathrm{m},\mathrm{m}$ \\
+
+        $\pi_{\mathrm{PR}}$
+            & ratio-output specification
+            $(z_{\mathrm{prox}},z_{\mathrm{dist}},
+            \mathcal{T}_{\mathrm{HF}},p_{\mathrm{ref}})$
+            & mixed \\
+
+        $\langle f\rangle_{\mathcal{T}_{\mathrm{HF}}}$
+            & time average of an integrable trace over the declared high-flow
+            window; not the Appendix~\ref{app:mathematical-notation} inner
+            product
+            & same as $f$ \\
+
+        $p_{\mathrm{out},\mathrm{g}}$
+            & prescribed outlet gauge pressure in the same reference frame as
+            $p_{\mathrm{g}}$
+            & $\mathrm{Pa}$ \\
+
+        $\Delta p(t)$ & proximal-minus-distal pressure drop computed from $p_{\mathrm{g}}$ & $\mathrm{Pa}$ \\
+
+        $\overline{\Delta p}_{\mathcal{T}_{\mathrm{HF}}}$
+            & scalar pressure-drop output averaged over recorded high-flow
+            window $\mathcal{T}_{\mathrm{HF}}$
+            & $\mathrm{Pa}$ \\
+
+        FFR-like shorthand
+            & optional shorthand for $\mathrm{PR}_{1D}$ only when
+            Convention~\ref{conv:appendix-pressure-reference-ratio}
+            and admissibility requirements are met
+            & $-$ \\
+
+        $\mathrm{PR}_{1D}(\pi_{\mathrm{PR}})$
+            & schematic nonclinical pressure-ratio quantity under the same
+            convention
+            & $-$ \\
+
+        $\tau_w$ or $|\tau_w|$ & resolved traction-based WSS magnitude in 3D contexts & $\mathrm{Pa}$ \\
+
+        $\tau_{w,z}^{1D}$
+            & signed 1D axial shear proxy from $Q$, $A$, and the recorded
+            wall-friction/rheology closure
+            & $\mathrm{Pa}$ \\
+        \bottomrule
+    \end{tabular}
+\end{minipage}
+
+\begin{remark}[Viscosity notation]
+\label{rmk:viscosity-notation}
+We write $\eta$ for dynamic viscosity and
+\begin{flalign*}
+    \quad \nu := \frac{\eta}{\rho} &&
+\end{flalign*}
+for kinematic viscosity. The distinction is dimensional: this report follows the
+convention that the
+coefficient in the Cauchy stress tensor is a dynamic viscosity: $D(\vu)$ has
+units of inverse time, so $\eta D(\vu)$ has pressure units. For generalized
+Newtonian models, the scalar viscosity function multiplying $2D(\vu)$ in the
+extra stress is likewise an effective dynamic viscosity, denoted
+\begin{flalign*}
+    \quad \eta_{\mathrm{eff}}(\dot{\gamma}), \qquad \dot{\gamma}\defined\sqrt{2\vct{D}(\vu):\vct{D}(\vu)}. &&
+\end{flalign*}
+Here ``this quantity'' means the stress-level viscosity coefficient, not the
+divided-by-density coefficient. Several sources write the generalized viscosity
+function as $\mu(|D|^2)$, while related hemodynamics sources also use $\mu$
+for viscosity coefficients in reduced and continuum settings
+\cite[Sec.~3.1, p.~35; Sec.~3.6, p.~215]{KopplHelmig2023DimensionReducedModeling}
+\cite[Sec.~1.1, pp.~6--7; Eqs.~(1.2)--(1.4); Fig.~4.4, p.~18]{ns-formulation}.
+To keep this report unambiguous, $\nu$ is always kinematic viscosity, while
+$\eta$ and $\eta_{\mathrm{eff}}$ are dynamic viscosities.
+\end{remark}

@@ -1,0 +1,122 @@
+\subsection{Governing Equations and Model Hierarchy}
+\label{subsec:governing-equations-model-hierarchy}
+
+The continuum assumptions of
+Section~\ref{subsec:continuum-constitutive-assumptions} lead naturally to a
+hierarchy of mathematical models used throughout computational hemodynamics.
+The hierarchy ranges from fully resolved three-dimensional descriptions to
+highly reduced lumped-parameter models.
+
+\subsubsection{Conservation Laws and Navier--Stokes Specialization}
+\label{subsubsec:conservation-laws}
+
+The governing equations originate from the conservation of mass and linear
+momentum applied to an incompressible continuum fluid; the derivation details
+and row-divergence convention are recorded in
+Appendix~\ref{app:continuum-derivation-details} and
+Definition~\ref{def:foundation-differential-operator-conventions}.
+
+Mass conservation requires that fluid volume be preserved, yielding
+\begin{flalign*}
+    \quad \Div\vu = 0 \qquad \text{in } \OmgBt. &&
+\end{flalign*}
+Linear momentum conservation balances inertial, pressure, viscous, and body
+forces,
+\begin{flalign*}
+    \quad
+    \rho \left(\partial_t\vu+(\vu\cdot\nabla)\vu\right)
+    \equals \Divbf(\vT)+\rho\vfb, &&
+\end{flalign*}
+where $\rho$ denotes density, $\vT$ is the Cauchy stress tensor, and $\vfb$
+represents body forces per unit mass
+\cite[Part~I, Ch.~1]{hemodynamics}
+\cite{QuarteroniFormaggia2004CardiovascularModeling}.
+
+Substituting the incompressible Newtonian stress law from
+Definition~\ref{def:incompressible-stress-tensor}, and assuming constant
+dynamic viscosity, gives the incompressible Navier--Stokes specialization
+\begin{flalign*}
+    \quad
+    \rho\left(\partial_t\vu+(\vu\cdot\nabla)\vu\right)
+    &=
+    -\nabla p+\eta\Delta\vu+\rho\vfb, \\
+    \Div\vu&=0.
+    &&
+\end{flalign*}
+The corresponding generalized-Newtonian incompressible model keeps the same
+kinematic constraint but replaces the constant-viscosity diffusion term by a
+shear-rate-dependent viscous stress:
+\begin{flalign*}
+    \quad
+    \rho\left(\partial_t\vu+(\vu\cdot\nabla)\vu\right)
+    &=
+    -\nabla p
+    +\Divbf\!\left(2\eta_{\mathrm{eff}}(\dot{\gamma})\vct{D}(\vu)\right)
+    +\rho\vfb, \\
+    \Div\vu&=0.
+    &&
+\end{flalign*}
+Together with boundary and initial data, these conservation principles form the
+foundation of the cardiovascular flow models considered throughout this report.
+
+\subsubsection{Boundary and Initial Data Vocabulary}
+\label{subsubsec:boundary-initial-data-vocabulary}
+
+For a single-vessel three-dimensional domain, write the boundary decomposition
+\begin{flalign*}
+    \quad
+    \partial\OmgBt
+    =
+    \Gamma_{\mathrm{in}}(t)\cup
+    \Gamma_{\mathrm{out}}(t)\cup
+    \Gamma_w(t). &&
+\end{flalign*}
+Here $\Gamma_{\mathrm{in}}(t)$ denotes an inlet portion where a velocity,
+flow-rate, or profile condition may be prescribed. The outlet portion
+$\Gamma_{\mathrm{out}}(t)$ carries pressure, traction, or reduced downstream
+network data. The wall portion $\Gamma_w(t)$ carries either a no-slip or
+no-penetration condition for a fixed-wall continuum model, or a
+wall-law/structure closure when wall motion is retained.
+\subsubsection{Model Hierarchy}
+\label{subsubsec:model-hierarchy}
+
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}
+    >{\raggedright\arraybackslash}p{0.15\linewidth}
+    >{\raggedright\arraybackslash}p{0.17\linewidth}
+    >{\raggedright\arraybackslash}p{0.18\linewidth}
+    >{\raggedright\arraybackslash}p{0.27\linewidth}
+    >{\raggedright\arraybackslash}p{0.15\linewidth}
+    @{}}
+    \toprule
+    \textbf{Model level}
+        & \textbf{State variables}
+        & \textbf{Domain}
+        & \textbf{Main assumptions}
+        & \textbf{Role in this report} \\
+    \midrule
+    3D Navier--Stokes
+        & $(\vu,p)$
+        & $\vx \in \OmgBt\subset\R^3$
+        & Continuum, incompressible, Newtonian or generalized Newtonian
+        & Reference continuum model \\
+    2D/axisymmetric
+        & Reduced velocity and pressure fields
+        & Meridional or cross-sectional domain
+        & Symmetry or geometric simplification of the 3D setting
+        & Intermediate model class \\
+    1D area-flow
+        & $(A,Q,p_{\mathrm{g}})$
+        & $z\in(0,L)$
+        & Cross-sectional averaging, wall law, and friction closure
+        & Numerical-study target \\
+    0D/lumped
+        & Pressures and flows
+        & Graph or network
+        & Spatially lumped compartments and algebraic/differential closure laws
+        & Boundary and network context \\
+    \bottomrule
+\end{tabular}
+\endgroup

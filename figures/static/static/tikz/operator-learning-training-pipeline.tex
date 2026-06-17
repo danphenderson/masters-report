@@ -1,0 +1,33 @@
+% ---------------------------------------------------------------
+% Forward-map realization context. Five uniformly sized blocks,
+% single edge weight. "Formulated" vs "external" stages are
+% encoded via solid (mathblue) vs dashed-border (accentTeal)
+% block styling rather than dashed grouping rectangles.
+% ---------------------------------------------------------------
+\begin{tikzpicture}[fig, scale=0.9, transform shape,
+    node distance=5mm,
+    stage/.style={schemBlock, text width=22mm, minimum height=16mm,
+                 align=center, font=\scriptsize},
+    pstage/.style={schemBlock, text width=22mm, minimum height=16mm,
+                  align=center, font=\scriptsize,
+                  draw=accentTeal!70!black, dash pattern=on 3pt off 1.6pt,
+                  fill=accentTealLite!42},
+    arr/.style={schemEdge, line width=0.9pt}]
+
+  \node[stage]  (descriptor) {\textbf{specify}\\geometry, material,\\waveforms};
+  \node[stage,  right=of descriptor] (realize) {\textbf{realize}\\1D\\forward map};
+  \node[stage,  right=of realize]    (record)  {\textbf{record}\\fields and\\derived outputs};
+  \node[pstage, right=of record]     (compare) {\textbf{external}\\comparison\\problem};
+  \node[pstage, right=of compare]    (criteria){\textbf{separate}\\criteria\\and data};
+
+  \draw[arr] (descriptor) -- (realize);
+  \draw[arr] (realize)    -- (record);
+  \draw[arr] (record)     -- (compare);
+  \draw[arr] (compare)    -- (criteria);
+
+  % Tier captions above the two regimes (no dashed grouping rectangles).
+  \node[font=\scriptsize, mathblue!70!black] at ($(descriptor)!0.5!(record)+(0,1.3)$)
+    {formulated map boundary};
+  \node[font=\scriptsize, accentTeal!65!black] at ($(compare)!0.5!(criteria)+(0,1.3)$)
+    {separate comparison boundary};
+\end{tikzpicture}

@@ -1,0 +1,62 @@
+% ---------------------------------------------------------------
+% figures/static/static/tikz/stenosis-parameterization.tex
+% Parametric profile R(z;smax)=R_base(1 - smax g(z;z_c,\ell_s))
+% with several smax values, indicating \ell_s, z_c, R_min.
+% Uses pgfplots cosine bump: g(z) = 1/2 (1+cos(2pi(z-z_c)/\ell_s))
+% on |z-z_c|<= \ell_s/2, zero outside.
+% ---------------------------------------------------------------
+\begin{tikzpicture}[fig]
+  \begin{axis}[name=ax,
+      width=11.2cm, height=6.0cm,
+      xlabel={axial coordinate $z$},
+      ylabel={reference radius $R_0(z;s_{\max})$},
+      xmin=0, xmax=10, ymin=0, ymax=1.25,
+      ytick={0,0.5,1.0},
+      yticklabels={$0$,$R_{\mathrm{base}}/2$,$R_{\mathrm{base}}$},
+      xtick={2.5,5,7.5},
+      xticklabels={$z_c\!-\!\ell_s/2$,$z_c$,$z_c\!+\!\ell_s/2$},
+      tick label style={font=\scriptsize},
+      xlabel style={font=\footnotesize},
+      ylabel style={font=\footnotesize},
+      legend style={font=\footnotesize, at={(0.98,0.04)},
+                    anchor=south east, draw=mathblue!40, fill=white,
+                    fill opacity=0.92, text opacity=1, inner sep=3pt},
+      grid=both, grid style={dashed, gray!22}]
+
+    \def\zs{5}
+    \def\Ls{5}
+
+    % smax = 0.2
+    \addplot[mathblue!80!black, line width=1pt, samples=200,
+             domain=0:10] {1 - 0.2 * ((x>(\zs-\Ls/2)) * (x<(\zs+\Ls/2)) *
+              0.5*(1+cos(360*(x-\zs)/\Ls)))};
+    \addlegendentry{$s_{\max}=0.2$}
+
+    % smax = 0.35
+    \addplot[stenosisOrange, line width=1pt, samples=200,
+             domain=0:10] {1 - 0.35 * ((x>(\zs-\Ls/2)) * (x<(\zs+\Ls/2)) *
+              0.5*(1+cos(360*(x-\zs)/\Ls)))};
+    \addlegendentry{$s_{\max}=0.35$}
+
+    % smax = 0.55 (upper end of first solver-screening range)
+    \addplot[bloodred!80!black, line width=1.1pt, samples=200,
+             domain=0:10] {1 - 0.55 * ((x>(\zs-\Ls/2)) * (x<(\zs+\Ls/2)) *
+              0.5*(1+cos(360*(x-\zs)/\Ls)))};
+    \addlegendentry{$s_{\max}=0.55$}
+
+    % R_min indicator for smax=0.55
+    \draw[<->, bloodred, line width=0.5pt] (axis cs:5,0) -- (axis cs:5,0.45)
+      node[midway, right=1pt, font=\scriptsize, bloodred,
+           fill=white, fill opacity=0.88, text opacity=1, inner sep=1pt]
+        {$R_{\min}$};
+    % stenotic blockage length (placed inside the dip region so it does
+    % not collide with any header band)
+    \draw[<->, wallgray!85!black, line width=0.5pt]
+      (axis cs:2.5,1.08) -- (axis cs:7.5,1.08)
+      node[midway, above=1pt, font=\scriptsize, wallgray!85!black,
+           fill=white, fill opacity=0.88, text opacity=1, inner sep=1pt]
+        {$\ell_s$};
+    % z_c
+    \draw[mathblue!55, dashed, line width=0.5pt] (axis cs:5,0) -- (axis cs:5,1.03);
+  \end{axis}
+\end{tikzpicture}

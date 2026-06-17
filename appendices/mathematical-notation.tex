@@ -1,0 +1,81 @@
+\section{Mathematical Notation}
+\label{app:mathematical-notation}
+
+\begin{notation}[Report mathematical notation]
+\label{not:global-mathematical-notation}
+This appendix collects the mathematical notation used throughout this report.
+\end{notation}
+
+\begingroup
+\small
+\begin{longtable}{@{}
+    >{\raggedright\arraybackslash}p{0.36\linewidth}
+    @{\hspace{1em}}
+    >{\raggedright\arraybackslash}p{0.58\linewidth}
+    @{}}
+    \toprule
+    \textbf{Symbol} & \textbf{Meaning} \\
+    \midrule
+    \endfirsthead
+    \toprule
+    \textbf{Symbol} & \textbf{Meaning} \\
+    \midrule
+    \endhead
+        $\defined$                      & defines\\
+        $\equivto$                      & notational equivalence / identified with \\
+        $ \R$                           & real numbers \\
+        $ \R^{+}$                       & strictly positive real numbers \\
+        $ \R^{-}$                       & strictly negative real numbers \\
+        $ \R^{n}$                       & n-dimensional real vector space \\
+        $ \N$                           & natural numbers \\
+        $ \N_0$                         & nonnegative integers $\{0,1,2,\ldots\}$ \\
+        $ \generalbasis$                & general basis of $\R^{n}$ \\
+        $ \stdbasis$                    & standard basis of $\R^{n}$ \\
+        $ [n]$                          & index set $\{1,2,\ldots,n\}\subset\N$ for $n\in\N$ \\
+        $ I_T$
+            & open time interval $(0,T_{\mathrm{final}})$ for transient
+            interior-time arguments \\
+        $ \overline{I}_T$
+            & closed time interval $[0,T_{\mathrm{final}}]$ for initial-time
+            data and flow maps \\
+        $K$
+            & compact space-time rectangle, such as
+            $[0,\ell]\times[0,T_{\mathrm{final}}]$, used for output-field
+            norms when locally stated \\
+        $ \Omg \subset \R^{n}$          & bounded domain \\
+        $ \OmgBar$                      & the closure of $\Omg$ \\
+        $ \pOmg$                        & the boundary of $\Omg$ \\
+        $ \OmgBt$                       & spatial blood domain at time $t$ \\
+        $ \mathcal{Q}_T$                & space-time fluid region $\{(t,\vx): t\in I_T,\ \vx\in\OmgBt\}$ \\
+        $C^{k}(\Omg)$                   & functions with continuous classical derivatives through order $k$ in $\Omg$ \\
+        $C^{k}(\OmgBar)$
+            & functions whose derivatives through order $k$ extend
+            continuously to $\OmgBar$ \\
+        $C^{k}_{c}(\Omg)$
+            & $k$ times continuously differentiable functions with compact
+            support in $\Omg$ \\
+        $C^{\infty}_{c}(\Omg)$          & smooth functions with compact support in $\Omg$ \\
+        $C(K)$                          & continuous functions on a stated compact set $K$ \\
+        $L^{p}(\Omg)$                   & Lebesgue space of $p$-integrable functions modulo equality a.e. \\
+        $ \dx $                           & Lebesgue volume element on $\R^n$ \\
+        $ \dSx $                          & surface measure element on $\pOmg\subset\R^n$ \\
+        $ dV $                            & 3D volume element on domain $\Omg \subset \R^3$ \\
+        $ dS $                            & 3D surface element on boundary $\pOmg \subset \R^3$ \\
+        $ \nabla $                        & gradient operator \\
+        $ \del \phi=\nabla\cdot\nabla\phi$ & Laplacian of scalar field $\phi$ \\
+        $ \Div $                          & divergence of a vector field \\
+        $ \Divbf $                        & row-wise divergence of a tensor field \\
+        $ \vct{v}_i$                      & $i$-th component of vector $\vct{v}$ \\
+        $ \vct{S}:\vct{T}$              & Frobenius contraction $\sum_{i,j}S_{ij}T_{ij}$ for second-order tensors \\
+        $ \inp{\cdot}{\cdot}_X$ & inner product on vector space $X$ \\
+        $ \inp{\vu}{\vv} \equivto \inp{\vu}{\vv}_{\R^n}$ & inner product of vectors $\vu, \vv \in \R^n$ \\
+        $ \pd_{\nhat}\phi$
+            & normal derivative $\inp{\nabla\phi}{\nhat}$ of scalar field
+            $\phi$ on $\pOmg$ \\
+        $\norm{\cdot}_{X}$
+            & norm on a specified normed space $X$; bare $\norm{\cdot}$ is
+            local shorthand \\
+        $\norm{\cdot}_{\mathrm F}$        & Frobenius norm of a matrix or second-order tensor \\
+\bottomrule
+\end{longtable}
+\endgroup

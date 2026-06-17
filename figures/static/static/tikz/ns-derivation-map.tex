@@ -1,0 +1,91 @@
+% ---------------------------------------------------------------
+% figures/static/static/tikz/ns-derivation-map.tex
+% Derivation map: vertical pipeline that fuses an
+% incompressibility lane (mathblue) and a stress-closure lane
+% (accentTeal) into the generalized-Newtonian incompressible
+% momentum equation, then divides by density. Uses the shared schemBlock /
+% schemOperator styles and `positioning` placement; no explicit
+% xshift/yshift chains, single edge weight, two-color theme.
+% ---------------------------------------------------------------
+\begin{tikzpicture}[fig, scale=0.92, transform shape,
+    node distance=11mm and 22mm,
+    every edge/.style={draw, schemEdge},
+    lane/.style={schemBlock, text width=54mm, minimum height=12mm,
+                 align=center},
+    laneT/.style={schemOperator, text width=54mm, minimum height=12mm,
+                  align=center},
+    finalNS/.style={schemOperator, text width=130mm, minimum height=22mm,
+                    align=center, font=\footnotesize},
+    finalKin/.style={schemBlock, text width=130mm, minimum height=20mm,
+                     align=center, font=\footnotesize},
+    edgeNote/.style={tagLabelM, midway, font=\scriptsize, align=center,
+                     inner sep=1.5pt}]
+
+  % Row 1: conservation inputs (two columns)
+  \node[lane] (mass)
+    {Mass conservation\\[1pt]
+     $\partial_t\rho+\Div(\rho\vu)=0$};
+  \node[laneT, right=of mass] (mom)
+    {Local linear momentum balance\\[-1pt]
+     {\scriptsize transport $+$ divergence theorems}\\[1pt]
+     $\rho\bigl(\partial_t\vu+(\vu\!\cdot\!\nabla)\vu\bigr)
+       =\Divbf\vT+\rho\vfb$};
+
+  % Row 2: incompressibility / stress closure
+  \node[lane, below=of mass] (divfree)
+    {Continuity under $\rho\equiv\rho_0$\\[1pt]
+     $\Div\vu=0$};
+  \node[laneT, below=of mom] (stress)
+    {Cauchy stress closure\\[1pt]
+     $\vT=-p\,\ident+2\eta_{\mathrm{eff}}(\dot{\gamma})\vct{D}(\vu)$\\[-1pt]
+     $\dot{\gamma}=\sqrt{2\vct{D}(\vu):\vct{D}(\vu)}$};
+
+  % Row 3: Newtonian specialization (closure lane only)
+  \node[laneT, below=of stress] (newt)
+    {Newtonian specialization\\[1pt]
+     {\scriptsize constant $\eta$, $\Div\vu=0$}\\[1pt]
+     $\eta_{\mathrm{eff}}\equiv\eta,\;\;\nu=\eta/\rho_0$\\[-1pt]
+     $\Divbf\!\bigl(2\eta\vct{D}(\vu)\bigr)=\eta\Delta\vu$};
+
+  % Row 4: merged generalized momentum equation (spans both columns)
+  \coordinate (mergeAnchor) at ($(divfree.south)!0.5!(newt.south)$);
+  \node[finalNS, below=26mm of mergeAnchor] (ns)
+    {\textbf{Generalized-Newtonian incompressible momentum equation}\\[3pt]
+     $\begin{aligned}
+       \rho_0\bigl(\partial_t\vu+(\vu\!\cdot\!\nabla)\vu\bigr)
+       &=-\nabla p
+         +\Divbf\!\bigl(2\eta_{\mathrm{eff}}(\dot{\gamma})\vct{D}(\vu)\bigr)
+         +\rho_0\vfb,\\
+       \Div\vu&=0,\qquad \rho\equiv\rho_0
+     \end{aligned}$};
+
+  % Row 5: kinematic / divided-by-density form
+  \node[finalKin, below=8mm of ns] (kin)
+    {\textbf{Divided-by-density form}\\[3pt]
+     $\begin{aligned}
+       \partial_t\vu+(\vu\!\cdot\!\nabla)\vu
+       &=-\frac{1}{\rho_0}\nabla p
+         +\Divbf\!\bigl(2\nu_{\mathrm{eff}}(\dot{\gamma})\vct{D}(\vu)\bigr)
+         +\vfb,\\
+       \Div\vu&=0,\qquad
+       \nu_{\mathrm{eff}}(\dot{\gamma})=\eta_{\mathrm{eff}}(\dot{\gamma})/\rho_0
+     \end{aligned}$};
+
+  % Edges (uniform schemEdge weight). Labels placed on the outside
+  % of each lane so they never cross the equation boxes.
+  \draw (mass) edge node[edgeNote, left=2pt] {$\rho=\rho_0$} (divfree);
+  \draw (mom)  edge node[edgeNote, right=2pt]
+       {constitutive\\closure} (stress);
+  \draw (stress) edge node[edgeNote, right=2pt]
+       {constant $\eta$} (newt);
+
+  % Lanes merge into the generalized momentum box. The Newtonian box is a
+  % specialization branch of the stress law, not an input to the generalized law.
+  \draw[schemEdge] (divfree.south) -- ++(0,-0.45) -| (ns.north west);
+  \draw[schemEdge] (stress.west) -- ++(-0.45,0) |- (ns.north east);
+
+  % NS -> kinematic form
+  \draw[schemEdge] (ns.south) -- (kin.north)
+    node[midway, right=2pt, tagLabelM, font=\scriptsize]
+      {divide by $\rho_0$};
+\end{tikzpicture}

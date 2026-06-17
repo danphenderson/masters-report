@@ -1,0 +1,70 @@
+% ---------------------------------------------------------------
+% Two-panel comparison: per-instance solve versus
+% family-map use. Explicit (non-foreach) example triples,
+% balanced panel sizes, normal-weight map label,
+% unified accentTeal/mathblue/bloodred semantics. No verbose
+% bottom captions (the figure caption already explains both
+% panels).
+% ---------------------------------------------------------------
+\begin{tikzpicture}[fig, transform shape,
+    panel/.style={draw=wallgray!55, rounded corners=3pt, line width=0.6pt,
+                  fill=white, minimum width=64mm, minimum height=44mm},
+    item/.style={draw=mathblue!65!black, fill=mathblueLite!40,
+                 rounded corners=2pt, minimum width=18mm, minimum height=7mm,
+                 align=center, font=\footnotesize},
+    weight/.style={draw=accentTeal!70!black, fill=accentTealLite!55,
+                   rounded corners=2pt, minimum width=18mm, minimum height=7mm,
+                   align=center, font=\footnotesize},
+    field/.style={draw=bloodred!65!black, fill=bloodredlight!55,
+                  rounded corners=2pt, minimum width=18mm, minimum height=7mm,
+                  align=center, font=\footnotesize},
+    opbox/.style={draw=accentTeal!75!black, fill=accentTealLite!65,
+                  rounded corners=3pt, line width=1pt,
+                  minimum width=22mm, minimum height=14mm,
+                  align=center, font=\normalsize\bfseries},
+    arr/.style={schemEdge, line width=0.85pt},
+    flow/.style={->, bloodred!70!black, line width=0.85pt,
+                 line cap=round, line join=round}]
+
+  % ============ LEFT PANEL: per-instance solve ============
+  \node[panel] (pL) at (-3.7,0) {};
+  \node[panelTitle, mathblue!60!black] at (-3.7,1.75)
+    {Instance solve};
+
+  % Three explicit instances (no \foreach repetition).
+  \node[item]   (a1) at (-5.45, 0.75) {$a_1$};
+  \node[weight] (t1) at (-3.75, 0.75) {$\theta_1$};
+  \node[field]  (u1) at (-2.05, 0.75) {$u_1$};
+  \node[item]   (a2) at (-5.45, 0.00) {$a_2$};
+  \node[weight] (t2) at (-3.75, 0.00) {$\theta_2$};
+  \node[field]  (u2) at (-2.05, 0.00) {$u_2$};
+  \node[item]   (a3) at (-5.45,-0.75) {$a_3$};
+  \node[weight] (t3) at (-3.75,-0.75) {$\theta_3$};
+  \node[field]  (u3) at (-2.05,-0.75) {$u_3$};
+
+  \draw[arr]  (a1) -- (t1); \draw[flow] (t1) -- (u1);
+  \draw[arr]  (a2) -- (t2); \draw[flow] (t2) -- (u2);
+  \draw[arr]  (a3) -- (t3); \draw[flow] (t3) -- (u3);
+
+  \node[font=\scriptsize, mathblue!55!black] at (-3.7,-1.65)
+    {one optimisation per instance};
+
+  % ============ RIGHT PANEL: family map ============
+  \node[panel] (pR) at (3.7,0) {};
+  \node[panelTitle, accentTeal!55!black] at (3.7,1.75)
+    {Family map};
+
+  \node[item, text width=20mm] (family)  at (1.6, 0.55)
+    {$\{(a_j,u_j)\}$};
+  \node[item, text width=20mm] (newcase) at (1.6,-0.55)
+    {$a_\star$};
+  \node[opbox] (G) at (3.85,0) {$\widehat{\mathcal G}_{\theta}$};
+  \node[field, text width=20mm] (pred) at (5.95,0) {$\widehat u(a_\star)$};
+
+  \draw[arr] (family)  -- (G);
+  \draw[arr] (newcase) -- (G);
+  \draw[flow] (G) -- (pred);
+
+  \node[font=\scriptsize, accentTeal!55!black] at (3.7,-1.65)
+    {one candidate map, many cases};
+\end{tikzpicture}

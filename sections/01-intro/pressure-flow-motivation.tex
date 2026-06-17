@@ -1,0 +1,135 @@
+\subsection{Clinical Pressure--Flow Motivation}
+\label{subsec:pressure-flow-motivation}
+
+\paragraph{Anatomy--function distinction.}
+Coronary stenosis is the motivating lesion class because a visible narrowing
+does not automatically imply a flow-limiting obstruction. Clinical assessment
+therefore distinguishes anatomical stenosis detection from functional
+pressure--flow assessment
+\cite[p.~4401]{ehab332}
+\cite[Ch.~1, p.~15; Fig.~1.14; Ch.~2, Secs.~2.1--2.2, pp.~22--23;
+Ch.~4, Secs.~4.1 and~4.3, pp.~56--57]{EscanedDavies2017PhysiologicalAssessment}
+\cite[Sec.~1, Introduction, pp.~390--391]{ShaikhEtAl2025CTFFR}.
+Coronary lesion-imaging studies likewise show that anatomy-side lesion
+description carries local geometry and length context, but those descriptors
+still remain distinct from the functional pressure--flow outputs treated here
+\cite[Abstract; Methods; Table~2; Tables~3--5]{VanDenHoogenEtAl2022CoronaryLesionCTA}.
+This anatomy--function split motivates reporting pressure drop, reduced
+pressure ratio, and reduced shear information rather than treating stenosis
+severity $s_{\max}$ as the output.
+Figure~\ref{fig:anatomical-functional-motivation} summarizes this motivation
+as a schematic distinction between visible narrowing and pressure--flow loss.
+
+Clinical fractional flow reserve (FFR) is an invasive pressure-wire index,
+conventionally interpreted in its measurement setting as distal coronary
+pressure divided by aortic pressure during maximal hyperemia
+\cite[Ch.~5, Sec.~5.5, pp.~72--73]{EscanedDavies2017PhysiologicalAssessment}
+\cite[Abstract, Background]{PijlsEtAl1996FFRFunctionalSeverity}. FAME
+lesion-level evidence documented the discordance between angiographic and
+functional severity and is the clinical source for the familiar
+$\mathrm{FFR}\le 0.80$ decision context.
+\cite[Abstract, Results and Conclusions]{ToninoEtAl2010FAMEAngioFunctional}.
+Computed tomography-derived FFR (CT-FFR) sources supply noninvasive comparison
+vocabulary within their reported study designs: they compare pressure--flow
+quantities inferred from coronary computed tomography angiography
+(CCTA)-derived anatomy against invasive FFR or related reference measurements
+\cite[Abstract, Methods, Results and Conclusions]{NorgaardEtAl2014NXTFFRCT}
+\cite[Abstract; Sec.~1, Introduction; Secs.~1.1--1.2, pp.~390--392]{ShaikhEtAl2025CTFFR}.
+
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{anatomical-vs-functional-stenosis}
+    \caption{Pressure--flow motivation for the reduced-output contract. The
+    schematic distinguishes an anatomical narrowing from the pressure-loss
+    signature used by reduced-model outputs.}
+    \label{fig:anatomical-functional-motivation}
+\end{figure}
+
+For the selected model pressure field, define the observed proximal and distal
+pressure traces by
+\begin{flalign*}
+    \quad
+    P_{\mathrm{prox}}(t)
+    \defined
+    \mathcal P_{\mathrm{prox}}[p(\cdot,t)],
+    \qquad
+    P_{\mathrm{dist}}(t)
+    \defined
+    \mathcal P_{\mathrm{dist}}[p(\cdot,t)]. &&
+\end{flalign*}
+The pressure-drop waveform is the additive-datum-invariant quantity
+\begin{flalign*}
+    \quad
+    \Delta p(t)
+    \defined
+    P_{\mathrm{prox}}(t)-P_{\mathrm{dist}}(t). &&
+\end{flalign*}
+Unlike $\Delta p(t)$, a pressure ratio is not invariant under additive pressure
+shifts, so the ratio convention must declare a common additive pressure
+reference. The manuscript's convention adds that reference after the pressure
+observations have been taken. With the declared $p_{\mathrm{ref}}$, define
+\begin{flalign*}
+    \quad
+    P_{\mathrm{prox}}^{\mathrm{ratio}}(t)
+    \defined
+    p_{\mathrm{ref}}+P_{\mathrm{prox}}(t),
+    \qquad
+    P_{\mathrm{dist}}^{\mathrm{ratio}}(t)
+    \defined
+    p_{\mathrm{ref}}+P_{\mathrm{dist}}(t). &&
+\end{flalign*}
+If a selected observation functional preserves constant shifts, then these
+ratio-pressure traces agree with observing $p_{\mathrm{ref}}+p(\cdot,t)$
+directly. The definition above does not require that property; it fixes the
+ratio convention at the level of observed scalar traces.
+For an admissible ratio-output specification whose observed proximal and distal
+ratio-pressure traces are integrable on the window and whose declared
+denominator rule makes the proximal averaged denominator well defined and
+nonzero, the reduced pressure ratio is
+\begin{flalign*}
+    \quad
+    \mathrm{PR}_{1D}(\pi_{\mathrm{PR}})
+    \defined
+    \frac{\hfavg{P_{\mathrm{dist}}^{\mathrm{ratio}}(t)}}
+         {\hfavg{P_{\mathrm{prox}}^{\mathrm{ratio}}(t)}}. &&
+\end{flalign*}
+The 1D specialization used later is the case in which
+$\mathcal P_{\mathrm{prox}}$ and $\mathcal P_{\mathrm{dist}}$ are evaluated
+from the declared axial pressure taps or cross-sectional pressure averages;
+see Figure~\ref{fig:pressure-tap-convention}.
+
+\textbf{\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{stenosis-schematic}
+    \caption{Schematic tap and output convention for an idealized stenosis,
+    not drawn from a computed case. The taps define $\Delta p(t)$;
+        $\pi_{\mathrm{PR}}$ additionally declares the averaging window, pressure
+        reference, and denominator rule needed for
+        $\mathrm{PR}_{1D}(\pi_{\mathrm{PR}})$.}
+    \label{fig:pressure-tap-convention}
+\end{figure}
+}
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{reduced-output-signals}
+    \caption{%
+        Reduced-output signals over one schematic cardiac cycle. The imposed
+        inflow trace, pressure-drop waveform, metadata-dependent pressure
+        ratio, and signed 1D shear proxy illustrate the declared output
+        semantics, not simulated data or acceptance evidence.}
+    \label{fig:reduced-output-signals}
+\end{figure}
+
+\paragraph{Resolved wall shear stress (WSS) and reduced shear proxy.}
+Pressure ratios and pressure drops summarize lesion-scale functional loss in the
+selected model tier. Wall shear stress describes local wall loading in a
+resolved state. These roles are related but not interchangeable. When the stress
+trace is well defined, resolved WSS is the tangential part of the wall traction
+obtained from a resolved stress tensor and wall normal; a signed component
+additionally requires a chosen wall-tangent direction
+\cite[Abstract; Sec.~2, pp.~8--10]{ns-formulation}.
+The reduced shear proxy used later is therefore a tier-specific closure
+diagnostic, separate from resolved traction-based WSS.

@@ -1,0 +1,70 @@
+% ---------------------------------------------------------------
+% figures/static/static/tikz/fluid-element.tex
+% Material control volume used before cross-sectional averaging.
+% Annotations live in clear top/bottom gutters with leader lines so
+% labels never sit on the dashed centerline or inside the wall fill,
+% and outward-normal arrows are lifted off the centerline so they
+% never collide with the inflow velocity arrow.
+% ---------------------------------------------------------------
+\begin{tikzpicture}[fig, scale=1.08, transform shape]
+  % vessel wall + lumen (unchanged geometry)
+  \path[vesselWall]
+    (-3.4,1.08) .. controls (-1.7,1.34) and (1.6,1.24) .. (3.4,0.98)
+    -- (3.4,-0.98) .. controls (1.6,-1.24) and (-1.7,-1.34) .. (-3.4,-1.08)
+    -- cycle;
+  \path[lumen]
+    (-3.4,0.78) .. controls (-1.7,0.98) and (1.6,0.90) .. (3.4,0.68)
+    -- (3.4,-0.68) .. controls (1.6,-0.90) and (-1.7,-0.98) .. (-3.4,-0.78)
+    -- cycle;
+
+  % material slice V(t) -- subdued wash so the slice highlights the
+  % control volume without overpowering the lumen colour.
+  \begin{scope}
+    \clip (-1.45,0.92) -- (1.55,0.88) -- (1.55,-0.88) -- (-1.45,-0.92) -- cycle;
+    \path[fill=bloodred!28] (-3.6,-1.4) rectangle (3.6,1.4);
+  \end{scope}
+  \draw[mathblue, line width=0.9pt] (-1.45,0.92) -- (-1.45,-0.92);
+  \draw[mathblue, line width=0.9pt] ( 1.55,0.88) -- ( 1.55,-0.88);
+
+  % centerline
+  \draw[centerline] (-3.25,0) -- (3.25,0);
+
+  % cap labels in top gutter with dashed leaders to the cap lines
+  \node[labelM, anchor=south] at (-1.45,1.55) {$S_1(t)$};
+  \node[labelM, anchor=south] at ( 1.55,1.55) {$S_2(t)$};
+  \draw[helperLine] (-1.45,1.52) -- (-1.45,0.92);
+  \draw[helperLine] ( 1.55,1.52) -- ( 1.55,0.88);
+
+  % V(t) label inside the slice but below the centerline (clear band)
+  \node[bloodred!60!black, font=\small\itshape]
+    at (0.05,-0.42) {$V(t)\subset\OmgBt$};
+
+  % inflow velocity (centerline, well left of the slice)
+  \draw[flowArrowMain] (-2.95,0) -- (-2.20,0);
+  \node[labelB, anchor=south] at (-2.55,0.06) {$\vu(t,\vx)$};
+
+  % outward normals on the caps: lifted high enough that the labels
+  % cannot share an arrowhead row with the inflow velocity arrow.
+  \draw[axisArrow] (-1.45, 0.62) -- (-2.10, 0.62)
+    node[left, labelM] {$\hat{\bm n}$};
+  \draw[axisArrow] ( 1.55, 0.62) -- ( 2.20, 0.62)
+    node[right, labelM] {$\hat{\bm n}$};
+
+  % outward normal on the compliant wall; wall label sits ABOVE the
+  % S_2 cap label so they no longer share a horizontal row
+  \coordinate (Pw) at (0.15,1.03);
+  \fill[mathblue] (Pw) circle (1pt);
+  \draw[axisArrow] (Pw) -- ++(0,0.62)
+    node[above, labelM] {$\hat{\bm n}$};
+  \node[labelW, anchor=south west] at (-0.20,1.96) {$\Gamma_w(t)$};
+
+  % R(z,t) callout inside the lumen, right of the slice; never crosses
+  % the wall outline
+  \draw[centerline] (2.40,0) -- (2.40,0.78);
+  \draw[measureBiArrow, line width=0.55pt] (2.40,0.06) -- (2.40,0.78);
+  \node[labelM, anchor=west, font=\scriptsize] at (2.48,0.42) {$R(z,t)$};
+
+  % Corner axes match the vessel-coordinate convention used elsewhere.
+  \draw[axisArrow] (-3.30,-1.55) -- (-2.55,-1.55) node[right, labelM] {$z$};
+  \draw[axisArrow] (-3.30,-1.55) -- (-3.30,-0.85) node[above, labelM] {$r$};
+\end{tikzpicture}

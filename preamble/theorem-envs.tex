@@ -1,0 +1,35 @@
+% ================== THEOREM ENVIRONMENTS ==================
+\numberwithin{equation}{section}
+\newcommand{\numberthis}{\refstepcounter{equation}\tag{\theequation}}
+
+% Theorem-like environments are intentionally unboxed; avoid local frame wrappers.
+% Main shared counter per section.
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\AtBeginDocument{%
+  \providecommand*{\theHsection}{\thesection}%
+  \providecommand*{\theHequation}{}%
+  \providecommand*{\theHtheorem}{}%
+  \renewcommand*{\theHequation}{\theHsection.\arabic{equation}}%
+  \renewcommand*{\theHtheorem}{\theHsection.\arabic{theorem}}%
+}
+
+% All others share the same counter as theorem.
+\theoremstyle{plain}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{notation}[theorem]{Notation}
+\newtheorem{convention}[theorem]{Convention}
+\newtheorem{assumption}[theorem]{Assumption}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+% Other logical environments
+\newenvironment{solution}
+  {\renewcommand\qedsymbol{$\blacksquare$}\begin{proof}[\textbf{Solution}]}
+  {\end{proof}}

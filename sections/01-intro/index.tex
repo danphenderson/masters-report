@@ -1,0 +1,48 @@
+\section{Introduction and Report Scope}
+\label{sec:intro}
+
+Coronary and arterial stenoses motivate a basic computational question: how do
+geometry, wall properties, rheology, and boundary data determine the state of
+blood flow through an idealized narrowed vessel? Clinical pressure-ratio
+measurements motivate the question because anatomical narrowing alone does not
+determine functional obstruction. This report, however, is a mathematical and
+numerical study, not a clinical validation study.
+
+The report fixes the vocabulary needed to move from continuum assumptions, to
+the three-dimensional incompressible Navier--Stokes and generalized-Newtonian
+settings, to reduced 0D/1D/2D hemodynamic model classes, and finally to a
+selected one-dimensional numerical study of an idealized stenosis. Its
+contribution is twofold: it organizes the relevant mathematical and numerical
+literature, and it frames a controlled computation for a smooth idealized
+stenosed vessel.
+
+\todo{Add figure showing vessel}
+
+Pressure-ratio quantities in this report are computed model outputs, not
+clinical FFR or CT-FFR measurements, unless an external measurement comparison
+is explicitly introduced. Convention~\ref{conv:appendix-pressure-reference-ratio}
+in Appendix~\ref{app:domain-specific-notation} records the pressure-reference,
+gauge-pressure, high-flow-window, and admissibility conventions used for any
+reduced pressure-ratio output.
+
+
+
+\subsection*{Literature Review Roadmap}
+
+\addcontentsline{toc}{subsection}{Literature Review Roadmap}
+
+\begin{enumerate}
+    \item Section~\ref{subsec:continuum-constitutive-assumptions} fixes the
+    continuum, kinematic, balance-law, and constitutive vocabulary used later in
+    the report.
+    \item Section~\ref{subsec:governing-equations-model-hierarchy} identifies
+    the governing equations, boundary-data vocabulary, and model hierarchy.
+    \item Later literature-review sections use this vocabulary to compare
+    classical finite-difference, finite-volume, and finite-element approaches
+    for hemodynamic models.
+    \item The numerical-study portion then applies the selected reduced model
+    to a controlled idealized stenosis computation.
+\end{enumerate}
+
+\input{sections/01-intro/blood-continuum}
+\input{sections/01-intro/governing-equations}

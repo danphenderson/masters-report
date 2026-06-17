@@ -1,0 +1,32 @@
+\documentclass[10pt]{article}
+
+\input{preamble/packages.tex}
+\input{preamble/bibliography.tex}
+\input{preamble/hyperref.tex}
+\input{preamble/theorem-envs.tex}
+\input{preamble/notation-macros.tex}
+\input{preamble/macros.tex}
+\input{frontmatter/title.tex}
+
+\begin{document}
+    \maketitle
+    \thispagestyle{empty}
+
+    \input{frontmatter/abstract.tex}
+
+    \medskip
+    \input{frontmatter/keywords.tex}
+
+    \clearpage
+    \tableofcontents
+    \clearpage
+
+    % Introduction and report scope.
+    \include{sections/01-intro/index}
+
+    % Appendix
+    \include{appendices/index}
+
+    \clearpage
+    \printbibliography
+\end{document}

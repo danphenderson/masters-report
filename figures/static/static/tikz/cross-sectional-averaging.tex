@@ -1,0 +1,79 @@
+% ---------------------------------------------------------------
+% figures/static/static/tikz/cross-sectional-averaging.tex
+% 3D vessel slice -> 1D quantities by cross-sectional
+% averaging. Defines A(z,t), Q(z,t), and the mean gauge pressure p_{\mathrm{g}}(z,t).
+% ---------------------------------------------------------------
+\begin{tikzpicture}[fig, scale=0.98, transform shape,
+    smallLabel/.style={font=\scriptsize, fill=white, fill opacity=0.86,
+                       text opacity=1, inner sep=1pt}]
+  % LEFT: 3D-ish cylinder with one cross section
+  \begin{scope}[local bounding box=L]
+    \def\L{4.6}
+    \def\R{0.9}
+    \path[vesselWall] (0,\R+0.18) rectangle (\L,\R);
+    \path[vesselWall] (0,-\R-0.18) rectangle (\L,-\R);
+    \path[lumen] (0,\R) rectangle (\L,-\R);
+    \draw[bloodred!70!black, line width=0.5pt] (0,\R) -- (\L,\R);
+    \draw[bloodred!70!black, line width=0.5pt] (0,-\R) -- (\L,-\R);
+    \draw[centerline] (-0.1,0) -- (\L+0.1,0);
+    % cross section S(z,t)
+    \pgfmathsetmacro{\zS}{2.4}
+    \draw[mathblue, line width=1pt] (\zS,\R) -- (\zS,-\R);
+    % S(z,t) labelled below the cross-section to avoid colliding with
+    % the velocity-vector label above.
+    \node[labelM, below=1pt] at (\zS,-\R) {$S(z,t)$};
+    % flow vectors at points within section
+    \foreach \y in {-0.6,-0.2,0.2,0.6}{
+       \draw[flowArrow] (\zS-0.05,\y) -- (\zS+0.55,\y);
+    }
+    \node[labelB, above=1pt] at (\zS+0.55,0.65) {$\vu(t,\vx)$};
+    % axes
+    \draw[axisArrow] (-0.2,-\R-0.55) -- (\L+0.2,-\R-0.55)
+        node[right, labelM] {$z$};
+    \node[font=\bfseries\small, mathblue] at (\L/2, \R+0.7)
+        {$\OmgBt$};
+  \end{scope}
+
+  % MIDDLE: section disk with elemental areas dS
+  \begin{scope}[shift={(7.1,0)}, local bounding box=M]
+    \path[lumen] (0,0) circle (1.0);
+    \draw[mathblue, line width=0.9pt] (0,0) circle (1.0);
+    \fill[mathblue] (0,0) circle (1pt);
+    \draw[measureBiArrow, line width=0.5pt] (0,0) -- (60:1.0)
+       node[midway, above=-1pt, labelM, smallLabel] {$R(z,t)$};
+    % small dS patch (upper-left quadrant of the disk) with a short
+    % leader so the dS callout sits clear of the disk outline
+    \fill[bloodred!55] (-0.48,0.48) ++(-0.07,-0.07) rectangle ++(0.14,0.14);
+    \draw[->, bloodred!70!black, line width=0.5pt]
+       (-0.95,0.95) -- (-0.55,0.55)
+       node[at start, above left=-1pt, font=\footnotesize,
+            bloodred!70!black, inner sep=1pt] {$dS$};
+    % flow into the page indicator placed below the disk centre so it
+    % cannot collide with the R(z,t) radius callout above
+    \node[labelB, smallLabel] at (0,-0.45) {$u_z\,\hat z\!\cdot\!\nhat$};
+    \node[labelM, below=2pt] at (0,-1.0) {$S(z,t)$};
+  \end{scope}
+
+  % connecting arrow (averaging) -- straight measureArrow, no snake.
+  \draw[measureArrow, line width=0.9pt] (L.east) -- (M.west)
+    node[midway, above=3pt, tagLabelM, align=center]
+      {average over\\$S(z,t)$};
+
+  % RIGHT: 1D field block with definitions. Shifted far enough that the
+  % node's outer edge (text width 50mm + inner sep) clears the middle
+  % disk and leaves room for the visible connecting arrow.
+  \begin{scope}[shift={(12.0,0)}, local bounding box=R]
+     \node[draw=mathblue!70!black, fill=mathblueLite, rounded corners=3pt,
+           inner sep=5pt, font=\footnotesize, align=left,
+           text width=50mm] (defs)
+       {\textbf{1D fields}\\[2pt]
+        $\begin{aligned}
+          A(z,t)&=\displaystyle\int_{S(z,t)}\!dS=\pi R(z,t)^2\\[2pt]
+          Q(z,t)&=\displaystyle\int_{S(z,t)}\!u_z\,dS\\[2pt]
+          p_{\mathrm{g}}(z,t)&=\dfrac{1}{A(z,t)}
+            \displaystyle\int_{S(z,t)}\!p_{3D,\mathrm{g}}\,dS
+        \end{aligned}$\\[-1pt]
+        {\scriptsize $p_{3D,\mathrm{g}}$: wall-law gauge frame}};
+  \end{scope}
+  \draw[schemEdge, shorten <=2pt, shorten >=2pt] (M.east) -- (R.west);
+\end{tikzpicture}
