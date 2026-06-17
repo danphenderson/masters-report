@@ -15,6 +15,13 @@ function print_usage(io::IO = stdout)
           --degree VALUE          DG polynomial degree 0, 1, or 2
           --limiter VALUE         TVD limiter, default minmod
           --time-stepper VALUE    euler, ssprk2, or ssprk3
+          --ic VALUE              stationary-stokes or geometry-rest, default stationary-stokes
+          --ic-pressure-drop-pa VALUE Pressure drop for stationary Stokes IC in Pa
+          --ic-pressure-drop-dyn-cm2 VALUE Pressure drop for stationary Stokes IC in dyn/cm^2
+          --ic-mesh-nz VALUE      Stationary Stokes axial mesh segments, default 64
+          --ic-mesh-nr VALUE      Stationary Stokes radial mesh rings, default 6
+          --ic-mesh-ntheta VALUE  Stationary Stokes angular mesh sectors, default 32
+          --ic-diagnostics PATH   Optional stationary Stokes IC diagnostics CSV
           --alpha VALUE           Coriolis coefficient, default 1.1
           --nu VALUE              Newtonian kinematic viscosity, default 0.04 cm^2/s
           --rheology VALUE        newtonian, carreau, carreau-yasuda, casson, or power-law
@@ -56,6 +63,13 @@ const VALUE_OPTIONS = Set([
     "degree",
     "limiter",
     "time-stepper",
+    "ic",
+    "ic-pressure-drop-pa",
+    "ic-pressure-drop-dyn-cm2",
+    "ic-mesh-nz",
+    "ic-mesh-nr",
+    "ic-mesh-ntheta",
+    "ic-diagnostics",
     "alpha",
     "nu",
     "rheology",
@@ -152,6 +166,35 @@ function time_stepper_from_cli(values::Dict{String,String})
     name in ("ssprk2", "rk2") && return SSPRK2Stepper()
     name in ("ssprk3", "rk3") && return SSPRK3Stepper()
     throw(ArgumentError("unknown native time stepper '$name'; expected euler, ssprk2, or ssprk3"))
+end
+
+function initial_condition_from_cli(values::Dict{String,String})
+    name = replace(lowercase(strip(get(values, "ic", "stationary-stokes"))), "_" => "-")
+    pressure_pa_set = haskey(values, "ic-pressure-drop-pa")
+    pressure_dyn_set = haskey(values, "ic-pressure-drop-dyn-cm2")
+
+    if name in ("geometry-rest", "rest")
+        if pressure_pa_set || pressure_dyn_set
+            throw(ArgumentError("--ic-pressure-drop-pa and --ic-pressure-drop-dyn-cm2 are only valid with --ic stationary-stokes"))
+        end
+        for key in ("ic-mesh-nz", "ic-mesh-nr", "ic-mesh-ntheta", "ic-diagnostics")
+            haskey(values, key) && throw(ArgumentError("--$key is only valid with --ic stationary-stokes"))
+        end
+        return GeometryRestIC()
+    elseif name in ("stationary-stokes", "stokes")
+        pressure_pa_set == pressure_dyn_set &&
+            throw(ArgumentError("stationary-stokes IC requires exactly one of --ic-pressure-drop-pa or --ic-pressure-drop-dyn-cm2"))
+        return StationaryStokesIC(
+            pressure_drop_pa=pressure_pa_set ? parse(Float64, values["ic-pressure-drop-pa"]) : nothing,
+            pressure_drop_dyn_cm2=pressure_dyn_set ? parse(Float64, values["ic-pressure-drop-dyn-cm2"]) : nothing,
+            mesh_nz=parse(Int, get(values, "ic-mesh-nz", "64")),
+            mesh_nr=parse(Int, get(values, "ic-mesh-nr", "6")),
+            mesh_ntheta=parse(Int, get(values, "ic-mesh-ntheta", "32")),
+            diagnostics_path=get(values, "ic-diagnostics", ""),
+        )
+    end
+
+    throw(ArgumentError("unknown initial condition '$name'; expected stationary-stokes or geometry-rest"))
 end
 
 function assert_no_unused_rheology_options(values::Dict{String,String}, allowed::Set{String}, model::String)
@@ -272,6 +315,7 @@ function parse_args(args::Vector{String})
         rheology=rheology_from_cli(values),
         space=spatial_method_from_cli(values),
         time_stepper=time_stepper_from_cli(values),
+        initial_condition=initial_condition_from_cli(values),
         young=parse(Float64, get(values, "young", "5.02e6")),
         alpha=parse(Float64, get(values, "alpha", "1.1")),
         inlet_umax=parse(Float64, get(values, "inlet-umax", "45.0")),
@@ -344,7 +388,7 @@ function run_cli(args::Vector{String} = ARGS)
     params, output, backend = parsed
     backend_label = backend isa NativeRK3Backend ? "native" : "sciml"
     alg_label = backend isa SciMLTimeBackend ? algorithm_name(backend.solve.algorithm) : time_stepper_name(params.time_stepper)
-    @info "running Canic extended 1D stenosis simulation" nx=params.nx tfinal=params.tfinal dt_cap=params.dt severity=params.severity alpha=params.alpha young=params.young space=spatial_method_name(params.space) time_stepper=time_stepper_name(params.time_stepper) rheology=rheology_name(params.rheology) backend=backend_label alg=alg_label
+    @info "running Canic extended 1D stenosis simulation" nx=params.nx tfinal=params.tfinal dt_cap=params.dt severity=params.severity alpha=params.alpha young=params.young space=spatial_method_name(params.space) time_stepper=time_stepper_name(params.time_stepper) rheology=rheology_name(params.rheology) initial_condition=initial_condition_name(params.initial_condition) backend=backend_label alg=alg_label
 
     result = simulate(params, backend; progress_every=output.progress_every)
     write_csv(output.csv, result, params)

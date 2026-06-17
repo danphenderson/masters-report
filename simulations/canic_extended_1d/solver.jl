@@ -1,9 +1,6 @@
 function initial_state(p::Params)
-    dx = p.length_cm / p.nx
-    z = [(i - 0.5) * dx for i in 1:p.nx]
-    A = [stenosis(zi, p)[1]^2 for zi in z]
-    Q = zeros(Float64, p.nx)
-    return z, A, Q, dx
+    state = initial_state_result(p)
+    return state.z, state.area, state.flow, state.dx
 end
 
 function solve_inlet_area(Qin::Float64, w2::Float64, guess::Float64, p::Params)

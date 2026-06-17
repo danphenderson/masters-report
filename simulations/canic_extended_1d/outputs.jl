@@ -107,7 +107,9 @@ function summary_lines(result::SimulationResult, p::Params, out::OutputSpec)
         "spatial_method,$(spatial_method_name(p.space))",
         "time_stepper,$(time_stepper_name(p.time_stepper))",
         "rheology,$(rheology_name(p.rheology))",
+        "initial_condition,$(initial_condition_name(p.initial_condition))",
     ]
+    append_initial_condition_summary!(lines, result.initial_condition)
     out.write_svg && push!(lines, "output_svg,$(out.svg)")
     append!(
         lines,
@@ -122,5 +124,34 @@ function summary_lines(result::SimulationResult, p::Params, out::OutputSpec)
             "nu_eff_max_cm2_s,$(maximum(nu_eff))",
         ],
     )
+    return lines
+end
+
+function append_initial_condition_summary!(lines::Vector{String}, summary::Nothing)
+    return lines
+end
+
+function append_initial_condition_summary!(lines::Vector{String}, summary::InitialConditionSummary)
+    append!(
+        lines,
+        [
+            "ic_kind,$(summary.kind)",
+            "ic_pressure_drop_dyn_cm2,$(summary.pressure_drop_dyn_cm2)",
+            "ic_mesh_nz,$(summary.mesh_nz)",
+            "ic_mesh_nr,$(summary.mesh_nr)",
+            "ic_mesh_ntheta,$(summary.mesh_ntheta)",
+            "ic_mesh_nodes,$(summary.mesh_nodes)",
+            "ic_mesh_cells,$(summary.mesh_cells)",
+            "ic_velocity_dofs,$(summary.velocity_dofs)",
+            "ic_pressure_dofs,$(summary.pressure_dofs)",
+            "ic_residual_norm,$(summary.residual_norm)",
+            "ic_projection_hash,$(summary.projection_hash)",
+            "ic_projected_velocity_min_cm_s,$(summary.projected_velocity_min)",
+            "ic_projected_velocity_max_cm_s,$(summary.projected_velocity_max)",
+            "ic_projected_pressure_min_dyn_cm2,$(summary.projected_pressure_min)",
+            "ic_projected_pressure_max_dyn_cm2,$(summary.projected_pressure_max)",
+        ],
+    )
+    isempty(summary.diagnostics_path) || push!(lines, "ic_diagnostics,$(summary.diagnostics_path)")
     return lines
 end

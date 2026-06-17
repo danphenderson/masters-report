@@ -23,6 +23,7 @@ export AbstractTimeBackend,
        AbstractAlgorithmPolicy,
        AbstractRheology,
        AbstractLimiter,
+       AbstractInitialConditionSpec,
        AbstractNativeTimeStepper,
        AbstractSpatialMethod,
        AutoPolicy,
@@ -38,7 +39,10 @@ export AbstractTimeBackend,
        FVLaxWendroffMethod,
        FVMUSCLMethod,
        ForwardEulerStepper,
+       GeneratedStokesMesh,
+       GeometryRestIC,
        GridConvergenceStudySpec,
+       InitialConditionSummary,
        MinmodLimiter,
        NativeSSPRKPolicy,
        NativeRK3Backend,
@@ -61,6 +65,7 @@ export AbstractTimeBackend,
        SolveSpec,
        SSPRK2Stepper,
        SSPRK3Stepper,
+       StationaryStokesIC,
        SeveritySweepSpec,
        StudyResult,
        StudyRunSummary,
@@ -84,6 +89,10 @@ export AbstractTimeBackend,
        effective_kinematic_viscosity,
        flow_view,
        initial_condition,
+       initial_condition_name,
+       initial_condition_values,
+       initial_state_result,
+       generated_stokes_mesh,
        load_resolved3d_velocity,
        legendre_derivative,
        legendre_value,
@@ -104,6 +113,7 @@ export AbstractTimeBackend,
        run_study,
        semidiscretize,
        simulate,
+       solve_stationary_stokes,
        spatial_method_name,
        state_views,
        stenosis_throat_z,
@@ -121,11 +131,13 @@ export AbstractTimeBackend,
 
 include("methods.jl")
 include("rheology.jl")
+include("initial_conditions.jl")
 include("types.jl")
 include("policies.jl")
 include("geometry.jl")
 include("state.jl")
 include("model.jl")
+include("stokes_ic.jl")
 include("solver.jl")
 include("dg.jl")
 include("sciml_problem.jl")

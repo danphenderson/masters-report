@@ -7,6 +7,7 @@ end
 
 using Test
 using HDF5
+using Statistics
 
 include(joinpath(@__DIR__, "..", "simulations", "canic_extended_1d", "CanicExtended1D.jl"))
 using .CanicExtended1D
@@ -128,7 +129,7 @@ end
     clamped = PowerLawRheology(consistency=10.0, n=0.5, max_eta=0.2)
     @test effective_dynamic_viscosity(clamped, 1.0e-4, 1.055, 0.04) ≈ 0.2
 
-    @test characteristic_shear_rate(0.04, 0.2, 0.2, Params(alpha=1.1)) > 0.0
+    @test characteristic_shear_rate(0.04, 0.2, 0.2, Params(alpha=1.1, initial_condition=GeometryRestIC())) > 0.0
     @test_throws ArgumentError CanicExtended1D.validate(CarreauRheology(eta0=0.01, eta_inf=0.02))
 end
 
@@ -150,8 +151,52 @@ end
     @test isnan(observed_order(0.0, 0.125))
 end
 
+@testset "CanicExtended1D stationary Stokes initial conditions" begin
+    @test_throws ArgumentError CanicExtended1D.validate(Params(nx=8, tfinal=0.0, severity=0.0))
+    @test_throws ArgumentError StationaryStokesIC(pressure_drop_pa=40.0, pressure_drop_dyn_cm2=400.0)
+
+    ic = StationaryStokesIC(
+        pressure_drop_pa=40.0,
+        mesh_nz=2,
+        mesh_nr=2,
+        mesh_ntheta=8,
+        projection_nr=2,
+        projection_ntheta=8,
+    )
+    params = Params(nx=6, tfinal=0.0, severity=0.0, initial_condition=ic)
+    mesh = generated_stokes_mesh(params, ic)
+    @test length(mesh.coordinates) == (ic.mesh_nz + 1) * (1 + ic.mesh_nr * ic.mesh_ntheta)
+    @test length(mesh.cells) == ic.mesh_nz * ic.mesh_ntheta * (1 + 2 * (ic.mesh_nr - 1)) * 3
+    @test mesh.inlet_nodes == 1 + ic.mesh_nr * ic.mesh_ntheta
+    @test mesh.outlet_nodes == mesh.inlet_nodes
+    @test mesh.wall_nodes == (ic.mesh_nz + 1) * ic.mesh_ntheta
+
+    state = initial_state_result(params)
+    @test state.summary.kind == "stationary-stokes"
+    @test state.summary.mesh_nodes == length(mesh.coordinates)
+    @test state.summary.mesh_cells == length(mesh.cells)
+    @test state.summary.velocity_dofs > 0
+    @test state.summary.pressure_dofs > 0
+    @test all(isfinite, state.area)
+    @test all(isfinite, state.flow)
+    @test minimum(state.area) > 0.0
+
+    projected_pressure = pressure(state.area, state.flow, state.z, params)
+    @test maximum(abs.(projected_pressure .- range(maximum(projected_pressure), minimum(projected_pressure); length=length(projected_pressure)))) < ic.pressure_drop_dyn_cm2
+
+    u_mean = mean(velocity(SimulationResult(state.z, state.area, state.flow, 0.0, 0)))
+    mu = params.rho * params.nu
+    analytic_u = ic.pressure_drop_dyn_cm2 * params.rmax^2 / (8.0 * mu * params.length_cm)
+    @test isapprox(u_mean, analytic_u; rtol=0.45)
+
+    repeat_state = initial_state_result(params)
+    @test repeat_state.summary.projection_hash == state.summary.projection_hash
+    @test repeat_state.area ≈ state.area
+    @test repeat_state.flow ≈ state.flow
+end
+
 @testset "CanicExtended1D simulation backends" begin
-    native_params = Params(nx=8, tfinal=5.0e-5, severity=30.0)
+    native_params = Params(nx=8, tfinal=5.0e-5, severity=30.0, initial_condition=GeometryRestIC())
 
     @testset "native short run" begin
         result = simulate(native_params, NativeRK3Backend(); progress_every=0)
@@ -164,6 +209,7 @@ end
             tfinal=2.0e-5,
             severity=30.0,
             rheology=CarreauYasudaRheology(max_eta=0.5),
+            initial_condition=GeometryRestIC(),
         )
         result = simulate(rheology_params, NativeRK3Backend(); progress_every=0)
         assert_finite_positive_state(result, rheology_params)
@@ -171,7 +217,7 @@ end
 
     @testset "native spatial method smoke runs" begin
         for method in (FVMUSCLMethod(), FVLaxWendroffMethod(), DGMethod(0), DGMethod(1), DGMethod(2))
-            params = Params(nx=8, tfinal=1.0e-5, severity=30.0, space=method)
+            params = Params(nx=8, tfinal=1.0e-5, severity=30.0, space=method, initial_condition=GeometryRestIC())
             result = simulate(params, NativeRK3Backend(); progress_every=0)
             assert_finite_positive_state(result, params)
         end
@@ -179,15 +225,15 @@ end
 
     @testset "native time stepper smoke runs" begin
         for stepper in (ForwardEulerStepper(), SSPRK2Stepper(), SSPRK3Stepper())
-            params = Params(nx=8, tfinal=1.0e-5, severity=30.0, time_stepper=stepper)
+            params = Params(nx=8, tfinal=1.0e-5, severity=30.0, time_stepper=stepper, initial_condition=GeometryRestIC())
             result = simulate(params, NativeRK3Backend(); progress_every=0)
             assert_finite_positive_state(result, params)
         end
     end
 
     @testset "DG p0 finite-volume equivalence" begin
-        fv_params = Params(nx=8, tfinal=1.0e-5, severity=30.0, space=FVFirstOrderMethod())
-        dg_params = Params(nx=8, tfinal=1.0e-5, severity=30.0, space=DGMethod(0))
+        fv_params = Params(nx=8, tfinal=1.0e-5, severity=30.0, space=FVFirstOrderMethod(), initial_condition=GeometryRestIC())
+        dg_params = Params(nx=8, tfinal=1.0e-5, severity=30.0, space=DGMethod(0), initial_condition=GeometryRestIC())
         fv = simulate(fv_params, NativeRK3Backend(); progress_every=0)
         dg = simulate(dg_params, NativeRK3Backend(); progress_every=0)
         @test maximum(abs.(fv.area .- dg.area)) <= 1.0e-12
@@ -265,7 +311,7 @@ end
         output_dir = joinpath(dir, "out")
         spec = ComparisonSpec(
             cases=[case_spec],
-            base_params=Params(nx=8, tfinal=5.0e-5, severity=23.0),
+            base_params=Params(nx=8, tfinal=5.0e-5, severity=23.0, initial_condition=GeometryRestIC()),
             output_dir=output_dir,
             section_count=3,
             profile_slices=[3.0],
@@ -315,6 +361,7 @@ end
             "--nx", "8",
             "--progress-every", "0",
             "--no-svg",
+            "--ic-pressure-drop-pa", "40",
         ])
 
         @test params.tfinal == 5.0e-5
@@ -322,6 +369,8 @@ end
         @test params.space isa FVMUSCLMethod
         @test params.time_stepper isa SSPRK3Stepper
         @test params.rheology isa NewtonianRheology
+        @test params.initial_condition isa StationaryStokesIC
+        @test params.initial_condition.pressure_drop_dyn_cm2 == 400.0
         @test output.progress_every == 0
         @test output.write_svg == false
         @test backend isa NativeRK3Backend
@@ -343,6 +392,7 @@ end
             "--nx", "8",
             "--progress-every", "0",
             "--no-svg",
+            "--ic", "geometry-rest",
         ])
 
         @test output.write_svg == false
@@ -369,6 +419,7 @@ end
             "--nx", "8",
             "--progress-every", "0",
             "--no-svg",
+            "--ic", "geometry-rest",
         ])
 
         @test params.space isa DGMethod
@@ -389,6 +440,7 @@ end
             "--nx", "8",
             "--progress-every", "0",
             "--no-svg",
+            "--ic", "geometry-rest",
         ])
 
         @test params.tfinal == 5.0e-5
@@ -403,6 +455,9 @@ end
 
     @testset "invalid combinations" begin
         @test_throws ArgumentError parse_args(["--backend", "native", "--alg", "tsit5"])
+        @test_throws ArgumentError parse_args(["--tfinal", "5e-5", "--nx", "8"])
+        @test_throws ArgumentError parse_args(["--ic-pressure-drop-pa", "40", "--ic-pressure-drop-dyn-cm2", "400"])
+        @test_throws ArgumentError parse_args(["--ic", "geometry-rest", "--ic-pressure-drop-pa", "40"])
         @test_throws ArgumentError parse_args(["--backend", "sciml", "--alg", "ssprk"])
         @test_throws ArgumentError parse_args(["--abstol", "1e-8"])
         @test_throws ArgumentError parse_args(["--backend", "sciml", "--alg", "not-a-policy"])
@@ -417,8 +472,12 @@ end
 
 @testset "CanicExtended1D refinement studies" begin
     mktempdir() do dir
+        @test SeveritySweepSpec(severities=[23.0]).base_params.initial_condition isa GeometryRestIC
+        @test GridConvergenceStudySpec(nxs=[8, 16]).base_params.initial_condition isa GeometryRestIC
+        @test RefinementStudySpec().base_params.initial_condition isa GeometryRestIC
+
         spec = RefinementStudySpec(
-            base_params=Params(nx=8, tfinal=1.0e-5, severity=30.0),
+            base_params=Params(nx=8, tfinal=1.0e-5, severity=30.0, initial_condition=GeometryRestIC()),
             nxs=[8, 16],
             degrees=[0, 1, 2],
             h_methods=AbstractSpatialMethod[FVMUSCLMethod()],

@@ -17,6 +17,7 @@ Base.@kwdef struct Params{
     R<:AbstractRheology,
     S<:AbstractSpatialMethod,
     T<:AbstractNativeTimeStepper,
+    I<:AbstractInitialConditionSpec,
 }
     nx::Int = 400
     length_cm::Float64 = 6.0
@@ -30,6 +31,7 @@ Base.@kwdef struct Params{
     rheology::R = NewtonianRheology()
     space::S = FVMUSCLMethod()
     time_stepper::T = SSPRK3Stepper()
+    initial_condition::I = StationaryStokesIC()
     young::Float64 = 5.02e6
     wall_h::Float64 = 0.06
     sigma::Float64 = 0.5
@@ -50,13 +52,14 @@ function Params(
     rheology::R,
     space::S,
     time_stepper::T,
+    initial_condition::I,
     young,
     wall_h,
     sigma,
     alpha,
     inlet_umax,
-) where {R<:AbstractRheology,S<:AbstractSpatialMethod,T<:AbstractNativeTimeStepper}
-    return Params{R,S,T}(
+) where {R<:AbstractRheology,S<:AbstractSpatialMethod,T<:AbstractNativeTimeStepper,I<:AbstractInitialConditionSpec}
+    return Params{R,S,T,I}(
         Int(nx),
         Float64(length_cm),
         Float64(tfinal),
@@ -69,6 +72,7 @@ function Params(
         rheology,
         space,
         time_stepper,
+        initial_condition,
         Float64(young),
         Float64(wall_h),
         Float64(sigma),
@@ -103,6 +107,17 @@ struct SimulationResult
     flow::Vector{Float64}
     completed_time::Float64
     steps::Int
+    initial_condition::Union{Nothing,InitialConditionSummary}
+end
+
+function SimulationResult(
+    z::Vector{Float64},
+    area::Vector{Float64},
+    flow::Vector{Float64},
+    completed_time::Float64,
+    steps::Int,
+)
+    return SimulationResult(z, area, flow, completed_time, steps, nothing)
 end
 
 velocity(result::SimulationResult) = result.flow ./ result.area
@@ -114,6 +129,7 @@ function default_output_stub(p::Params)
     !(p.space isa FVMUSCLMethod) && push!(tokens, replace(spatial_method_name(p.space), "-" => "_"))
     !(p.time_stepper isa SSPRK3Stepper) && push!(tokens, replace(time_stepper_name(p.time_stepper), "-" => "_"))
     !(p.rheology isa NewtonianRheology) && push!(tokens, replace(rheology_name(p.rheology), "-" => "_"))
+    !(p.initial_condition isa StationaryStokesIC) && push!(tokens, replace(initial_condition_name(p.initial_condition), "-" => "_"))
     isempty(tokens) && return base
     return base * "_" * join(tokens, "_")
 end
@@ -131,6 +147,7 @@ function validate(p::Params)
     validate(p.rheology)
     validate(p.space)
     validate(p.time_stepper)
+    validate(p.initial_condition)
     p.young > 0.0 || throw(ArgumentError("young must be positive"))
     p.wall_h > 0.0 || throw(ArgumentError("wall_h must be positive"))
     abs(p.sigma) < 1.0 || throw(ArgumentError("abs(sigma) must be less than 1"))

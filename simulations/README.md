@@ -32,6 +32,11 @@ The public workflow is:
 The CLI follows the same protocol internally. The default command uses
 `NativeRK3Backend()` with finite-volume MUSCL reconstruction, the minmod TVD
 limiter, and SSPRK3 stepping unless options override that method stack.
+The default initial condition is `StationaryStokesIC`, so CLI and API runs must
+provide a positive pressure drop with `--ic-pressure-drop-pa`,
+`--ic-pressure-drop-dyn-cm2`, or `StationaryStokesIC(pressure_drop_pa=...)`.
+Use `--ic geometry-rest` or `GeometryRestIC()` for the previous baseline
+area-at-rest, zero-flow initialization.
 
 The default rheology is Newtonian and uses `Params.nu` as the kinematic
 viscosity. Non-Newtonian closure objects are available for the next comparison
@@ -68,36 +73,53 @@ ssprk2`, or `--time-stepper ssprk3`. SciML remains available for
 semi-discrete methods that do not require a fixed-step predictor. The
 Lax-Wendroff method is native-only.
 
+## Initial Conditions
+
+Two deterministic initial-condition modes are available:
+
+- `--ic stationary-stokes`: default. Builds a generated 3D stenotic vessel mesh,
+  assembles a Gridap Taylor-Hood stationary Stokes solve driven by the requested
+  pressure drop, and projects deterministic Stokes section averages back to the
+  1D `(A,Q)` state.
+- `--ic geometry-rest`: legacy baseline with `A=R0^2` and `Q=0`.
+
+Stationary Stokes pressure drops are stored internally in dyn/cm^2. The CLI
+also accepts Pa and converts with `1 Pa = 10 dyn/cm^2`. The generated FEM mesh
+defaults are `--ic-mesh-nz 64 --ic-mesh-nr 6 --ic-mesh-ntheta 32`; small smoke
+tests can lower these values. Single-run summaries report IC kind, pressure
+drop, mesh size, FEM degrees of freedom, residual normalization, projected
+velocity/pressure ranges, and a reproducibility hash.
+
 ## Recommended Commands
 
 Exploratory native smoke test:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --tfinal 0.01 --nx 120 --progress-every 0 --output simulations/output/verification_001s.csv --svg simulations/output/verification_001s.svg
+./scripts/julia-release simulations/run_canic_extended_1d.jl --tfinal 0.01 --nx 120 --ic-pressure-drop-pa 40 --ic-mesh-nz 2 --ic-mesh-nr 2 --ic-mesh-ntheta 8 --progress-every 0 --output simulations/output/verification_001s.csv --svg simulations/output/verification_001s.svg
 ```
 
 Default 50% stenosis native run:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --tfinal 1.0 --nx 400 --severity 50 --progress-every 10000
+./scripts/julia-release simulations/run_canic_extended_1d.jl --tfinal 1.0 --nx 400 --severity 50 --ic-pressure-drop-pa 40 --progress-every 10000
 ```
 
 Legacy first-order run:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --space fv-first-order --tfinal 0.001 --nx 80 --progress-every 0
+./scripts/julia-release simulations/run_canic_extended_1d.jl --space fv-first-order --ic geometry-rest --tfinal 0.001 --nx 80 --progress-every 0
 ```
 
 DG quadratic smoke run:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --space dg --degree 2 --time-stepper ssprk3 --tfinal 0.001 --nx 80 --progress-every 0
+./scripts/julia-release simulations/run_canic_extended_1d.jl --space dg --degree 2 --time-stepper ssprk3 --ic-pressure-drop-pa 40 --ic-mesh-nz 2 --ic-mesh-nr 2 --ic-mesh-ntheta 8 --tfinal 0.001 --nx 80 --progress-every 0
 ```
 
 Carreau-Yasuda smoke run:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --tfinal 0.001 --nx 80 --severity 40 --rheology carreau-yasuda --eta0 0.56 --eta-inf 0.0345 --lambda-s 3.313 --yasuda-a 2.0 --flow-index 0.3568 --progress-every 0
+./scripts/julia-release simulations/run_canic_extended_1d.jl --tfinal 0.001 --nx 80 --severity 40 --ic geometry-rest --rheology carreau-yasuda --eta0 0.56 --eta-inf 0.0345 --lambda-s 3.313 --yasuda-a 2.0 --flow-index 0.3568 --progress-every 0
 ```
 
 Other supported CLI rheology names are `newtonian`, `carreau`, `casson`, and
@@ -107,9 +129,9 @@ dyn/cm^2, and `--nu` remains the Newtonian kinematic viscosity in cm^2/s.
 SciML runs with explicit policies:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --backend sciml --alg auto --tfinal 0.001 --nx 40 --progress-every 0
-./scripts/julia-release simulations/run_canic_extended_1d.jl --backend sciml --alg tsit5 --abstol 1e-7 --reltol 1e-7 --tfinal 0.001 --nx 40 --progress-every 0
-./scripts/julia-release simulations/run_canic_extended_1d.jl --backend sciml --alg rodas5p --maxiters 1000000 --tfinal 0.001 --nx 40 --progress-every 0
+./scripts/julia-release simulations/run_canic_extended_1d.jl --backend sciml --alg auto --ic geometry-rest --tfinal 0.001 --nx 40 --progress-every 0
+./scripts/julia-release simulations/run_canic_extended_1d.jl --backend sciml --alg tsit5 --abstol 1e-7 --reltol 1e-7 --ic geometry-rest --tfinal 0.001 --nx 40 --progress-every 0
+./scripts/julia-release simulations/run_canic_extended_1d.jl --backend sciml --alg rodas5p --maxiters 1000000 --ic geometry-rest --tfinal 0.001 --nx 40 --progress-every 0
 ```
 
 Supported solver policy names are `auto`, `tsit5`, `rodas5p`, and `ssprk`.
@@ -133,9 +155,9 @@ Show CLI options:
 Run small programmatic studies from the shared simulation protocol:
 
 ```bash
-./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_study(SeveritySweepSpec(base_params=Params(nx=40,tfinal=0.001), severities=[23,50], overwrite=true))'
-./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_study(GridConvergenceStudySpec(base_params=Params(tfinal=0.001,severity=50), nxs=[40,80], overwrite=true))'
-./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_refinement_study(RefinementStudySpec(base_params=Params(tfinal=0.001,severity=40), nxs=[50,100,200,400], overwrite=true))'
+./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_study(SeveritySweepSpec(base_params=Params(nx=40,tfinal=0.001,initial_condition=GeometryRestIC()), severities=[23,50], overwrite=true))'
+./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_study(GridConvergenceStudySpec(base_params=Params(tfinal=0.001,severity=50,initial_condition=GeometryRestIC()), nxs=[40,80], overwrite=true))'
+./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_refinement_study(RefinementStudySpec(base_params=Params(tfinal=0.001,severity=40,initial_condition=GeometryRestIC()), nxs=[50,100,200,400], overwrite=true))'
 ```
 
 Study summaries are written to deterministic CSV paths under
@@ -218,6 +240,10 @@ ensembles. `SolveSpec` owns SciML solver options such as `abstol`, `reltol`,
 - Studies run sequentially. SciML ensemble execution is a future adapter-layer
   addition.
 - Study summary CSVs use simple scalar fields and minimal CSV escaping.
+- Stationary Stokes IC assembly uses Gridap on the generated 3D mesh. The 1D
+  projection uses deterministic Stokes/Poiseuille section averages from the
+  same pressure drop and radius profile so coarse generated meshes do not depend
+  on brittle arbitrary point-location queries.
 - The model is a finite-volume reproduction for local experimentation, not a
   full validation of the paper's DG solver or clinical predictions.
 - Non-Newtonian rheology support currently supplies pointwise effective

@@ -16,7 +16,7 @@ struct SeveritySweepSpec <: AbstractStudySpec
 end
 
 function SeveritySweepSpec(;
-    base_params::Params = Params(),
+    base_params::Params = Params(initial_condition=GeometryRestIC()),
     severities,
     backend::AbstractTimeBackend = NativeRK3Backend(),
     summary_csv::String = "",
@@ -48,7 +48,7 @@ struct GridConvergenceStudySpec <: AbstractStudySpec
 end
 
 function GridConvergenceStudySpec(;
-    base_params::Params = Params(),
+    base_params::Params = Params(initial_condition=GeometryRestIC()),
     nxs,
     backend::AbstractTimeBackend = NativeRK3Backend(),
     summary_csv::String = "",
@@ -105,6 +105,7 @@ function params_with(
     rheology::AbstractRheology = p.rheology,
     space::AbstractSpatialMethod = p.space,
     time_stepper::AbstractNativeTimeStepper = p.time_stepper,
+    initial_condition::AbstractInitialConditionSpec = p.initial_condition,
     young::Float64 = p.young,
     wall_h::Float64 = p.wall_h,
     sigma::Float64 = p.sigma,
@@ -124,6 +125,7 @@ function params_with(
         rheology=rheology,
         space=space,
         time_stepper=time_stepper,
+        initial_condition=initial_condition,
         young=young,
         wall_h=wall_h,
         sigma=sigma,

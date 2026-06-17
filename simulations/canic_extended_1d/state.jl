@@ -95,7 +95,6 @@ end
 Return packed initial state `[A; Q]` for `sim`.
 """
 function initial_condition(sim::SemiDiscreteSimulation)
-    A = [stenosis(zi, sim.params)[1]^2 for zi in sim.z]
-    Q = zeros(Float64, sim.layout.nx)
-    return pack_state(A, Q)
+    state = initial_state_result(sim.params)
+    return pack_state(state.area, state.flow)
 end

@@ -39,7 +39,8 @@ function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
     validate(p)
     p.space isa DGMethod && return simulate_dg(p, p.space; progress_every=progress_every)
 
-    z, A, Q, dx = initial_state(p)
+    initial = initial_state_result(p)
+    z, A, Q, dx = initial.z, initial.area, initial.flow, initial.dx
     t = 0.0
     step = 0
 
@@ -58,7 +59,7 @@ function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
         end
     end
 
-    return SimulationResult(z, A, Q, t, step)
+    return SimulationResult(z, A, Q, t, step, initial.summary)
 end
 
 function simulate(p::Params, backend::SciMLTimeBackend; progress_every::Int = 0)
@@ -70,7 +71,8 @@ function simulate(p::Params, backend::SciMLTimeBackend; progress_every::Int = 0)
         throw(ArgumentError("DG degree $(p.space.degree) currently uses the native modal DG solver, not SciMLTimeBackend"))
 
     sim = semidiscretize(p)
-    prob = ode_problem(sim)
+    initial = initial_state_result(p)
+    prob = ode_problem(sim; u0=pack_state(initial.area, initial.flow))
     sol = solve_ode_problem(prob, backend)
     final_state = Vector(sol.u[end])
     A, Q = unpack_state(final_state, sim.layout)
@@ -80,7 +82,7 @@ function simulate(p::Params, backend::SciMLTimeBackend; progress_every::Int = 0)
     end
     minimum(A) > 0.0 || error("nonpositive SciML area at t=$(sol.t[end])")
 
-    return SimulationResult(copy(sim.z), A, Q, sol.t[end], sciml_step_count(sol))
+    return SimulationResult(copy(sim.z), A, Q, sol.t[end], sciml_step_count(sol), initial.summary)
 end
 
 function simulate(p::Params; backend::AbstractTimeBackend = NativeRK3Backend(), progress_every::Int = 0)

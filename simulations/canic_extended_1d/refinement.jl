@@ -1,7 +1,7 @@
 using Printf
 
 Base.@kwdef struct RefinementStudySpec
-    base_params::Params = Params(tfinal=1.0e-4, nx=50)
+    base_params::Params = Params(tfinal=1.0e-4, nx=50, initial_condition=GeometryRestIC())
     nxs::Vector{Int} = [50, 100, 200, 400]
     degrees::Vector{Int} = [0, 1, 2]
     h_methods::Vector{AbstractSpatialMethod} = AbstractSpatialMethod[

@@ -32,7 +32,7 @@ function Resolved3DCaseSpec(
     time_atol_value = Float64(time_atol)
     target_time_value >= 0.0 || throw(ArgumentError("target_time must be nonnegative"))
     time_atol_value >= 0.0 || throw(ArgumentError("time_atol must be nonnegative"))
-    validate(Params(severity=severity_value, tfinal=target_time_value))
+    validate(Params(severity=severity_value, tfinal=target_time_value, initial_condition=GeometryRestIC()))
     return Resolved3DCaseSpec(
         string(case_label),
         severity_value,
@@ -86,7 +86,7 @@ end
 
 function ComparisonSpec(;
     cases = default_resolved3d_cases(),
-    base_params::Params = Params(tfinal=1.0),
+    base_params::Params = Params(tfinal=1.0, initial_condition=GeometryRestIC()),
     backend::AbstractTimeBackend = NativeRK3Backend(),
     output_dir::String = DEFAULT_COMPARISON_OUTPUT_DIR,
     section_count::Int = 200,

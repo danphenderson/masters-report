@@ -1,24 +1,43 @@
 function dg_initial_coefficients(p::Params, method::DGMethod)
+    z, Acoef, Qcoef, dx, _ = dg_initial_coefficients_with_summary(p, method)
+    return z, Acoef, Qcoef, dx
+end
+
+function dg_initial_coefficients_with_summary(p::Params, method::DGMethod)
     degree = method.degree
     dx = p.length_cm / p.nx
     z = [(i - 0.5) * dx for i in 1:p.nx]
     Acoef = zeros(Float64, p.nx, degree + 1)
     Qcoef = zeros(Float64, p.nx, degree + 1)
     xis, weights = dg_quadrature()
+    zq = Float64[]
 
     for i in 1:p.nx
-        for m in 0:degree
-            acc = 0.0
-            for (xi, w) in zip(xis, weights)
-                zq = z[i] + 0.5 * dx * xi
-                Aq = stenosis(zq, p)[1]^2
-                acc += w * Aq * legendre_value(m, xi)
-            end
-            Acoef[i, m + 1] = 0.5 * (2m + 1) * acc
+        for xi in xis
+            push!(zq, z[i] + 0.5 * dx * xi)
         end
     end
 
-    return z, Acoef, Qcoef, dx
+    Aq_values, Qq_values, summary = initial_condition_values(p, zq)
+    sample = 1
+
+    for i in 1:p.nx
+        for m in 0:degree
+            acc_A = 0.0
+            acc_Q = 0.0
+            local_sample = sample
+            for (xi, w) in zip(xis, weights)
+                acc_A += w * Aq_values[local_sample] * legendre_value(m, xi)
+                acc_Q += w * Qq_values[local_sample] * legendre_value(m, xi)
+                local_sample += 1
+            end
+            Acoef[i, m + 1] = 0.5 * (2m + 1) * acc_A
+            Qcoef[i, m + 1] = 0.5 * (2m + 1) * acc_Q
+        end
+        sample += length(xis)
+    end
+
+    return z, Acoef, Qcoef, dx, summary
 end
 
 function dg_value(coeffs::AbstractMatrix{Float64}, i::Int, xi::Float64, degree::Int)
@@ -238,7 +257,7 @@ function simulate_dg(p::Params, method::DGMethod; progress_every::Int = 0)
     validate(p)
     method.degree == 0 && return simulate(params_with(p; space=FVFirstOrderMethod()), NativeRK3Backend(); progress_every=progress_every)
 
-    z, Acoef, Qcoef, dx = dg_initial_coefficients(p, method)
+    z, Acoef, Qcoef, dx, initial_summary = dg_initial_coefficients_with_summary(p, method)
     limit_dg_coefficients!(Acoef, Qcoef, method)
     t = 0.0
     step = 0
@@ -260,5 +279,5 @@ function simulate_dg(p::Params, method::DGMethod; progress_every::Int = 0)
 
     A = max.(vec(Acoef[:, 1]), AREA_LIMITER_FLOOR)
     Q = vec(Qcoef[:, 1])
-    return SimulationResult(z, A, Q, t, step)
+    return SimulationResult(z, A, Q, t, step, initial_summary)
 end
