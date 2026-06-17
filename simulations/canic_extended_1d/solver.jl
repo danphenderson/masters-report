@@ -4,7 +4,7 @@ function initial_state(p::Params)
 end
 
 function solve_inlet_area(Qin::Float64, w2::Float64, guess::Float64, p::Params)
-    c0 = sqrt(wall_stiffness(p) / (2.0 * p.rho * p.rmax^2))
+    c0 = invariant_speed_factor(p)
     residual(A) = Qin / A - w2 - 4.0 * c0 * A^0.25
 
     lo = max(guess * 0.05, AREA_LIMITER_FLOOR)
@@ -20,7 +20,10 @@ function solve_inlet_area(Qin::Float64, w2::Float64, guess::Float64, p::Params)
         fhi = residual(hi)
     end
 
-    flo * fhi > 0.0 && return max(guess, AREA_LIMITER_FLOOR)
+    if flo * fhi > 0.0
+        @warn "inlet area solver failed to bracket; returning limited guess" Qin w2 guess lo hi flo fhi
+        return max(guess, AREA_LIMITER_FLOOR)
+    end
 
     for _ in 1:80
         mid = 0.5 * (lo + hi)
@@ -39,19 +42,35 @@ function solve_inlet_area(Qin::Float64, w2::Float64, guess::Float64, p::Params)
     return 0.5 * (lo + hi)
 end
 
-function boundary_states(A::AbstractVector{Float64}, Q::AbstractVector{Float64}, p::Params)
-    c0 = sqrt(wall_stiffness(p) / (2.0 * p.rho * p.rmax^2))
-
-    r0_in, _, _ = stenosis(0.0, p)
-    A0_in = r0_in^2
-    Qin = A0_in * inlet_uavg(p)
-    w2 = Q[begin] / positive_area(A[begin]) - 4.0 * c0 * positive_area(A[begin])^0.25
-    Ain = solve_inlet_area(Qin, w2, max(A[begin], A0_in), p)
-
+function outlet_state(::FixedAreaCharacteristicOutlet, A::AbstractVector{Float64}, Q::AbstractVector{Float64}, p::Params, t::Float64)
+    _ = t
     r0_out, _, _ = stenosis(p.length_cm, p)
     Aout = r0_out^2
-    w1 = Q[end] / positive_area(A[end]) + 4.0 * c0 * positive_area(A[end])^0.25
-    Qout = Aout * w1 - 4.0 * c0 * Aout^1.25
+    w1 = invariant_plus(A[end], Q[end], p)
+    Qout = Aout * w1 - 4.0 * invariant_speed_factor(p) * Aout^1.25
+    return Aout, Qout
+end
+
+function outlet_state(boundary::ReflectionCoefficientOutlet, A::AbstractVector{Float64}, Q::AbstractVector{Float64}, p::Params, t::Float64)
+    _ = t
+    r0_out, _, _ = stenosis(p.length_cm, p)
+    Aref = max(r0_out^2, AREA_LIMITER_FLOOR)
+    Qref = boundary.reference_flow
+    wplus = invariant_plus(A[end], Q[end], p)
+    wminus_ref = invariant_minus(Aref, Qref, p)
+    wplus_ref = invariant_plus(Aref, Qref, p)
+    wminus = wminus_ref - boundary.rt * (wplus - wplus_ref)
+    return state_from_invariants(wminus, wplus, p)
+end
+
+function boundary_states(A::AbstractVector{Float64}, Q::AbstractVector{Float64}, p::Params, t::Float64 = 0.0)
+    r0_in, _, _ = stenosis(0.0, p)
+    A0_in = r0_in^2
+    Qin = inlet_flow(p, t)
+    w2 = invariant_minus(A[begin], Q[begin], p)
+    Ain = solve_inlet_area(Qin, w2, max(A[begin], A0_in), p)
+
+    Aout, Qout = outlet_state(p.outlet_boundary, A, Q, p, t)
 
     return Ain, Qin, Aout, Qout
 end
@@ -65,8 +84,9 @@ function fill_rhs!(
     dx::Float64,
     p::Params,
     cache::RHSCache,
+    t::Float64 = 0.0,
 )
-    return fill_rhs_dt!(dA, dQ, A, Q, z, dx, 0.0, p, cache)
+    return fill_rhs_dt!(dA, dQ, A, Q, z, dx, 0.0, t, p, cache)
 end
 
 function fill_rhs_dt!(
@@ -77,6 +97,7 @@ function fill_rhs_dt!(
     z::AbstractVector{Float64},
     dx::Float64,
     dt::Float64,
+    t::Float64,
     p::Params,
     cache::RHSCache,
 )
@@ -89,11 +110,15 @@ function fill_rhs_dt!(
     FA = cache.area_flux
     FQ = cache.flow_flux
     source = cache.source
+    slope_A = cache.area_slope
+    slope_Q = cache.flow_slope
     length(FA) == nx + 1 || throw(DimensionMismatch("area flux cache length mismatch"))
     length(FQ) == nx + 1 || throw(DimensionMismatch("flow flux cache length mismatch"))
     length(source) == nx || throw(DimensionMismatch("source cache length mismatch"))
+    length(slope_A) == nx || throw(DimensionMismatch("area slope cache length mismatch"))
+    length(slope_Q) == nx || throw(DimensionMismatch("flow slope cache length mismatch"))
 
-    fill_method_fluxes!(FA, FQ, A, Q, z, dx, dt, p.space, p)
+    fill_method_fluxes!(FA, FQ, A, Q, z, dx, dt, t, p.space, p, cache)
     fill_source!(source, A, Q, z, dx, p)
 
     for i in 1:nx
@@ -112,12 +137,31 @@ function fill_method_fluxes!(
     z::AbstractVector{Float64},
     dx::Float64,
     dt::Float64,
+    t::Float64,
+    method::AbstractSpatialMethod,
+    p::Params,
+)
+    cache = RHSCache(length(A))
+    return fill_method_fluxes!(FA, FQ, A, Q, z, dx, dt, t, method, p, cache)
+end
+
+function fill_method_fluxes!(
+    FA::AbstractVector{Float64},
+    FQ::AbstractVector{Float64},
+    A::AbstractVector{Float64},
+    Q::AbstractVector{Float64},
+    z::AbstractVector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
     method::FVFirstOrderMethod,
     p::Params,
+    cache::RHSCache,
 )
     _ = dx
     _ = dt
-    Ain, Qin, Aout, Qout = boundary_states(A, Q, p)
+    _ = cache
+    Ain, Qin, Aout, Qout = boundary_states(A, Q, p, t)
 
     for iface in 1:(length(A) + 1)
         if iface == 1
@@ -148,12 +192,14 @@ function fill_method_fluxes!(
     z::AbstractVector{Float64},
     dx::Float64,
     dt::Float64,
+    t::Float64,
     method::FVMUSCLMethod,
     p::Params,
+    cache::RHSCache,
 )
     _ = dx
     _ = dt
-    fill_muscl_rusanov_fluxes!(FA, FQ, A, Q, z, method.limiter, p)
+    fill_muscl_rusanov_fluxes!(FA, FQ, A, Q, z, t, method.limiter, p, cache)
     return FA, FQ
 end
 
@@ -165,11 +211,13 @@ function fill_method_fluxes!(
     z::AbstractVector{Float64},
     dx::Float64,
     dt::Float64,
+    t::Float64,
     method::FVLaxWendroffMethod,
     p::Params,
+    cache::RHSCache,
 )
     dt > 0.0 || throw(ArgumentError("fv-lax-wendroff requires a positive native timestep"))
-    fill_lax_wendroff_fluxes!(FA, FQ, A, Q, z, dx, dt, method.limiter, p)
+    fill_lax_wendroff_fluxes!(FA, FQ, A, Q, z, dx, dt, t, method.limiter, p, cache)
     return FA, FQ
 end
 
@@ -181,11 +229,13 @@ function fill_method_fluxes!(
     z::AbstractVector{Float64},
     dx::Float64,
     dt::Float64,
+    t::Float64,
     method::DGMethod,
     p::Params,
+    cache::RHSCache,
 )
     method.degree == 0 || throw(ArgumentError("DG degree $(method.degree) uses the native modal DG solver, not cell-mean RHS"))
-    return fill_method_fluxes!(FA, FQ, A, Q, z, dx, dt, FVFirstOrderMethod(), p)
+    return fill_method_fluxes!(FA, FQ, A, Q, z, dx, dt, t, FVFirstOrderMethod(), p, cache)
 end
 
 function rusanov_flux(AL::Float64, QL::Float64, AR::Float64, QR::Float64, z::Float64, p::Params)
@@ -200,6 +250,11 @@ end
 
 function cell_slopes(values::AbstractVector{Float64}, limiter::AbstractLimiter)
     slopes = zeros(Float64, length(values))
+    return cell_slopes!(slopes, values, limiter)
+end
+
+function cell_slopes!(slopes::AbstractVector{Float64}, values::AbstractVector{Float64}, limiter::AbstractLimiter)
+    length(slopes) == length(values) || throw(DimensionMismatch("slope cache length mismatch"))
     for i in eachindex(values)
         slopes[i] = limited_slope(values, i, limiter)
     end
@@ -219,12 +274,28 @@ function fill_muscl_rusanov_fluxes!(
     A::AbstractVector{Float64},
     Q::AbstractVector{Float64},
     z::AbstractVector{Float64},
+    t::Float64,
     limiter::AbstractLimiter,
     p::Params,
 )
-    slope_A = cell_slopes(A, limiter)
-    slope_Q = cell_slopes(Q, limiter)
-    Ain, Qin, Aout, Qout = boundary_states(A, Q, p)
+    cache = RHSCache(length(A))
+    return fill_muscl_rusanov_fluxes!(FA, FQ, A, Q, z, t, limiter, p, cache)
+end
+
+function fill_muscl_rusanov_fluxes!(
+    FA::AbstractVector{Float64},
+    FQ::AbstractVector{Float64},
+    A::AbstractVector{Float64},
+    Q::AbstractVector{Float64},
+    z::AbstractVector{Float64},
+    t::Float64,
+    limiter::AbstractLimiter,
+    p::Params,
+    cache::RHSCache,
+)
+    slope_A = cell_slopes!(cache.area_slope, A, limiter)
+    slope_Q = cell_slopes!(cache.flow_slope, Q, limiter)
+    Ain, Qin, Aout, Qout = boundary_states(A, Q, p, t)
 
     for iface in 1:(length(A) + 1)
         if iface == 1
@@ -261,12 +332,30 @@ function fill_lax_wendroff_fluxes!(
     z::AbstractVector{Float64},
     dx::Float64,
     dt::Float64,
+    t::Float64,
     limiter::AbstractLimiter,
     p::Params,
 )
-    slope_A = cell_slopes(A, limiter)
-    slope_Q = cell_slopes(Q, limiter)
-    Ain, Qin, Aout, Qout = boundary_states(A, Q, p)
+    cache = RHSCache(length(A))
+    return fill_lax_wendroff_fluxes!(FA, FQ, A, Q, z, dx, dt, t, limiter, p, cache)
+end
+
+function fill_lax_wendroff_fluxes!(
+    FA::AbstractVector{Float64},
+    FQ::AbstractVector{Float64},
+    A::AbstractVector{Float64},
+    Q::AbstractVector{Float64},
+    z::AbstractVector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    limiter::AbstractLimiter,
+    p::Params,
+    cache::RHSCache,
+)
+    slope_A = cell_slopes!(cache.area_slope, A, limiter)
+    slope_Q = cell_slopes!(cache.flow_slope, Q, limiter)
+    Ain, Qin, Aout, Qout = boundary_states(A, Q, p, t)
 
     for iface in 1:(length(A) + 1)
         if iface == 1
@@ -311,18 +400,31 @@ function rhs_dt(
     dt::Float64,
     p::Params,
 )
+    return rhs_dt(A, Q, z, dx, dt, 0.0, p)
+end
+
+function rhs_dt(
+    A::AbstractVector{Float64},
+    Q::AbstractVector{Float64},
+    z::AbstractVector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    p::Params,
+    ;
+    cache::Union{Nothing,RHSCache} = nothing,
+)
     dA = similar(A, Float64)
     dQ = similar(Q, Float64)
-    cache = RHSCache(length(A))
-    fill_rhs_dt!(dA, dQ, A, Q, z, dx, dt, p, cache)
+    rhs_cache = cache === nothing ? RHSCache(length(A)) : cache
+    fill_rhs_dt!(dA, dQ, A, Q, z, dx, dt, t, p, rhs_cache)
     return dA, dQ
 end
 
 function rhs!(du::AbstractVector{Float64}, u::AbstractVector{Float64}, sim::SemiDiscreteSimulation, t)
-    _ = t
     A, Q = state_views(u, sim.layout)
     dA, dQ = state_views(du, sim.layout)
-    fill_rhs!(dA, dQ, A, Q, sim.z, sim.dx, sim.params, sim.cache)
+    fill_rhs!(dA, dQ, A, Q, sim.z, sim.dx, sim.params, sim.cache, Float64(t))
     return nothing
 end
 
@@ -334,7 +436,7 @@ function native_step(
     dt::Float64,
     p::Params,
 )
-    return native_step(A, Q, z, dx, dt, p.time_stepper, p)
+    return native_step(A, Q, z, dx, dt, 0.0, p.time_stepper, p)
 end
 
 function native_step(
@@ -343,11 +445,26 @@ function native_step(
     z::Vector{Float64},
     dx::Float64,
     dt::Float64,
+    t::Float64,
+    p::Params,
+)
+    return native_step(A, Q, z, dx, dt, t, p.time_stepper, p)
+end
+
+function native_step(
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
     ::ForwardEulerStepper,
     p::Params,
 )
-    dA, dQ = rhs_dt(A, Q, z, dx, dt, p)
-    return max.(A .+ dt .* dA, AREA_LIMITER_FLOOR), Q .+ dt .* dQ
+    Anew = copy(A)
+    Qnew = copy(Q)
+    cache = NativeStepCache(length(A))
+    return native_step!(Anew, Qnew, z, dx, dt, t, ForwardEulerStepper(), p, cache)
 end
 
 function native_step(
@@ -356,17 +473,14 @@ function native_step(
     z::Vector{Float64},
     dx::Float64,
     dt::Float64,
+    t::Float64,
     ::SSPRK2Stepper,
     p::Params,
 )
-    dA1, dQ1 = rhs_dt(A, Q, z, dx, dt, p)
-    A1 = max.(A .+ dt .* dA1, AREA_LIMITER_FLOOR)
-    Q1 = Q .+ dt .* dQ1
-
-    dA2, dQ2 = rhs_dt(A1, Q1, z, dx, dt, p)
-    Anew = max.(0.5 .* A .+ 0.5 .* (A1 .+ dt .* dA2), AREA_LIMITER_FLOOR)
-    Qnew = 0.5 .* Q .+ 0.5 .* (Q1 .+ dt .* dQ2)
-    return Anew, Qnew
+    Anew = copy(A)
+    Qnew = copy(Q)
+    cache = NativeStepCache(length(A))
+    return native_step!(Anew, Qnew, z, dx, dt, t, SSPRK2Stepper(), p, cache)
 end
 
 function native_step(
@@ -375,26 +489,110 @@ function native_step(
     z::Vector{Float64},
     dx::Float64,
     dt::Float64,
+    t::Float64,
     ::SSPRK3Stepper,
     p::Params,
 )
-    dA1, dQ1 = rhs_dt(A, Q, z, dx, dt, p)
-    A1 = max.(A .+ dt .* dA1, AREA_LIMITER_FLOOR)
-    Q1 = Q .+ dt .* dQ1
+    Anew = copy(A)
+    Qnew = copy(Q)
+    cache = NativeStepCache(length(A))
+    return native_step!(Anew, Qnew, z, dx, dt, t, SSPRK3Stepper(), p, cache)
+end
 
-    dA2, dQ2 = rhs_dt(A1, Q1, z, dx, dt, p)
-    A2 = max.(0.75 .* A .+ 0.25 .* (A1 .+ dt .* dA2), AREA_LIMITER_FLOOR)
-    Q2 = 0.75 .* Q .+ 0.25 .* (Q1 .+ dt .* dQ2)
+function native_step!(
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    p::Params,
+    cache::NativeStepCache,
+)
+    return native_step!(A, Q, z, dx, dt, t, p.time_stepper, p, cache)
+end
 
-    dA3, dQ3 = rhs_dt(A2, Q2, z, dx, dt, p)
-    Anew = max.((A .+ 2.0 .* (A2 .+ dt .* dA3)) ./ 3.0, AREA_LIMITER_FLOOR)
-    Qnew = (Q .+ 2.0 .* (Q2 .+ dt .* dQ3)) ./ 3.0
+function native_step!(
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    ::ForwardEulerStepper,
+    p::Params,
+    cache::NativeStepCache,
+)
+    fill_rhs_dt!(cache.dA1, cache.dQ1, A, Q, z, dx, dt, t, p, cache.rhs)
 
-    return Anew, Qnew
+    for i in eachindex(A)
+        A[i] = max(A[i] + dt * cache.dA1[i], AREA_LIMITER_FLOOR)
+        Q[i] = Q[i] + dt * cache.dQ1[i]
+    end
+
+    return A, Q
+end
+
+function native_step!(
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    ::SSPRK2Stepper,
+    p::Params,
+    cache::NativeStepCache,
+)
+    fill_rhs_dt!(cache.dA1, cache.dQ1, A, Q, z, dx, dt, t, p, cache.rhs)
+    for i in eachindex(A)
+        cache.A1[i] = max(A[i] + dt * cache.dA1[i], AREA_LIMITER_FLOOR)
+        cache.Q1[i] = Q[i] + dt * cache.dQ1[i]
+    end
+
+    fill_rhs_dt!(cache.dA2, cache.dQ2, cache.A1, cache.Q1, z, dx, dt, t + dt, p, cache.rhs)
+    for i in eachindex(A)
+        A[i] = max(0.5 * A[i] + 0.5 * (cache.A1[i] + dt * cache.dA2[i]), AREA_LIMITER_FLOOR)
+        Q[i] = 0.5 * Q[i] + 0.5 * (cache.Q1[i] + dt * cache.dQ2[i])
+    end
+
+    return A, Q
+end
+
+function native_step!(
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    ::SSPRK3Stepper,
+    p::Params,
+    cache::NativeStepCache,
+)
+    fill_rhs_dt!(cache.dA1, cache.dQ1, A, Q, z, dx, dt, t, p, cache.rhs)
+    for i in eachindex(A)
+        cache.A1[i] = max(A[i] + dt * cache.dA1[i], AREA_LIMITER_FLOOR)
+        cache.Q1[i] = Q[i] + dt * cache.dQ1[i]
+    end
+
+    fill_rhs_dt!(cache.dA2, cache.dQ2, cache.A1, cache.Q1, z, dx, dt, t + dt, p, cache.rhs)
+    for i in eachindex(A)
+        cache.A2[i] = max(0.75 * A[i] + 0.25 * (cache.A1[i] + dt * cache.dA2[i]), AREA_LIMITER_FLOOR)
+        cache.Q2[i] = 0.75 * Q[i] + 0.25 * (cache.Q1[i] + dt * cache.dQ2[i])
+    end
+
+    fill_rhs_dt!(cache.dA3, cache.dQ3, cache.A2, cache.Q2, z, dx, dt, t + 0.5 * dt, p, cache.rhs)
+    for i in eachindex(A)
+        A[i] = max((A[i] + 2.0 * (cache.A2[i] + dt * cache.dA3[i])) / 3.0, AREA_LIMITER_FLOOR)
+        Q[i] = (Q[i] + 2.0 * (cache.Q2[i] + dt * cache.dQ3[i])) / 3.0
+    end
+
+    return A, Q
 end
 
 function rk3_step(A::Vector{Float64}, Q::Vector{Float64}, z::Vector{Float64}, dx::Float64, dt::Float64, p::Params)
-    return native_step(A, Q, z, dx, dt, SSPRK3Stepper(), p)
+    return native_step(A, Q, z, dx, dt, 0.0, SSPRK3Stepper(), p)
 end
 
 function choose_dt(A::Vector{Float64}, Q::Vector{Float64}, z::Vector{Float64}, dx::Float64, p::Params)

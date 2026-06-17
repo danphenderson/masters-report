@@ -23,9 +23,9 @@ For a scalar field $\phi\in C^1(\mathcal{Q}_T)$ and a sufficiently regular flow
 map \(\La_t\), define the Lagrangian pullback
 $\phihat(t,\vxi):=\phi(t,\La_t(\vxi))$. Differentiating with respect to time
 along a trajectory and using
-$\partial_t\La_t(\vxi)=\vu(t,\La_t(\vxi))$ gives
+$\pd_t \La_t(\vxi)=\vu(t,\La_t(\vxi))$ gives
 \begin{flalign*}
-    \quad \frac{d}{dt}\phi(t,\La_t(\vxi)) = \partial_t\phi(t,\vx)+\nabla\phi(t,\vx)\cdot\vu(t,\vx), \qquad \vx=\La_t(\vxi). &&
+    \quad \dt\phi(t,\La_t(\vxi)) = \pd_t \phi(t,\vx)+\nabla\phi(t,\vx)\cdot\vu(t,\vx), \qquad \vx=\La_t(\vxi). &&
 \end{flalign*}
 The identity
 \begin{flalign*}
@@ -33,7 +33,7 @@ The identity
 \end{flalign*}
 also gives
 \begin{flalign*}
-    \quad D_t\phi=\partial_t\phi+\Div(\phi\vu)-\phi\Div\vu. &&
+    \quad D_t\phi=\pd_t \phi+\Div(\phi\vu)-\phi\Div\vu. &&
 \end{flalign*}
 
 \subsection{Jacobian Evolution and Reynolds Transport}
@@ -46,9 +46,9 @@ differentiate \(\vFhat_t\) and \(\Jhatdet_t\). The standard Jacobi identity
 gives
 \begin{flalign*}
     \quad
-    \partial_t\Jhatdet_t
+    \pd_t \Jhatdet_t
     =
-    \Jhatdet_t\,\mathrm{tr}\!\left(\partial_t\vFhat_t\,\vFhat_t^{-1}\right)
+    \Jhatdet_t\,\mathrm{tr}\!\left(\pd_t \vFhat_t\,\vFhat_t^{-1}\right)
     =
     \Jhatdet_t\,\Div\vu(t,\La_t(\vxi)),
     &&
@@ -71,13 +71,13 @@ identity gives
     \left(D_t\phi+\phi\Div\vu\right)\dx
     =
     \int_{V(t)}
-    \left(\partial_t\phi+\Div(\phi\vu)\right)\dx. &&
+    \left(\pd_t \phi+\Div(\phi\vu)\right)\dx. &&
 \end{flalign*}
 If $V(t)$ has Lipschitz boundary and the trace of \(\phi\vu\) is integrable on
 \(\partial V(t)\), the divergence theorem gives the boundary form
 \begin{flalign*}
     \quad
-    I'(t)=\int_{V(t)}\partial_t\phi\,\dx
+    I'(t)=\int_{V(t)} \pd_t \phi\,\dx
     +\int_{\partial V(t)}\phi\,\vu\cdot\nhat\,dS. &&
 \end{flalign*}
 
@@ -87,7 +87,7 @@ If $V(t)$ has Lipschitz boundary and the trace of \(\phi\vu\) is integrable on
 Starting from the material-volume balance
 \begin{flalign*}
     \quad
-    \frac{d}{dt}\int_{V(t)}\rho\vu\,dV
+    \dt\int_{V(t)}\rho\vu\,dV
     =
     \int_{\partial V(t)}\vT\nhat\,dS
     +\int_{V(t)}\rho\vfb\,dV, &&
@@ -95,7 +95,7 @@ Starting from the material-volume balance
 Reynolds transport gives
 \begin{flalign*}
     \quad
-    \frac{d}{dt}\int_{V(t)}\rho\vu\,dV
+    \dt\int_{V(t)}\rho\vu\,dV
     =
     \int_{V(t)}
     \left(D_t(\rho\vu)+\rho\vu\,\Div\vu\right)dV. &&
@@ -106,7 +106,7 @@ $D_t\rho+\rho\Div\vu=0$, this reduces to
     \quad
     \int_{V(t)}\rho D_t\vu\,dV
     =
-    \int_{V(t)}\rho\left(\partial_t\vu+(\vu\cdot\nabla)\vu\right)dV. &&
+    \int_{V(t)}\rho\left(\pd_t \vu+(\vu\cdot\nabla)\vu\right)dV. &&
 \end{flalign*}
 The surface traction term satisfies
 \begin{flalign*}
@@ -122,22 +122,22 @@ integral of \(\Divbf\vT\). Since $V(t)$ is arbitrary within the localization
 class, the differential form is
 \begin{flalign*}
     \quad
-    \rho\left(\partial_t\vu+(\vu\cdot\nabla)\vu\right)
+    \rho\left(\pd_t \vu+(\vu\cdot\nabla)\vu\right)
     =
     \Divbf(\vT)+\rho\vfb. &&
 \end{flalign*}
 The conservative Eulerian form
 \begin{flalign*}
     \quad
-    \partial_t(\rho\vu)+\Divbf(\rho\vu\otimes\vu)
+    \pd_t (\rho\vu)+\Divbf(\rho\vu\otimes\vu)
     =
     \Divbf(\vT)+\rho\vfb &&
 \end{flalign*}
 is equivalent whenever the continuity equation holds, because
 \begin{flalign*}
     \quad
-    \partial_t(\rho\vu)+\Divbf(\rho\vu\otimes\vu)
+    \pd_t (\rho\vu)+\Divbf(\rho\vu\otimes\vu)
     =
-    \rho\left(\partial_t\vu+(\vu\cdot\nabla)\vu\right)
-    +\vu\left(\partial_t\rho+\Div(\rho\vu)\right). &&
+    \rho\left(\pd_t \vu+(\vu\cdot\nabla)\vu\right)
+    +\vu\left(\pd_t \rho+\Div(\rho\vu)\right). &&
 \end{flalign*}

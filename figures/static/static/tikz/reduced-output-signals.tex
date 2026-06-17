@@ -6,7 +6,7 @@
 \begin{tikzpicture}[fig]
   \pgfplotsset{
     compat=1.18,
-    signalpanel/.style={width=5.75cm, height=3.35cm,
+    signalpanel/.style={width=7.1cm, height=4.55cm,
       tick label style={font=\scriptsize},
       label style={font=\scriptsize},
       xlabel style={font=\scriptsize},
@@ -28,7 +28,7 @@
 
   % top-right: Delta p(t)
   \begin{axis}[name=ax2, signalpanel,
-      at={($(ax1.east)+(1.95cm,0)$)}, anchor=west,
+      at={($(ax1.east)+(0.65cm,0)$)}, anchor=west,
       ylabel={$\Delta p$ [mmHg]},
       title={pressure drop $\Delta p(t)$}, ymin=-2, ymax=42]
     \addplot[bloodred!75!black, smooth, samples=200, domain=0:1]
@@ -42,7 +42,7 @@
 
   % bottom-left: instantaneous reference-consistent pressure-ratio trace.
   \begin{axis}[name=ax3, signalpanel,
-      at={($(ax1.south)+(0,-1.75cm)$)}, anchor=north,
+      at={($(ax1.south)+(0,-0.95cm)$)}, anchor=north,
       ylabel={$P_{\mathrm{dist}}^{\mathrm{ratio}}(t)/
       P_{\mathrm{prox}}^{\mathrm{ratio}}(t)$},
       title={pressure-ratio trace},
@@ -53,7 +53,7 @@
 
   % bottom-right: signed 1D axial shear proxy at minimum-area station.
   \begin{axis}[name=ax4, signalpanel,
-      at={($(ax3.east)+(1.95cm,0)$)}, anchor=west,
+      at={($(ax3.east)+(0.65cm,0)$)}, anchor=west,
       ylabel={$\tau_{w,z}^{1D}$ [Pa]},
       title={signed shear proxy $\tau_{w,z}^{1D}(t)$},
       ymin=-1, ymax=22]

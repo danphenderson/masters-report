@@ -121,6 +121,19 @@ $x_i$ is
 \begin{flalign*}
     \quad \pd_{x_i} \phi = \frac{\pd \phi}{\pd x_i}. &&
 \end{flalign*}
+Named-coordinate partial derivatives use the same compact convention; for
+example,
+\begin{flalign*}
+    \quad
+    \pd_t \phi = \frac{\pd \phi}{\pd t},
+    \qquad
+    \pd_z f = \frac{\pd f}{\pd z},
+    \qquad
+    \pd_A p = \frac{\pd p}{\pd A}. &&
+\end{flalign*}
+Cylindrical derivatives such as $\pd_r u$ and $\pd_\theta u$ are read
+analogously. Boundary notation retains $\partial$, as in $\partial V(t)$ and
+$\pOmg$.
 For $\vx \in \Omg$ and a direction $\vv \in \R^n$, the directional derivative is
 \begin{flalign*}
     \quad D_{\vv} \phi(\vx) \defined \inp{\nabla \phi(\vx)}{\vv}_{\R^n}. &&
@@ -167,7 +180,7 @@ also componentwise whenever the components are integrable:
 \end{flalign*}
 
 For tensor-valued $\vT \in C^1(\Omg; \R^{n\times n})$ with entries $\vT = (T_{ij})_{i,j\in[n]}$,
-we use the row-divergence convention $(\Divbf\vT)_i=\sum_{j\in[n]} \pd_{x_j}T_{ij}$.
+we use the row-divergence convention $(\Divbf\vT)_i=\sum_{j\in[n]} \pd_{x_j} T_{ij}$.
 Equivalently, if $\vt_i=(T_{ij})_{j\in[n]}$ denotes the $i$-th row of $\vT$, then
 \begin{flalign*}
     \quad \Divbf \, \vT &\defined \left( \Div \, \vt_{i} \right)_{i\in[n]} &&\\

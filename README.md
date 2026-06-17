@@ -35,6 +35,10 @@ This repository has separate Julia and Python environments.
 - Julia simulation work uses `Project.toml` and `Manifest.toml`. Run Julia
   commands through `./scripts/julia-release`, which selects Julia 1.12 or newer
   and binds the project environment automatically.
+- Local Julia shells source `~/.config/julia/resource-profile.zsh` for the
+  batch profile: 10 Julia threads, 2 GC threads, BLAS/OpenMP/vecLib pinned to 1
+  thread, and `JULIA_CASE_WORKERS=10` for independent simulation cases. Set
+  `JULIA_RESOURCE_PROFILE=off` before shell startup to skip these defaults.
 - Python report/support tooling uses `Pipfile`. Install it with `pipenv install
   --dev` when Python utilities or notebook-style analysis helpers are needed.
 

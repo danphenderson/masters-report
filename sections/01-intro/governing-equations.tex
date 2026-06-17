@@ -51,7 +51,7 @@ Linear momentum conservation balances inertia, pressure, viscous stress, and
 body forces:
 \begin{flalign*}
     \quad
-    \rho \left(\partial_t\vu+(\vu\cdot\nabla)\vu\right)
+    \rho \left(\pd_t \vu+(\vu\cdot\nabla)\vu\right)
     \equals \Divbf(\vT)+\rho\vfb. &&
 \end{flalign*}
 Throughout the Navier--Stokes statements below, \(\vfb\) denotes body force per
@@ -63,7 +63,7 @@ unit mass, so \(\rho\vfb\) is the corresponding body force per unit volume.
     conservative tensor-divergence form as
     \begin{flalign*}
         \quad & \begin{cases*}
-            \partial_t(\rho \vu)
+            \pd_t (\rho \vu)
             + \Divbf(\rho \vu\otimes\vu)
             =
             -\nabla p+\Divbf(2\eta\vct{D}(\vu))+\rho\vfb, \\
@@ -88,7 +88,7 @@ momentum equation can be read in advective form.
     density \(\rho\equiv\rho_0>0\) satisfy
     \begin{flalign*}
         \quad & \begin{cases*}
-            \rho\big(\partial_t\vu+(\vu\cdot\nabla)\vu\big)
+            \rho\big(\pd_t \vu+(\vu\cdot\nabla)\vu\big)
             =
             -\nabla p
             +\Divbf\!\Big(
@@ -108,7 +108,7 @@ momentum equation can be read in advective form.
     is
     \begin{flalign*}
         \quad & \begin{cases*}
-            \partial_t \vu+(\vu\cdot\nabla)\vu
+            \pd_t \vu+(\vu\cdot\nabla)\vu
             =
             -\rho^{-1}\nabla p
             +\Divbf\!\Big(
@@ -120,7 +120,8 @@ momentum equation can be read in advective form.
     \end{flalign*}
 \end{definition}
 The density-scaled form is particularly useful for numerical simulations,
-because it separates the convective ($(\vu\cdot\nabla)\vu$) and diffusive
+because it separates the convective ($(\vu\cdot\nabla)\vu$) and diffusive /
+viscous-stress
 ($\Divbf(2\nu_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu))$) contributions in the
 momentum equation, allowing for more straightforward numerical treatment of
 each term independently.
@@ -131,14 +132,14 @@ each term independently.
     \(\Divbf(2\eta\vct{D}(\vu))=\eta\del\vu\). The Newtonian equations are
     \begin{flalign*}
         \quad & \begin{cases*}
-            \rho\big(\partial_t\vu+(\vu\cdot\nabla)\vu\big)
+            \rho\big(\pd_t \vu+(\vu\cdot\nabla)\vu\big)
             =
             -\nabla p+\eta\del\vu+\rho\vfb, \\
             \Div\vu=0,
         \end{cases*}
         \qquad
         \begin{cases*}
-            \partial_t\vu+(\vu\cdot\nabla)\vu
+            \pd_t \vu+(\vu\cdot\nabla)\vu
             =
             -\rho^{-1}\nabla p+\nu\del\vu+\vfb, \\
             \Div\vu=0,
@@ -160,7 +161,7 @@ the Navier--Stokes systems above.
     \begin{flalign*}
         \quad & \begin{cases*}
             \mathcal{R}_{\mathrm{NS}}
-            (\partial_t\vu,\nabla\vu,\nabla p,\vu,p;\rho,\nu_{\mathrm{eff}})
+            (\pd_t \vu,\nabla\vu,\nabla p,\vu,p;\rho,\nu_{\mathrm{eff}})
             =\vfb, \\
             \Div\vu=0.
         \end{cases*} &&
@@ -334,17 +335,17 @@ independent replacements for the blood-dynamics setting above.
         \quad
         \frac{d}{dz}p_{\mathrm g}(A(z,t),z,t)
         =
-        \partial_Ap_{\mathrm g}(A,z,t)\partial_zA
+        \pd_A p_{\mathrm g}(A,z,t) \pd_z A
         +
-        \left.\partial_zp_{\mathrm g}(A,z,t)\right|_A . &&
+        \left.\pd_z p_{\mathrm g}(A,z,t)\right|_A . &&
     \end{flalign*}
     The reduced balance law is
     \begin{flalign*}
-        \quad \frac{\partial A}{\partial t}
-        + \frac{\partial Q}{\partial z}
+        \quad \pd_t A
+        + \pd_z Q
         &= 0, \numberthis\label{eq:1d-mass-aq} && \\
-        \quad \frac{\partial Q}{\partial t}
-        + \frac{\partial}{\partial z}
+        \quad \pd_t Q
+        + \pd_z
             \left(\alpha \frac{Q^2}{A}\right)
         + \frac{A}{\rho}\frac{d}{dz}p_{\mathrm g}(A(z,t),z,t)
         &= - C_f(z,A,Q) \frac{Q}{A}.
@@ -467,14 +468,13 @@ independent replacements for the blood-dynamics setting above.
 \begin{figure}[!htb]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \includegraphics[height=0.70\textheight]{figures/static/static/rendered/stenosis-particle-trajectories.pdf}
+    \includegraphics[width=0.98\textwidth]{figures/static/static/rendered/stenosis-severity-gallery.pdf}
     \caption{Analytic three-dimensional renderings of the
     \(C^\infty\) reference geometry in
-    Definition~\ref{def:1d-stenosis-reference-geometry}, with
-    \(s_{\max}=23\%,50\%,73\%\) stacked vertically. Here \(s_{\max}\) is the
-    prescribed anatomical radius-reduction parameter in the idealized geometry.
-    The overlaid curves are steady particle pathlines traced through the
-    generated stationary Stokes velocity field; they are not pressure-drop,
+    Definition~\ref{def:1d-stenosis-reference-geometry}, shown for
+    \(s_{\max}=0\%,23\%,40\%,50\%\). Here \(s_{\max}\) is the prescribed
+    anatomical radius-reduction parameter in the idealized geometry. These
+    renderings illustrate the geometry family only; they are not pressure-drop,
     FFR, or patient-specific clinical calibration measurements.}
     \label{fig:stenosis-3d-reference-geometry}
 \end{figure}
@@ -519,16 +519,16 @@ independent replacements for the blood-dynamics setting above.
     The potential and sources are tied to the selected closure descriptors by
     \begin{flalign*}
         \quad
-        \partial_A \Psi_{\mathcal W}(A,z,t)
+        \pd_A \Psi_{\mathcal W}(A,z,t)
         &=
-        \frac{A}{\rho}\partial_A p_{\mathrm g}^{\mathcal W}(A,z,t), &&\\
+        \frac{A}{\rho} \pd_A p_{\mathrm g}^{\mathcal W}(A,z,t), &&\\
         \quad
         S_{\mathrm{geom}}^{\mathcal W}(A,z,t)
         &=
-        \left.\partial_z\Psi_{\mathcal W}(A,z,t)\right|_A
+        \left.\pd_z \Psi_{\mathcal W}(A,z,t)\right|_A
         -
         \frac{A}{\rho}
-        \left.\partial_zp_{\mathrm g}^{\mathcal W}(A,z,t)\right|_A,
+        \left.\pd_z p_{\mathrm g}^{\mathcal W}(A,z,t)\right|_A,
         &&\\
         \quad
         S_f^{\mathcal R}(A,Q,z)
@@ -539,10 +539,10 @@ independent replacements for the blood-dynamics setting above.
     \(p_{\mathrm g}^{\mathcal W}\) is the wall law in
     Definition~\ref{def:1d-elastic-wall-law}. In component form,
     \begin{flalign*}
-        \quad \partial_t A + \partial_z Q &= 0,
+        \quad \pd_t A + \pd_z Q &= 0,
         \numberthis\label{eq:1d-conservative-mass} && \\
-        \quad \partial_t Q
-        + \partial_z\!\left(
+        \quad \pd_t Q
+        + \pd_z \left(
             \alpha\frac{Q^2}{A}+\Psi_{\mathcal W}(A,z,t)
         \right)
         &=
@@ -588,7 +588,7 @@ independent replacements for the blood-dynamics setting above.
     and one characteristic enters through the outlet.
 \end{assumption}
 
-Under this regime, a finite-volume boundary realization constrains the incoming
+Under this regime, a finite-volume scheme constrains the incoming
 information at each boundary and leaves the outgoing state determined by the
 interior solve. This is the reduced-model analogue of declaring enough boundary
 data for the selected equation class; it is not, by itself, a validation of a

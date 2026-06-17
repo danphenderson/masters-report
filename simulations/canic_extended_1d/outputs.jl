@@ -108,6 +108,8 @@ function summary_lines(result::SimulationResult, p::Params, out::OutputSpec)
         "time_stepper,$(time_stepper_name(p.time_stepper))",
         "rheology,$(rheology_name(p.rheology))",
         "velocity_profile,$(profile_name(p.velocity_profile))",
+        "inlet_boundary,$(inlet_boundary_name(p.inlet_boundary))",
+        "outlet_boundary,$(outlet_boundary_name(p.outlet_boundary))",
         "alpha,$(p.alpha)",
         "profile_exponent,$(profile_exponent(p.velocity_profile))",
         "shear_rate_factor,$(shear_rate_factor(p.velocity_profile))",

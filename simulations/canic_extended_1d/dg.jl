@@ -63,6 +63,7 @@ function dg_rhs(
     dx::Float64,
     p::Params,
     method::DGMethod,
+    t::Float64 = 0.0,
 )
     degree = method.degree
     nx = size(Acoef, 1)
@@ -72,7 +73,7 @@ function dg_rhs(
     FQ = zeros(Float64, nx + 1)
     means_A = vec(Acoef[:, 1])
     means_Q = vec(Qcoef[:, 1])
-    Ain, Qin, Aout, Qout = boundary_states(means_A, means_Q, p)
+    Ain, Qin, Aout, Qout = boundary_states(means_A, means_Q, p, t)
 
     for iface in 1:(nx + 1)
         if iface == 1
@@ -179,7 +180,7 @@ function dg_step(
     p::Params,
     method::DGMethod,
 )
-    return dg_step(Acoef, Qcoef, z, dx, dt, p.time_stepper, p, method)
+    return dg_step(Acoef, Qcoef, z, dx, dt, 0.0, p.time_stepper, p, method)
 end
 
 function dg_step(
@@ -188,11 +189,25 @@ function dg_step(
     z::Vector{Float64},
     dx::Float64,
     dt::Float64,
+    t::Float64,
+    p::Params,
+    method::DGMethod,
+)
+    return dg_step(Acoef, Qcoef, z, dx, dt, t, p.time_stepper, p, method)
+end
+
+function dg_step(
+    Acoef::Matrix{Float64},
+    Qcoef::Matrix{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
     ::ForwardEulerStepper,
     p::Params,
     method::DGMethod,
 )
-    dA, dQ = dg_rhs(Acoef, Qcoef, z, dx, p, method)
+    dA, dQ = dg_rhs(Acoef, Qcoef, z, dx, p, method, t)
     Anew = Acoef .+ dt .* dA
     Qnew = Qcoef .+ dt .* dQ
     return limit_dg_coefficients!(Anew, Qnew, method)
@@ -204,16 +219,17 @@ function dg_step(
     z::Vector{Float64},
     dx::Float64,
     dt::Float64,
+    t::Float64,
     ::SSPRK2Stepper,
     p::Params,
     method::DGMethod,
 )
-    dA1, dQ1 = dg_rhs(Acoef, Qcoef, z, dx, p, method)
+    dA1, dQ1 = dg_rhs(Acoef, Qcoef, z, dx, p, method, t)
     A1 = Acoef .+ dt .* dA1
     Q1 = Qcoef .+ dt .* dQ1
     limit_dg_coefficients!(A1, Q1, method)
 
-    dA2, dQ2 = dg_rhs(A1, Q1, z, dx, p, method)
+    dA2, dQ2 = dg_rhs(A1, Q1, z, dx, p, method, t + dt)
     Anew = 0.5 .* Acoef .+ 0.5 .* (A1 .+ dt .* dA2)
     Qnew = 0.5 .* Qcoef .+ 0.5 .* (Q1 .+ dt .* dQ2)
     return limit_dg_coefficients!(Anew, Qnew, method)
@@ -225,21 +241,22 @@ function dg_step(
     z::Vector{Float64},
     dx::Float64,
     dt::Float64,
+    t::Float64,
     ::SSPRK3Stepper,
     p::Params,
     method::DGMethod,
 )
-    dA1, dQ1 = dg_rhs(Acoef, Qcoef, z, dx, p, method)
+    dA1, dQ1 = dg_rhs(Acoef, Qcoef, z, dx, p, method, t)
     A1 = Acoef .+ dt .* dA1
     Q1 = Qcoef .+ dt .* dQ1
     limit_dg_coefficients!(A1, Q1, method)
 
-    dA2, dQ2 = dg_rhs(A1, Q1, z, dx, p, method)
+    dA2, dQ2 = dg_rhs(A1, Q1, z, dx, p, method, t + dt)
     A2 = 0.75 .* Acoef .+ 0.25 .* (A1 .+ dt .* dA2)
     Q2 = 0.75 .* Qcoef .+ 0.25 .* (Q1 .+ dt .* dQ2)
     limit_dg_coefficients!(A2, Q2, method)
 
-    dA3, dQ3 = dg_rhs(A2, Q2, z, dx, p, method)
+    dA3, dQ3 = dg_rhs(A2, Q2, z, dx, p, method, t + 0.5 * dt)
     Anew = (Acoef .+ 2.0 .* (A2 .+ dt .* dA3)) ./ 3.0
     Qnew = (Qcoef .+ 2.0 .* (Q2 .+ dt .* dQ3)) ./ 3.0
     return limit_dg_coefficients!(Anew, Qnew, method)
@@ -264,7 +281,7 @@ function simulate_dg(p::Params, method::DGMethod; progress_every::Int = 0)
 
     while t < p.tfinal - 1.0e-14
         dt = min(choose_dt_dg(Acoef, Qcoef, z, dx, p, method), p.tfinal - t)
-        Acoef, Qcoef = dg_step(Acoef, Qcoef, z, dx, dt, p, method)
+        Acoef, Qcoef = dg_step(Acoef, Qcoef, z, dx, dt, t, p, method)
         t += dt
         step += 1
 

@@ -49,19 +49,19 @@ separate hypotheses and are not supplied by the coordinate notation alone.
 The differential operators used in cylindrical divided-by-density
 Navier--Stokes forms are
 \begin{flalign*}
-    \quad (\vu\cdot\nabla) &= u_r\partial_r+\frac{u_\theta}{r}\partial_\theta+u_z\partial_z, \\ \nabla p
-    &= \partial_r p\,\vct{e}_r +\frac{1}{r}\partial_\theta p\,\vct{e}_\theta +\partial_z p\,\vct{e}_z, \\ \Div\vu
-    &= \frac{1}{r}\partial_r(ru_r) +\frac{1}{r}\partial_\theta u_\theta +\partial_z u_z. &&
+    \quad (\vu\cdot\nabla) &= u_r \pd_r+\frac{u_\theta}{r} \pd_\theta+u_z \pd_z, \\ \nabla p
+    &= \pd_r p\,\vct{e}_r +\frac{1}{r} \pd_\theta p\,\vct{e}_\theta +\pd_z p\,\vct{e}_z, \\ \Div\vu
+    &= \frac{1}{r} \pd_r (ru_r) +\frac{1}{r} \pd_\theta u_\theta +\pd_z u_z. &&
 \end{flalign*}
 The rate-of-deformation components in the cylindrical orthonormal basis are
 \begin{flalign*}
-    \quad D_{rr} &= \partial_r u_r, &
-    D_{\theta\theta} &= \frac{1}{r}\partial_\theta u_\theta+\frac{u_r}{r}, &
-    D_{zz} &= \partial_z u_z, \\
-    D_{r\theta} &= \frac{1}{2}\left(\partial_r u_\theta-\frac{u_\theta}{r} +\frac{1}{r}\partial_\theta u_r\right), &
-    D_{rz} &= \frac{1}{2}(\partial_r u_z+\partial_z u_r), &
+    \quad D_{rr} &= \pd_r u_r, &
+    D_{\theta\theta} &= \frac{1}{r} \pd_\theta u_\theta+\frac{u_r}{r}, &
+    D_{zz} &= \pd_z u_z, \\
+    D_{r\theta} &= \frac{1}{2}\left(\pd_r u_\theta-\frac{u_\theta}{r} +\frac{1}{r} \pd_\theta u_r\right), &
+    D_{rz} &= \frac{1}{2}(\pd_r u_z+\pd_z u_r), &
     D_{\theta z} &=
-    \frac{1}{2}\left(\frac{1}{r}\partial_\theta u_z+\partial_z u_\theta\right). &&
+    \frac{1}{2}\left(\frac{1}{r} \pd_\theta u_z+\pd_z u_\theta\right). &&
 \end{flalign*}
 Use the scalar shear-rate convention
 \(\dot\gamma=\sqrt{2\vct{D}(\vu):\vct{D}(\vu)}\). Then
@@ -74,34 +74,34 @@ Remark~\ref{rmk:viscosity-notation}.
 Writing $\vf=f_r\vct{e}_r+f_\theta\vct{e}_\theta+f_z\vct{e}_z$, the momentum
 components are
 \begin{flalign*}
-    \text{(radial)}\quad &\partial_t u_r
-    +u_r\partial_r u_r +\frac{u_\theta}{r}\partial_\theta u_r +u_z\partial_z u_r -\frac{u_\theta^2}{r} \\
-    &\quad = -\frac{1}{\rho}\partial_r p +\frac{1}{\rho}
+    \text{(radial)}\quad &\pd_t u_r
+    +u_r \pd_r u_r +\frac{u_\theta}{r} \pd_\theta u_r +u_z \pd_z u_r -\frac{u_\theta^2}{r} \\
+    &\quad = -\frac{1}{\rho} \pd_r p +\frac{1}{\rho}
     \left[
-        \frac{1}{r}\partial_r(r\tau_{rr})
-        +\frac{1}{r}\partial_\theta\tau_{r\theta}
-        +\partial_z\tau_{rz}
+        \frac{1}{r} \pd_r (r\tau_{rr})
+        +\frac{1}{r} \pd_\theta \tau_{r\theta}
+        +\pd_z \tau_{rz}
         -\frac{1}{r}\tau_{\theta\theta}
     \right]
     +f_r, \\
-    \text{(azimuthal)}\quad &\partial_t u_\theta+u_r\partial_r u_\theta
-    +\frac{u_\theta}{r}\partial_\theta u_\theta+u_z\partial_z u_\theta+\frac{u_ru_\theta}{r} \\
-    &\quad = -\frac{1}{\rho r}\partial_\theta p+\frac{1}{\rho}
+    \text{(azimuthal)}\quad &\pd_t u_\theta+u_r \pd_r u_\theta
+    +\frac{u_\theta}{r} \pd_\theta u_\theta+u_z \pd_z u_\theta+\frac{u_ru_\theta}{r} \\
+    &\quad = -\frac{1}{\rho r} \pd_\theta p+\frac{1}{\rho}
     \left[
-        \frac{1}{r}\partial_r(r\tau_{r\theta})
-        +\frac{1}{r}\partial_\theta\tau_{\theta\theta}
-        +\partial_z\tau_{\theta z}
+        \frac{1}{r} \pd_r (r\tau_{r\theta})
+        +\frac{1}{r} \pd_\theta \tau_{\theta\theta}
+        +\pd_z \tau_{\theta z}
         +\frac{1}{r}\tau_{r\theta}
     \right]+f_\theta, \\
-    \text{(axial)}\quad &\partial_t u_z +u_r\partial_r u_z+\frac{u_\theta}{r}\partial_\theta u_z+u_z\partial_z u_z \\
-    &\quad = -\frac{1}{\rho}\partial_z p+\frac{1}{\rho}
+    \text{(axial)}\quad &\pd_t u_z +u_r \pd_r u_z+\frac{u_\theta}{r} \pd_\theta u_z+u_z \pd_z u_z \\
+    &\quad = -\frac{1}{\rho} \pd_z p+\frac{1}{\rho}
     \left[
-        \frac{1}{r}\partial_r(r\tau_{rz})
-        +\frac{1}{r}\partial_\theta\tau_{\theta z}
-        +\partial_z\tau_{zz}
+        \frac{1}{r} \pd_r (r\tau_{rz})
+        +\frac{1}{r} \pd_\theta \tau_{\theta z}
+        +\pd_z \tau_{zz}
     \right]+f_z. &&
 \end{flalign*}
 The incompressibility condition is
 \begin{flalign*}
-    \quad \frac{1}{r}\partial_r(ru_r) +\frac{1}{r}\partial_\theta u_\theta+\partial_z u_z=0. &&
+    \quad \frac{1}{r} \pd_r (ru_r) +\frac{1}{r} \pd_\theta u_\theta+\pd_z u_z=0. &&
 \end{flalign*}

@@ -3,7 +3,78 @@
 
 This report is built from the local \LaTeX{} sources rooted at
 \texttt{final-report.tex}. The compiled PDF should be treated as the rendered
-form of those sources. Any numerical-study code, solver configuration, or
-generated data used later in the report should be cited in the relevant study
-section with enough information to identify the method, inputs, and output
-records.
+form of those sources. The local checkout used for this report is rooted at
+\path{/Users/doe/hemodynamics/masters-report}. The parent checkout for this
+report-source update was git commit \texttt{019fa39}. No git remote is
+configured in this checkout, so this appendix does not claim a public repository
+or archival URL.
+
+The Section~\ref{sec:resolved-3d-comparison} comparison record is the ignored
+local directory
+\path{simulations/output/3d_comparison/full_t1_native_nx400/}. The command
+shape for regenerating the available comparison, when the ignored raw 3D inputs
+are restored, is:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_available_resolved3d_comparison(output_dir="simulations/output/3d_comparison/full_t1_native_nx400", overwrite=true)'
+\end{lstlisting}
+
+The raw upstream XDMF/HDF5 inputs under
+\path{simulations/data/3d/canic_case3/} are ignored by git and are absent from
+this checkout. Therefore the comparison is not independently reproducible from
+the tracked report package alone. The tracked static data copied into the PDF
+has the following SHA-256 hashes:
+\begin{center}
+\scriptsize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\ttfamily\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Tracked file} & \textbf{SHA-256} \\
+\midrule
+\path{figures/static/static/data/stenosis-comparison/section-mean.dat}
+& 5939c015eaa848dbd62e0531b26799a3\newline
+297eb3ebb7c936fd6ce66e9f4b8e649e \\
+\path{figures/static/static/data/stenosis-comparison/radial-case77.dat}
+& 90d4766201f5610efdd41d93f0717a6c0\newline
+4485a00f4f60a272ba46207c7065f8a \\
+\path{figures/static/static/data/stenosis-comparison/radial-case60.dat}
+& e35b4f1e9016e22ba1ee9feb638945273\newline
+2eb81fb0ea7a9d4a686f64d89e1bbbc \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The ignored local comparison record observed in this checkout contains the
+following output hashes; these files are local evidence, not tracked archive
+contents:
+\begin{center}
+\scriptsize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\ttfamily\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Ignored record file} & \textbf{SHA-256} \\
+\midrule
+\path{comparison_summary.csv}
+& 8dbb4eb5f6e9fa369fa1a4bf215ff2c3\newline
+80b788d2b9b89f828718ae1485e79b6b \\
+\path{section_mean_case77_sev23.csv}
+& 4efafa3c314eaa19193f3c884c9b9607\newline
+9423a2bf2985cde4cc6511f0dfaf9348 \\
+\path{section_mean_case60_sev40.csv}
+& 48a6af7ef5f50bdadfcf7b043d7632acc\newline
+fc73af41750e93f02e701c16fb948b4 \\
+\path{radial_profile_case77_sev23.csv}
+& 29bb3e13fa34396c27c91d0183bcac1\newline
+16516bedcc5b92be33cb832126216890d \\
+\path{radial_profile_case60_sev40.csv}
+& 994091f5e74d39249d8d7b9ec374d07\newline
+b36eec9fdef72050bc712f5615443458c \\
+\path{section_mean_overlay.svg}
+& c6ac9de7f3cc92782c61753c346e66e\newline
+405fc6f3ab22d45e435c7afa5d41aa322 \\
+\path{radial_profile_case77_sev23.svg}
+& fb60c63ef2963c6f13f8e28c6d0b306\newline
+485326318e32f83d12c4f296652834c63 \\
+\path{radial_profile_case60_sev40.svg}
+& e8a3794c1e07d3ea58ffeb59be3c0558\newline
+e9009473cf3fb304a8b74aa1250f7bf7 \\
+\bottomrule
+\end{tabularx}
+\end{center}

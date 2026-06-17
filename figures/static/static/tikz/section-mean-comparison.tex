@@ -1,24 +1,24 @@
 \begin{tikzpicture}
   \begin{axis}[
     width=\textwidth,
-    height=6.1cm,
+    height=6.8cm,
     xlabel={axial coordinate \(z\) (cm)},
     ylabel={section-mean axial velocity (cm/s)},
     xmin=0, xmax=6,
     grid=both,
-    legend columns=2,
-    legend style={font=\tiny, at={(0.5,-0.25)}, anchor=north},
+    legend columns=4,
+    legend style={font=\scriptsize, at={(0.5,-0.20)}, anchor=north},
   ]
-    \addplot+[bloodred, mark=none, line width=0.9pt]
+    \addplot+[bloodred, mark=none, line width=1.15pt]
       table[x=z, y=u3d77] {figures/static/static/data/stenosis-comparison/section-mean.dat};
     \addlegendentry{case 77 3D}
-    \addplot+[bloodred, mark=none, dashed, line width=0.9pt]
+    \addplot+[bloodred, mark=none, dashed, line width=1.15pt]
       table[x=z, y=u1d77] {figures/static/static/data/stenosis-comparison/section-mean.dat};
     \addlegendentry{case 77 1D}
-    \addplot+[accentTeal, mark=none, line width=0.9pt]
+    \addplot+[accentTeal, mark=none, line width=1.15pt]
       table[x=z, y=u3d60] {figures/static/static/data/stenosis-comparison/section-mean.dat};
     \addlegendentry{case 60 3D}
-    \addplot+[accentTeal, mark=none, dashed, line width=0.9pt]
+    \addplot+[accentTeal, mark=none, dashed, line width=1.15pt]
       table[x=z, y=u1d60] {figures/static/static/data/stenosis-comparison/section-mean.dat};
     \addlegendentry{case 60 1D}
   \end{axis}

@@ -51,6 +51,7 @@ function print_usage(io::IO = stdout)
           --svg PATH              SVG plot output path
           --no-svg                Skip SVG output
           --progress-every VALUE  Log every N steps, default 5000; use 0 to disable
+          --openbf-config PATH    Run a strict OpenBF-style input.yml adapter
           --help                  Show this help
         """,
     )
@@ -100,6 +101,7 @@ const VALUE_OPTIONS = Set([
     "output",
     "svg",
     "progress-every",
+    "openbf-config",
 ])
 
 const FLAG_OPTIONS = Set([
@@ -339,6 +341,15 @@ function parse_args(args::Vector{String})
 
     if "help" in flags
         return nothing
+    end
+
+    if haskey(values, "openbf-config")
+        extra_values = sort([key for key in keys(values) if key != "openbf-config"])
+        isempty(extra_values) ||
+            throw(ArgumentError("--openbf-config cannot be combined with option(s): $(join(map(key -> "--" * key, extra_values), ", "))"))
+        isempty(flags) || throw(ArgumentError("--openbf-config cannot be combined with flag option(s)"))
+        params, output, backend, _ = params_from_openbf_config(values["openbf-config"])
+        return params, output, backend
     end
 
     severity = parse(Float64, get(values, "severity", "50"))

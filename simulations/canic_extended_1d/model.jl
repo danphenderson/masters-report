@@ -59,14 +59,15 @@ function source_point(
 )
     _ = z
     Ai = positive_area(A)
-    a0 = r0^2
-    nu_eff = effective_kinematic_viscosity(Ai, Q, r0, p)
+    r0_safe = max(r0, sqrt(AREA_LIMITER_FLOOR))
+    a0 = r0_safe^2
+    nu_eff = effective_kinematic_viscosity(Ai, Q, r0_safe, p)
 
     partial_p2 = nu_eff * gp2 * (
-        Q / Ai / r0 * r0zz -
+        Q / Ai / r0_safe * r0zz -
         Q / Ai / a0 * r0z^2 +
-        dQ_dz / Ai / r0 * r0z -
-        Q * dA_dz / Ai^2 / r0 * r0z
+        dQ_dz / Ai / r0_safe * r0z -
+        Q * dA_dz / Ai^2 / r0_safe * r0z
     )
 
     return -2.0 * nu_eff * gp2 * (Q / Ai) +
@@ -85,10 +86,11 @@ function pressure(A::AbstractVector{Float64}, Q::AbstractVector{Float64}, z::Abs
 
     for i in eachindex(A)
         r0, r0z, _ = stenosis(z[i], p)
+        r0_safe = max(r0, sqrt(AREA_LIMITER_FLOOR))
         R = sqrt(positive_area(A[i]))
-        nu_eff = effective_kinematic_viscosity(positive_area(A[i]), Q[i], r0, p)
-        elastic = wall_stiffness(p) / r0^2 * (R - r0)
-        viscous = gp2 * p.rho * nu_eff * Q[i] / positive_area(A[i]) * (r0z / r0)
+        nu_eff = effective_kinematic_viscosity(positive_area(A[i]), Q[i], r0_safe, p)
+        elastic = wall_stiffness(p) / r0_safe^2 * (R - r0_safe)
+        viscous = gp2 * p.rho * nu_eff * Q[i] / positive_area(A[i]) * (r0z / r0_safe)
         out[i] = elastic + viscous
     end
 

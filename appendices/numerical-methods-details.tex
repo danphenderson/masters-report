@@ -32,11 +32,11 @@ The reduced state is $\mathbf U=(A,Q)^\top$. For the
 momentum-flux correction \(\alpha\), the reference elastic-potential form is
 \begin{flalign*}
     \quad
-    \partial_t A+\partial_z Q &=0, &&\\
+    \pd_t A+\pd_z Q &=0, &&\\
     \quad
-    \partial_t Q
+    \pd_t Q
     +
-    \partial_z\left(\alpha\frac{Q^2}{A}+\Psi(A,z,t)\right)
+    \pd_z \left(\alpha\frac{Q^2}{A}+\Psi(A,z,t)\right)
     &=
     S_{\mathrm{geom}}(A,z,t)
     -
@@ -45,26 +45,26 @@ momentum-flux correction \(\alpha\), the reference elastic-potential form is
 The elastic potential satisfies
 \begin{flalign*}
     \quad
-    \partial_A\Psi(A,z,t)
+    \pd_A \Psi(A,z,t)
     =
-    \frac{A}{\rho}\partial_Ap_{\mathrm g}(A,z,t), &&
+    \frac{A}{\rho} \pd_A p_{\mathrm g}(A,z,t), &&
 \end{flalign*}
 and the geometry source is
 \begin{flalign*}
     \quad
     S_{\mathrm{geom}}(A,z,t)
     =
-    \left.\partial_z\Psi(A,z,t)\right|_A
+    \left.\pd_z \Psi(A,z,t)\right|_A
     -
     \frac{A}{\rho}
-    \left.\partial_zp_{\mathrm g}(A,z,t)\right|_A. &&
+    \left.\pd_z p_{\mathrm g}(A,z,t)\right|_A. &&
 \end{flalign*}
 For the baseline wall law, assuming $p_{\mathrm{ext}}$ is independent of $A$,
 \begin{flalign*}
     \quad
     c^2(A,z)
     =
-    \frac{A}{\rho}\partial_Ap_{\mathrm g}(A,z,t)
+    \frac{A}{\rho} \pd_A p_{\mathrm g}(A,z,t)
     =
     \frac{\beta(z)\sqrt A}{2\rho A_0(z)}. &&
 \end{flalign*}
@@ -211,11 +211,11 @@ and
     +
     \frac{K}{\rho R_{\max}^2}a_iR_0'(z_i)
     -
-    a_i\,\widehat{\partial_z p_2}_i
+    a_i\,\widehat{\pd_z p_2}_i
     +
     \frac{Q_i^2}{a_i}\alpha_c'(z_i), &&\\
     \quad
-    \widehat{\partial_z p_2}_i
+    \widehat{\pd_z p_2}_i
     &=
     \nu_{\mathrm{eff},i}^{\mathcal R} g_{\mathcal P}
     \left[

@@ -259,6 +259,21 @@ end
 
     @test observed_order(0.25, 0.125) ≈ 1.0
     @test isnan(observed_order(0.0, 0.125))
+
+    params = Params(nx=8, tfinal=1.0e-5, severity=30.0, initial_condition=GeometryRestIC())
+    z, A, Q, dx = CanicExtended1D.initial_state(params)
+    dt = min(CanicExtended1D.choose_dt(A, Q, z, dx, params), params.tfinal)
+    dA_uncached, dQ_uncached = CanicExtended1D.rhs_dt(A, Q, z, dx, dt, 0.0, params)
+    dA_cached, dQ_cached = CanicExtended1D.rhs_dt(A, Q, z, dx, dt, 0.0, params; cache=CanicExtended1D.RHSCache(length(A)))
+    @test dA_cached ≈ dA_uncached
+    @test dQ_cached ≈ dQ_uncached
+
+    A_reference, Q_reference = CanicExtended1D.native_step(copy(A), copy(Q), z, dx, dt, 0.0, params.time_stepper, params)
+    A_mutating = copy(A)
+    Q_mutating = copy(Q)
+    CanicExtended1D.native_step!(A_mutating, Q_mutating, z, dx, dt, 0.0, params, CanicExtended1D.NativeStepCache(length(A)))
+    @test A_mutating ≈ A_reference
+    @test Q_mutating ≈ Q_reference
 end
 
 function write_openbf_fixture(dir::String; project_name::String = "strict_one", extra_vessel::String = "", include_canic::Bool = true)
@@ -582,6 +597,23 @@ end
 
 @testset "stenosis geometry figure trajectory exports" begin
     mktempdir() do dir
+        default_opts = ExportOptions()
+        @test isabspath(default_opts.output_dir)
+        @test isabspath(default_opts.data_root)
+
+        parsed_opts = parse_export_args([
+            "--output-dir", dir,
+            "--data-root", joinpath(dir, "resolved"),
+            "--z-samples", "31",
+            "--theta-samples", "12",
+            "--overwrite",
+        ])
+        @test parsed_opts.output_dir == dir
+        @test parsed_opts.data_root == joinpath(dir, "resolved")
+        @test parsed_opts.z_samples == 31
+        @test parsed_opts.theta_samples == 12
+        @test parsed_opts.overwrite == true
+
         opts = ExportOptions(output_dir=dir, z_samples=31, theta_samples=12, overwrite=true)
         export_analytic_summary(opts)
         summary_rows = read_simple_csv(joinpath(dir, "analytic_summary.csv"))

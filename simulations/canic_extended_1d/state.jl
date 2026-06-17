@@ -54,11 +54,50 @@ struct RHSCache
     area_flux::Vector{Float64}
     flow_flux::Vector{Float64}
     source::Vector{Float64}
+    area_slope::Vector{Float64}
+    flow_slope::Vector{Float64}
 end
 
 function RHSCache(nx::Int)
     nx > 0 || throw(ArgumentError("nx must be positive"))
-    return RHSCache(zeros(Float64, nx + 1), zeros(Float64, nx + 1), zeros(Float64, nx))
+    return RHSCache(
+        zeros(Float64, nx + 1),
+        zeros(Float64, nx + 1),
+        zeros(Float64, nx),
+        zeros(Float64, nx),
+        zeros(Float64, nx),
+    )
+end
+
+struct NativeStepCache
+    rhs::RHSCache
+    dA1::Vector{Float64}
+    dQ1::Vector{Float64}
+    dA2::Vector{Float64}
+    dQ2::Vector{Float64}
+    dA3::Vector{Float64}
+    dQ3::Vector{Float64}
+    A1::Vector{Float64}
+    Q1::Vector{Float64}
+    A2::Vector{Float64}
+    Q2::Vector{Float64}
+end
+
+function NativeStepCache(nx::Int)
+    nx > 0 || throw(ArgumentError("nx must be positive"))
+    return NativeStepCache(
+        RHSCache(nx),
+        zeros(Float64, nx),
+        zeros(Float64, nx),
+        zeros(Float64, nx),
+        zeros(Float64, nx),
+        zeros(Float64, nx),
+        zeros(Float64, nx),
+        zeros(Float64, nx),
+        zeros(Float64, nx),
+        zeros(Float64, nx),
+        zeros(Float64, nx),
+    )
 end
 
 """

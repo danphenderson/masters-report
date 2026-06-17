@@ -41,12 +41,13 @@ function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
 
     initial = initial_state_result(p)
     z, A, Q, dx = initial.z, initial.area, initial.flow, initial.dx
+    step_cache = NativeStepCache(length(A))
     t = 0.0
     step = 0
 
     while t < p.tfinal - 1.0e-14
         dt = min(choose_dt(A, Q, z, dx, p), p.tfinal - t)
-        A, Q = native_step(A, Q, z, dx, dt, p)
+        native_step!(A, Q, z, dx, dt, t, p, step_cache)
         t += dt
         step += 1
 

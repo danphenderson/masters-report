@@ -12,6 +12,7 @@ Base.@kwdef struct RefinementStudySpec
     output_dir::String = ""
     overwrite::Bool = false
     progress_every::Int = 0
+    parallel_workers::Int = default_case_workers()
 end
 
 Base.@kwdef struct RefinementStudyRow
@@ -50,6 +51,7 @@ function validate(spec::RefinementStudySpec)
     all(degree -> 0 <= degree <= 2, spec.degrees) || throw(ArgumentError("DG degrees must be in 0:2"))
     !isempty(spec.h_methods) || throw(ArgumentError("h refinement requires at least one spatial method"))
     spec.progress_every >= 0 || throw(ArgumentError("progress_every must be nonnegative"))
+    spec.parallel_workers >= 0 || throw(ArgumentError("parallel_workers must be nonnegative"))
     return spec
 end
 
@@ -68,17 +70,16 @@ end
 
 function run_refinement_study(spec::RefinementStudySpec = RefinementStudySpec())
     validate(spec)
-    h_rows = RefinementStudyRow[]
-    p_rows = RefinementStudyRow[]
-
-    for method in spec.h_methods
-        append!(h_rows, refinement_rows_for_method("h_refinement", spec, method))
+    h_chunks = parallel_case_map(spec.h_methods; parallel_workers=spec.parallel_workers) do method
+        refinement_rows_for_method("h_refinement", spec, method)
     end
+    h_rows = reduce(vcat, h_chunks; init=RefinementStudyRow[])
 
-    for degree in spec.degrees
-        method = DGMethod(degree)
-        append!(p_rows, refinement_rows_for_method("p_refinement", spec, method))
+    p_methods = [DGMethod(degree) for degree in spec.degrees]
+    p_chunks = parallel_case_map(p_methods; parallel_workers=spec.parallel_workers) do method
+        refinement_rows_for_method("p_refinement", spec, method)
     end
+    p_rows = reduce(vcat, p_chunks; init=RefinementStudyRow[])
 
     outdir = refinement_output_dir(spec)
     csv_paths = [

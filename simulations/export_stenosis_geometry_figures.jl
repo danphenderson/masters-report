@@ -6,7 +6,7 @@ if VERSION < v"1.12"
 end
 
 if !isdefined(Main, :CanicExtended1D)
-    include("canic_extended_1d/CanicExtended1D.jl")
+    include(joinpath(@__DIR__, "canic_extended_1d", "CanicExtended1D.jl"))
 end
 
 using .CanicExtended1D
@@ -14,7 +14,8 @@ using Distributed
 using Gridap: Point
 using Printf
 
-const DEFAULT_GEOMETRY_OUTPUT_DIR = joinpath("figures", "static", "static", "data", "stenosis-geometry")
+const PROJECT_ROOT = normpath(joinpath(@__DIR__, ".."))
+const DEFAULT_GEOMETRY_OUTPUT_DIR = joinpath(PROJECT_ROOT, "figures", "static", "static", "data", "stenosis-geometry")
 const ANALYTIC_SEVERITIES = (0.0, 23.0, 40.0, 50.0, 73.0)
 const TRAJECTORY_SEVERITIES = (23.0, 50.0, 73.0)
 const TRAJECTORY_Z_START_CM = 0.05
@@ -29,10 +30,32 @@ const TRAJECTORY_THROAT_RADIUS_FRACTION_CAP = 0.70
 
 Base.@kwdef struct ExportOptions
     output_dir::String = DEFAULT_GEOMETRY_OUTPUT_DIR
-    data_root::String = default_resolved3d_data_root()
+    data_root::String = default_geometry_data_root()
     z_samples::Int = 181
     theta_samples::Int = 72
     overwrite::Bool = false
+end
+
+function default_geometry_data_root()
+    root = default_resolved3d_data_root()
+    return isabspath(root) ? root : joinpath(PROJECT_ROOT, root)
+end
+
+function export_options_like(
+    opts::ExportOptions;
+    output_dir::String = opts.output_dir,
+    data_root::String = opts.data_root,
+    z_samples::Int = opts.z_samples,
+    theta_samples::Int = opts.theta_samples,
+    overwrite::Bool = opts.overwrite,
+)
+    return ExportOptions(
+        output_dir=output_dir,
+        data_root=data_root,
+        z_samples=z_samples,
+        theta_samples=theta_samples,
+        overwrite=overwrite,
+    )
 end
 
 function parse_export_args(args)
@@ -43,51 +66,21 @@ function parse_export_args(args)
         if arg == "--output-dir"
             i += 1
             i <= length(args) || throw(ArgumentError("--output-dir requires a path"))
-            opts = ExportOptions(;
-                output_dir=args[i],
-                data_root=opts.data_root,
-                z_samples=opts.z_samples,
-                theta_samples=opts.theta_samples,
-                overwrite=opts.overwrite,
-            )
+            opts = export_options_like(opts; output_dir=args[i])
         elseif arg == "--data-root"
             i += 1
             i <= length(args) || throw(ArgumentError("--data-root requires a path"))
-            opts = ExportOptions(;
-                output_dir=opts.output_dir,
-                data_root=args[i],
-                z_samples=opts.z_samples,
-                theta_samples=opts.theta_samples,
-                overwrite=opts.overwrite,
-            )
+            opts = export_options_like(opts; data_root=args[i])
         elseif arg == "--z-samples"
             i += 1
             i <= length(args) || throw(ArgumentError("--z-samples requires an integer"))
-            opts = ExportOptions(;
-                output_dir=opts.output_dir,
-                data_root=opts.data_root,
-                z_samples=parse(Int, args[i]),
-                theta_samples=opts.theta_samples,
-                overwrite=opts.overwrite,
-            )
+            opts = export_options_like(opts; z_samples=parse(Int, args[i]))
         elseif arg == "--theta-samples"
             i += 1
             i <= length(args) || throw(ArgumentError("--theta-samples requires an integer"))
-            opts = ExportOptions(;
-                output_dir=opts.output_dir,
-                data_root=opts.data_root,
-                z_samples=opts.z_samples,
-                theta_samples=parse(Int, args[i]),
-                overwrite=opts.overwrite,
-            )
+            opts = export_options_like(opts; theta_samples=parse(Int, args[i]))
         elseif arg == "--overwrite"
-            opts = ExportOptions(;
-                output_dir=opts.output_dir,
-                data_root=opts.data_root,
-                z_samples=opts.z_samples,
-                theta_samples=opts.theta_samples,
-                overwrite=true,
-            )
+            opts = export_options_like(opts; overwrite=true)
         elseif arg in ("-h", "--help")
             print_help()
             exit(0)
