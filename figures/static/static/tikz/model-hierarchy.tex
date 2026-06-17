@@ -1,6 +1,7 @@
 % ---------------------------------------------------------------
 % figures/static/static/tikz/model-hierarchy.tex
-% Advisor-grade tier ladder: 0D -> 1D -> 2D -> 3D/FSI. Uniform
+% Advisor-grade tier ladder: 0D -> 1D -> 2D -> 3D, with wall/FSI
+% closure treated separately in the caption and main text. Uniform
 % block sizing, monotone mathblue->accentTeal gradient (no abrupt
 % color switches), single side axis indicating spatial detail
 % & cost. No bottom callout note (caption covers scope).
@@ -25,7 +26,7 @@
   \node[tier, right=of d2,
         fill=accentTealLite!90!bloodredlight!50,
         draw=accentTeal!55!bloodred!65!black] (d3)
-    {\textbf{3D / FSI}\\local fields\\[1pt]$\vu,p,\mathrm{WSS}$};
+    {\textbf{3D}\\fixed wall or FSI\\[1pt]$\vu,p,\mathrm{WSS}$};
 
   \draw[arr] (d0) -- (d1);
   \draw[arr] (d1) -- (d2);

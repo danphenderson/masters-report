@@ -27,15 +27,16 @@ continuum derivatives.
 \subsection{Elastic-potential balance-law form}
 \label{app:num-elastic-potential-form}
 
-The reduced state is $\mathbf U=(A,Q)^\top$. For the classical elastic
-balance-law contract, the reference elastic-potential form is
+The reduced state is $\mathbf U=(A,Q)^\top$. For the
+\(\mathcal W_{\mathrm{elastic1D}}\) balance-law contract with prescribed
+momentum-flux correction \(\alpha\), the reference elastic-potential form is
 \begin{flalign*}
     \quad
     \partial_t A+\partial_z Q &=0, &&\\
     \quad
     \partial_t Q
     +
-    \partial_z\left(\frac{Q^2}{A}+\Psi(A,z,t)\right)
+    \partial_z\left(\alpha\frac{Q^2}{A}+\Psi(A,z,t)\right)
     &=
     S_{\mathrm{geom}}(A,z,t)
     -
@@ -73,20 +74,19 @@ speeds
     \quad
     \lambda_\pm(A,Q;z)
     =
-    \frac{Q}{A}\pm c(A,z). &&
+    \alpha\frac{Q}{A}
+    \pm
+    \sqrt{
+        c^2(A,z)+\alpha(\alpha-1)\left(\frac{Q}{A}\right)^2
+    }. &&
 \end{flalign*}
+These reduce to \(Q/A\pm c(A,z)\) in the special \(\alpha=1\) reference case.
 The boundary-state construction is intended for the subcritical case
 $\lambda_-<0<\lambda_+$, so one datum enters at each end of the vessel.
 The displayed derivatives of \(A_0\), \(\beta\), \(p_{\mathrm g}\), and
 \(\Psi\) are continuum notation for the model contract. A computed record may
 realize them through explicitly recorded finite-difference or source-split
 operators; changing that realization changes the computed map.
-\todo[inline]{ADVISOR[BLOCKER]: This reference balance law omits the
-momentum-flux correction \(\alpha\) used in Eq.~\ref{eq:1d-momentum-aq} and
-Definition~\ref{def:1d-conservative-flux-source-notation}. Either insert
-\(\alpha Q^2/A\) and the corresponding \(\alpha\)-dependent wave speeds, or
-state explicitly that this subsection is the special \(\alpha=1\) reference
-contract.}
 
 \subsection{Current semi-discrete solver operator}
 \label{app:num-current-solver-operator}

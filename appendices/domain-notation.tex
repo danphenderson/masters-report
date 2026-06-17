@@ -153,6 +153,13 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
             \texttt{carreau-yasuda}, \texttt{casson}, and \texttt{power-law}
             & mixed \\
 
+        $\mathcal W$
+            & wall or FSI closure descriptor; the selected 1D report model uses
+            \(\mathcal W_{\mathrm{elastic1D}}\), while fixed-wall,
+            multiscale-coupled, and resolved-FSI models require separate
+            declarations
+            & mixed \\
+
         $s(z)$ & dimensionless stenosis profile, with $0\leq s(z)<1$ & $-$ \\
 
         $A_0(z)=\pi R_0(z)^2$ & wall-law reference area after applying the stenosis profile & $\mathrm{m}^2$ \\
@@ -184,13 +191,27 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
             baseline value $p_{\mathrm{ext}}\equiv0$ unless declared otherwise
             & $\mathrm{Pa}$ \\
 
-        $\Psi(A,z,t)$ & elastic flux potential satisfying
-        $\partial_A\Psi=(A/\rho)\partial_Ap_{\mathrm{g}}$ and normalized by
-        $\Psi(A_0(z),z,t)=0$ & $\mathrm{m}^4/\mathrm{s}^2$ \\
+        $\Psi(A,z,t)$ or $\Psi_{\mathcal W}(A,z,t)$
+            & elastic flux potential satisfying
+            $\partial_A\Psi_{\mathcal W}
+            =(A/\rho)\partial_Ap_{\mathrm{g}}^{\mathcal W}$ and normalized by
+            $\Psi_{\mathcal W}(A_0(z),z,t)=0$ when that normalization is
+            declared
+            & $\mathrm{m}^4/\mathrm{s}^2$ \\
 
         $\mathbf F$ & area-flow flux map; not a residual or objective functional & problem-dependent \\
 
         $\mathbf S$ & source-term map in the 1D balance-law template & problem-dependent \\
+
+        $S_{\mathrm{geom}}^{\mathcal W}$
+            & fixed-area wall/geometry source associated with the selected
+            reduced wall closure \(\mathcal W\)
+            & $\mathrm{m}^3/\mathrm{s}^2$ \\
+
+        $S_f^{\mathcal R}$
+            & wall-friction source associated with the selected rheology or
+            effective-viscosity closure \(\mathcal R\)
+            & $\mathrm{m}^3/\mathrm{s}^2$ \\
 
         $\widehat{\mathbf F}_{i+1/2}^n$
             & numerical flux at a finite-volume cell interface and time level

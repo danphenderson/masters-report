@@ -272,10 +272,73 @@ independent replacements for the blood-dynamics setting above.
     separately in Convention~\ref{conv:appendix-pressure-reference-ratio}.
 \end{definition}
 
+\begin{definition}[Wall and FSI closure catalog]
+    \label{def:wall-fsi-closure-catalog}
+    The descriptor \(\mathcal W\) records how the wall or wall-reduced
+    mechanics are closed. It is independent of the rheology descriptor
+    \(\mathcal R\): \(\mathcal R\) changes the stress or effective-viscosity
+    law, while \(\mathcal W\) changes whether the vessel wall is fixed,
+    algebraically reduced, coupled to another model tier, or resolved as a
+    structure.
+    \begin{center}
+    \footnotesize
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.21\textwidth}
+        >{\raggedright\arraybackslash}X
+        >{\raggedright\arraybackslash}X
+        @{}}
+        \toprule
+        \textbf{Closure descriptor}
+            & \textbf{Wall information retained}
+            & \textbf{Reading in this report} \\
+        \midrule
+        \(\mathcal W_{\mathrm{rigid}}\)
+            & Fixed or prescribed wall geometry; no structural state is solved
+            & A fixed-wall continuum or rigid-tube reduced baseline. This is not
+            an FSI model, even when no-slip or no-penetration wall data are
+            imposed. \\
+        \(\mathcal W_{\mathrm{elastic1D}}\)
+            & Dynamic area \(A(z,t)\), gauge pressure \(p_{\mathrm g}(A,z,t)\),
+            reference area \(A_0(z)\), wall stiffness \(\beta(z)\), and
+            external pressure
+            & The selected single-vessel model. Wall mechanics are reduced to a
+            pressure--area law, wave speed, elastic potential, and geometry
+            source; no separate structural PDE is solved. \\
+        \(\mathcal W_{\mathrm{multiscale}}\)
+            & Interface pressure, flow, traction, or characteristic data coupling
+            0D, 1D, and 3D model tiers
+            & A boundary or coupling model requiring a separate interface and
+            stability contract; it is not implied by the single-vessel
+            flux/source notation. \\
+        \(\mathcal W_{\mathrm{resolvedFSI}}\)
+            & Fluid velocity and pressure plus wall displacement, wall velocity,
+            structural stress, and interface conditions
+            & A full moving-wall FSI PDE system. It is a comparison tier for this
+            report, not the active model in the first \(T=1\) study. \\
+        \bottomrule
+    \end{tabularx}
+    \end{center}
+    This separation follows the standard distinction between reduced compliant
+    vessel models, geometrical multiscale coupling, and resolved FSI models
+    \cite[Sec.~2, pp.~253--257]{FormaggiaLamponiQuarteroni2003}
+    \cite{QuarteroniVeneziani2003GeometricalMultiscale}
+    \cite{FormaggiaMouraNobile2007Coupling}.
+\end{definition}
+
 \begin{definition}[Closed 1D area-flow model]
     \label{def:closed-1d-area-flow-model}
-    For an incompressible fluid with density \(\rho\), the working compliant
-    single-vessel model is
+    For \(\mathcal W=\mathcal W_{\mathrm{elastic1D}}\) and an incompressible
+    fluid with density \(\rho\), the working compliant single-vessel model is
+    written with the composite axial pressure derivative
+    \begin{flalign*}
+        \quad
+        \frac{d}{dz}p_{\mathrm g}(A(z,t),z,t)
+        =
+        \partial_Ap_{\mathrm g}(A,z,t)\partial_zA
+        +
+        \left.\partial_zp_{\mathrm g}(A,z,t)\right|_A . &&
+    \end{flalign*}
+    The reduced balance law is
     \begin{flalign*}
         \quad \frac{\partial A}{\partial t}
         + \frac{\partial Q}{\partial z}
@@ -283,20 +346,19 @@ independent replacements for the blood-dynamics setting above.
         \quad \frac{\partial Q}{\partial t}
         + \frac{\partial}{\partial z}
             \left(\alpha \frac{Q^2}{A}\right)
-        + \frac{A}{\rho}\frac{\partial p_{\mathrm g}(A,z,t)}{\partial z}
+        + \frac{A}{\rho}\frac{d}{dz}p_{\mathrm g}(A(z,t),z,t)
         &= - C_f(z,A,Q) \frac{Q}{A}.
         \numberthis\label{eq:1d-momentum-aq} &&
     \end{flalign*}
     The parameter \(\alpha\) is the momentum-flux correction factor, \(C_f\) is
     the wall-friction closure, and \(p_{\mathrm g}(A,z,t)\) is the wall-law
-    gauge pressure closing the reduced system
+    gauge pressure closing the reduced system. This is the reduced
+    \(\mathcal W_{\mathrm{elastic1D}}\) member of the FSI closure axis: wall
+    response is represented through the pressure--area law rather than through a
+    separate structural PDE
     \cite[Sec.~2, pp.~253--255]{FormaggiaLamponiQuarteroni2003}
     \cite[Ch.~3, Sec.~3.2, pp.~40--47]{KopplHelmig2023DimensionReducedModeling}.
 \end{definition}
-\todo{ADVISOR[MAJOR]: Clarify whether
-\(\partial_z p_{\mathrm g}(A,z,t)\) in Eq.~\ref{eq:1d-momentum-aq} is the
-total derivative of \(p_{\mathrm g}(A(z,t),z,t)\) or the explicit
-\(z\)-partial at fixed \(A\). The flux/source split later uses both notions.}
 
 \begin{assumption}[First-run momentum-profile and rheology closure]
     \label{ass:1d-first-run-alpha-friction}
@@ -345,7 +407,9 @@ total derivative of \(p_{\mathrm g}(A(z,t),z,t)\) or the explicit
     pressure, and \(\beta(z)\) is a wall-stiffness parameter. Some
     implementations absorb \(A_0^{-1}\) into \(\beta\); the essential closure
     is that \(p_{\mathrm g}\) is known once \(A_0\), \(\beta\), and
-    \(p_{\mathrm{ext}}\) are supplied.
+    \(p_{\mathrm{ext}}\) are supplied. Resolved FSI would replace this algebraic
+    pressure--area closure with structural unknowns and fluid--structure
+    interface conditions.
 \end{definition}
 
 \begin{definition}[Stenosis reference geometry]
@@ -381,6 +445,18 @@ total derivative of \(p_{\mathrm g}(A(z,t),z,t)\) or the explicit
     patient-specific plaque morphology or clinical calibration.
 \end{definition}
 
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \includegraphics[width=\textwidth]{figures/static/static/rendered/stenosis-3d-overview.pdf}
+    \caption{Analytic three-dimensional rendering of the reference geometry in
+    Definition~\ref{def:1d-stenosis-reference-geometry}. The smooth reference
+    vessel is shown beside the default \(50\%\) narrowed vessel; both are
+    idealized numerical geometries generated from the report profile, not
+    patient-specific plaque morphology or clinical calibration.}
+    \label{fig:stenosis-3d-reference-geometry}
+\end{figure}
+
 \begin{remark}[Stenosis-profile and variable-radius boundary]
     \label{rmk:1d-stenosis-profile-scope}
     The profile in Eq.~\ref{eq:1d-stenosis-profile} is \(C^\infty\) and
@@ -394,37 +470,75 @@ total derivative of \(p_{\mathrm g}(A(z,t),z,t)\) or the explicit
     numerical contract are declared.
 \end{remark}
 
-\begin{definition}[Conservative flux and source notation]
+\begin{definition}[Conservative flux/source notation for the reduced wall law]
     \label{def:1d-conservative-flux-source-notation}
-    The pressure term in Eq.~\ref{eq:1d-momentum-aq} can be represented through
-    an elastic-potential flux plus explicit sources:
+    For a reduced wall closure \(\mathcal W\) admitting an elastic potential,
+    define
+    \begin{flalign*}
+        \quad
+        \mathbf U
+        &=
+        (A,Q)^\top, &&
+        \mathbf F_{\mathcal W}(\mathbf U,z,t)
+        =
+        \begin{pmatrix}
+            Q\\[2pt]
+            \alpha Q^2/A+\Psi_{\mathcal W}(A,z,t)
+        \end{pmatrix}, &&\\
+        \quad
+        \mathbf S_{\mathcal W,\mathcal R}(\mathbf U,z,t)
+        &=
+        \begin{pmatrix}
+            0\\[2pt]
+            S_{\mathrm{geom}}^{\mathcal W}(A,z,t)
+            +S_f^{\mathcal R}(A,Q,z)
+        \end{pmatrix}. &&
+    \end{flalign*}
+    The potential and sources are tied to the selected closure descriptors by
+    \begin{flalign*}
+        \quad
+        \partial_A \Psi_{\mathcal W}(A,z,t)
+        &=
+        \frac{A}{\rho}\partial_A p_{\mathrm g}^{\mathcal W}(A,z,t), &&\\
+        \quad
+        S_{\mathrm{geom}}^{\mathcal W}(A,z,t)
+        &=
+        \left.\partial_z\Psi_{\mathcal W}(A,z,t)\right|_A
+        -
+        \frac{A}{\rho}
+        \left.\partial_zp_{\mathrm g}^{\mathcal W}(A,z,t)\right|_A,
+        &&\\
+        \quad
+        S_f^{\mathcal R}(A,Q,z)
+        &=
+        -C_f^{\mathcal R}(z,A,Q)\frac{Q}{A}. &&
+    \end{flalign*}
+    For \(\mathcal W_{\mathrm{elastic1D}}\),
+    \(p_{\mathrm g}^{\mathcal W}\) is the wall law in
+    Definition~\ref{def:1d-elastic-wall-law}. In component form,
     \begin{flalign*}
         \quad \partial_t A + \partial_z Q &= 0,
         \numberthis\label{eq:1d-conservative-mass} && \\
         \quad \partial_t Q
         + \partial_z\!\left(
-            \alpha\frac{Q^2}{A}+\Psi(A,z,t)
+            \alpha\frac{Q^2}{A}+\Psi_{\mathcal W}(A,z,t)
         \right)
         &=
-        S_{\mathrm{geom}}(A,z,t)+S_f(A,Q,z),
+        S_{\mathrm{geom}}^{\mathcal W}(A,z,t)
+        +S_f^{\mathcal R}(A,Q,z),
         \numberthis\label{eq:1d-conservative-momentum} &&
     \end{flalign*}
-    where
-    \begin{flalign*}
-        \quad
-        \partial_A \Psi(A,z,t)
-        &=
-        \frac{A}{\rho}\partial_A p_{\mathrm g}(A,z,t), \\
-        S_f(A,Q,z)
-        &=
-        -C_f(z,A,Q)\frac{Q}{A}.
-        &&
-    \end{flalign*}
-    This notation records the balance-law objects needed by finite-volume
-    schemes; it does not assert that every later implementation treats the flux
-    and source terms identically
+    The wall/FSI descriptor \(\mathcal W\) determines the pressure--area law,
+    elastic potential, wave speed, and geometry source; the rheology descriptor
+    \(\mathcal R\) determines the viscosity or friction hook. A resolved FSI
+    model is therefore not obtained by merely relabeling
+    \(S_{\mathrm{geom}}\): it introduces structural state and interface laws.
+    The displayed split records the balance-law objects needed by finite-volume
+    schemes, while a computed realization may still use a particular
+    well-balanced or source-split discretization
     \cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems}
-    \cite[Summary; Secs.~2.1--2.3; Secs.~5--6]{BoileauEtAl2015Benchmark}.
+    \cite[Summary; Secs.~2.1--2.3; Secs.~5--6]{BoileauEtAl2015Benchmark}
+    \cite{FormaggiaMouraNobile2007Coupling}.
 \end{definition}
 
 \begin{definition}[Single-vessel boundary data]
@@ -472,8 +586,9 @@ discrepancy metrics are matched.
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{model-hierarchy}
     \caption{Model hierarchy for reading comparison claims. The present
-    manuscript selects a 1D reduced forward model; 3D, FSI, clinical, and
-    independent-solver comparisons require separately matched evidence.}
+    manuscript selects a 1D reduced forward model; 3D fixed-wall, resolved FSI,
+    clinical, and independent-solver comparisons require separately matched
+    evidence.}
     \label{fig:model-hierarchy-overview}
 \end{figure}
 
@@ -511,7 +626,7 @@ discrepancy metrics are matched.
             reduced shear proxy
             & Reduced-order trend context only unless matched against resolved or
             clinical evidence \\
-        2D, 3D, and FSI models
+        2D/3D fixed-wall and resolved-FSI models
             & Higher-fidelity local flow and wall-motion comparison
             & Velocity, pressure, wall traction, WSS, wall displacement, mesh and
             time diagnostics
@@ -528,6 +643,15 @@ discrepancy metrics are matched.
         \bottomrule
     \end{tabularx}
 \end{table}
+
+The table should be read together with
+Definition~\ref{def:wall-fsi-closure-catalog}. Spatial dimension and wall
+coupling are separate choices: a 3D computation can be fixed-wall or resolved
+FSI, and a 1D computation can be rigid-tube, elastic-wall, or coupled to
+upstream/downstream models. Consequently, an FSI comparison claim requires the
+wall descriptor \(\mathcal W\), rheology descriptor \(\mathcal R\), boundary
+data, interface conditions, and output operators to be matched; it does not
+follow from the flux/source notation or from model dimension alone.
 
 Across these categories, the recurring descriptors are the kinematic/continuum
 setting, stenosis geometry, wall stiffness or compliance, density, viscosity or
