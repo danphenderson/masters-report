@@ -8,11 +8,45 @@ time in seconds, density in $\mathrm{kg}/\mathrm{m}^3$, pressure in Pa,
 dynamic viscosity in $\mathrm{Pa}\cdot\mathrm{s}$, and kinematic viscosity in
 $\mathrm{m}^2/\mathrm{s}$.
 \end{definition}
-\todo[inline]{ADVISOR[MAJOR]: The notation appendix declares SI units by
-default, but the first-run numerical record and \(T=1\) comparison use
-centimeter units. Add an explicit numerical-record unit convention here and
-state whether all displayed default constants and outputs are in cm--s units or
-converted from the SI notation in Appendix~\ref{app:domain-specific-notation}.}
+
+\begin{convention}[Centimeter--second numerical-record convention]
+\label{conv:cm-second-numerical-record}
+The SI convention above governs continuum notation and unqualified analytical
+parameters. The active Julia solver records and the
+Section~\ref{sec:resolved-3d-comparison} tables instead use the
+centimeter--gram--second numerical convention inherited from the implementation:
+lengths are in \(\mathrm{cm}\), time in \(\mathrm{s}\), density in
+\(\mathrm{g}/\mathrm{cm}^3\), velocity in \(\mathrm{cm}/\mathrm{s}\), pressure
+and stress in \(\mathrm{dyn}/\mathrm{cm}^2\), dynamic viscosity in
+\(\mathrm{g}/(\mathrm{cm}\,\mathrm{s})=\mathrm{dyn}\,\mathrm{s}/\mathrm{cm}^2\),
+and kinematic viscosity in \(\mathrm{cm}^2/\mathrm{s}\). Thus the default
+solver geometry parameters \(L\), \(R_{\max}\), \(z_a\), \(z_s\),
+\(\sigma_a\), and \(\kappa\) are centimeter quantities, while the stenosis
+localization \(\lambda\) in \(\exp(-\lambda g^4)\) has units
+\(\mathrm{cm}^{-4}\). The active solver state coordinate \(a=R^2\) has units
+\(\mathrm{cm}^2\); when a physical circular area is meant it is
+\(A_{\mathrm{phys}}=\pi a\), also reported in square centimeters.
+
+Output fields carry their display units in their names. In particular,
+\texttt{z\_cm} and \texttt{R0\_cm} are geometry fields, \texttt{A\_cm2} is the
+recorded area-coordinate field in \(\mathrm{cm}^2\), and \texttt{Q\_cm3\_s} is
+the flow-coordinate field paired with \(a\) in nominal \(\mathrm{cm}^3/\mathrm{s}\).
+For the active radius-squared solver convention, the corresponding physical
+circular-area flow is \(Q_{\mathrm{phys}}=\pi Q\), while
+\texttt{uavg\_cm\_s} records
+\(Q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}\). The
+Section~\ref{sec:resolved-3d-comparison} velocity/error columns are in
+\(\mathrm{cm}/\mathrm{s}\), \texttt{pressure\_dyn\_cm2} and initial-condition
+pressure-drop fields are in \(\mathrm{dyn}/\mathrm{cm}^2\), and
+\texttt{nu\_eff\_cm2\_s} is in \(\mathrm{cm}^2/\mathrm{s}\). A pressure supplied
+through a Pa-valued command-line option is converted before storage using
+\(1\,\mathrm{Pa}=10\,\mathrm{dyn}/\mathrm{cm}^2\). Any value from a numerical
+record used in an SI formula must first be converted; for example
+\(1\,\mathrm{cm}=10^{-2}\,\mathrm{m}\),
+\(1\,\mathrm{cm}^2/\mathrm{s}=10^{-4}\,\mathrm{m}^2/\mathrm{s}\),
+\(1\,\mathrm{g}/(\mathrm{cm}\,\mathrm{s})=10^{-1}\,\mathrm{Pa}\cdot\mathrm{s}\),
+and \(1\,\mathrm{dyn}/\mathrm{cm}^2=10^{-1}\,\mathrm{Pa}\).
+\end{convention}
 
 \begin{convention}[Pressure-reference and ratio convention]
 \label{conv:appendix-pressure-reference-ratio}
@@ -133,9 +167,27 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
 
         $\mathbf U=(A,Q)^\top$ & conservative area-flow state vector & $(\mathrm{m}^2,\mathrm{m}^3/\mathrm{s})$ \\
 
-        $\alpha$
-            & prescribed momentum-flux coefficient in the 1D balance-law
-            closure; the current default numerical record uses $\alpha=1.1$
+        $\mathcal P$
+            & cross-sectional velocity-profile descriptor used by the 1D
+            closure; admitted implementation values include flat, parabolic,
+            and power-family profiles
+            & mixed \\
+
+        $\alpha_{\mathcal P}$
+            & momentum-flux correction induced by the recorded profile
+            \(\mathcal P\); the parabolic default uses
+            \(\alpha_{\mathcal P}=4/3\)
+            & $-$ \\
+
+        $\gamma$
+            & power-profile exponent in
+            \(u(r)=((\gamma+2)/\gamma)\bar u(1-(r/R)^\gamma)\)
+            & $-$ \\
+
+        $g_{\mathcal P}$
+            & profile shear-rate factor used by the 1D rheology proxy; for
+            power profiles \(g_{\mathcal P}=\gamma+2\), while flat profiles
+            record this value explicitly
             & $-$ \\
 
         $R(A(z,t))=\sqrt{A(z,t)/\pi}$
@@ -227,8 +279,7 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
 
         $\dot\gamma_{1D}$
             & implementation shear-rate proxy
-            \(g_\alpha |Q|/(a\sqrt a)\), where
-            \(g_\alpha=\alpha/(\alpha-1)\) and \(a=R^2\)
+            \(g_{\mathcal P} |Q|/(a\sqrt a)\), where \(a=R^2\)
             & $\mathrm{s}^{-1}$ \\
 
         $\nu_{\mathrm{eff}}^{\mathcal R}$

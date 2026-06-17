@@ -52,9 +52,41 @@ These closures compute a local effective kinematic viscosity from the current
 unchanged; the closure-aware viscosity is used where the earlier implementation
 used the scalar `nu`.
 
+## Velocity Profiles and Alpha
+
+The solver now records a velocity-profile closure instead of treating `alpha`
+as a free scalar. The default is `ParabolicVelocityProfile()`, equivalent to
+Poiseuille transport with `alpha = 4/3`, shear-rate factor `4`, and
+`inlet_uavg = 0.5 * inlet_umax`.
+
+Supported CLI profiles are:
+
+- `--velocity-profile parabolic`: default Poiseuille profile.
+- `--velocity-profile flat --profile-shear-factor 4`: plug transport with
+  `alpha = 1` and a finite explicit shear/friction multiplier.
+- `--velocity-profile power --profile-exponent GAMMA`: power-family profile
+  with `alpha = (GAMMA + 2) / (GAMMA + 1)`.
+
+The legacy `--alpha VALUE` option remains as an alias for the power-family
+profile, so `--alpha 1.1` is equivalent to `--velocity-profile power
+--profile-exponent 9`. Single-run summaries record `velocity_profile`,
+derived `alpha`, `profile_exponent`, and `shear_rate_factor`; the per-cell CSV
+schema is unchanged. Default single-run output stems and default study summary
+CSV paths now include `vp_<profile-token>` so parabolic, flat, and power-family
+cases do not collide; flat and power tokens also encode the selected
+shear-factor or exponent.
+
 Use `./scripts/julia-release` for repo commands. It prefers the latest installed
 `release` channel and falls back to a directly-invoked `julia` binary only when
 that binary is already `1.12+`.
+
+Local zsh startup sources `~/.config/julia/resource-profile.zsh`. The batch
+profile sets `JULIA_NUM_THREADS=10`, `JULIA_NUM_GC_THREADS=2`,
+`OPENBLAS_NUM_THREADS=1`, `OMP_NUM_THREADS=1`, `VECLIB_MAXIMUM_THREADS=1`, and
+`JULIA_CASE_WORKERS=10`. Use `julia-batch` for single-process threaded runs,
+`julia-cases [N]` for process-parallel case studies, and `julia-blas [N]` for
+BLAS-heavy serial checks. Set `JULIA_RESOURCE_PROFILE=off` before shell startup
+to disable the profile.
 
 ## Spatial Methods and Steppers
 
@@ -164,8 +196,14 @@ Study summaries are written to deterministic CSV paths under
 `simulations/output/` by default. Existing summary files are not overwritten
 unless `overwrite=true` is set. The summary CSV format is separate from the
 single-run profile CSV and includes study kind, severity, grid size, backend,
-algorithm, step count, final time, velocity and pressure ranges, and minimum
-area.
+algorithm, velocity-profile provenance (`velocity_profile`, `alpha`,
+`profile_exponent`, `shear_rate_factor`), step count, final time, velocity and
+pressure ranges, and minimum area.
+
+Programmatic severity, grid, refinement, and Stokes trajectory-export jobs use
+`JULIA_CASE_WORKERS` by default and cap workers to the number of independent
+cases. Pass `parallel_workers=1` to the relevant spec or export helper for a
+serial debug run.
 
 Refinement studies write self-convergence h- and p-refinement CSV files plus
 LaTeX table fragments under `simulations/output/refinement/<study-token>/`.

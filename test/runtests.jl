@@ -6,11 +6,37 @@ if VERSION < v"1.12"
 end
 
 using Test
+using Distributed
 using HDF5
+using LinearAlgebra
 using Statistics
 
 include(joinpath(@__DIR__, "..", "simulations", "canic_extended_1d", "CanicExtended1D.jl"))
 using .CanicExtended1D
+include(joinpath(@__DIR__, "..", "simulations", "export_stenosis_geometry_figures.jl"))
+
+@testset "CanicExtended1D case worker configuration" begin
+    @test CanicExtended1D.default_case_workers(Dict("JULIA_CASE_WORKERS" => "3")) == 3
+    @test CanicExtended1D.default_case_workers(Dict("JULIA_CASE_WORKERS" => "")) == 1
+    @test CanicExtended1D.effective_case_workers(3, 10) == 3
+    @test CanicExtended1D.effective_case_workers(3, 0) == 0
+    @test_throws ArgumentError CanicExtended1D.default_case_workers(Dict("JULIA_CASE_WORKERS" => "many"))
+    @test parallel_case_map(x -> x + 1, [1, 2, 3]; parallel_workers=1) == [2, 3, 4]
+
+    worker_rows = parallel_case_map([1, 2]; parallel_workers=2) do value
+        (
+            value=value,
+            pid=Distributed.myid(),
+            threads=Threads.nthreads(),
+            blas_threads=LinearAlgebra.BLAS.get_num_threads(),
+        )
+    end
+
+    @test [row.value for row in worker_rows] == [1, 2]
+    @test all(row.pid != 1 for row in worker_rows)
+    @test all(row.threads == 1 for row in worker_rows)
+    @test all(row.blas_threads == 1 for row in worker_rows)
+end
 
 function assert_finite_positive_state(result::SimulationResult, params::Params)
     @test result.completed_time ≈ params.tfinal
@@ -107,6 +133,19 @@ function write_synthetic_xdmf_hdf5_case(
     return xdmf_path, coords, velocity_values
 end
 
+function read_simple_csv(path::String)
+    lines = readlines(path)
+    headers = split(lines[1], ",")
+    rows = Dict{String,String}[]
+    for line in lines[2:end]
+        isempty(strip(line)) && continue
+        startswith(line, "#") && continue
+        values = split(line, ",")
+        push!(rows, Dict(header => value for (header, value) in zip(headers, values)))
+    end
+    return rows
+end
+
 @testset "CanicExtended1D rheology closures" begin
     @test rheology_name(NewtonianRheology()) == "newtonian"
     @test effective_kinematic_viscosity(NewtonianRheology(), 25.0, 1.055, 0.04) ≈ 0.04
@@ -129,8 +168,79 @@ end
     clamped = PowerLawRheology(consistency=10.0, n=0.5, max_eta=0.2)
     @test effective_dynamic_viscosity(clamped, 1.0e-4, 1.055, 0.04) ≈ 0.2
 
-    @test characteristic_shear_rate(0.04, 0.2, 0.2, Params(alpha=1.1, initial_condition=GeometryRestIC())) > 0.0
+    legacy_alpha = Params(alpha=1.1, initial_condition=GeometryRestIC())
+    @test legacy_alpha.velocity_profile isa PowerVelocityProfile
+    @test legacy_alpha.alpha ≈ 1.1
+    @test characteristic_shear_rate(0.04, 0.2, 0.2, legacy_alpha) > 0.0
     @test_throws ArgumentError CanicExtended1D.validate(CarreauRheology(eta0=0.01, eta_inf=0.02))
+end
+
+@testset "CanicExtended1D velocity profiles" begin
+    parabolic = ParabolicVelocityProfile()
+    @test profile_name(parabolic) == "parabolic"
+    @test momentum_alpha(parabolic) ≈ 4.0 / 3.0
+    @test shear_rate_factor(parabolic) ≈ 4.0
+    @test mean_to_max_velocity_ratio(parabolic) ≈ 0.5
+    @test radial_profile_velocity(3.0, 0.0, 2.0, parabolic) ≈ 6.0
+    @test radial_profile_velocity(3.0, 2.0, 2.0, parabolic) ≈ 0.0
+
+    flat = FlatVelocityProfile(shear_rate_factor=5.0)
+    @test profile_name(flat) == "flat"
+    @test momentum_alpha(flat) ≈ 1.0
+    @test shear_rate_factor(flat) ≈ 5.0
+    @test mean_to_max_velocity_ratio(flat) ≈ 1.0
+    @test radial_profile_velocity(3.0, 1.5, 2.0, flat) ≈ 3.0
+
+    power = PowerVelocityProfile(exponent=2.0)
+    @test momentum_alpha(power) ≈ 4.0 / 3.0
+    @test shear_rate_factor(power) ≈ 4.0
+    @test mean_to_max_velocity_ratio(power) ≈ 0.5
+
+    legacy_power = PowerVelocityProfile(alpha=1.1)
+    @test legacy_power.exponent ≈ 9.0
+    @test momentum_alpha(legacy_power) ≈ 1.1
+    @test shear_rate_factor(legacy_power) ≈ 11.0
+
+    default_params = Params(initial_condition=GeometryRestIC())
+    @test default_params.velocity_profile isa ParabolicVelocityProfile
+    @test default_params.alpha ≈ 4.0 / 3.0
+    @test CanicExtended1D.inlet_uavg(default_params) ≈ 22.5
+    @test CanicExtended1D.inlet_uavg(Params(initial_condition=GeometryRestIC(), velocity_profile=flat)) ≈ 45.0
+    @test default_output_stub(Params()) == "simulations/output/canic_extended_1d_severity50_vp_parabolic"
+    @test occursin("vp_parabolic", default_output_stub(default_params))
+    @test default_output_stub(default_params) != default_output_stub(Params(alpha=1.1, initial_condition=GeometryRestIC()))
+    @test default_output_stub(Params(initial_condition=GeometryRestIC(), velocity_profile=PowerVelocityProfile(exponent=4.0))) !=
+          default_output_stub(Params(initial_condition=GeometryRestIC(), velocity_profile=PowerVelocityProfile(exponent=9.0)))
+    @test default_output_stub(Params(initial_condition=GeometryRestIC(), velocity_profile=FlatVelocityProfile(shear_rate_factor=4.0))) !=
+          default_output_stub(Params(initial_condition=GeometryRestIC(), velocity_profile=FlatVelocityProfile(shear_rate_factor=8.0)))
+    @test_throws ArgumentError Params(alpha=1.1, velocity_profile=ParabolicVelocityProfile())
+    @test_throws ArgumentError CanicExtended1D.params_with(default_params; velocity_profile=flat, alpha=1.1)
+    @test_throws ArgumentError CanicExtended1D.validate(FlatVelocityProfile(shear_rate_factor=0.0))
+    @test_throws ArgumentError PowerVelocityProfile(alpha=1.0)
+end
+
+@testset "CanicExtended1D inlet and outlet boundaries" begin
+    waveform = FlowWaveformInlet([0.0, 1.0], [0.0, 10.0])
+    waveform_params = Params(initial_condition=GeometryRestIC(), inlet_boundary=waveform)
+    @test inlet_boundary_name(waveform_params.inlet_boundary) == "flow-waveform"
+    @test inlet_flow(waveform_params, 0.5) ≈ 5.0
+    @test inlet_flow(waveform_params, 1.25) ≈ 2.5
+
+    steady_params = Params(initial_condition=GeometryRestIC(), inlet_boundary=SteadyVelocityInlet(20.0))
+    r0_in, _, _ = CanicExtended1D.stenosis(0.0, steady_params)
+    @test inlet_boundary_name(steady_params.inlet_boundary) == "steady-velocity"
+    @test inlet_flow(steady_params, 10.0) ≈ r0_in^2 * 10.0
+
+    rt_params = Params(
+        nx=4,
+        severity=0.0,
+        initial_condition=GeometryRestIC(),
+        outlet_boundary=ReflectionCoefficientOutlet(0.0),
+    )
+    _, _, Aout, Qout = CanicExtended1D.boundary_states([0.04, 0.04, 0.04, 0.04], [0.0, 0.0, 0.0, 0.01], rt_params, 0.0)
+    r0_out, _, _ = CanicExtended1D.stenosis(rt_params.length_cm, rt_params)
+    @test CanicExtended1D.invariant_minus(Aout, Qout, rt_params) ≈ CanicExtended1D.invariant_minus(r0_out^2, 0.0, rt_params)
+    @test_throws ArgumentError CanicExtended1D.validate(ReflectionCoefficientOutlet(1.5))
 end
 
 @testset "CanicExtended1D spatial methods and steppers" begin
@@ -149,6 +259,116 @@ end
 
     @test observed_order(0.25, 0.125) ≈ 1.0
     @test isnan(observed_order(0.0, 0.125))
+end
+
+function write_openbf_fixture(dir::String; project_name::String = "strict_one", extra_vessel::String = "", include_canic::Bool = true)
+    inlet_path = joinpath(dir, "inlet.dat")
+    write(
+        inlet_path,
+        """
+        0.0 1.0e-6
+        1.0e-5 2.0e-6
+        """,
+    )
+
+    canic_block = include_canic ? """
+    canic:
+      severity_percent: 30.0
+      dt: 1.0e-5
+      initial_condition:
+        pressure_drop_pa: 40.0
+        mesh_nz: 1
+        mesh_nr: 1
+        mesh_ntheta: 4
+    """ : ""
+
+    config_path = joinpath(dir, "input.yml")
+    write(
+        config_path,
+        """
+        project_name: $project_name
+        inlet_file: "inlet.dat"
+        output_directory: "out"
+        write_results: ["P", "Q", "A", "u"]
+        blood:
+          rho: 1060.0
+          mu: 0.004
+        solver:
+          Ccfl: 0.45
+          cycles: 2
+          jump: 5
+          convergence_tolerance: 1.0
+        network:
+          - label: vessel
+            sn: 1
+            tn: 2
+            L: 0.06
+            M: 8
+            E: 5.02e5
+            R0: 0.0018
+            h0: 0.0006
+            gamma_profile: 9
+            Rt: 0.25
+            $extra_vessel
+        $canic_block
+        """,
+    )
+    return config_path, inlet_path
+end
+
+@testset "CanicExtended1D OpenBF protocol adapter" begin
+    mktempdir() do dir
+        config_path, inlet_path = write_openbf_fixture(dir)
+        spec = load_openbf_config(config_path)
+        params, output, backend, returned_spec = params_from_openbf_config(config_path)
+
+        @test returned_spec.project_name == spec.project_name
+        @test spec.inlet_file == inlet_path
+        @test spec.output_directory == joinpath(dir, "out")
+        @test spec.write_results == ["P", "Q", "A", "u"]
+        @test spec.cycles == 2
+        @test spec.inlet_period_s ≈ 1.0e-5
+        @test spec.params.tfinal ≈ 2.0e-5
+        @test spec.params.length_cm ≈ 6.0
+        @test spec.params.rmax ≈ 0.18
+        @test spec.params.young ≈ 5.02e6
+        @test spec.params.wall_h ≈ 0.06
+        @test spec.params.rho ≈ 1.06
+        @test spec.params.nu ≈ 1.0e4 * 0.004 / 1060.0
+        @test spec.params.velocity_profile isa PowerVelocityProfile
+        @test spec.params.inlet_boundary isa FlowWaveformInlet
+        @test inlet_flow(spec.params, 5.0e-6) ≈ 1.5
+        @test spec.params.outlet_boundary isa ReflectionCoefficientOutlet
+        @test spec.params.outlet_boundary.rt ≈ 0.25
+        @test params.tfinal ≈ spec.params.tfinal
+        @test output.csv == spec.output.csv
+        @test backend isa NativeRK3Backend
+    end
+
+    mktempdir() do dir
+        config_path, _ = write_openbf_fixture(dir; project_name="smoke")
+        result = run_simulation(config_path; save_stats=true)
+        @test result.completed_time ≈ 2.0e-5
+        @test isfile(joinpath(dir, "out", "smoke.csv"))
+        @test isfile(joinpath(dir, "out", "smoke.svg"))
+        @test isfile(joinpath(dir, "out", "smoke.conv"))
+    end
+
+    mktempdir() do dir
+        config_path, _ = write_openbf_fixture(dir; include_canic=false)
+        @test_throws ArgumentError load_openbf_config(config_path)
+    end
+
+    mktempdir() do dir
+        config_path, _ = write_openbf_fixture(dir; extra_vessel="R1: 1.0e7")
+        @test_throws ArgumentError load_openbf_config(config_path)
+    end
+
+    mktempdir() do dir
+        bad_inlet = joinpath(dir, "bad.dat")
+        write(bad_inlet, "0.0 1.0 2.0\n")
+        @test_throws ArgumentError FlowWaveformInlet(bad_inlet)
+    end
 end
 
 @testset "CanicExtended1D stationary Stokes initial conditions" begin
@@ -226,6 +446,14 @@ end
     @testset "native time stepper smoke runs" begin
         for stepper in (ForwardEulerStepper(), SSPRK2Stepper(), SSPRK3Stepper())
             params = Params(nx=8, tfinal=1.0e-5, severity=30.0, time_stepper=stepper, initial_condition=GeometryRestIC())
+            result = simulate(params, NativeRK3Backend(); progress_every=0)
+            assert_finite_positive_state(result, params)
+        end
+    end
+
+    @testset "native velocity profile smoke runs" begin
+        for profile in (FlatVelocityProfile(), ParabolicVelocityProfile(), PowerVelocityProfile(exponent=9.0))
+            params = Params(nx=8, tfinal=1.0e-5, severity=30.0, velocity_profile=profile, initial_condition=GeometryRestIC())
             result = simulate(params, NativeRK3Backend(); progress_every=0)
             assert_finite_positive_state(result, params)
         end
@@ -352,6 +580,61 @@ end
     end
 end
 
+@testset "stenosis geometry figure trajectory exports" begin
+    mktempdir() do dir
+        opts = ExportOptions(output_dir=dir, z_samples=31, theta_samples=12, overwrite=true)
+        export_analytic_summary(opts)
+        summary_rows = read_simple_csv(joinpath(dir, "analytic_summary.csv"))
+        sev73 = only(row for row in summary_rows if parse(Float64, row["severity"]) == 73.0)
+        @test parse(Float64, sev73["rmin_over_rbase"]) ≈ 0.27 atol=5.0e-4
+
+        paths = export_stokes_particle_trajectories(
+            opts;
+            ic=StationaryStokesIC(
+                pressure_drop_pa=40.0,
+                mesh_nz=2,
+                mesh_nr=2,
+                mesh_ntheta=8,
+            ),
+            z_samples=13,
+            parallel_workers=1,
+        )
+        trajectory_rows = read_simple_csv(paths[1])
+        @test length(trajectory_rows) == 3 * 5 * 13
+
+        grouped = Dict{Tuple{Int,Int},Vector{Dict{String,String}}}()
+        for row in trajectory_rows
+            severity = round(Int, parse(Float64, row["severity"]))
+            particle_id = parse(Int, row["particle_id"])
+            key = (severity, particle_id)
+            push!(get!(grouped, key, Dict{String,String}[]), row)
+
+            z = parse(Float64, row["z_cm"])
+            x = parse(Float64, row["x_cm"])
+            y = parse(Float64, row["y_cm"])
+            r_over_r0 = parse(Float64, row["r_over_r0"])
+            t = parse(Float64, row["t_s"])
+            ux = parse(Float64, row["ux_cm_s"])
+            uy = parse(Float64, row["uy_cm_s"])
+            uz = parse(Float64, row["uz_cm_s"])
+            @test all(isfinite, (z, x, y, r_over_r0, t, ux, uy, uz))
+            @test r_over_r0 <= 1.0001
+
+            params = Params(severity=severity, initial_condition=GeometryRestIC())
+            r0, _, _ = CanicExtended1D.stenosis(z, params)
+            @test hypot(x, y) <= 1.0001 * r0
+        end
+
+        @test sort(unique(first(key) for key in keys(grouped))) == [23, 50, 73]
+        @test all(length(rows) == 13 for rows in values(grouped))
+        for rows in values(grouped)
+            sort!(rows; by=row -> parse(Int, row["sample_index"]))
+            z_values = [parse(Float64, row["z_cm"]) for row in rows]
+            @test all(z_values[i] < z_values[i + 1] for i in 1:(length(z_values) - 1))
+        end
+    end
+end
+
 @testset "CanicExtended1D CLI parsing" begin
     @test parse_args(["--help"]) === nothing
 
@@ -369,6 +652,8 @@ end
         @test params.space isa FVMUSCLMethod
         @test params.time_stepper isa SSPRK3Stepper
         @test params.rheology isa NewtonianRheology
+        @test params.velocity_profile isa ParabolicVelocityProfile
+        @test params.alpha ≈ 4.0 / 3.0
         @test params.initial_condition isa StationaryStokesIC
         @test params.initial_condition.pressure_drop_dyn_cm2 == 400.0
         @test output.progress_every == 0
@@ -428,6 +713,46 @@ end
         @test backend isa NativeRK3Backend
     end
 
+    @testset "velocity profile flags" begin
+        flat_params, _, _ = parse_args([
+            "--velocity-profile", "flat",
+            "--profile-shear-factor", "4",
+            "--tfinal", "5e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--ic", "geometry-rest",
+        ])
+        @test flat_params.velocity_profile isa FlatVelocityProfile
+        @test flat_params.alpha ≈ 1.0
+        @test shear_rate_factor(flat_params.velocity_profile) ≈ 4.0
+
+        power_params, _, _ = parse_args([
+            "--velocity-profile", "power",
+            "--profile-exponent", "9",
+            "--tfinal", "5e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--ic", "geometry-rest",
+        ])
+        @test power_params.velocity_profile isa PowerVelocityProfile
+        @test power_params.velocity_profile.exponent ≈ 9.0
+        @test power_params.alpha ≈ 1.1
+
+        alpha_params, _, _ = parse_args([
+            "--alpha", "1.1",
+            "--tfinal", "5e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--ic", "geometry-rest",
+        ])
+        @test alpha_params.velocity_profile isa PowerVelocityProfile
+        @test alpha_params.velocity_profile.exponent ≈ 9.0
+        @test alpha_params.alpha ≈ power_params.alpha
+    end
+
     @testset "SciML flags" begin
         params, output, backend = parse_args([
             "--backend", "sciml",
@@ -467,6 +792,120 @@ end
         @test_throws ArgumentError parse_args(["--space", "fv-muscl", "--degree", "1"])
         @test_throws ArgumentError parse_args(["--limiter", "not-a-limiter"])
         @test_throws ArgumentError parse_args(["--time-stepper", "rk4"])
+        @test_throws ArgumentError parse_args(["--velocity-profile", "power", "--ic", "geometry-rest"])
+        @test_throws ArgumentError parse_args(["--velocity-profile", "flat", "--profile-shear-factor", "0", "--ic", "geometry-rest"])
+        @test_throws ArgumentError parse_args(["--velocity-profile", "parabolic", "--profile-shear-factor", "4", "--ic", "geometry-rest"])
+        @test_throws ArgumentError parse_args(["--alpha", "1.1", "--velocity-profile", "power", "--profile-exponent", "9", "--ic", "geometry-rest"])
+    end
+end
+
+@testset "CanicExtended1D study output provenance" begin
+    parabolic_spec = SeveritySweepSpec(
+        base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC()),
+        severities=[23.0, 50.0],
+        progress_every=0,
+        parallel_workers=1,
+    )
+    legacy_power_spec = SeveritySweepSpec(
+        base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC(), alpha=1.1),
+        severities=[23.0, 50.0],
+        progress_every=0,
+        parallel_workers=1,
+    )
+    flat_grid_spec = GridConvergenceStudySpec(
+        base_params=Params(
+            nx=8,
+            tfinal=1.0e-5,
+            severity=50.0,
+            initial_condition=GeometryRestIC(),
+            velocity_profile=FlatVelocityProfile(shear_rate_factor=8.0),
+        ),
+        nxs=[8, 16],
+        progress_every=0,
+        parallel_workers=1,
+    )
+
+    @test occursin("_vp_parabolic_", study_summary_path(parabolic_spec))
+    @test study_summary_path(parabolic_spec) != study_summary_path(legacy_power_spec)
+    @test occursin("_vp_power_g_9_", study_summary_path(legacy_power_spec))
+    @test occursin("_vp_flat_sf_8_", study_summary_path(flat_grid_spec))
+
+    mktempdir() do dir
+        flat_spec = SeveritySweepSpec(
+            base_params=Params(
+                nx=8,
+                tfinal=1.0e-5,
+                initial_condition=GeometryRestIC(),
+                velocity_profile=FlatVelocityProfile(shear_rate_factor=8.0),
+            ),
+            severities=[23.0],
+            summary_csv=joinpath(dir, "flat.csv"),
+            overwrite=true,
+            progress_every=0,
+            parallel_workers=1,
+        )
+        flat_result = run_study(flat_spec)
+        flat_row = only(flat_result.summaries)
+        @test flat_row.velocity_profile == "flat"
+        @test flat_row.alpha ≈ 1.0
+        @test isnan(flat_row.profile_exponent)
+        @test flat_row.shear_rate_factor ≈ 8.0
+        flat_csv = read(flat_result.summary_csv, String)
+        @test occursin("velocity_profile,alpha,profile_exponent,shear_rate_factor", flat_csv)
+        flat_csv_row = only(read_simple_csv(flat_result.summary_csv))
+        @test flat_csv_row["velocity_profile"] == "flat"
+        @test parse(Float64, flat_csv_row["alpha"]) ≈ 1.0
+        @test isnan(parse(Float64, flat_csv_row["profile_exponent"]))
+        @test parse(Float64, flat_csv_row["shear_rate_factor"]) ≈ 8.0
+
+        power_spec = GridConvergenceStudySpec(
+            base_params=Params(
+                nx=8,
+                tfinal=1.0e-5,
+                severity=50.0,
+                initial_condition=GeometryRestIC(),
+                velocity_profile=PowerVelocityProfile(exponent=9.0),
+            ),
+            nxs=[8],
+            summary_csv=joinpath(dir, "power.csv"),
+            overwrite=true,
+            progress_every=0,
+            parallel_workers=1,
+        )
+        power_result = run_study(power_spec)
+        power_row = only(power_result.summaries)
+        @test power_row.velocity_profile == "power"
+        @test power_row.alpha ≈ 1.1
+        @test power_row.profile_exponent ≈ 9.0
+        @test power_row.shear_rate_factor ≈ 11.0
+        power_csv_row = only(read_simple_csv(power_result.summary_csv))
+        @test power_csv_row["velocity_profile"] == "power"
+        @test parse(Float64, power_csv_row["alpha"]) ≈ 1.1
+        @test parse(Float64, power_csv_row["profile_exponent"]) ≈ 9.0
+        @test parse(Float64, power_csv_row["shear_rate_factor"]) ≈ 11.0
+    end
+end
+
+@testset "CanicExtended1D process-parallel studies" begin
+    mktempdir() do dir
+        spec = SeveritySweepSpec(
+            base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC()),
+            severities=[23.0, 50.0],
+            summary_csv=joinpath(dir, "parallel_severity.csv"),
+            overwrite=true,
+            progress_every=0,
+            parallel_workers=2,
+        )
+        result = run_study(spec)
+
+        @test length(result.summaries) == 2
+        @test [row.severity for row in result.summaries] == [23.0, 50.0]
+        @test all(row.velocity_profile == "parabolic" for row in result.summaries)
+        @test all(row.alpha ≈ 4.0 / 3.0 for row in result.summaries)
+        @test all(row.profile_exponent ≈ 2.0 for row in result.summaries)
+        @test all(row.shear_rate_factor ≈ 4.0 for row in result.summaries)
+        @test isfile(result.summary_csv)
+        @test occursin("severity_sweep", read(result.summary_csv, String))
     end
 end
 
@@ -484,6 +923,7 @@ end
             output_dir=dir,
             overwrite=true,
             progress_every=0,
+            parallel_workers=1,
         )
         result = run_refinement_study(spec)
 

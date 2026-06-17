@@ -22,7 +22,10 @@ function print_usage(io::IO = stdout)
           --ic-mesh-nr VALUE      Stationary Stokes radial mesh rings, default 6
           --ic-mesh-ntheta VALUE  Stationary Stokes angular mesh sectors, default 32
           --ic-diagnostics PATH   Optional stationary Stokes IC diagnostics CSV
-          --alpha VALUE           Coriolis coefficient, default 1.1
+          --velocity-profile VALUE flat, parabolic, or power; default parabolic
+          --profile-exponent VALUE Power-profile exponent gamma
+          --profile-shear-factor VALUE Flat-profile shear factor, default 4
+          --alpha VALUE           Legacy alias for power-profile alpha
           --nu VALUE              Newtonian kinematic viscosity, default 0.04 cm^2/s
           --rheology VALUE        newtonian, carreau, carreau-yasuda, casson, or power-law
           --eta0 VALUE            Low-shear dynamic viscosity for Carreau variants, g/(cm*s)
@@ -70,6 +73,9 @@ const VALUE_OPTIONS = Set([
     "ic-mesh-nr",
     "ic-mesh-ntheta",
     "ic-diagnostics",
+    "velocity-profile",
+    "profile-exponent",
+    "profile-shear-factor",
     "alpha",
     "nu",
     "rheology",
@@ -197,6 +203,37 @@ function initial_condition_from_cli(values::Dict{String,String})
     throw(ArgumentError("unknown initial condition '$name'; expected stationary-stokes or geometry-rest"))
 end
 
+function velocity_profile_from_cli(values::Dict{String,String})
+    profile_was_set = haskey(values, "velocity-profile")
+    exponent_was_set = haskey(values, "profile-exponent")
+    shear_was_set = haskey(values, "profile-shear-factor")
+    alpha_was_set = haskey(values, "alpha")
+
+    if alpha_was_set
+        (profile_was_set || exponent_was_set || shear_was_set) &&
+            throw(ArgumentError("--alpha cannot be combined with --velocity-profile, --profile-exponent, or --profile-shear-factor"))
+        return PowerVelocityProfile(alpha=parse(Float64, values["alpha"]))
+    end
+
+    name = replace(lowercase(strip(get(values, "velocity-profile", "parabolic"))), "_" => "-")
+    if name in ("parabolic", "poiseuille")
+        (exponent_was_set || shear_was_set) &&
+            throw(ArgumentError("--profile-exponent and --profile-shear-factor are not valid with --velocity-profile parabolic"))
+        return ParabolicVelocityProfile()
+    elseif name in ("flat", "plug")
+        exponent_was_set &&
+            throw(ArgumentError("--profile-exponent is only valid with --velocity-profile power"))
+        return FlatVelocityProfile(shear_rate_factor=parse_float_value(values, "profile-shear-factor", 4.0))
+    elseif name == "power"
+        shear_was_set &&
+            throw(ArgumentError("--profile-shear-factor is only valid with --velocity-profile flat"))
+        exponent_was_set || throw(ArgumentError("--velocity-profile power requires --profile-exponent"))
+        return PowerVelocityProfile(exponent=parse(Float64, values["profile-exponent"]))
+    end
+
+    throw(ArgumentError("unknown velocity profile '$name'; expected flat, parabolic, or power"))
+end
+
 function assert_no_unused_rheology_options(values::Dict{String,String}, allowed::Set{String}, model::String)
     unused = sort([key for key in RHEOLOGY_PARAMETER_OPTIONS if haskey(values, key) && !(key in allowed)])
     isempty(unused) ||
@@ -316,8 +353,8 @@ function parse_args(args::Vector{String})
         space=spatial_method_from_cli(values),
         time_stepper=time_stepper_from_cli(values),
         initial_condition=initial_condition_from_cli(values),
+        velocity_profile=velocity_profile_from_cli(values),
         young=parse(Float64, get(values, "young", "5.02e6")),
-        alpha=parse(Float64, get(values, "alpha", "1.1")),
         inlet_umax=parse(Float64, get(values, "inlet-umax", "45.0")),
     )
     validate(params)
@@ -388,7 +425,7 @@ function run_cli(args::Vector{String} = ARGS)
     params, output, backend = parsed
     backend_label = backend isa NativeRK3Backend ? "native" : "sciml"
     alg_label = backend isa SciMLTimeBackend ? algorithm_name(backend.solve.algorithm) : time_stepper_name(params.time_stepper)
-    @info "running Canic extended 1D stenosis simulation" nx=params.nx tfinal=params.tfinal dt_cap=params.dt severity=params.severity alpha=params.alpha young=params.young space=spatial_method_name(params.space) time_stepper=time_stepper_name(params.time_stepper) rheology=rheology_name(params.rheology) initial_condition=initial_condition_name(params.initial_condition) backend=backend_label alg=alg_label
+    @info "running Canic extended 1D stenosis simulation" nx=params.nx tfinal=params.tfinal dt_cap=params.dt severity=params.severity velocity_profile=profile_name(params.velocity_profile) alpha=params.alpha shear_rate_factor=shear_rate_factor(params.velocity_profile) young=params.young space=spatial_method_name(params.space) time_stepper=time_stepper_name(params.time_stepper) rheology=rheology_name(params.rheology) initial_condition=initial_condition_name(params.initial_condition) backend=backend_label alg=alg_label
 
     result = simulate(params, backend; progress_every=output.progress_every)
     write_csv(output.csv, result, params)

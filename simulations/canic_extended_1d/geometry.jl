@@ -1,6 +1,8 @@
-gamma_plus_two(p::Params) = p.alpha / (p.alpha - 1.0)
+momentum_alpha(p::Params) = momentum_alpha(p.velocity_profile)
+profile_shear_rate_factor(p::Params) = shear_rate_factor(p.velocity_profile)
+gamma_plus_two(p::Params) = profile_shear_rate_factor(p)
 wall_stiffness(p::Params) = p.young * p.wall_h / (1.0 - p.sigma^2)
-inlet_uavg(p::Params) = 0.5 * p.inlet_umax
+inlet_uavg(p::Params) = mean_to_max_velocity_ratio(p.velocity_profile) * p.inlet_umax
 stenosis_amplitude(p::Params) = p.rmax * p.severity / 100.0
 
 function asymmetric_geometry_terms(z::Float64)

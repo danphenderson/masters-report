@@ -1,19 +1,13 @@
 \section{Introduction and Report Scope}
 \label{sec:intro}
 
-Coronary and arterial stenoses motivate a basic computational question: how do
-geometry, wall properties, rheology, and boundary data determine the state of
-blood flow through an idealized narrowed vessel? Clinical pressure-ratio
-measurements motivate the question because anatomical narrowing alone does not
-determine functional obstruction. This report, however, is a mathematical and
-numerical study, not a clinical validation study.
-\todo{ADVISOR[MAJOR]: Narrow the opening question to the actual deliverable.
-The current wording suggests a parametric study over geometry, wall properties,
-rheology, and boundary data, while the numerical evidence is two Newtonian
-\(T=1\) velocity comparisons.}
-\red{This report asks which continuum, closure, boundary-data, and
-output-operator assumptions are needed to interpret a first controlled \(T=1\)
-comparison between a selected 1D stenosis model and resolved 3D velocity data.}
+Coronary and arterial stenoses motivate a basic computational question because
+anatomical narrowing alone does not determine functional obstruction. This
+report is a mathematical and numerical study, not a clinical validation study:
+it assembles the literature and notation needed to state continuum,
+constitutive, boundary-data, model-hierarchy, and reduced-output conventions,
+then reports a first controlled Newtonian \(T=1\) velocity comparison between a
+selected 1D stenosis model and resolved 3D data for two idealized cases.
 
 The report fixes the vocabulary needed to move from continuum assumptions, to
 the three-dimensional incompressible Navier--Stokes and generalized-Newtonian
@@ -32,9 +26,9 @@ reduced pressure-ratio output.
 
 
 
-\subsection*{Literature Review Roadmap}
+\subsection*{Report Roadmap}
 
-\addcontentsline{toc}{subsection}{Literature Review Roadmap}
+\addcontentsline{toc}{subsection}{Report Roadmap}
 
 \begin{enumerate}
     \item Section~\ref{subsec:continuum-constitutive-assumptions} fixes the
@@ -42,27 +36,22 @@ reduced pressure-ratio output.
     the report.
     \item Section~\ref{subsec:governing-equations-model-hierarchy} identifies
     the governing equations, boundary-data vocabulary, and model hierarchy.
-    \item Later literature-review sections use this vocabulary to compare
-    classical finite-difference, finite-volume, and finite-element approaches
-    for hemodynamic models.
-    \item The numerical-study portion then applies the selected reduced model
-    to a controlled idealized stenosis computation.
+    \item Section~\ref{subsec:pressure-flow-motivation} records the
+    pressure--flow motivation and the reduced-output conventions used to keep
+    pressure-drop, pressure-ratio, and shear-proxy quantities separate from the
+    velocity diagnostics demonstrated in the main numerical comparison.
+    \item Section~\ref{sec:resolved-3d-comparison} reports the controlled
+    \(T=1\) comparison between the selected 1D solver and resolved 3D velocity
+    data for two idealized stenosis cases.
+    \item Appendices~\ref{app:mathematical-notation}--\ref{app:code-and-ai-use}
+    collect supporting notation, derivation details, numerical-method notes, and
+    code-use documentation.
 \end{enumerate}
-\todo[inline]{ADVISOR[BLOCKER]: The roadmap promises later literature-review
-sections comparing classical numerical methods, but \texttt{final-report.tex}
-only includes the introduction, the \(T=1\) comparison, and appendices. Either
-add those sections or revise this roadmap to the actual report contents before
-submission.}
-\red{The remaining main-text section uses this vocabulary to interpret a first
-\(T=1\) 1D--3D velocity-output comparison for two idealized stenosis cases.}
 
 \input{sections/01-intro/blood-continuum}
 \input{sections/01-intro/governing-equations}
-\todo{ADVISOR[MAJOR]: The clinical pressure--flow motivation currently appears
-after the continuum and model hierarchy even though it motivates the problem.
-Move this subsection before the technical subsections, or add a bridge
-explaining why the reader must first read the mathematical setup.}
-\red{The clinical motivation is stated after the mathematical setup because the
-report first fixes which pressure quantities are model outputs rather than
-measurements.}
+The pressure--flow motivation is stated after the continuum and model-hierarchy
+setup so that pressure-drop, pressure-ratio, and shear quantities are introduced
+as model outputs with declared conventions, not as clinical measurements or
+validation targets.
 \input{sections/01-intro/pressure-flow-motivation}

@@ -21,17 +21,17 @@
     \tableofcontents
     \clearpage
 
-    % Introduction and report scope.
-    \include{sections/01-intro/index}
+    % Top-level body files use \input with explicit page boundaries so the
+    % report has controlled starts without accidental \include blank pages.
+    \input{sections/01-intro/index}
+    \clearpage
 
     % Numerical comparison against resolved 3D velocity data.
-    \todo[inline]{ADVISOR[MINOR]: Decide whether the large blank page before
-    Section~\ref{sec:resolved-3d-comparison} is intentional. If not, use
-    \texttt{\string\input} for main sections or adjust the page-break policy.}
-    \include{sections/02-comparison/index}
+    \input{sections/02-comparison/index}
+    \clearpage
 
     % Appendix
-    \include{appendices/index}
+    \input{appendices/index}
 
     \clearpage
     \printbibliography

@@ -584,10 +584,7 @@ function radial_bins(coordinates::Matrix{Float64}, ids::Vector{Int}, r0::Float64
 end
 
 function one_dimensional_profile_velocity(uavg::Float64, radius::Float64, section_radius::Float64, p::Params)
-    gamma = (2.0 - p.alpha) / (p.alpha - 1.0)
-    gamma > 0.0 || throw(ArgumentError("radial profile closure requires 1 < alpha < 2"))
-    ratio = clamp(radius / max(section_radius, eps()), 0.0, 1.0)
-    return ((gamma + 2.0) / gamma) * uavg * (1.0 - ratio^gamma)
+    return radial_profile_velocity(uavg, radius, section_radius, p.velocity_profile)
 end
 
 function interpolate_linear(x::Vector{Float64}, y::Vector{Float64}, x0::Float64)

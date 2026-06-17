@@ -129,7 +129,8 @@ parameters. Componentwise,
 All divisions by \(a\) in the implementation use the recorded positive-area
 floor.
 
-With \(K=Eh/(1-\sigma^2)\) and
+With \(K=Eh/(1-\sigma^2)\), velocity-profile momentum factor
+\(\alpha_{\mathcal P}\), and
 \(\alpha_c(R_0')=-2(R_0')^2/35\), the current full-state flux is
 \begin{flalign*}
     \quad
@@ -137,7 +138,7 @@ With \(K=Eh/(1-\sigma^2)\) and
     =
     \left(
         Q,\,
-        \left(\alpha+\alpha_c(R_0'(z))\right)\frac{Q^2}{a}
+        \left(\alpha_{\mathcal P}+\alpha_c(R_0'(z))\right)\frac{Q^2}{a}
         +\frac{K}{3\rho R_{\max}^2}a^{3/2}
     \right)^\top. &&
 \end{flalign*}
@@ -178,7 +179,7 @@ with
     \quad
     \alpha_{\mathrm{eff}}
     &=
-    \alpha+\alpha_c(R_0'(z)),\qquad
+        \alpha_{\mathcal P}+\alpha_c(R_0'(z)),\qquad
     u=\frac{Q}{a}, &&\\
     \quad
     \chi^2
@@ -189,10 +190,10 @@ with
 \end{flalign*}
 
 The source term uses the recorded centered interior and one-sided boundary
-difference \(D_z^h\) on the cell averages. Let
-\(g_\alpha=\alpha/(\alpha-1)\),
+difference \(D_z^h\) on the cell averages. Let \(g_{\mathcal P}\) denote the
+profile shear factor,
 \[
-    \dot\gamma_{1D,i}=g_\alpha\frac{|Q_i|}{a_i\sqrt{a_i}},
+    \dot\gamma_{1D,i}=g_{\mathcal P}\frac{|Q_i|}{a_i\sqrt{a_i}},
     \qquad
     \nu_{\mathrm{eff},i}^{\mathcal R}
     =
@@ -206,7 +207,7 @@ and
     \quad
     \widehat S_i
     &=
-    -2\nu_{\mathrm{eff},i}^{\mathcal R}g_\alpha\frac{Q_i}{a_i}
+    -2\nu_{\mathrm{eff},i}^{\mathcal R}g_{\mathcal P}\frac{Q_i}{a_i}
     +
     \frac{K}{\rho R_{\max}^2}a_iR_0'(z_i)
     -
@@ -216,7 +217,7 @@ and
     \quad
     \widehat{\partial_z p_2}_i
     &=
-    \nu_{\mathrm{eff},i}^{\mathcal R} g_\alpha
+    \nu_{\mathrm{eff},i}^{\mathcal R} g_{\mathcal P}
     \left[
         \frac{Q_iR_0''(z_i)}{a_iR_0(z_i)}
         -
@@ -231,6 +232,10 @@ For the \texttt{newtonian} descriptor, this reduces to the constant value
 \(\nu_{\mathrm{eff},i}^{\mathcal R}=\nu\). For the non-Newtonian closures,
 the code applies the recorded shear-rate floor and optional minimum/maximum
 dynamic viscosity clamps before dividing by density.
+For the power-family profile,
+\(g_{\mathcal P}=\gamma+2=\alpha_{\mathcal P}/(\alpha_{\mathcal P}-1)\).
+The flat profile is not evaluated through that singular limit; it records
+\(\alpha_{\mathcal P}=1\) and an explicit finite \(g_{\mathcal P}\).
 
 \subsection{Time and backend realization}
 \label{app:num-time-backend-realization}

@@ -54,6 +54,8 @@ body forces:
     \rho \left(\partial_t\vu+(\vu\cdot\nabla)\vu\right)
     \equals \Divbf(\vT)+\rho\vfb. &&
 \end{flalign*}
+Throughout the Navier--Stokes statements below, \(\vfb\) denotes body force per
+unit mass, so \(\rho\vfb\) is the corresponding body force per unit volume.
 
 \begin{definition}[Conservative incompressible Navier--Stokes]
     \label{def:nsconservative}
@@ -64,15 +66,11 @@ body forces:
             \partial_t(\rho \vu)
             + \Divbf(\rho \vu\otimes\vu)
             =
-            -\nabla p+\Divbf(2\eta\vct{D}(\vu))+\rho\vf, \\
+            -\nabla p+\Divbf(2\eta\vct{D}(\vu))+\rho\vfb, \\
             \Div\vu=0,\qquad \rho\equiv\rho_0>0.
         \end{cases*} &&
     \end{flalign*}
 \end{definition}
-\todo{ADVISOR[MAJOR]: Use one forcing symbol consistently. Earlier
-\(\vfb\) is body force per unit mass and \(\rho\vfb\) per unit volume, while
-this section switches to \(\vf\). Define \(\vf\equiv\vfb\) for acceleration
-forcing, or replace \(\vf\) by \(\vfb\) throughout the Navier--Stokes systems.}
 
 For constant density and divergence-free velocity,
 \(\Divbf(\rho\vu\otimes\vu)=\rho(\vu\cdot\nabla)\vu\). Thus the same Newtonian
@@ -86,7 +84,7 @@ momentum equation can be read in advective form.
         \quad
         \dot{\gamma}\defined\sqrt{2\vct{D}(\vu):\vct{D}(\vu)}. &&
     \end{flalign*}
-    The velocity \(\vu\), pressure \(p\), body force \(\vf\), and constant
+    The velocity \(\vu\), pressure \(p\), body force per unit mass \(\vfb\), and constant
     density \(\rho\equiv\rho_0>0\) satisfy
     \begin{flalign*}
         \quad & \begin{cases*}
@@ -96,7 +94,7 @@ momentum equation can be read in advective form.
             +\Divbf\!\Big(
                 2\eta_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu)
             \Big)
-            +\rho\vf, \\
+            +\rho\vfb, \\
             \Div\vu=0.
         \end{cases*} &&
     \end{flalign*}
@@ -116,7 +114,7 @@ momentum equation can be read in advective form.
             +\Divbf\!\Big(
                 2\nu_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu)
             \Big)
-            +\vf, \\
+            +\vfb, \\
             \Div\vu=0.
         \end{cases*} &&
     \end{flalign*}
@@ -135,14 +133,14 @@ each term independently.
         \quad & \begin{cases*}
             \rho\big(\partial_t\vu+(\vu\cdot\nabla)\vu\big)
             =
-            -\nabla p+\eta\del\vu+\rho\vf, \\
+            -\nabla p+\eta\del\vu+\rho\vfb, \\
             \Div\vu=0,
         \end{cases*}
         \qquad
         \begin{cases*}
             \partial_t\vu+(\vu\cdot\nabla)\vu
             =
-            -\rho^{-1}\nabla p+\nu\del\vu+\vf, \\
+            -\rho^{-1}\nabla p+\nu\del\vu+\vfb, \\
             \Div\vu=0,
         \end{cases*}
         &&
@@ -163,7 +161,7 @@ the Navier--Stokes systems above.
         \quad & \begin{cases*}
             \mathcal{R}_{\mathrm{NS}}
             (\partial_t\vu,\nabla\vu,\nabla p,\vu,p;\rho,\nu_{\mathrm{eff}})
-            =\vf, \\
+            =\vfb, \\
             \Div\vu=0.
         \end{cases*} &&
     \end{flalign*}
@@ -207,15 +205,17 @@ compatibility assumptions, and the solution class.
     the controlled reduced 1D solver introduced below.
 \end{remark}
 
-Classical local well-posedness statements require a domain, boundary
-conditions, forcing, initial-data space, and solution class. Under compatible
-smooth data one obtains a unique strong solution on a maximal time interval.
-The domain and function-space notation used in such statements is summarized in
-Appendix~\ref{app:mathematical-foundations}; coordinate and energy background
-is collected in Appendix~\ref{app:ns-coordinate-details}.
-\todo{ADVISOR[MAJOR]: Add a precise PDE well-posedness citation and hypotheses
-here, or soften this to background context. The Clay citation supports global
-regularity context, not this local theorem-strength statement.}
+Well-posedness results for a three-dimensional Navier--Stokes
+initial-boundary value problem are problem-specific: the statement must fix the
+domain class, boundary conditions, forcing, compatibility assumptions,
+initial-data space, solution class, and time horizon. The present report uses
+that vocabulary only as PDE background for the model hierarchy. It does not use
+the Clay global-regularity problem as support for a local theorem, and it does
+not prove a well-posedness result for the moving arterial domain or for the
+reduced numerical solver. The domain and function-space notation relevant to
+such statements is summarized in Appendix~\ref{app:mathematical-foundations};
+coordinate and energy background is collected in
+Appendix~\ref{app:ns-coordinate-details}.
 
 \subsubsection{Cross-Sectional Reduction and Selected 1D Model}
 \label{subsubsec:cross-sectional-reduction-selected-1d-model}
@@ -350,9 +350,10 @@ independent replacements for the blood-dynamics setting above.
         &= - C_f(z,A,Q) \frac{Q}{A}.
         \numberthis\label{eq:1d-momentum-aq} &&
     \end{flalign*}
-    The parameter \(\alpha\) is the momentum-flux correction factor, \(C_f\) is
-    the wall-friction closure, and \(p_{\mathrm g}(A,z,t)\) is the wall-law
-    gauge pressure closing the reduced system. This is the reduced
+    The parameter \(\alpha\) is the momentum-flux correction factor induced by
+    the selected cross-sectional velocity profile, \(C_f\) is the wall-friction
+    closure, and \(p_{\mathrm g}(A,z,t)\) is the wall-law gauge pressure
+    closing the reduced system. This is the reduced
     \(\mathcal W_{\mathrm{elastic1D}}\) member of the FSI closure axis: wall
     response is represented through the pressure--area law rather than through a
     separate structural PDE
@@ -360,13 +361,31 @@ independent replacements for the blood-dynamics setting above.
     \cite[Ch.~3, Sec.~3.2, pp.~40--47]{KopplHelmig2023DimensionReducedModeling}.
 \end{definition}
 
-\begin{assumption}[First-run momentum-profile and rheology closure]
+\begin{assumption}[Velocity-profile and rheology closure]
     \label{ass:1d-first-run-alpha-friction}
-    The default reduced numerical lane uses
-    \(\alpha=1.1\), \(\nu=0.04\,\mathrm{cm}^2/\mathrm{s}\), and
-    \texttt{NewtonianRheology()}. The scalar constant-viscosity specialization
-    may be read through the compact Poiseuille-calibrated wall-friction
-    coefficient
+    The reduced numerical lane records a velocity-profile descriptor
+    \(\mathcal P\). The default is the parabolic Poiseuille profile, for which
+    \(\alpha_{\mathcal P}=4/3\). A flat profile uses
+    \(\alpha_{\mathcal P}=1\) for momentum transport together with a separately
+    recorded finite shear factor. More generally, the implemented power-family
+    profile is
+    \begin{flalign*}
+        \quad
+        u_{\mathcal P}(r)
+        =
+        \frac{\gamma+2}{\gamma}\,\bar u
+        \left(1-\left(\frac{r}{R}\right)^\gamma\right),
+        \qquad
+        \alpha_{\mathcal P}
+        =
+        \frac{\gamma+2}{\gamma+1},
+        \qquad
+        g_{\mathcal P}=\gamma+2. &&
+    \end{flalign*}
+    Thus \(\gamma=2\) gives the parabolic case and the former
+    \(\alpha=1.1\) record corresponds to \(\gamma=9\). The scalar
+    constant-viscosity specialization may be read through the compact
+    Poiseuille-calibrated wall-friction coefficient
     \begin{flalign*}
         \quad C_f \defined \frac{8\pi\eta}{\rho}. &&
     \end{flalign*}
@@ -377,7 +396,7 @@ independent replacements for the blood-dynamics setting above.
         \quad
         \dot\gamma_{1D}
         &\defined
-        \frac{\alpha}{\alpha-1}\frac{|Q|}{a\sqrt a}, &&\\
+        g_{\mathcal P}\frac{|Q|}{a\sqrt a}, &&\\
         \quad
         \nu_{\mathrm{eff}}^{\mathcal R}
         &\defined
@@ -448,12 +467,15 @@ independent replacements for the blood-dynamics setting above.
 \begin{figure}[!htb]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \includegraphics[width=\textwidth]{figures/static/static/rendered/stenosis-3d-overview.pdf}
-    \caption{Analytic three-dimensional rendering of the reference geometry in
-    Definition~\ref{def:1d-stenosis-reference-geometry}. The smooth reference
-    vessel is shown beside the default \(50\%\) narrowed vessel; both are
-    idealized numerical geometries generated from the report profile, not
-    patient-specific plaque morphology or clinical calibration.}
+    \includegraphics[height=0.70\textheight]{figures/static/static/rendered/stenosis-particle-trajectories.pdf}
+    \caption{Analytic three-dimensional renderings of the
+    \(C^\infty\) reference geometry in
+    Definition~\ref{def:1d-stenosis-reference-geometry}, with
+    \(s_{\max}=23\%,50\%,73\%\) stacked vertically. Here \(s_{\max}\) is the
+    prescribed anatomical radius-reduction parameter in the idealized geometry.
+    The overlaid curves are steady particle pathlines traced through the
+    generated stationary Stokes velocity field; they are not pressure-drop,
+    FFR, or patient-specific clinical calibration measurements.}
     \label{fig:stenosis-3d-reference-geometry}
 \end{figure}
 

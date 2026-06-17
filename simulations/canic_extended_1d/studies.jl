@@ -1,7 +1,7 @@
 abstract type AbstractStudySpec end
 
 """
-    SeveritySweepSpec(; base_params, severities, backend, summary_csv, overwrite)
+    SeveritySweepSpec(; base_params, severities, backend, summary_csv, overwrite, parallel_workers)
 
 Run the same case over multiple stenosis severities and write a compact study
 summary CSV.
@@ -13,6 +13,7 @@ struct SeveritySweepSpec <: AbstractStudySpec
     summary_csv::String
     overwrite::Bool
     progress_every::Int
+    parallel_workers::Int
 end
 
 function SeveritySweepSpec(;
@@ -22,18 +23,20 @@ function SeveritySweepSpec(;
     summary_csv::String = "",
     overwrite::Bool = false,
     progress_every::Int = 0,
+    parallel_workers::Int = default_case_workers(),
 )
     severity_values = [Float64(value) for value in severities]
     isempty(severity_values) && throw(ArgumentError("severity sweep must include at least one severity"))
     progress_every >= 0 || throw(ArgumentError("progress_every must be nonnegative"))
+    parallel_workers >= 0 || throw(ArgumentError("parallel_workers must be nonnegative"))
     for severity in severity_values
         validate(params_with(base_params; severity=severity))
     end
-    return SeveritySweepSpec(base_params, severity_values, backend, summary_csv, overwrite, progress_every)
+    return SeveritySweepSpec(base_params, severity_values, backend, summary_csv, overwrite, progress_every, parallel_workers)
 end
 
 """
-    GridConvergenceStudySpec(; base_params, nxs, backend, summary_csv, overwrite)
+    GridConvergenceStudySpec(; base_params, nxs, backend, summary_csv, overwrite, parallel_workers)
 
 Run the same case over multiple finite-volume grid sizes and write a compact
 study summary CSV.
@@ -45,6 +48,7 @@ struct GridConvergenceStudySpec <: AbstractStudySpec
     summary_csv::String
     overwrite::Bool
     progress_every::Int
+    parallel_workers::Int
 end
 
 function GridConvergenceStudySpec(;
@@ -54,14 +58,16 @@ function GridConvergenceStudySpec(;
     summary_csv::String = "",
     overwrite::Bool = false,
     progress_every::Int = 0,
+    parallel_workers::Int = default_case_workers(),
 )
     nx_values = [Int(value) for value in nxs]
     isempty(nx_values) && throw(ArgumentError("grid convergence study must include at least one nx value"))
     progress_every >= 0 || throw(ArgumentError("progress_every must be nonnegative"))
+    parallel_workers >= 0 || throw(ArgumentError("parallel_workers must be nonnegative"))
     for nx in nx_values
         validate(params_with(base_params; nx=nx))
     end
-    return GridConvergenceStudySpec(base_params, nx_values, backend, summary_csv, overwrite, progress_every)
+    return GridConvergenceStudySpec(base_params, nx_values, backend, summary_csv, overwrite, progress_every, parallel_workers)
 end
 
 """One scalar diagnostic row from a study run."""
@@ -75,6 +81,10 @@ struct StudyRunSummary
     spatial_method::String
     time_stepper::String
     rheology::String
+    velocity_profile::String
+    alpha::Float64
+    profile_exponent::Float64
+    shear_rate_factor::Float64
     steps::Int
     final_time::Float64
     velocity_min::Float64
@@ -106,12 +116,19 @@ function params_with(
     space::AbstractSpatialMethod = p.space,
     time_stepper::AbstractNativeTimeStepper = p.time_stepper,
     initial_condition::AbstractInitialConditionSpec = p.initial_condition,
+    velocity_profile::AbstractVelocityProfile = p.velocity_profile,
+    inlet_boundary::AbstractInletBoundary = p.inlet_boundary,
+    outlet_boundary::AbstractOutletBoundary = p.outlet_boundary,
     young::Float64 = p.young,
     wall_h::Float64 = p.wall_h,
     sigma::Float64 = p.sigma,
-    alpha::Float64 = p.alpha,
+    alpha::Union{Nothing,Float64} = nothing,
     inlet_umax::Float64 = p.inlet_umax,
 )
+    if alpha !== nothing && velocity_profile != p.velocity_profile
+        throw(ArgumentError("provide velocity_profile or alpha, not both"))
+    end
+    resolved_profile = alpha === nothing ? velocity_profile : PowerVelocityProfile(alpha=alpha)
     return Params(
         nx=nx,
         length_cm=length_cm,
@@ -126,10 +143,12 @@ function params_with(
         space=space,
         time_stepper=time_stepper,
         initial_condition=initial_condition,
+        velocity_profile=resolved_profile,
+        inlet_boundary=inlet_boundary,
+        outlet_boundary=outlet_boundary,
         young=young,
         wall_h=wall_h,
         sigma=sigma,
-        alpha=alpha,
         inlet_umax=inlet_umax,
     )
 end
@@ -137,15 +156,14 @@ end
 """
     run_study(spec) -> StudyResult
 
-Execute a severity or grid study sequentially. Each row calls
-`simulate(params, backend)`, so studies share the single-run protocol.
+Execute a severity or grid study. Independent cases run in parallel when
+`parallel_workers` is greater than one.
 """
 function run_study(spec::SeveritySweepSpec)
-    rows = StudyRunSummary[]
-    for severity in spec.severities
+    rows = parallel_case_map(spec.severities; parallel_workers=spec.parallel_workers) do severity
         params = params_with(spec.base_params; severity=severity)
         result = simulate(params, spec.backend; progress_every=spec.progress_every)
-        push!(rows, summarize_study_run("severity_sweep", params, spec.backend, result))
+        summarize_study_run("severity_sweep", params, spec.backend, result)
     end
 
     path = study_summary_path(spec)
@@ -155,11 +173,10 @@ function run_study(spec::SeveritySweepSpec)
 end
 
 function run_study(spec::GridConvergenceStudySpec)
-    rows = StudyRunSummary[]
-    for nx in spec.nxs
+    rows = parallel_case_map(spec.nxs; parallel_workers=spec.parallel_workers) do nx
         params = params_with(spec.base_params; nx=nx)
         result = simulate(params, spec.backend; progress_every=spec.progress_every)
-        push!(rows, summarize_study_run("grid_convergence", params, spec.backend, result))
+        summarize_study_run("grid_convergence", params, spec.backend, result)
     end
 
     path = study_summary_path(spec)
@@ -186,6 +203,10 @@ function summarize_study_run(
         spatial_method_name(params.space),
         time_stepper_name(params.time_stepper),
         rheology_name(params.rheology),
+        profile_name(params.velocity_profile),
+        params.alpha,
+        profile_exponent(params.velocity_profile),
+        shear_rate_factor(params.velocity_profile),
         result.steps,
         result.completed_time,
         minimum(u),
@@ -202,24 +223,22 @@ end
 
 function default_study_summary_path(spec::SeveritySweepSpec)
     severity_token = join(map(path_token, spec.severities), "-")
+    profile_token = velocity_profile_path_token(spec.base_params.velocity_profile)
     return joinpath(
         "simulations",
         "output",
-        "canic_extended_1d_severity_sweep_s$(severity_token)_nx$(spec.base_params.nx)_t$(path_token(spec.base_params.tfinal)).csv",
+        "canic_extended_1d_severity_sweep_vp_$(profile_token)_s$(severity_token)_nx$(spec.base_params.nx)_t$(path_token(spec.base_params.tfinal)).csv",
     )
 end
 
 function default_study_summary_path(spec::GridConvergenceStudySpec)
     nx_token = join(spec.nxs, "-")
+    profile_token = velocity_profile_path_token(spec.base_params.velocity_profile)
     return joinpath(
         "simulations",
         "output",
-        "canic_extended_1d_grid_convergence_nx$(nx_token)_s$(path_token(spec.base_params.severity))_t$(path_token(spec.base_params.tfinal)).csv",
+        "canic_extended_1d_grid_convergence_vp_$(profile_token)_nx$(nx_token)_s$(path_token(spec.base_params.severity))_t$(path_token(spec.base_params.tfinal)).csv",
     )
-end
-
-function path_token(value)
-    return replace(string(value), "." => "p", "-" => "m", "+" => "")
 end
 
 """
@@ -258,6 +277,10 @@ function study_summary_header()
         "spatial_method",
         "time_stepper",
         "rheology",
+        "velocity_profile",
+        "alpha",
+        "profile_exponent",
+        "shear_rate_factor",
         "steps",
         "final_time",
         "velocity_min",
@@ -279,6 +302,10 @@ function study_summary_row(row::StudyRunSummary)
         row.spatial_method,
         row.time_stepper,
         row.rheology,
+        row.velocity_profile,
+        row.alpha,
+        row.profile_exponent,
+        row.shear_rate_factor,
         row.steps,
         row.final_time,
         row.velocity_min,

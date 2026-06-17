@@ -7,36 +7,124 @@ const AREA_LIMITER_FLOOR = 1.0e-10
 Physical case and finite-volume grid parameters for one Canic extended 1D
 stenosis run. Units follow the paper and upstream MATLAB code: cm, g, s, dyn.
 `nu` remains the baseline Newtonian kinematic viscosity; non-Newtonian closures
-compute an effective kinematic viscosity from `rheology`.
+compute an effective kinematic viscosity from `rheology`. `velocity_profile`
+owns the momentum-flux correction; `alpha` is retained as the derived
+compatibility field.
 
 Spatial and native time-stepping choices belong to the case because refinement
 studies compare them. SciML solver options belong in `SolveSpec`; output paths
 belong in `OutputSpec`.
 """
-Base.@kwdef struct Params{
+struct Params{
     R<:AbstractRheology,
     S<:AbstractSpatialMethod,
     T<:AbstractNativeTimeStepper,
     I<:AbstractInitialConditionSpec,
+    P<:AbstractVelocityProfile,
+    B<:AbstractInletBoundary,
+    O<:AbstractOutletBoundary,
 }
-    nx::Int = 400
-    length_cm::Float64 = 6.0
-    tfinal::Float64 = 1.0
-    dt::Float64 = 1.0e-5
-    cfl::Float64 = 0.45
-    severity::Float64 = 50.0
-    rmax::Float64 = 0.18
-    rho::Float64 = 1.055
-    nu::Float64 = 0.04
-    rheology::R = NewtonianRheology()
-    space::S = FVMUSCLMethod()
-    time_stepper::T = SSPRK3Stepper()
-    initial_condition::I = StationaryStokesIC()
-    young::Float64 = 5.02e6
-    wall_h::Float64 = 0.06
-    sigma::Float64 = 0.5
-    alpha::Float64 = 1.1
-    inlet_umax::Float64 = 45.0
+    nx::Int
+    length_cm::Float64
+    tfinal::Float64
+    dt::Float64
+    cfl::Float64
+    severity::Float64
+    rmax::Float64
+    rho::Float64
+    nu::Float64
+    rheology::R
+    space::S
+    time_stepper::T
+    initial_condition::I
+    velocity_profile::P
+    inlet_boundary::B
+    outlet_boundary::O
+    young::Float64
+    wall_h::Float64
+    sigma::Float64
+    alpha::Float64
+    inlet_umax::Float64
+end
+
+function resolve_velocity_profile(
+    velocity_profile::Union{Nothing,AbstractVelocityProfile},
+    alpha::Union{Nothing,Real},
+)
+    if velocity_profile !== nothing && alpha !== nothing
+        throw(ArgumentError("provide velocity_profile or alpha, not both"))
+    elseif velocity_profile !== nothing
+        return velocity_profile
+    elseif alpha !== nothing
+        return PowerVelocityProfile(alpha=alpha)
+    end
+    return ParabolicVelocityProfile()
+end
+
+function Params(;
+    nx = 400,
+    length_cm = 6.0,
+    tfinal = 1.0,
+    dt = 1.0e-5,
+    cfl = 0.45,
+    severity = 50.0,
+    rmax = 0.18,
+    rho = 1.055,
+    nu = 0.04,
+    rheology = NewtonianRheology(),
+    space = FVMUSCLMethod(),
+    time_stepper = SSPRK3Stepper(),
+    initial_condition = StationaryStokesIC(),
+    velocity_profile::Union{Nothing,AbstractVelocityProfile} = nothing,
+    inlet_boundary::Union{Nothing,AbstractInletBoundary} = nothing,
+    outlet_boundary::AbstractOutletBoundary = FixedAreaCharacteristicOutlet(),
+    young = 5.02e6,
+    wall_h = 0.06,
+    sigma = 0.5,
+    alpha::Union{Nothing,Real} = nothing,
+    inlet_umax = 45.0,
+)
+    profile = resolve_velocity_profile(velocity_profile, alpha)
+    alpha_value = momentum_alpha(profile)
+    resolved_inlet = inlet_boundary === nothing ? SteadyVelocityInlet(umax=inlet_umax) : inlet_boundary
+    inlet_umax_value = resolved_inlet isa SteadyVelocityInlet ? resolved_inlet.umax : Float64(inlet_umax)
+    rheology isa AbstractRheology || throw(ArgumentError("rheology must be an AbstractRheology"))
+    space isa AbstractSpatialMethod || throw(ArgumentError("space must be an AbstractSpatialMethod"))
+    time_stepper isa AbstractNativeTimeStepper || throw(ArgumentError("time_stepper must be an AbstractNativeTimeStepper"))
+    initial_condition isa AbstractInitialConditionSpec || throw(ArgumentError("initial_condition must be an AbstractInitialConditionSpec"))
+    resolved_inlet isa AbstractInletBoundary || throw(ArgumentError("inlet_boundary must be an AbstractInletBoundary"))
+    outlet_boundary isa AbstractOutletBoundary || throw(ArgumentError("outlet_boundary must be an AbstractOutletBoundary"))
+    return Params{
+        typeof(rheology),
+        typeof(space),
+        typeof(time_stepper),
+        typeof(initial_condition),
+        typeof(profile),
+        typeof(resolved_inlet),
+        typeof(outlet_boundary),
+    }(
+        Int(nx),
+        Float64(length_cm),
+        Float64(tfinal),
+        Float64(dt),
+        Float64(cfl),
+        Float64(severity),
+        Float64(rmax),
+        Float64(rho),
+        Float64(nu),
+        rheology,
+        space,
+        time_stepper,
+        initial_condition,
+        profile,
+        resolved_inlet,
+        outlet_boundary,
+        Float64(young),
+        Float64(wall_h),
+        Float64(sigma),
+        Float64(alpha_value),
+        Float64(inlet_umax_value),
+    )
 end
 
 function Params(
@@ -59,25 +147,25 @@ function Params(
     alpha,
     inlet_umax,
 ) where {R<:AbstractRheology,S<:AbstractSpatialMethod,T<:AbstractNativeTimeStepper,I<:AbstractInitialConditionSpec}
-    return Params{R,S,T,I}(
-        Int(nx),
-        Float64(length_cm),
-        Float64(tfinal),
-        Float64(dt),
-        Float64(cfl),
-        Float64(severity),
-        Float64(rmax),
-        Float64(rho),
-        Float64(nu),
-        rheology,
-        space,
-        time_stepper,
-        initial_condition,
-        Float64(young),
-        Float64(wall_h),
-        Float64(sigma),
-        Float64(alpha),
-        Float64(inlet_umax),
+    return Params(
+        nx=nx,
+        length_cm=length_cm,
+        tfinal=tfinal,
+        dt=dt,
+        cfl=cfl,
+        severity=severity,
+        rmax=rmax,
+        rho=rho,
+        nu=nu,
+        rheology=rheology,
+        space=space,
+        time_stepper=time_stepper,
+        initial_condition=initial_condition,
+        young=young,
+        wall_h=wall_h,
+        sigma=sigma,
+        alpha=alpha,
+        inlet_umax=inlet_umax,
     )
 end
 
@@ -124,7 +212,7 @@ velocity(result::SimulationResult) = result.flow ./ result.area
 
 function default_output_stub(p::Params)
     severity_label = round(Int, p.severity)
-    base = "simulations/output/canic_extended_1d_severity$(severity_label)"
+    base = "simulations/output/canic_extended_1d_severity$(severity_label)_vp_$(velocity_profile_path_token(p.velocity_profile))"
     tokens = String[]
     !(p.space isa FVMUSCLMethod) && push!(tokens, replace(spatial_method_name(p.space), "-" => "_"))
     !(p.time_stepper isa SSPRK3Stepper) && push!(tokens, replace(time_stepper_name(p.time_stepper), "-" => "_"))
@@ -148,10 +236,15 @@ function validate(p::Params)
     validate(p.space)
     validate(p.time_stepper)
     validate(p.initial_condition)
+    validate(p.velocity_profile)
+    validate(p.inlet_boundary)
+    validate(p.outlet_boundary)
     p.young > 0.0 || throw(ArgumentError("young must be positive"))
     p.wall_h > 0.0 || throw(ArgumentError("wall_h must be positive"))
     abs(p.sigma) < 1.0 || throw(ArgumentError("abs(sigma) must be less than 1"))
-    p.alpha > 1.0 || throw(ArgumentError("alpha must be greater than 1"))
+    p.alpha >= 1.0 || throw(ArgumentError("alpha must be at least 1"))
+    isapprox(p.alpha, momentum_alpha(p.velocity_profile); rtol=0.0, atol=1.0e-12) ||
+        throw(ArgumentError("alpha must match the selected velocity profile"))
     p.inlet_umax >= 0.0 || throw(ArgumentError("inlet_umax must be nonnegative"))
     return p
 end

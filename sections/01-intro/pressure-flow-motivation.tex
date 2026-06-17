@@ -17,13 +17,10 @@ still remain distinct from the functional pressure--flow outputs treated here
 This anatomy--function split motivates reporting pressure drop, reduced
 pressure ratio, and reduced shear information rather than treating stenosis
 severity $s_{\max}$ as the output.
-\todo{ADVISOR[MAJOR]: This motivation can overpromise the current numerical
-section, which reports velocity diagnostics only. Make clear that pressure
-drop, pressure ratio, and shear are reduced-output conventions, not all
-demonstrated results in Section~\ref{sec:resolved-3d-comparison}.}
-\red{This motivates defining pressure-drop, pressure-ratio, and shear-proxy
-conventions for reduced-output records, while the present numerical comparison
-reports velocity diagnostics only.}
+Here pressure-drop, pressure-ratio, and shear-proxy quantities are reduced-output
+conventions for the model framework. They are not all demonstrated outputs in
+Section~\ref{sec:resolved-3d-comparison}, whose present comparison reports
+velocity diagnostics only.
 Figure~\ref{fig:anatomical-functional-motivation} summarizes this motivation
 as a schematic distinction between visible narrowing and pressure--flow loss.
 
@@ -53,17 +50,17 @@ quantities inferred from coronary computed tomography angiography
     \label{fig:anatomical-functional-motivation}
 \end{figure}
 
-For the selected model pressure field, define the observed proximal and distal
-pressure traces by
+For the selected model gauge-pressure field \(p_{\mathrm g}\), define the
+observed proximal and distal pressure traces by
 \begin{flalign*}
     \quad
     P_{\mathrm{prox}}(t)
     \defined
-    \mathcal P_{\mathrm{prox}}[p(\cdot,t)],
+    \mathcal P_{\mathrm{prox}}[p_{\mathrm g}(\cdot,t)],
     \qquad
     P_{\mathrm{dist}}(t)
     \defined
-    \mathcal P_{\mathrm{dist}}[p(\cdot,t)]. &&
+    \mathcal P_{\mathrm{dist}}[p_{\mathrm g}(\cdot,t)]. &&
 \end{flalign*}
 The pressure-drop waveform is the additive-datum-invariant quantity
 \begin{flalign*}
@@ -72,12 +69,6 @@ The pressure-drop waveform is the additive-datum-invariant quantity
     \defined
     P_{\mathrm{prox}}(t)-P_{\mathrm{dist}}(t). &&
 \end{flalign*}
-\todo{ADVISOR[MAJOR]: Replace the generic observed field \(p(\cdot,t)\) by
-\(p_{\mathrm g}(\cdot,t)\), or explicitly state that \(p\) denotes the selected
-gauge-pressure field in this paragraph. The appendix convention is explicitly
-gauge-pressure based.}
-\red{For the reduced-model specialization below, \(p\) denotes the declared
-gauge-pressure field \(p_{\mathrm g}\).}
 Unlike $\Delta p(t)$, a pressure ratio is not invariant under additive pressure
 shifts, so the ratio convention must declare a common additive pressure
 reference. The manuscript's convention adds that reference after the pressure
@@ -93,9 +84,10 @@ observations have been taken. With the declared $p_{\mathrm{ref}}$, define
     p_{\mathrm{ref}}+P_{\mathrm{dist}}(t). &&
 \end{flalign*}
 If a selected observation functional preserves constant shifts, then these
-ratio-pressure traces agree with observing $p_{\mathrm{ref}}+p(\cdot,t)$
-directly. The definition above does not require that property; it fixes the
-ratio convention at the level of observed scalar traces.
+ratio-pressure traces agree with observing
+$p_{\mathrm{ref}}+p_{\mathrm g}(\cdot,t)$ directly. The definition above does
+not require that property; it fixes the ratio convention at the level of
+observed scalar traces.
 For an admissible ratio-output specification whose observed proximal and distal
 ratio-pressure traces are integrable on the window and whose declared
 denominator rule makes the proximal averaged denominator well defined and

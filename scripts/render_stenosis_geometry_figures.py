@@ -19,6 +19,8 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 - registers 3D projection
 
 DEFAULT_DATA_DIR = Path("figures/static/static/data/stenosis-geometry")
 DEFAULT_OUTPUT_DIR = Path("figures/static/static/rendered")
+MANUSCRIPT_TRAJECTORY_SEVERITIES = [23, 50, 73]
+TRAJECTORY_PARTICLE_COUNT = 5
 
 COLORS = {
     "bloodred": "#B23A3A",
@@ -29,7 +31,17 @@ COLORS = {
     "mathblue_lite": "#C9D6E5",
     "accent_teal": "#217A7A",
     "accent_teal_lite": "#C7E4E1",
+    "trajectory_gold": "#C6862C",
+    "trajectory_violet": "#8067A9",
 }
+
+TRAJECTORY_COLORS = [
+    COLORS["mathblue"],
+    COLORS["accent_teal"],
+    COLORS["bloodred"],
+    COLORS["trajectory_violet"],
+    COLORS["trajectory_gold"],
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -149,7 +161,14 @@ def setup_3d_axis(ax, title: str) -> None:
     ax.grid(False)
 
 
-def plot_tube(ax, data_dir: Path, severity: int, color: str, title: str) -> None:
+def plot_tube(
+    ax,
+    data_dir: Path,
+    severity: int,
+    color: str,
+    title: str,
+    alpha: float = 0.93,
+) -> None:
     z_grid, x_grid, y_grid, _ = surface_grid(
         data_dir / f"analytic_surface_sev{severity}.csv"
     )
@@ -161,11 +180,108 @@ def plot_tube(ax, data_dir: Path, severity: int, color: str, title: str) -> None
         linewidth=0,
         antialiased=True,
         shade=True,
-        alpha=0.93,
+        alpha=alpha,
         rasterized=True,
     )
     ax.plot([0, 6], [0, 0], [0, 0], color=COLORS["mathblue"], linewidth=0.8, alpha=0.6)
     setup_3d_axis(ax, title)
+
+
+def read_particle_trajectories(
+    data_dir: Path,
+) -> dict[int, dict[int, list[dict[str, float]]]]:
+    grouped: dict[int, dict[int, list[dict[str, float]]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+    for row in rows_from_csv(data_dir / "stokes_particle_trajectories.csv"):
+        severity = int_severity(row["severity"])
+        particle_id = int(row["particle_id"])
+        grouped[severity][particle_id].append(
+            {
+                "sample_index": float_field(row, "sample_index"),
+                "z_cm": float_field(row, "z_cm"),
+                "x_cm": float_field(row, "x_cm"),
+                "y_cm": float_field(row, "y_cm"),
+                "r_over_r0": float_field(row, "r_over_r0"),
+                "t_s": float_field(row, "t_s"),
+                "ux_cm_s": float_field(row, "ux_cm_s"),
+                "uy_cm_s": float_field(row, "uy_cm_s"),
+                "uz_cm_s": float_field(row, "uz_cm_s"),
+            }
+        )
+
+    for particles in grouped.values():
+        for rows in particles.values():
+            rows.sort(key=lambda item: item["sample_index"])
+    return grouped
+
+
+def require_trajectory_cases(
+    trajectories: dict[int, dict[int, list[dict[str, float]]]]
+) -> None:
+    missing = [
+        severity
+        for severity in MANUSCRIPT_TRAJECTORY_SEVERITIES
+        if severity not in trajectories
+    ]
+    if missing:
+        raise ValueError(
+            "missing Stokes trajectory exports for s_max cases: "
+            + ", ".join(f"{severity}%" for severity in missing)
+        )
+
+    for severity in MANUSCRIPT_TRAJECTORY_SEVERITIES:
+        particle_ids = sorted(trajectories[severity])
+        if len(particle_ids) != TRAJECTORY_PARTICLE_COUNT:
+            raise ValueError(
+                f"s_max={severity}% trajectory export has "
+                f"{len(particle_ids)} particles; expected {TRAJECTORY_PARTICLE_COUNT}"
+            )
+        for particle_id in particle_ids:
+            if not trajectories[severity][particle_id]:
+                raise ValueError(
+                    f"s_max={severity}% particle {particle_id} has no trajectory rows"
+                )
+
+
+def render_particle_trajectories(
+    data_dir: Path, output_dir: Path, formats: list[str]
+) -> list[Path]:
+    trajectories = read_particle_trajectories(data_dir)
+    require_trajectory_cases(trajectories)
+
+    fig = plt.figure(figsize=(7.2, 5.8))
+    for index, severity in enumerate(MANUSCRIPT_TRAJECTORY_SEVERITIES, start=1):
+        ax = fig.add_subplot(3, 1, index, projection="3d")
+        plot_tube(
+            ax,
+            data_dir,
+            severity,
+            COLORS["bloodredlight"],
+            rf"$s_{{\max}} = {severity}\%$",
+            alpha=0.48,
+        )
+        for color_index, particle_id in enumerate(sorted(trajectories[severity])):
+            rows = trajectories[severity][particle_id]
+            ax.plot(
+                [row["z_cm"] for row in rows],
+                [row["x_cm"] for row in rows],
+                [row["y_cm"] for row in rows],
+                color=TRAJECTORY_COLORS[color_index % len(TRAJECTORY_COLORS)],
+                linewidth=1.35 if particle_id == 1 else 1.15,
+                alpha=0.98,
+            )
+            ax.scatter(
+                [rows[0]["z_cm"]],
+                [rows[0]["x_cm"]],
+                [rows[0]["y_cm"]],
+                color=TRAJECTORY_COLORS[color_index % len(TRAJECTORY_COLORS)],
+                s=5,
+                depthshade=False,
+            )
+
+    fig.subplots_adjust(left=0.01, right=0.99, bottom=0.02, top=0.98, hspace=-0.08)
+    return save_figure(fig, output_dir, "stenosis-particle-trajectories", formats)
 
 
 def save_figure(fig, output_dir: Path, stem: str, formats: list[str]) -> list[Path]:
@@ -345,6 +461,7 @@ def main() -> None:
 
     written: list[Path] = []
     written.extend(render_overview(data_dir, output_dir, formats))
+    written.extend(render_particle_trajectories(data_dir, output_dir, formats))
     written.extend(render_slices(data_dir, output_dir, formats))
     written.extend(render_severity_gallery(data_dir, output_dir, formats))
     written.extend(render_resolved_envelopes(data_dir, output_dir, formats))

@@ -107,6 +107,10 @@ function summary_lines(result::SimulationResult, p::Params, out::OutputSpec)
         "spatial_method,$(spatial_method_name(p.space))",
         "time_stepper,$(time_stepper_name(p.time_stepper))",
         "rheology,$(rheology_name(p.rheology))",
+        "velocity_profile,$(profile_name(p.velocity_profile))",
+        "alpha,$(p.alpha)",
+        "profile_exponent,$(profile_exponent(p.velocity_profile))",
+        "shear_rate_factor,$(shear_rate_factor(p.velocity_profile))",
         "initial_condition,$(initial_condition_name(p.initial_condition))",
     ]
     append_initial_condition_summary!(lines, result.initial_condition)

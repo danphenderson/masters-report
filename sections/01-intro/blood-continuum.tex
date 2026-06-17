@@ -302,36 +302,71 @@ Newtonian form when $\eta_{\mathrm{eff}}$ is constant.
     with admitted values \texttt{newtonian}, \texttt{carreau},
     \texttt{carreau-yasuda}, \texttt{casson}, and \texttt{power-law}.
     The descriptor selects a scalar effective dynamic viscosity law
-    \(\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma)\):
+    \(\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma)\). For computed records,
+    all non-Newtonian laws are evaluated at the positive shear-rate argument
+    \[
+        \dot\gamma_\epsilon\defined\max\{|\dot\gamma|,\epsilon_\gamma\},
+        \qquad \epsilon_\gamma>0,\qquad [\epsilon_\gamma]=\mathrm{s}^{-1}.
+    \]
+    The same floor is used for Casson and power-law records, where the formulas
+    are singular or degenerate at zero shear for common parameter ranges.
+    Optional dynamic-viscosity clamps satisfy
+    \(0\leq\eta_{\min}\leq\eta_{\max}\leq\infty\) with
+    \(\eta_{\max}>0\); the clamp is applied after evaluating the displayed
+    model law.
     \begin{flalign*}
         \quad \eta_{\mathrm{eff}}^{\mathrm{newt}}
         &\equiv \eta, &&\\
         \quad \eta_{\mathrm{eff}}^{\mathrm{carreau}}(\dot\gamma)
         &=
         \eta_\infty+(\eta_0-\eta_\infty)
-        \left(1+(\lambda \dot\gamma)^2\right)^{(n-1)/2}, &&\\
+        \left(1+(\lambda_{\mathrm C}\dot\gamma_\epsilon)^2\right)^{(n_{\mathrm C}-1)/2}, &&\\
         \quad \eta_{\mathrm{eff}}^{\mathrm{CY}}(\dot\gamma)
         &=
         \eta_\infty+(\eta_0-\eta_\infty)
-        \left(1+(\lambda \dot\gamma)^a\right)^{(n-1)/a}, &&\\
+        \left(1+(\lambda_{\mathrm{CY}}\dot\gamma_\epsilon)^{a_{\mathrm Y}}\right)^{(n_{\mathrm{CY}}-1)/a_{\mathrm Y}}, &&\\
         \quad \eta_{\mathrm{eff}}^{\mathrm{casson}}(\dot\gamma)
         &=
-        \left(\sqrt{\tau_y/\dot\gamma}+\sqrt{\eta_p}\right)^2, &&\\
+        \left(\sqrt{\tau_y/\dot\gamma_\epsilon}+\sqrt{\eta_p}\right)^2, &&\\
         \quad \eta_{\mathrm{eff}}^{\mathrm{power}}(\dot\gamma)
         &=
-        K_{\mathrm{pl}}\dot\gamma^{n-1}. &&
+        K_{\mathrm{pl}}\dot\gamma_\epsilon^{n_{\mathrm{pl}}-1}. &&
     \end{flalign*}
+    The parameter domains are
+    \[
+        \eta_0>0,\quad \eta_\infty\geq0,\quad \eta_0\geq\eta_\infty,
+        \quad \lambda_{\mathrm C},\lambda_{\mathrm{CY}}\geq0,
+        \quad n_{\mathrm C},n_{\mathrm{CY}}>0,\quad a_{\mathrm Y}>0,
+    \]
+    for the Carreau and Carreau--Yasuda families,
+    \[
+        \tau_y\geq0,\qquad \eta_p>0
+    \]
+    for Casson, and
+    \[
+        K_{\mathrm{pl}}>0,\qquad n_{\mathrm{pl}}>0
+    \]
+    for the power-law closure. Under the SI convention,
+    \(\eta\), \(\eta_0\), \(\eta_\infty\), \(\eta_p\),
+    \(\eta_{\min}\), and \(\eta_{\max}\) have units
+    \(\mathrm{Pa}\cdot\mathrm{s}\), \(\lambda_{\mathrm C}\) and
+    \(\lambda_{\mathrm{CY}}\) have units \(\mathrm{s}\), \(\tau_y\) has units
+    \(\mathrm{Pa}\), and \(K_{\mathrm{pl}}\) has units
+    \(\mathrm{Pa}\cdot\mathrm{s}^{n_{\mathrm{pl}}}\). In the active cgs
+    numerical records of Convention~\ref{conv:cm-second-numerical-record}, the
+    corresponding dynamic-viscosity parameters are in
+    \(\mathrm{g}/(\mathrm{cm}\,\mathrm{s})\), \(\tau_y\) is in
+    \(\mathrm{dyn}/\mathrm{cm}^2\), and \(K_{\mathrm{pl}}\) is in
+    \(\mathrm{dyn}\,\mathrm{s}^{n_{\mathrm{pl}}}/\mathrm{cm}^2\).
+    The Yasuda transition exponent is denoted \(a_{\mathrm Y}\) here so that it
+    is not confused with the solver coordinate \(a=R^2\) used in the reduced
+    numerical record.
     These are pointwise generalized-Newtonian closures for the viscosity
     coefficient; the reduced 1D implementation uses them as an effective
     viscosity hook, not as a new closure-specific 1D derivation
     \cite[Part~I, Ch.~1, Secs.~2.7--3.1, pp.~16--19]{hemodynamics}
     \cite{KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}.
 \end{definition}
-\todo[inline]{ADVISOR[MAJOR]: Define parameter domains and units for
-\(\eta_0\), \(\eta_\infty\), the relaxation time, the Yasuda exponent, \(n\),
-\(\tau_y\), \(\eta_p\), and \(K_{\mathrm{pl}}\), and state the positive
-shear-rate/floor convention for Casson and power-law records. Also avoid using
-\(a\) both as a Carreau--Yasuda exponent and the solver coordinate \(a=R^2\).}
 
 \begin{remark}[Newtonian Blood Justification]
     \label{rmk:newtonian-justification}
