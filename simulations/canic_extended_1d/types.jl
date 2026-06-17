@@ -6,11 +6,18 @@ const AREA_LIMITER_FLOOR = 1.0e-10
 
 Physical case and finite-volume grid parameters for one Canic extended 1D
 stenosis run. Units follow the paper and upstream MATLAB code: cm, g, s, dyn.
+`nu` remains the baseline Newtonian kinematic viscosity; non-Newtonian closures
+compute an effective kinematic viscosity from `rheology`.
 
-Solver backend options belong in `SolveSpec`; output paths belong in
-`OutputSpec`.
+Spatial and native time-stepping choices belong to the case because refinement
+studies compare them. SciML solver options belong in `SolveSpec`; output paths
+belong in `OutputSpec`.
 """
-Base.@kwdef struct Params
+Base.@kwdef struct Params{
+    R<:AbstractRheology,
+    S<:AbstractSpatialMethod,
+    T<:AbstractNativeTimeStepper,
+}
     nx::Int = 400
     length_cm::Float64 = 6.0
     tfinal::Float64 = 1.0
@@ -20,11 +27,54 @@ Base.@kwdef struct Params
     rmax::Float64 = 0.18
     rho::Float64 = 1.055
     nu::Float64 = 0.04
+    rheology::R = NewtonianRheology()
+    space::S = FVMUSCLMethod()
+    time_stepper::T = SSPRK3Stepper()
     young::Float64 = 5.02e6
     wall_h::Float64 = 0.06
     sigma::Float64 = 0.5
     alpha::Float64 = 1.1
     inlet_umax::Float64 = 45.0
+end
+
+function Params(
+    nx,
+    length_cm,
+    tfinal,
+    dt,
+    cfl,
+    severity,
+    rmax,
+    rho,
+    nu,
+    rheology::R,
+    space::S,
+    time_stepper::T,
+    young,
+    wall_h,
+    sigma,
+    alpha,
+    inlet_umax,
+) where {R<:AbstractRheology,S<:AbstractSpatialMethod,T<:AbstractNativeTimeStepper}
+    return Params{R,S,T}(
+        Int(nx),
+        Float64(length_cm),
+        Float64(tfinal),
+        Float64(dt),
+        Float64(cfl),
+        Float64(severity),
+        Float64(rmax),
+        Float64(rho),
+        Float64(nu),
+        rheology,
+        space,
+        time_stepper,
+        Float64(young),
+        Float64(wall_h),
+        Float64(sigma),
+        Float64(alpha),
+        Float64(inlet_umax),
+    )
 end
 
 """
@@ -59,7 +109,13 @@ velocity(result::SimulationResult) = result.flow ./ result.area
 
 function default_output_stub(p::Params)
     severity_label = round(Int, p.severity)
-    return "simulations/output/canic_extended_1d_severity$(severity_label)"
+    base = "simulations/output/canic_extended_1d_severity$(severity_label)"
+    tokens = String[]
+    !(p.space isa FVMUSCLMethod) && push!(tokens, replace(spatial_method_name(p.space), "-" => "_"))
+    !(p.time_stepper isa SSPRK3Stepper) && push!(tokens, replace(time_stepper_name(p.time_stepper), "-" => "_"))
+    !(p.rheology isa NewtonianRheology) && push!(tokens, replace(rheology_name(p.rheology), "-" => "_"))
+    isempty(tokens) && return base
+    return base * "_" * join(tokens, "_")
 end
 
 function validate(p::Params)
@@ -72,6 +128,9 @@ function validate(p::Params)
     p.rmax > 0.0 || throw(ArgumentError("rmax must be positive"))
     p.rho > 0.0 || throw(ArgumentError("rho must be positive"))
     p.nu >= 0.0 || throw(ArgumentError("nu must be nonnegative"))
+    validate(p.rheology)
+    validate(p.space)
+    validate(p.time_stepper)
     p.young > 0.0 || throw(ArgumentError("young must be positive"))
     p.wall_h > 0.0 || throw(ArgumentError("wall_h must be positive"))
     abs(p.sigma) < 1.0 || throw(ArgumentError("abs(sigma) must be less than 1"))

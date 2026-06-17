@@ -37,6 +37,7 @@ Advance one case through the selected backend and return the final state.
 """
 function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
     validate(p)
+    p.space isa DGMethod && return simulate_dg(p, p.space; progress_every=progress_every)
 
     z, A, Q, dx = initial_state(p)
     t = 0.0
@@ -44,7 +45,7 @@ function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
 
     while t < p.tfinal - 1.0e-14
         dt = min(choose_dt(A, Q, z, dx, p), p.tfinal - t)
-        A, Q = rk3_step(A, Q, z, dx, dt, p)
+        A, Q = native_step(A, Q, z, dx, dt, p)
         t += dt
         step += 1
 
@@ -61,7 +62,12 @@ function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
 end
 
 function simulate(p::Params, backend::SciMLTimeBackend; progress_every::Int = 0)
+    _ = progress_every
     validate(p)
+    p.space isa FVLaxWendroffMethod &&
+        throw(ArgumentError("fv-lax-wendroff requires native fixed-step prediction and is not available with SciMLTimeBackend"))
+    p.space isa DGMethod && p.space.degree > 0 &&
+        throw(ArgumentError("DG degree $(p.space.degree) currently uses the native modal DG solver, not SciMLTimeBackend"))
 
     sim = semidiscretize(p)
     prob = ode_problem(sim)

@@ -38,23 +38,41 @@ function fill_source!(
         Ai = positive_area(A[i])
         Qi = Q[i]
         r0, r0z, r0zz = stenosis(z[i], p)
-        a0 = r0^2
-
-        partial_p2 = p.nu * gp2 * (
-            Qi / Ai / r0 * r0zz -
-            Qi / Ai / a0 * r0z^2 +
-            dQ / Ai / r0 * r0z -
-            Qi * dA / Ai^2 / r0 * r0z
-        )
-
-        source[i] =
-            -2.0 * p.nu * gp2 * (Qi / Ai) +
-            stiffness / (p.rho * p.rmax^2) * Ai * r0z -
-            Ai * partial_p2 +
-            Qi^2 / Ai * alpha_c_z(r0z, r0zz)
+        source[i] = source_point(Ai, Qi, z[i], dA, dQ, r0, r0z, r0zz, gp2, stiffness, p)
     end
 
     return source
+end
+
+function source_point(
+    A::Float64,
+    Q::Float64,
+    z::Float64,
+    dA_dz::Float64,
+    dQ_dz::Float64,
+    r0::Float64,
+    r0z::Float64,
+    r0zz::Float64,
+    gp2::Float64,
+    stiffness::Float64,
+    p::Params,
+)
+    _ = z
+    Ai = positive_area(A)
+    a0 = r0^2
+    nu_eff = effective_kinematic_viscosity(Ai, Q, r0, p)
+
+    partial_p2 = nu_eff * gp2 * (
+        Q / Ai / r0 * r0zz -
+        Q / Ai / a0 * r0z^2 +
+        dQ_dz / Ai / r0 * r0z -
+        Q * dA_dz / Ai^2 / r0 * r0z
+    )
+
+    return -2.0 * nu_eff * gp2 * (Q / Ai) +
+           stiffness / (p.rho * p.rmax^2) * Ai * r0z -
+           Ai * partial_p2 +
+           Q^2 / Ai * alpha_c_z(r0z, r0zz)
 end
 
 function pressure(result::SimulationResult, p::Params)
@@ -68,8 +86,9 @@ function pressure(A::AbstractVector{Float64}, Q::AbstractVector{Float64}, z::Abs
     for i in eachindex(A)
         r0, r0z, _ = stenosis(z[i], p)
         R = sqrt(positive_area(A[i]))
+        nu_eff = effective_kinematic_viscosity(positive_area(A[i]), Q[i], r0, p)
         elastic = wall_stiffness(p) / r0^2 * (R - r0)
-        viscous = gp2 * p.rho * p.nu * Q[i] / positive_area(A[i]) * (r0z / r0)
+        viscous = gp2 * p.rho * nu_eff * Q[i] / positive_area(A[i]) * (r0z / r0)
         out[i] = elastic + viscous
     end
 

@@ -11,7 +11,24 @@ function print_usage(io::IO = stdout)
           --tfinal VALUE          Final time in seconds, default 1.0
           --dt VALUE              Maximum time step, default 1e-5
           --cfl VALUE             CFL limit, default 0.45
+          --space VALUE           fv-first-order, fv-muscl, fv-lax-wendroff, or dg
+          --degree VALUE          DG polynomial degree 0, 1, or 2
+          --limiter VALUE         TVD limiter, default minmod
+          --time-stepper VALUE    euler, ssprk2, or ssprk3
           --alpha VALUE           Coriolis coefficient, default 1.1
+          --nu VALUE              Newtonian kinematic viscosity, default 0.04 cm^2/s
+          --rheology VALUE        newtonian, carreau, carreau-yasuda, casson, or power-law
+          --eta0 VALUE            Low-shear dynamic viscosity for Carreau variants, g/(cm*s)
+          --eta-inf VALUE         High-shear dynamic viscosity for Carreau variants, g/(cm*s)
+          --lambda-s VALUE        Carreau time constant in seconds
+          --yasuda-a VALUE        Carreau-Yasuda transition exponent
+          --flow-index VALUE      Carreau/power-law exponent n
+          --yield-stress VALUE    Casson yield stress in dyn/cm^2
+          --plastic-viscosity VALUE Casson plastic viscosity in g/(cm*s)
+          --consistency VALUE     Power-law consistency coefficient
+          --min-eta VALUE         Lower clamp for dynamic viscosity, g/(cm*s)
+          --max-eta VALUE         Upper clamp for dynamic viscosity, g/(cm*s)
+          --shear-floor VALUE     Minimum shear rate used by rheology closures, 1/s
           --young VALUE           Young modulus in dyn/cm^2, default 5.02e6
           --inlet-umax VALUE      Inlet Poiseuille maximum velocity, default 45 cm/s
           --backend VALUE         Time backend: native or sciml, default native
@@ -35,7 +52,24 @@ const VALUE_OPTIONS = Set([
     "tfinal",
     "dt",
     "cfl",
+    "space",
+    "degree",
+    "limiter",
+    "time-stepper",
     "alpha",
+    "nu",
+    "rheology",
+    "eta0",
+    "eta-inf",
+    "lambda-s",
+    "yasuda-a",
+    "flow-index",
+    "yield-stress",
+    "plastic-viscosity",
+    "consistency",
+    "min-eta",
+    "max-eta",
+    "shear-floor",
     "young",
     "inlet-umax",
     "backend",
@@ -61,9 +95,127 @@ const SCIML_SOLVE_OPTIONS = Set([
     "save-everystep",
 ])
 
+const RHEOLOGY_PARAMETER_OPTIONS = Set([
+    "eta0",
+    "eta-inf",
+    "lambda-s",
+    "yasuda-a",
+    "flow-index",
+    "yield-stress",
+    "plastic-viscosity",
+    "consistency",
+    "min-eta",
+    "max-eta",
+    "shear-floor",
+])
+
 function require_value(args::Vector{String}, i::Int, key::String)
     i < length(args) || error("missing value for --$key")
     return args[i + 1]
+end
+
+function parse_float_value(values::Dict{String,String}, key::String, default::Float64)
+    return parse(Float64, get(values, key, string(default)))
+end
+
+function limiter_from_cli(values::Dict{String,String})
+    name = lowercase(strip(get(values, "limiter", "minmod")))
+    name == "minmod" && return MinmodLimiter()
+    throw(ArgumentError("unknown limiter '$name'; expected minmod"))
+end
+
+function spatial_method_from_cli(values::Dict{String,String})
+    name = replace(lowercase(strip(get(values, "space", "fv-muscl"))), "_" => "-")
+    limiter = limiter_from_cli(values)
+    degree_was_set = haskey(values, "degree")
+    degree = parse(Int, get(values, "degree", "1"))
+
+    if name in ("fv-first-order", "first-order", "firstorder")
+        degree_was_set && throw(ArgumentError("--degree is only valid with --space dg"))
+        return FVFirstOrderMethod()
+    elseif name in ("fv-muscl", "muscl")
+        degree_was_set && throw(ArgumentError("--degree is only valid with --space dg"))
+        return FVMUSCLMethod(limiter)
+    elseif name in ("fv-lax-wendroff", "lax-wendroff", "laxwendroff")
+        degree_was_set && throw(ArgumentError("--degree is only valid with --space dg"))
+        return FVLaxWendroffMethod(limiter)
+    elseif name == "dg"
+        return DGMethod(degree)
+    end
+
+    throw(ArgumentError("unknown spatial method '$name'; expected fv-first-order, fv-muscl, fv-lax-wendroff, or dg"))
+end
+
+function time_stepper_from_cli(values::Dict{String,String})
+    name = replace(lowercase(strip(get(values, "time-stepper", "ssprk3"))), "_" => "-")
+    name in ("euler", "forward-euler", "forwardeuler") && return ForwardEulerStepper()
+    name in ("ssprk2", "rk2") && return SSPRK2Stepper()
+    name in ("ssprk3", "rk3") && return SSPRK3Stepper()
+    throw(ArgumentError("unknown native time stepper '$name'; expected euler, ssprk2, or ssprk3"))
+end
+
+function assert_no_unused_rheology_options(values::Dict{String,String}, allowed::Set{String}, model::String)
+    unused = sort([key for key in RHEOLOGY_PARAMETER_OPTIONS if haskey(values, key) && !(key in allowed)])
+    isempty(unused) ||
+        throw(ArgumentError("rheology '$model' does not use option(s): $(join(map(key -> "--" * key, unused), ", "))"))
+    return nothing
+end
+
+function rheology_from_cli(values::Dict{String,String})
+    raw_model = lowercase(strip(get(values, "rheology", "newtonian")))
+    model = replace(raw_model, "_" => "-")
+
+    if model in ("newtonian", "constant")
+        assert_no_unused_rheology_options(values, Set{String}(), model)
+        return NewtonianRheology()
+    elseif model == "carreau"
+        allowed = Set(["eta0", "eta-inf", "lambda-s", "flow-index", "shear-floor", "min-eta", "max-eta"])
+        assert_no_unused_rheology_options(values, allowed, model)
+        return CarreauRheology(
+            eta0=parse_float_value(values, "eta0", 0.56),
+            eta_inf=parse_float_value(values, "eta-inf", 0.0345),
+            lambda_s=parse_float_value(values, "lambda-s", 3.313),
+            n=parse_float_value(values, "flow-index", 0.3568),
+            shear_rate_floor=parse_float_value(values, "shear-floor", 1.0e-8),
+            min_eta=parse_float_value(values, "min-eta", 0.0),
+            max_eta=parse_float_value(values, "max-eta", Inf),
+        )
+    elseif model == "carreau-yasuda"
+        allowed = Set(["eta0", "eta-inf", "lambda-s", "yasuda-a", "flow-index", "shear-floor", "min-eta", "max-eta"])
+        assert_no_unused_rheology_options(values, allowed, model)
+        return CarreauYasudaRheology(
+            eta0=parse_float_value(values, "eta0", 0.56),
+            eta_inf=parse_float_value(values, "eta-inf", 0.0345),
+            lambda_s=parse_float_value(values, "lambda-s", 3.313),
+            a=parse_float_value(values, "yasuda-a", 2.0),
+            n=parse_float_value(values, "flow-index", 0.3568),
+            shear_rate_floor=parse_float_value(values, "shear-floor", 1.0e-8),
+            min_eta=parse_float_value(values, "min-eta", 0.0),
+            max_eta=parse_float_value(values, "max-eta", Inf),
+        )
+    elseif model == "casson"
+        allowed = Set(["yield-stress", "plastic-viscosity", "shear-floor", "min-eta", "max-eta"])
+        assert_no_unused_rheology_options(values, allowed, model)
+        return CassonRheology(
+            yield_stress=parse_float_value(values, "yield-stress", 0.04),
+            plastic_viscosity=parse_float_value(values, "plastic-viscosity", 0.035),
+            shear_rate_floor=parse_float_value(values, "shear-floor", 1.0e-8),
+            min_eta=parse_float_value(values, "min-eta", 0.0),
+            max_eta=parse_float_value(values, "max-eta", Inf),
+        )
+    elseif model in ("power-law", "powerlaw")
+        allowed = Set(["consistency", "flow-index", "shear-floor", "min-eta", "max-eta"])
+        assert_no_unused_rheology_options(values, allowed, model)
+        return PowerLawRheology(
+            consistency=parse_float_value(values, "consistency", 0.035),
+            n=parse_float_value(values, "flow-index", 1.0),
+            shear_rate_floor=parse_float_value(values, "shear-floor", 1.0e-8),
+            min_eta=parse_float_value(values, "min-eta", 0.0),
+            max_eta=parse_float_value(values, "max-eta", Inf),
+        )
+    end
+
+    throw(ArgumentError("unknown rheology '$raw_model'; expected newtonian, carreau, carreau-yasuda, casson, or power-law"))
 end
 
 function parse_args(args::Vector{String})
@@ -116,6 +268,10 @@ function parse_args(args::Vector{String})
         dt=parse(Float64, get(values, "dt", "1e-5")),
         cfl=parse(Float64, get(values, "cfl", "0.45")),
         severity=severity,
+        nu=parse(Float64, get(values, "nu", "0.04")),
+        rheology=rheology_from_cli(values),
+        space=spatial_method_from_cli(values),
+        time_stepper=time_stepper_from_cli(values),
         young=parse(Float64, get(values, "young", "5.02e6")),
         alpha=parse(Float64, get(values, "alpha", "1.1")),
         inlet_umax=parse(Float64, get(values, "inlet-umax", "45.0")),
@@ -187,8 +343,8 @@ function run_cli(args::Vector{String} = ARGS)
 
     params, output, backend = parsed
     backend_label = backend isa NativeRK3Backend ? "native" : "sciml"
-    alg_label = backend isa SciMLTimeBackend ? algorithm_name(backend.solve.algorithm) : "ssprk"
-    @info "running Canic extended 1D stenosis simulation" nx=params.nx tfinal=params.tfinal dt_cap=params.dt severity=params.severity alpha=params.alpha young=params.young backend=backend_label alg=alg_label
+    alg_label = backend isa SciMLTimeBackend ? algorithm_name(backend.solve.algorithm) : time_stepper_name(params.time_stepper)
+    @info "running Canic extended 1D stenosis simulation" nx=params.nx tfinal=params.tfinal dt_cap=params.dt severity=params.severity alpha=params.alpha young=params.young space=spatial_method_name(params.space) time_stepper=time_stepper_name(params.time_stepper) rheology=rheology_name(params.rheology) backend=backend_label alg=alg_label
 
     result = simulate(params, backend; progress_every=output.progress_every)
     write_csv(output.csv, result, params)

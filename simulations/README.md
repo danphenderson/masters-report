@@ -30,12 +30,43 @@ The public workflow is:
    `write_csv`, `write_svg`, or study summaries from `run_study`.
 
 The CLI follows the same protocol internally. The default command uses
-`NativeRK3Backend()` so existing native runs keep their behavior unless
-`--backend sciml` is set explicitly.
+`NativeRK3Backend()` with finite-volume MUSCL reconstruction, the minmod TVD
+limiter, and SSPRK3 stepping unless options override that method stack.
+
+The default rheology is Newtonian and uses `Params.nu` as the kinematic
+viscosity. Non-Newtonian closure objects are available for the next comparison
+phase:
+
+- `CarreauRheology`
+- `CarreauYasudaRheology`
+- `CassonRheology`
+- `PowerLawRheology`
+
+These closures compute a local effective kinematic viscosity from the current
+1D state and a wall-shear-rate proxy. The finite-volume equation structure is
+unchanged; the closure-aware viscosity is used where the earlier implementation
+used the scalar `nu`.
 
 Use `./scripts/julia-release` for repo commands. It prefers the latest installed
 `release` channel and falls back to a directly-invoked `julia` binary only when
 that binary is already `1.12+`.
+
+## Spatial Methods and Steppers
+
+The simulation case records the spatial method and native time stepper:
+
+- `--space fv-first-order`: legacy first-order Rusanov finite volume.
+- `--space fv-muscl`: TVD MUSCL finite volume, defaulting to `--limiter minmod`.
+- `--space fv-lax-wendroff`: native fixed-step Richtmyer/Lax-Wendroff finite
+  volume with limited interface states.
+- `--space dg --degree 0|1|2`: modal Legendre DG. Degree zero uses the
+  finite-volume-equivalent cell-mean path; degrees one and two use the native
+  modal DG solver and return cell means through `SimulationResult`.
+
+Native time steppers are selected with `--time-stepper euler`, `--time-stepper
+ssprk2`, or `--time-stepper ssprk3`. SciML remains available for
+semi-discrete methods that do not require a fixed-step predictor. The
+Lax-Wendroff method is native-only.
 
 ## Recommended Commands
 
@@ -50,6 +81,28 @@ Default 50% stenosis native run:
 ```bash
 ./scripts/julia-release simulations/run_canic_extended_1d.jl --tfinal 1.0 --nx 400 --severity 50 --progress-every 10000
 ```
+
+Legacy first-order run:
+
+```bash
+./scripts/julia-release simulations/run_canic_extended_1d.jl --space fv-first-order --tfinal 0.001 --nx 80 --progress-every 0
+```
+
+DG quadratic smoke run:
+
+```bash
+./scripts/julia-release simulations/run_canic_extended_1d.jl --space dg --degree 2 --time-stepper ssprk3 --tfinal 0.001 --nx 80 --progress-every 0
+```
+
+Carreau-Yasuda smoke run:
+
+```bash
+./scripts/julia-release simulations/run_canic_extended_1d.jl --tfinal 0.001 --nx 80 --severity 40 --rheology carreau-yasuda --eta0 0.56 --eta-inf 0.0345 --lambda-s 3.313 --yasuda-a 2.0 --flow-index 0.3568 --progress-every 0
+```
+
+Other supported CLI rheology names are `newtonian`, `carreau`, `casson`, and
+`power-law`. Dynamic-viscosity parameters use g/(cm*s), yield stress uses
+dyn/cm^2, and `--nu` remains the Newtonian kinematic viscosity in cm^2/s.
 
 SciML runs with explicit policies:
 
@@ -82,6 +135,7 @@ Run small programmatic studies from the shared simulation protocol:
 ```bash
 ./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_study(SeveritySweepSpec(base_params=Params(nx=40,tfinal=0.001), severities=[23,50], overwrite=true))'
 ./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_study(GridConvergenceStudySpec(base_params=Params(tfinal=0.001,severity=50), nxs=[40,80], overwrite=true))'
+./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_refinement_study(RefinementStudySpec(base_params=Params(tfinal=0.001,severity=40), nxs=[50,100,200,400], overwrite=true))'
 ```
 
 Study summaries are written to deterministic CSV paths under
@@ -90,6 +144,11 @@ unless `overwrite=true` is set. The summary CSV format is separate from the
 single-run profile CSV and includes study kind, severity, grid size, backend,
 algorithm, step count, final time, velocity and pressure ranges, and minimum
 area.
+
+Refinement studies write self-convergence h- and p-refinement CSV files plus
+LaTeX table fragments under `simulations/output/refinement/<study-token>/`.
+Observed orders are computed from doubled-resolution errors against the
+method-specific finest self-reference.
 
 ## Resolved 3D Comparison
 
@@ -161,6 +220,10 @@ ensembles. `SolveSpec` owns SciML solver options such as `abstol`, `reltol`,
 - Study summary CSVs use simple scalar fields and minimal CSV escaping.
 - The model is a finite-volume reproduction for local experimentation, not a
   full validation of the paper's DG solver or clinical predictions.
+- Non-Newtonian rheology support currently supplies pointwise effective
+  viscosity values to the existing reduced source and pressure terms. It is a
+  controlled comparison hook, not a replacement for a closure-specific 1D
+  derivation.
 
 If the `julia` launcher cannot resolve `+release`, install Julia via `juliaup`
 or invoke a direct `1.12+` binary. The repo wrapper falls back to plain

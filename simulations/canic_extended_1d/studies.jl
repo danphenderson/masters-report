@@ -72,6 +72,9 @@ struct StudyRunSummary
     dx::Float64
     backend::String
     algorithm::String
+    spatial_method::String
+    time_stepper::String
+    rheology::String
     steps::Int
     final_time::Float64
     velocity_min::Float64
@@ -99,6 +102,9 @@ function params_with(
     rmax::Float64 = p.rmax,
     rho::Float64 = p.rho,
     nu::Float64 = p.nu,
+    rheology::AbstractRheology = p.rheology,
+    space::AbstractSpatialMethod = p.space,
+    time_stepper::AbstractNativeTimeStepper = p.time_stepper,
     young::Float64 = p.young,
     wall_h::Float64 = p.wall_h,
     sigma::Float64 = p.sigma,
@@ -115,6 +121,9 @@ function params_with(
         rmax=rmax,
         rho=rho,
         nu=nu,
+        rheology=rheology,
+        space=space,
+        time_stepper=time_stepper,
         young=young,
         wall_h=wall_h,
         sigma=sigma,
@@ -171,7 +180,10 @@ function summarize_study_run(
         params.nx,
         params.length_cm / params.nx,
         backend_name(backend),
-        backend_algorithm_name(backend),
+        backend isa NativeRK3Backend ? time_stepper_name(params.time_stepper) : backend_algorithm_name(backend),
+        spatial_method_name(params.space),
+        time_stepper_name(params.time_stepper),
+        rheology_name(params.rheology),
         result.steps,
         result.completed_time,
         minimum(u),
@@ -241,6 +253,9 @@ function study_summary_header()
         "dx",
         "backend",
         "algorithm",
+        "spatial_method",
+        "time_stepper",
+        "rheology",
         "steps",
         "final_time",
         "velocity_min",
@@ -259,6 +274,9 @@ function study_summary_row(row::StudyRunSummary)
         row.dx,
         row.backend,
         row.algorithm,
+        row.spatial_method,
+        row.time_stepper,
+        row.rheology,
         row.steps,
         row.final_time,
         row.velocity_min,

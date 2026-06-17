@@ -106,12 +106,92 @@ function write_synthetic_xdmf_hdf5_case(
     return xdmf_path, coords, velocity_values
 end
 
+@testset "CanicExtended1D rheology closures" begin
+    @test rheology_name(NewtonianRheology()) == "newtonian"
+    @test effective_kinematic_viscosity(NewtonianRheology(), 25.0, 1.055, 0.04) ≈ 0.04
+
+    carreau = CarreauRheology(eta0=0.10, eta_inf=0.02, lambda_s=2.0, n=0.5)
+    expected_carreau = 0.02 + (0.10 - 0.02) * (1.0 + (2.0 * 3.0)^2)^((0.5 - 1.0) / 2.0)
+    @test effective_dynamic_viscosity(carreau, 3.0, 1.055, 0.04) ≈ expected_carreau
+
+    carreau_yasuda = CarreauYasudaRheology(eta0=0.10, eta_inf=0.02, lambda_s=2.0, a=1.5, n=0.5)
+    expected_carreau_yasuda = 0.02 + (0.10 - 0.02) * (1.0 + (2.0 * 3.0)^1.5)^((0.5 - 1.0) / 1.5)
+    @test effective_dynamic_viscosity(carreau_yasuda, 3.0, 1.055, 0.04) ≈ expected_carreau_yasuda
+
+    casson = CassonRheology(yield_stress=0.09, plastic_viscosity=0.04)
+    expected_casson = (sqrt(0.09 / 9.0) + sqrt(0.04))^2
+    @test effective_dynamic_viscosity(casson, 9.0, 1.055, 0.04) ≈ expected_casson
+
+    power_law = PowerLawRheology(consistency=0.12, n=0.75)
+    @test effective_dynamic_viscosity(power_law, 16.0, 1.055, 0.04) ≈ 0.12 * 16.0^-0.25
+
+    clamped = PowerLawRheology(consistency=10.0, n=0.5, max_eta=0.2)
+    @test effective_dynamic_viscosity(clamped, 1.0e-4, 1.055, 0.04) ≈ 0.2
+
+    @test characteristic_shear_rate(0.04, 0.2, 0.2, Params(alpha=1.1)) > 0.0
+    @test_throws ArgumentError CanicExtended1D.validate(CarreauRheology(eta0=0.01, eta_inf=0.02))
+end
+
+@testset "CanicExtended1D spatial methods and steppers" begin
+    @test minmod(2.0, 3.0) == 2.0
+    @test minmod(-2.0, -3.0) == -2.0
+    @test minmod(-2.0, 3.0) == 0.0
+
+    @test CanicExtended1D.reconstructed_area(0.02, -0.01, 1.0) > 0.0
+    @test CanicExtended1D.reconstructed_area(1.0e-14, -1.0, 1.0) >= CanicExtended1D.AREA_LIMITER_FLOOR
+
+    xis, weights = dg_quadrature()
+    @test sum(weights) ≈ 2.0
+    @test sum(w * legendre_value(1, xi) for (xi, w) in zip(xis, weights)) ≈ 0.0 atol=1.0e-14
+    @test sum(w * legendre_value(2, xi) for (xi, w) in zip(xis, weights)) ≈ 0.0 atol=1.0e-14
+    @test sum(w * xi^4 for (xi, w) in zip(xis, weights)) ≈ 2.0 / 5.0
+
+    @test observed_order(0.25, 0.125) ≈ 1.0
+    @test isnan(observed_order(0.0, 0.125))
+end
+
 @testset "CanicExtended1D simulation backends" begin
     native_params = Params(nx=8, tfinal=5.0e-5, severity=30.0)
 
     @testset "native short run" begin
         result = simulate(native_params, NativeRK3Backend(); progress_every=0)
         assert_finite_positive_state(result, native_params)
+    end
+
+    @testset "native short run with Carreau-Yasuda rheology" begin
+        rheology_params = Params(
+            nx=8,
+            tfinal=2.0e-5,
+            severity=30.0,
+            rheology=CarreauYasudaRheology(max_eta=0.5),
+        )
+        result = simulate(rheology_params, NativeRK3Backend(); progress_every=0)
+        assert_finite_positive_state(result, rheology_params)
+    end
+
+    @testset "native spatial method smoke runs" begin
+        for method in (FVMUSCLMethod(), FVLaxWendroffMethod(), DGMethod(0), DGMethod(1), DGMethod(2))
+            params = Params(nx=8, tfinal=1.0e-5, severity=30.0, space=method)
+            result = simulate(params, NativeRK3Backend(); progress_every=0)
+            assert_finite_positive_state(result, params)
+        end
+    end
+
+    @testset "native time stepper smoke runs" begin
+        for stepper in (ForwardEulerStepper(), SSPRK2Stepper(), SSPRK3Stepper())
+            params = Params(nx=8, tfinal=1.0e-5, severity=30.0, time_stepper=stepper)
+            result = simulate(params, NativeRK3Backend(); progress_every=0)
+            assert_finite_positive_state(result, params)
+        end
+    end
+
+    @testset "DG p0 finite-volume equivalence" begin
+        fv_params = Params(nx=8, tfinal=1.0e-5, severity=30.0, space=FVFirstOrderMethod())
+        dg_params = Params(nx=8, tfinal=1.0e-5, severity=30.0, space=DGMethod(0))
+        fv = simulate(fv_params, NativeRK3Backend(); progress_every=0)
+        dg = simulate(dg_params, NativeRK3Backend(); progress_every=0)
+        @test maximum(abs.(fv.area .- dg.area)) <= 1.0e-12
+        @test maximum(abs.(fv.flow .- dg.flow)) <= 1.0e-12
     end
 
     @testset "SciML short run" begin
@@ -239,8 +319,61 @@ end
 
         @test params.tfinal == 5.0e-5
         @test params.nx == 8
+        @test params.space isa FVMUSCLMethod
+        @test params.time_stepper isa SSPRK3Stepper
+        @test params.rheology isa NewtonianRheology
         @test output.progress_every == 0
         @test output.write_svg == false
+        @test backend isa NativeRK3Backend
+    end
+
+    @testset "rheology flags" begin
+        params, output, backend = parse_args([
+            "--rheology", "carreau-yasuda",
+            "--eta0", "0.2",
+            "--eta-inf", "0.03",
+            "--lambda-s", "1.5",
+            "--yasuda-a", "1.25",
+            "--flow-index", "0.6",
+            "--shear-floor", "1e-6",
+            "--min-eta", "0.02",
+            "--max-eta", "0.4",
+            "--nu", "0.05",
+            "--tfinal", "5e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+        ])
+
+        @test output.write_svg == false
+        @test backend isa NativeRK3Backend
+        @test params.nu == 0.05
+        @test params.rheology isa CarreauYasudaRheology
+        @test params.rheology.eta0 == 0.2
+        @test params.rheology.eta_inf == 0.03
+        @test params.rheology.lambda_s == 1.5
+        @test params.rheology.a == 1.25
+        @test params.rheology.n == 0.6
+        @test params.rheology.shear_rate_floor == 1.0e-6
+        @test params.rheology.min_eta == 0.02
+        @test params.rheology.max_eta == 0.4
+    end
+
+    @testset "spatial and time-stepper flags" begin
+        params, _, backend = parse_args([
+            "--space", "dg",
+            "--degree", "2",
+            "--time-stepper", "ssprk2",
+            "--limiter", "minmod",
+            "--tfinal", "5e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+        ])
+
+        @test params.space isa DGMethod
+        @test params.space.degree == 2
+        @test params.time_stepper isa SSPRK2Stepper
         @test backend isa NativeRK3Backend
     end
 
@@ -273,5 +406,34 @@ end
         @test_throws ArgumentError parse_args(["--backend", "sciml", "--alg", "ssprk"])
         @test_throws ArgumentError parse_args(["--abstol", "1e-8"])
         @test_throws ArgumentError parse_args(["--backend", "sciml", "--alg", "not-a-policy"])
+        @test_throws ArgumentError parse_args(["--eta0", "0.2"])
+        @test_throws ArgumentError parse_args(["--rheology", "casson", "--eta0", "0.2"])
+        @test_throws ArgumentError parse_args(["--rheology", "not-a-model"])
+        @test_throws ArgumentError parse_args(["--space", "fv-muscl", "--degree", "1"])
+        @test_throws ArgumentError parse_args(["--limiter", "not-a-limiter"])
+        @test_throws ArgumentError parse_args(["--time-stepper", "rk4"])
+    end
+end
+
+@testset "CanicExtended1D refinement studies" begin
+    mktempdir() do dir
+        spec = RefinementStudySpec(
+            base_params=Params(nx=8, tfinal=1.0e-5, severity=30.0),
+            nxs=[8, 16],
+            degrees=[0, 1, 2],
+            h_methods=AbstractSpatialMethod[FVMUSCLMethod()],
+            output_dir=dir,
+            overwrite=true,
+            progress_every=0,
+        )
+        result = run_refinement_study(spec)
+
+        @test length(result.h_rows) == 2
+        @test length(result.p_rows) == 6
+        @test all(isfile, result.csv_paths)
+        @test all(isfile, result.tex_paths)
+        @test occursin("error_A_l2", read(result.csv_paths[1], String))
+        @test occursin("\\begin{table}", read(result.tex_paths[1], String))
+        @test all(row.expected_order == row.degree + 1 for row in result.p_rows if row.degree >= 0)
     end
 end

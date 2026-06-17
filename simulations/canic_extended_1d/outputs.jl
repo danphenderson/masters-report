@@ -14,9 +14,11 @@ function write_csv(path::String, z::Vector{Float64}, A::Vector{Float64}, Q::Vect
     P = pressure(A, Q, z, p)
 
     open(path, "w") do io
-        println(io, "z_cm,R0_cm,A_cm2,Q_cm3_s,uavg_cm_s,pressure_dyn_cm2,alpha_c")
+        println(io, "z_cm,R0_cm,A_cm2,Q_cm3_s,uavg_cm_s,pressure_dyn_cm2,alpha_c,shear_rate_1_s,nu_eff_cm2_s,rheology")
         for i in eachindex(z)
             r0, r0z, _ = stenosis(z[i], p)
+            shear_rate = characteristic_shear_rate(A[i], Q[i], r0, p)
+            nu_eff = effective_kinematic_viscosity(p.rheology, shear_rate, p.rho, p.nu)
             row = (
                 z[i],
                 r0,
@@ -25,6 +27,9 @@ function write_csv(path::String, z::Vector{Float64}, A::Vector{Float64}, Q::Vect
                 Q[i] / positive_area(A[i]),
                 P[i],
                 alpha_c(r0z),
+                shear_rate,
+                nu_eff,
+                rheology_name(p.rheology),
             )
             println(io, join(row, ","))
         end
@@ -87,10 +92,21 @@ end
 function summary_lines(result::SimulationResult, p::Params, out::OutputSpec)
     u = velocity(result)
     P = pressure(result, p)
+    nu_eff = [
+        effective_kinematic_viscosity(result.area[i], result.flow[i], stenosis(result.z[i], p)[1], p)
+        for i in eachindex(result.z)
+    ]
+    shear_rates = [
+        characteristic_shear_rate(result.area[i], result.flow[i], stenosis(result.z[i], p)[1], p)
+        for i in eachindex(result.z)
+    ]
     lines = [
         "completed_time_s,$(result.completed_time)",
         "steps,$(result.steps)",
         "output_csv,$(out.csv)",
+        "spatial_method,$(spatial_method_name(p.space))",
+        "time_stepper,$(time_stepper_name(p.time_stepper))",
+        "rheology,$(rheology_name(p.rheology))",
     ]
     out.write_svg && push!(lines, "output_svg,$(out.svg)")
     append!(
@@ -100,6 +116,10 @@ function summary_lines(result::SimulationResult, p::Params, out::OutputSpec)
             "velocity_max_cm_s,$(maximum(u))",
             "pressure_min_dyn_cm2,$(minimum(P))",
             "pressure_max_dyn_cm2,$(maximum(P))",
+            "shear_rate_min_1_s,$(minimum(shear_rates))",
+            "shear_rate_max_1_s,$(maximum(shear_rates))",
+            "nu_eff_min_cm2_s,$(minimum(nu_eff))",
+            "nu_eff_max_cm2_s,$(maximum(nu_eff))",
         ],
     )
     return lines
