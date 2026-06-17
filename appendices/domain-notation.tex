@@ -8,6 +8,11 @@ time in seconds, density in $\mathrm{kg}/\mathrm{m}^3$, pressure in Pa,
 dynamic viscosity in $\mathrm{Pa}\cdot\mathrm{s}$, and kinematic viscosity in
 $\mathrm{m}^2/\mathrm{s}$.
 \end{definition}
+\todo[inline]{ADVISOR[MAJOR]: The notation appendix declares SI units by
+default, but the first-run numerical record and \(T=1\) comparison use
+centimeter units. Add an explicit numerical-record unit convention here and
+state whether all displayed default constants and outputs are in cm--s units or
+converted from the SI notation in Appendix~\ref{app:domain-specific-notation}.}
 
 \begin{convention}[Pressure-reference and ratio convention]
 \label{conv:appendix-pressure-reference-ratio}
@@ -67,6 +72,10 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
         $\eta_{\mathrm{eff}}(\dot{\gamma})$
             & effective dynamic viscosity for generalized Newtonian models
             & $\mathrm{Pa}\cdot\mathrm{s}$ \\
+        $\nu_{\mathrm{eff}}(\dot{\gamma})
+        :=\eta_{\mathrm{eff}}(\dot{\gamma})/\rho$
+            & effective kinematic viscosity after density scaling
+            & $\mathrm{m}^2/\mathrm{s}$ \\
         $\tau$ & shear stress & $\mathrm{Pa}$ \\
         $\dot{\gamma}$ & shear rate & $\mathrm{s}^{-1}$ \\
         $\rho$ & density field & $\mathrm{kg}/\mathrm{m}^3$ \\
@@ -126,7 +135,7 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
 
         $\alpha$
             & prescribed momentum-flux coefficient in the 1D balance-law
-            closure; the baseline flat-profile convention is $\alpha=1$
+            closure; the current default numerical record uses $\alpha=1.1$
             & $-$ \\
 
         $R(A(z,t))=\sqrt{A(z,t)/\pi}$
@@ -139,7 +148,9 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
 
         $\mathcal R$
             & rheology descriptor in $a_{1D}$; distinct from radius symbols
-            $R$, $R_0$, and $R_{\mathrm{base}}$
+            $R$, $R_0$, and $R_{\mathrm{base}}$; admitted implementation
+            values are \texttt{newtonian}, \texttt{carreau},
+            \texttt{carreau-yasuda}, \texttt{casson}, and \texttt{power-law}
             & mixed \\
 
         $s(z)$ & dimensionless stenosis profile, with $0\leq s(z)<1$ & $-$ \\
@@ -193,15 +204,27 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
             & finite-volume cell length and timestep in a computed solve
             & $\mathrm{m},\mathrm{s}$ \\
 
+        $\dot\gamma_{1D}$
+            & implementation shear-rate proxy
+            \(g_\alpha |Q|/(a\sqrt a)\), where
+            \(g_\alpha=\alpha/(\alpha-1)\) and \(a=R^2\)
+            & $\mathrm{s}^{-1}$ \\
+
+        $\nu_{\mathrm{eff}}^{\mathcal R}$
+            & closure-indexed effective kinematic viscosity used in the
+            current reduced viscous/source and pressure-correction terms
+            & $\mathrm{m}^2/\mathrm{s}$ \\
+
         $C_f$ or $C_f(z,A)$ & wall-friction coefficient in the 1D source
-        $-C_fQ/A$; first-run value $C_f=8\pi\eta/\rho$ & $\mathrm{m}^2/\mathrm{s}$ \\
+        $-C_fQ/A$; constant-viscosity value \(C_f=8\pi\eta/\rho\) & $\mathrm{m}^2/\mathrm{s}$ \\
 
         $\eta_{\mathrm{fric}}(z,t)$
             & dynamic viscosity used by the reduced wall-friction and
             signed-shear-proxy formula; \(\eta_{\mathrm{fric}}=\eta\) for
             constant-viscosity records and
-            \(\eta_{\mathrm{fric}}=\eta_{\mathrm{eff}}(\dot\gamma_w)\) for the
-            admitted Carreau--Yasuda wall-friction extension
+            \(\eta_{\mathrm{fric}}=\eta_{\mathrm{eff}}^{\mathcal R}
+            (\dot\gamma_{1D})\) for admitted non-Newtonian descriptor
+            records
             & $\mathrm{Pa}\cdot\mathrm{s}$ \\
 
         $c_{\mathrm{wave}}$ or $c$ & 1D pulse-wave speed,
@@ -293,6 +316,21 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
             & signed 1D axial shear proxy from $Q$, $A$, and the recorded
             wall-friction/rheology closure
             & $\mathrm{Pa}$ \\
+
+        \texttt{shear\_rate\_1\_s}
+            & CSV output field for the implementation shear-rate proxy
+            \(\dot\gamma_{1D}\)
+            & $\mathrm{s}^{-1}$ \\
+
+        \texttt{nu\_eff\_cm2\_s}
+            & CSV output field for the effective kinematic viscosity used by
+            the recorded rheology closure
+            & $\mathrm{cm}^2/\mathrm{s}$ \\
+
+        \texttt{rheology}
+            & CSV and summary output field naming the recorded rheology
+            descriptor
+            & $-$ \\
         \bottomrule
     \end{tabular}
 \end{minipage}

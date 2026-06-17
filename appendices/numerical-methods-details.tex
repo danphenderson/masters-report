@@ -81,6 +81,12 @@ The displayed derivatives of \(A_0\), \(\beta\), \(p_{\mathrm g}\), and
 \(\Psi\) are continuum notation for the model contract. A computed record may
 realize them through explicitly recorded finite-difference or source-split
 operators; changing that realization changes the computed map.
+\todo[inline]{ADVISOR[BLOCKER]: This reference balance law omits the
+momentum-flux correction \(\alpha\) used in Eq.~\ref{eq:1d-momentum-aq} and
+Definition~\ref{def:1d-conservative-flux-source-notation}. Either insert
+\(\alpha Q^2/A\) and the corresponding \(\alpha\)-dependent wave speeds, or
+state explicitly that this subsection is the special \(\alpha=1\) reference
+contract.}
 
 \subsection{Current semi-discrete solver operator}
 \label{app:num-current-solver-operator}
@@ -184,13 +190,23 @@ with
 
 The source term uses the recorded centered interior and one-sided boundary
 difference \(D_z^h\) on the cell averages. Let
-\(g_\alpha=\alpha/(\alpha-1)\) and
+\(g_\alpha=\alpha/(\alpha-1)\),
+\[
+    \dot\gamma_{1D,i}=g_\alpha\frac{|Q_i|}{a_i\sqrt{a_i}},
+    \qquad
+    \nu_{\mathrm{eff},i}^{\mathcal R}
+    =
+    \frac{
+        \eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma_{1D,i})
+    }{\rho},
+\]
+and
 \(\alpha_c'(z)=-4R_0'(z)R_0''(z)/35\). The implemented source is
 \begin{flalign*}
     \quad
     \widehat S_i
     &=
-    -2\nu g_\alpha\frac{Q_i}{a_i}
+    -2\nu_{\mathrm{eff},i}^{\mathcal R}g_\alpha\frac{Q_i}{a_i}
     +
     \frac{K}{\rho R_{\max}^2}a_iR_0'(z_i)
     -
@@ -200,7 +216,7 @@ difference \(D_z^h\) on the cell averages. Let
     \quad
     \widehat{\partial_z p_2}_i
     &=
-    \nu g_\alpha
+    \nu_{\mathrm{eff},i}^{\mathcal R} g_\alpha
     \left[
         \frac{Q_iR_0''(z_i)}{a_iR_0(z_i)}
         -
@@ -211,6 +227,10 @@ difference \(D_z^h\) on the cell averages. Let
         \frac{Q_i(D_z^h a)_iR_0'(z_i)}{a_i^2R_0(z_i)}
     \right]. &&
 \end{flalign*}
+For the \texttt{newtonian} descriptor, this reduces to the constant value
+\(\nu_{\mathrm{eff},i}^{\mathcal R}=\nu\). For the non-Newtonian closures,
+the code applies the recorded shear-rate floor and optional minimum/maximum
+dynamic viscosity clamps before dividing by density.
 
 \subsection{Time and backend realization}
 \label{app:num-time-backend-realization}

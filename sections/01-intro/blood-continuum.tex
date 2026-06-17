@@ -296,6 +296,43 @@ viscosity is $\nu=\eta/\rho$ after division by density.
 The Newtonian incompressible model is recovered from this generalized
 Newtonian form when $\eta_{\mathrm{eff}}$ is constant.
 
+\begin{definition}[Rheology closures used by the numerical record]
+    \label{def:rheology-closure-catalog}
+    The Julia implementation exposes the rheology descriptor \(\mathcal R\),
+    with admitted values \texttt{newtonian}, \texttt{carreau},
+    \texttt{carreau-yasuda}, \texttt{casson}, and \texttt{power-law}.
+    The descriptor selects a scalar effective dynamic viscosity law
+    \(\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma)\):
+    \begin{flalign*}
+        \quad \eta_{\mathrm{eff}}^{\mathrm{newt}}
+        &\equiv \eta, &&\\
+        \quad \eta_{\mathrm{eff}}^{\mathrm{carreau}}(\dot\gamma)
+        &=
+        \eta_\infty+(\eta_0-\eta_\infty)
+        \left(1+(\lambda \dot\gamma)^2\right)^{(n-1)/2}, &&\\
+        \quad \eta_{\mathrm{eff}}^{\mathrm{CY}}(\dot\gamma)
+        &=
+        \eta_\infty+(\eta_0-\eta_\infty)
+        \left(1+(\lambda \dot\gamma)^a\right)^{(n-1)/a}, &&\\
+        \quad \eta_{\mathrm{eff}}^{\mathrm{casson}}(\dot\gamma)
+        &=
+        \left(\sqrt{\tau_y/\dot\gamma}+\sqrt{\eta_p}\right)^2, &&\\
+        \quad \eta_{\mathrm{eff}}^{\mathrm{power}}(\dot\gamma)
+        &=
+        K_{\mathrm{pl}}\dot\gamma^{n-1}. &&
+    \end{flalign*}
+    These are pointwise generalized-Newtonian closures for the viscosity
+    coefficient; the reduced 1D implementation uses them as an effective
+    viscosity hook, not as a new closure-specific 1D derivation
+    \cite[Part~I, Ch.~1, Secs.~2.7--3.1, pp.~16--19]{hemodynamics}
+    \cite{KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}.
+\end{definition}
+\todo[inline]{ADVISOR[MAJOR]: Define parameter domains and units for
+\(\eta_0\), \(\eta_\infty\), the relaxation time, the Yasuda exponent, \(n\),
+\(\tau_y\), \(\eta_p\), and \(K_{\mathrm{pl}}\), and state the positive
+shear-rate/floor convention for Casson and power-law records. Also avoid using
+\(a\) both as a Carreau--Yasuda exponent and the solver coordinate \(a=R^2\).}
+
 \begin{remark}[Newtonian Blood Justification]
     \label{rmk:newtonian-justification}
     For large arteries, empirical studies suggest that apparent viscosity is often

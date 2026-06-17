@@ -9,6 +9,33 @@ tetrahedral solution. The 3D diagnostic averages node-centered axial velocity
 over thin axial slabs and compares those values with the interpolated 1D
 quantity \(Q/A\). Radial profiles use the same slab nodes binned by
 \(\sqrt{x^2+y^2}/R_0(z)\) and compare them with the 1D closure profile.
+The tables and figures in this section are baseline default Newtonian records;
+non-Newtonian rheology descriptors require separately generated comparison
+records.
+\todo[inline]{ADVISOR[BLOCKER]: This numerical section needs a reproducibility
+paragraph naming the exact computed realization: solver closure, grid \(N\),
+timestep/CFL policy, inlet/outlet data, 3D source files or case IDs,
+output-operator settings, and output-record location. Without that,
+Tables~\ref{tab:t1-3d-comparison-summary}--\ref{tab:t1-radial-profile-summary}
+are not auditable.}
+\red{All numbers below come from the recorded Newtonian realization with
+[insert grid, timestep policy, boundary data, source-data identifiers, and
+output-record path], interpreted under
+Convention~\ref{conv:computed-realization-record}.}
+\todo[inline]{ADVISOR[BLOCKER]: The main model defines \(A\) as physical
+cross-sectional area and \(Q=\int_S u_z\,dS\), while the solver appendix
+switches to \(a=R^2\) with \(A_{\mathrm{phys}}=\pi a\). State whether the
+solver's \(Q\) is physical volumetric flow or a \(\pi\)-scaled flow, and define
+exactly whether comparison velocities use \(Q/A_{\mathrm{phys}}\), \(Q/a\), or
+another recorded output.}
+\todo{ADVISOR[MAJOR]: Declare the active 1D closure used for Section~2. The text
+says variable-radius corrections are inactive unless a closure identifier is
+declared, but the numerical-method appendix describes the current Canic
+extended flux; the comparison reader needs to know which model generated
+Tables~\ref{tab:t1-3d-comparison-summary}--\ref{tab:t1-radial-profile-summary}.}
+\red{For the comparison below, the active closure is [insert closure
+identifier]; the Canic variable-radius terms are [active or inactive] in the
+recorded flux and source.}
 
 The two included upstream states are case 77, treated as a 23\% stenosis, and
 case 60, treated as a 40\% stenosis. Both XDMF files report
@@ -48,6 +75,13 @@ the highest-velocity region near the stenosis, especially for the 40\% case.
 The largest section errors occur for case 60 around \(z=2.4\)--\(2.8\) cm,
 where the 1D mean velocity is between 58 and 67 cm/s while the node-slab 3D
 mean is between 19 and 27 cm/s.
+\todo{ADVISOR[MAJOR]: Do not leave the reader to infer the meaning of relative
+errors above one. State whether these errors are acceptable for the report's
+purpose, expected from closure mismatch, or evidence that the current comparison
+is diagnostic rather than validating.}
+\red{Because the largest relative errors exceed unity near the stenosis, the
+result is best read as a diagnostic of where the reduced closure and node-slab
+output operator diverge, not as accuracy validation.}
 
 \begin{figure}[!htb]
     \centering
@@ -92,6 +126,11 @@ populated radial bins because fewer 3D nodes lie in the narrowest cross-section
 slab. The largest radial-profile discrepancy is downstream of the throat at
 \(z=2.951\) cm, where case 60 reaches a maximum per-bin absolute error of
 41.72 cm/s.
+\todo[inline]{ADVISOR[MAJOR]: Define the radial closure profile used for
+Figure~\ref{fig:t1-radial-profile-comparison}, including its formula,
+normalization to the local mean velocity, and relation to \(\alpha=1.1\).
+Without that definition, the radial-profile discrepancy is not reproducible
+from the manuscript's \(A,Q,\bar u\) variables.}
 
 \begin{figure}[!htb]
     \centering
@@ -134,3 +173,11 @@ result is useful for locating where the reduced velocity closure departs from
 the resolved state, but it does not by itself identify whether the discrepancy
 comes from the 1D closure, the boundary data, the 3D post-processing operator,
 or differences between the numerical formulations.
+\todo[inline]{ADVISOR[BLOCKER]: The report ends the main text with a limitation
+caveat and then enters the appendices. Add a conclusion that states what the
+\(T=1\) comparison shows, what it does not show, and the next defensible study
+step.}
+\red{In summary, the \(T=1\) comparison supports using the 1D solution as a
+controlled reduced-output diagnostic, but the large stenosis-region velocity
+errors mean the present record should be read as a localization of
+closure/output-operator mismatch rather than validation of the 1D model.}

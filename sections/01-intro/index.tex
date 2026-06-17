@@ -7,6 +7,13 @@ blood flow through an idealized narrowed vessel? Clinical pressure-ratio
 measurements motivate the question because anatomical narrowing alone does not
 determine functional obstruction. This report, however, is a mathematical and
 numerical study, not a clinical validation study.
+\todo{ADVISOR[MAJOR]: Narrow the opening question to the actual deliverable.
+The current wording suggests a parametric study over geometry, wall properties,
+rheology, and boundary data, while the numerical evidence is two Newtonian
+\(T=1\) velocity comparisons.}
+\red{This report asks which continuum, closure, boundary-data, and
+output-operator assumptions are needed to interpret a first controlled \(T=1\)
+comparison between a selected 1D stenosis model and resolved 3D velocity data.}
 
 The report fixes the vocabulary needed to move from continuum assumptions, to
 the three-dimensional incompressible Navier--Stokes and generalized-Newtonian
@@ -41,7 +48,21 @@ reduced pressure-ratio output.
     \item The numerical-study portion then applies the selected reduced model
     to a controlled idealized stenosis computation.
 \end{enumerate}
+\todo[inline]{ADVISOR[BLOCKER]: The roadmap promises later literature-review
+sections comparing classical numerical methods, but \texttt{final-report.tex}
+only includes the introduction, the \(T=1\) comparison, and appendices. Either
+add those sections or revise this roadmap to the actual report contents before
+submission.}
+\red{The remaining main-text section uses this vocabulary to interpret a first
+\(T=1\) 1D--3D velocity-output comparison for two idealized stenosis cases.}
 
 \input{sections/01-intro/blood-continuum}
 \input{sections/01-intro/governing-equations}
+\todo{ADVISOR[MAJOR]: The clinical pressure--flow motivation currently appears
+after the continuum and model hierarchy even though it motivates the problem.
+Move this subsection before the technical subsections, or add a bridge
+explaining why the reader must first read the mathematical setup.}
+\red{The clinical motivation is stated after the mathematical setup because the
+report first fixes which pressure quantities are model outputs rather than
+measurements.}
 \input{sections/01-intro/pressure-flow-motivation}
