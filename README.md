@@ -34,7 +34,9 @@ This repository has separate Julia and Python environments.
 
 - Julia simulation work uses `Project.toml` and `Manifest.toml`. Run Julia
   commands through `./scripts/julia-release`, which selects Julia 1.12 or newer
-  and binds the project environment automatically.
+  and binds the project environment automatically. The solver is the root Julia
+  package `CanicExtended1D`; programmatic commands should use
+  `using CanicExtended1D` from this project.
 - Local Julia shells source `~/.config/julia/resource-profile.zsh` for the
   batch profile: 10 Julia threads, 2 GC threads, BLAS/OpenMP/vecLib pinned to 1
   thread, and `JULIA_CASE_WORKERS=10` for independent simulation cases. Set

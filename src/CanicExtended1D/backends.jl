@@ -18,8 +18,6 @@ struct SciMLTimeBackend <: AbstractTimeBackend
     solve::SolveSpec
 end
 
-SciMLTimeBackend() = SciMLTimeBackend(SolveSpec())
-
 function SciMLTimeBackend(; solve::SolveSpec = SolveSpec())
     return SciMLTimeBackend(validate(solve))
 end

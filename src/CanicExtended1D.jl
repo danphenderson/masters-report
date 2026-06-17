@@ -47,6 +47,7 @@ export AbstractTimeBackend,
        ForwardEulerStepper,
        GeneratedStokesMesh,
        GeometryRestIC,
+       GeometryExportOptions,
        GridConvergenceStudySpec,
        InitialConditionSummary,
        MinmodLimiter,
@@ -98,6 +99,7 @@ export AbstractTimeBackend,
        dg_quadrature,
        effective_dynamic_viscosity,
        effective_kinematic_viscosity,
+       export_stenosis_geometry_figures,
        flow_view,
        initial_condition,
        initial_condition_name,
@@ -153,27 +155,31 @@ export AbstractTimeBackend,
        write_study_csv,
        write_svg
 
-include("methods.jl")
-include("rheology.jl")
-include("initial_conditions.jl")
-include("profiles.jl")
-include("boundaries.jl")
-include("types.jl")
-include("parallel.jl")
-include("policies.jl")
-include("geometry.jl")
-include("state.jl")
-include("model.jl")
-include("stokes_ic.jl")
-include("solver.jl")
-include("dg.jl")
-include("sciml_problem.jl")
-include("backends.jl")
-include("outputs.jl")
-include("openbf_protocol.jl")
-include("studies.jl")
-include("refinement.jl")
-include("resolved3d.jl")
-include("cli.jl")
+include("CanicExtended1D/methods.jl")
+include("CanicExtended1D/rheology.jl")
+include("CanicExtended1D/initial_conditions.jl")
+include("CanicExtended1D/profiles.jl")
+include("CanicExtended1D/boundaries.jl")
+include("CanicExtended1D/types.jl")
+include("CanicExtended1D/parallel.jl")
+include("CanicExtended1D/policies.jl")
+include("CanicExtended1D/geometry.jl")
+include("CanicExtended1D/state.jl")
+include("CanicExtended1D/model.jl")
+include("CanicExtended1D/stokes_ic.jl")
+include("CanicExtended1D/solver.jl")
+include("CanicExtended1D/dg.jl")
+include("CanicExtended1D/sciml_problem.jl")
+include("CanicExtended1D/backends.jl")
+include("CanicExtended1D/outputs.jl")
+include("CanicExtended1D/openbf_protocol.jl")
+include("CanicExtended1D/studies.jl")
+include("CanicExtended1D/refinement.jl")
+include("CanicExtended1D/resolved3d_types.jl")
+include("CanicExtended1D/resolved3d_io.jl")
+include("CanicExtended1D/resolved3d_compare.jl")
+include("CanicExtended1D/resolved3d_outputs.jl")
+include("CanicExtended1D/geometry_exports.jl")
+include("CanicExtended1D/cli.jl")
 
 end

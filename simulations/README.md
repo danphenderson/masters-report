@@ -1,7 +1,8 @@
 # Canic Extended 1D Stenosis Simulation
 
-This folder contains a Julia finite-volume reproduction of the extended 1D
-stenotic artery model from:
+This folder contains command-line wrappers, generated-data locations, and usage
+notes for the Julia package `CanicExtended1D`, a finite-volume reproduction of
+the extended 1D stenotic artery model from:
 
 Canic, Guo, Wang, Yue, and Zheng, "Extended one-dimensional reduced model for
 blood flow within a stenotic artery" (2024).
@@ -78,7 +79,9 @@ shear-factor or exponent.
 
 Use `./scripts/julia-release` for repo commands. It prefers the latest installed
 `release` channel and falls back to a directly-invoked `julia` binary only when
-that binary is already `1.12+`.
+that binary is already `1.12+`. Programmatic runs should load the root package
+with `using CanicExtended1D`; the scripts under `simulations/` are thin wrappers
+around that package.
 
 Local zsh startup sources `~/.config/julia/resource-profile.zsh`. The batch
 profile sets `JULIA_NUM_THREADS=10`, `JULIA_NUM_GC_THREADS=2`,
@@ -187,9 +190,9 @@ Show CLI options:
 Run small programmatic studies from the shared simulation protocol:
 
 ```bash
-./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_study(SeveritySweepSpec(base_params=Params(nx=40,tfinal=0.001,initial_condition=GeometryRestIC()), severities=[23,50], overwrite=true))'
-./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_study(GridConvergenceStudySpec(base_params=Params(tfinal=0.001,severity=50,initial_condition=GeometryRestIC()), nxs=[40,80], overwrite=true))'
-./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_refinement_study(RefinementStudySpec(base_params=Params(tfinal=0.001,severity=40,initial_condition=GeometryRestIC()), nxs=[50,100,200,400], overwrite=true))'
+./scripts/julia-release -e 'using CanicExtended1D; run_study(SeveritySweepSpec(base_params=Params(nx=40,tfinal=0.001,initial_condition=GeometryRestIC()), severities=[23,50], overwrite=true))'
+./scripts/julia-release -e 'using CanicExtended1D; run_study(GridConvergenceStudySpec(base_params=Params(tfinal=0.001,severity=50,initial_condition=GeometryRestIC()), nxs=[40,80], overwrite=true))'
+./scripts/julia-release -e 'using CanicExtended1D; run_refinement_study(RefinementStudySpec(base_params=Params(tfinal=0.001,severity=40,initial_condition=GeometryRestIC()), nxs=[50,100,200,400], overwrite=true))'
 ```
 
 Study summaries are written to deterministic CSV paths under
@@ -242,13 +245,13 @@ cp -R /path/to/case3_all_3d_results/60 simulations/data/3d/canic_case3/
 Run the default comparison when the data root is present:
 
 ```bash
-./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_available_resolved3d_comparison(overwrite=true)'
+./scripts/julia-release -e 'using CanicExtended1D; run_available_resolved3d_comparison(overwrite=true)'
 ```
 
 To select a SciML backend programmatically:
 
 ```bash
-./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; backend=SciMLTimeBackend(solve=SolveSpec(algorithm=Tsit5Policy(), abstol=1e-7, reltol=1e-7)); run_available_resolved3d_comparison(backend=backend, overwrite=true)'
+./scripts/julia-release -e 'using CanicExtended1D; backend=SciMLTimeBackend(solve=SolveSpec(algorithm=Tsit5Policy(), abstol=1e-7, reltol=1e-7)); run_available_resolved3d_comparison(backend=backend, overwrite=true)'
 ```
 
 The comparison uses node-centered 3D data. Section means average `u_z` over

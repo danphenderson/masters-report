@@ -6,13 +6,12 @@ exec "$PROJECT_ROOT/scripts/julia-release" "$0" "$@"
 =#
 
 # Backward-compatible entrypoint. The implementation lives in
-# simulations/canic_extended_1d/.
+# the CanicExtended1D package loaded from this repository project.
 
 if VERSION < v"1.12"
     error("simulations/canic_extended_1d_stenosis.jl requires Julia 1.12 or newer.")
 end
 
-include(joinpath(@__DIR__, "canic_extended_1d", "CanicExtended1D.jl"))
-using .CanicExtended1D
+using CanicExtended1D
 
 CanicExtended1D.run_cli(ARGS)

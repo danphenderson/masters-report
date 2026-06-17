@@ -9,7 +9,6 @@ if VERSION < v"1.12"
     error("simulations/run_canic_extended_1d.jl requires Julia 1.12 or newer.")
 end
 
-include(joinpath(@__DIR__, "canic_extended_1d", "CanicExtended1D.jl"))
-using .CanicExtended1D
+using CanicExtended1D
 
 CanicExtended1D.run_cli(ARGS)

@@ -9,13 +9,58 @@ report-source update was git commit \texttt{019fa39}. No git remote is
 configured in this checkout, so this appendix does not claim a public repository
 or archival URL.
 
+The Julia simulation code is packaged as \path{CanicExtended1D} in the root
+Julia project. The tracked source inventory is:
+\begin{center}
+\scriptsize
+\begin{tabularx}{\textwidth}{@{}>{\ttfamily\raggedright\arraybackslash}p{0.36\textwidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Tracked source} & \textbf{Role in the report package} \\
+\midrule
+\path{Project.toml}, \path{Manifest.toml}
+& Julia package identity, dependency declarations, compatibility bounds, and
+resolved dependency versions. \\
+\path{src/CanicExtended1D.jl}
+& Package entry point and public export surface for the solver, studies,
+resolved-3D comparison, and report figure export helpers. \\
+\path{src/CanicExtended1D/*.jl}
+& Solver components: model descriptors, geometry, state layout, finite-volume
+and DG operators, native and SciML backends, Stokes initial condition,
+OpenBF-style adapter, studies, refinement, resolved-3D diagnostics, output
+writers, and geometry-export helpers. \\
+\path{simulations/run_canic_extended_1d.jl},
+\path{simulations/canic_extended_1d_stenosis.jl}
+& Thin command-line wrappers around \path{CanicExtended1D.run_cli}. \\
+\path{simulations/export_stenosis_geometry_figures.jl}
+& Thin wrapper around
+\path{CanicExtended1D.export_stenosis_geometry_figures}. \\
+\path{test/runtests.jl}, \path{test/test_*.jl}
+& Julia test orchestrator and feature-specific regression tests for model
+closures, backends, comparison diagnostics, CLI parsing, studies, and exports. \\
+\path{scripts/julia-release}
+& Repository launcher that selects Julia 1.12 or newer and binds the root
+project environment. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The standard package import surface used by report regeneration commands is:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true,language=julia]
+using CanicExtended1D
+
+run_available_resolved3d_comparison(
+    output_dir="simulations/output/3d_comparison/full_t1_native_nx400",
+    overwrite=true,
+)
+\end{lstlisting}
+
 The Section~\ref{sec:resolved-3d-comparison} comparison record is the ignored
 local directory
 \path{simulations/output/3d_comparison/full_t1_native_nx400/}. The command
 shape for regenerating the available comparison, when the ignored raw 3D inputs
 are restored, is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-./scripts/julia-release -e 'include("simulations/canic_extended_1d/CanicExtended1D.jl"); using .CanicExtended1D; run_available_resolved3d_comparison(output_dir="simulations/output/3d_comparison/full_t1_native_nx400", overwrite=true)'
+./scripts/julia-release -e 'using CanicExtended1D; run_available_resolved3d_comparison(output_dir="simulations/output/3d_comparison/full_t1_native_nx400", overwrite=true)'
 \end{lstlisting}
 
 The raw upstream XDMF/HDF5 inputs under

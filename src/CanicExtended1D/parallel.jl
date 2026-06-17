@@ -70,14 +70,11 @@ end
 function initialize_case_workers!(worker_ids = case_worker_ids())
     isempty(worker_ids) && return worker_ids
 
-    module_path = normpath(joinpath(@__DIR__, "CanicExtended1D.jl"))
     for worker_id in worker_ids
         fetch(remotecall_eval(Main, worker_id, quote
             using LinearAlgebra
             LinearAlgebra.BLAS.set_num_threads(1)
-            if !isdefined(Main, :CanicExtended1D)
-                include($module_path)
-            end
+            using CanicExtended1D
         end
         ))
     end
