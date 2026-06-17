@@ -15,6 +15,19 @@ Treat `final-report.pdf` as the final synced render. Validate with a scratch
 build first, then refresh the tracked PDF only after checking the rendered
 pages.
 
+## Figure Assets
+
+Regenerate the analytic stenosis geometry CSVs and rendered report assets with:
+
+```bash
+./scripts/julia-release simulations/export_stenosis_geometry_figures.jl --overwrite
+pipenv run python scripts/render_stenosis_geometry_figures.py
+```
+
+The exporter also checks for optional resolved 3D data under
+`simulations/data/3d/canic_case3/` and writes node-envelope CSVs only when the
+local XDMF/HDF5 files are present.
+
 ## Environments
 
 This repository has separate Julia and Python environments.

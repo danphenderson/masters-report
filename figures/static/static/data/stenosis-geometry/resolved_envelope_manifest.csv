@@ -1,0 +1,2 @@
+status,data_root,case_label,severity,source_xdmf,output_csv,node_count,z_bins,theta_bins,note
+skipped,simulations/data/3d/canic_case3,,,,,0,181,72,no local XDMF files found
