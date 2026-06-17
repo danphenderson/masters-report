@@ -1,9 +1,10 @@
 \subsection{Continuum and Constitutive Assumptions}
 \label{subsec:continuum-constitutive-assumptions}
 
-This section moves from the macroscopic scale assumption, 
-to continuum field variables, to balance-law vocabulary,
-and finally to Newtonian versus generalized-Newtonian stress closures.
+This section moves from the macroscopic scale assumption,
+to continuum field variables, to blood-dynamics kinematics,
+to balance-law vocabulary, and finally to Newtonian versus
+generalized-Newtonian stress closures.
 
 \subsubsection{Physiological Scale Boundary}
 \label{subsubsec:physiological-scale-boundary}
@@ -43,8 +44,9 @@ regular fields on $\mathcal{Q}_T$. Cellular-scale effects may enter only
 through later constitutive choices
 \cite[Part~I, Ch.~1, Secs.~1.1--1.2, pp.~4--5]{hemodynamics}
 \cite[Secs.~1.1.3 and~3.2, pp.~12--14 and~46--47]{KopplHelmig2023DimensionReducedModeling}.
-The continuum setup is as follows: Remark~\ref{rmk:eulerian-lagrangian},
-Definition~\ref{def:material-derivative},
+The continuum setup is as follows:
+Assumption~\ref{ass:blood-dynamics-kinematic-setting},
+Remark~\ref{rmk:eulerian-lagrangian}, Definition~\ref{def:material-derivative},
 Definitions~\ref{def:material-density-preservation}--\ref{def:incompressible-flow},
 Definitions~\ref{def:linear-momentum-balance}--\ref{def:linear-momentum-balance-strong},
 and Definitions~\ref{def:fluidsmodel}--\ref{def:incompressible-stress-tensor}
@@ -56,19 +58,28 @@ fix the assumptions used in the model hierarchy.
 
 This subsection fixes the kinematic vocabulary used by the later continuum and
 reduced-order models.
-For $t\in\overline{I}_T$, let
-$\La_t:\OmgB(0)\to\OmgB(t)$ be an orientation-preserving
-diffeomorphism with $\det\nabla_{\vxi}\La_t>0$.
-As a standing assumption, the family $\La_t$ has the time and space regularity
-needed to differentiate $\nabla_{\vxi}\La_t$ and
-$\det\nabla_{\vxi}\La_t$ in the classical identities below and in
-Appendix~\ref{app:continuum-derivation-details}.
-It carries each material label $\vxi$ to its current location
-$\vx(t,\vxi)=\La_t(\vxi)$.
-The Eulerian velocity field $\vu:\mathcal{Q}_T\to\R^3$ satisfies
-\begin{flalign*}
-    \quad \partial_t\La_t(\vxi)=\vu(t,\La_t(\vxi)). &&
-\end{flalign*}
+
+\begin{assumption}[Blood-dynamics kinematic setting]
+    \label{ass:blood-dynamics-kinematic-setting}
+    For \(t\in\overline{I}_T\), blood motion is represented by an
+    orientation-preserving flow map
+    \(\La_t:\OmgB(0)\to\OmgB(t)\) with
+    \(\det\nabla_{\vxi}\La_t>0\). The family \(\La_t\) has the time and
+    space regularity needed to differentiate \(\nabla_{\vxi}\La_t\) and
+    \(\det\nabla_{\vxi}\La_t\), define material derivatives, and apply
+    Reynolds transport to material volumes \(V(t)=\La_t(V(0))\) with
+    Lipschitz boundary. It carries each material label \(\vxi\) to its
+    current location \(\vx(t,\vxi)=\La_t(\vxi)\). The Eulerian velocity
+    field \(\vu:\mathcal{Q}_T\to\R^3\) satisfies
+    \begin{flalign*}
+        \quad \partial_t\La_t(\vxi)=\vu(t,\La_t(\vxi)). &&
+    \end{flalign*}
+    The accompanying continuum fields are pressure
+    \(p:\mathcal{Q}_T\to\R\), density
+    \(\rho:\mathcal{Q}_T\to\R^+\), and Cauchy stress
+    \(\vT:\mathcal{Q}_T\to\R^{3\times3}\).
+\end{assumption}
+
 Figure~\ref{fig:lagrangian-eulerian-map} illustrates this Lagrangian--Eulerian
 notation.
 
@@ -140,13 +151,12 @@ in Appendix~\ref{app:continuum-derivation-details}.
 
 \subsubsection*{Continuum assumptions retained in the main model}
 
-Let the 3D velocity, pressure, and density fields be
-\begin{flalign*}
-    \quad \vu:\mathcal{Q}_T\to\R^3,\qquad
-    p:\mathcal{Q}_T\to\R,\qquad
-    \rho:\mathcal{Q}_T\to\R^+. &&
-\end{flalign*}
-The balance-law vocabulary developed below permits variable density. The reduced arterial models considered later adopt the constant-density specialization $\rho\equiv\rho_0>0$, which is standard for large-vessel incompressible blood-flow models.
+Assumption~\ref{ass:blood-dynamics-kinematic-setting} supplies the 3D
+velocity, pressure, density, and stress fields used below. The balance-law
+vocabulary developed below permits variable density. The reduced arterial
+models considered later adopt the constant-density specialization
+\(\rho\equiv\rho_0>0\), which is standard for large-vessel incompressible
+blood-flow models.
 
 The domains and material control volumes are assumed regular enough for traces,
 outward unit normals, and the divergence theorem; Lipschitz boundaries are
@@ -296,3 +306,10 @@ Newtonian form when $\eta_{\mathrm{eff}}$ is constant.
     \cite[Sec.~1.1.3, pp.~12–14]{KopplHelmig2023DimensionReducedModeling}
     \cite{bviscosity}.
 \end{remark}
+
+Together, Assumption~\ref{ass:blood-dynamics-kinematic-setting} and the
+balance-law and stress-closure definitions in this subsection form the
+continuum contract used by the following hierarchy: material volumes and
+Reynolds transport support the mass and momentum balances, while
+incompressibility and the selected constitutive law specialize those balances
+into the PDE tiers that are later reduced by cross-sectional averaging.

@@ -3,17 +3,22 @@
 
 The continuum assumptions of
 Section~\ref{subsec:continuum-constitutive-assumptions} lead to a layered
-modeling hierarchy. The high-fidelity starting point is the incompressible
-Navier--Stokes or generalized-Newtonian system on a three-dimensional lumen.
-The report then uses cross-sectional reduction to identify the selected 1D
-area-flow variables and to state the closure assumptions that must be fixed
-before any reduced numerical study is interpreted.
+modeling hierarchy. In particular,
+Assumption~\ref{ass:blood-dynamics-kinematic-setting} supplies the flow map,
+material volumes, and continuum fields on which the conservation laws act. The
+high-fidelity starting point is the incompressible Navier--Stokes or
+generalized-Newtonian system on a three-dimensional lumen. The report then uses
+cross-sectional reduction to identify the selected 1D area-flow variables and
+to state the closure assumptions that must be fixed before any reduced
+numerical study is interpreted.
 
 \subsubsection{Conservation Laws and Navier--Stokes Specialization}
 \label{subsubsec:conservation-laws}
 
 The governing equations originate from conservation of mass and linear momentum
-applied to an incompressible continuum fluid. The derivation details and
+applied to material volumes under
+Assumption~\ref{ass:blood-dynamics-kinematic-setting}, followed by the
+constant-density incompressible specialization. The derivation details and
 row-divergence convention are recorded in
 Appendix~\ref{app:continuum-derivation-details} and
 Definition~\ref{def:foundation-differential-operator-conventions}.
@@ -27,15 +32,18 @@ Sec.~1.1, pp.~380--383]{hemodynamics}
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{ns-derivation-map}
-    \caption{From conservation laws to incompressible Navier--Stokes. Mass
-    conservation reduces to $\Div\vu=0$ under constant density. Momentum
-    balance closes through the Cauchy stress law; the Newtonian limit uses
-    constant dynamic viscosity, while the generalized-Newtonian form keeps
-    $\eta_{\mathrm{eff}}(\dot\gamma)$ explicit.}
+    \caption{From the blood-dynamics setting to incompressible
+    Navier--Stokes. The flow map and material-volume assumptions support the
+    conservation statements. Mass conservation reduces to $\Div\vu=0$ under
+    constant density. Momentum balance closes through the Cauchy stress law;
+    the Newtonian limit uses constant dynamic viscosity, while the
+    generalized-Newtonian form keeps $\eta_{\mathrm{eff}}(\dot\gamma)$
+    explicit.}
     \label{fig:ns-derivation-map}
 \end{figure}
 
-Mass conservation for the constant-density incompressible model gives
+With this kinematic setting fixed, mass conservation for the constant-density
+incompressible model gives
 \begin{flalign*}
     \quad \Div\vu = 0 \qquad \text{in } \OmgBt. &&
 \end{flalign*}
@@ -110,7 +118,10 @@ momentum equation can be read in advective form.
     \end{flalign*}
 \end{definition}
 The density-scaled form is particularly useful for numerical simulations,
-because it seperates the convective ($(\vu\cdot\nabla)\vu$) and diffusive ($\Divbf(2\nu_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu))$) contributions in the momentum equation, allowing for more straightforward numerical treatment of each term independently.
+because it separates the convective ($(\vu\cdot\nabla)\vu$) and diffusive
+($\Divbf(2\nu_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu))$) contributions in the
+momentum equation, allowing for more straightforward numerical treatment of
+each term independently.
 \begin{definition}[Newtonian incompressible Navier--Stokes]
     \label{def:newtonian-incompressible-ns}
     If \(\eta_{\mathrm{eff}}\equiv\eta\) is constant, then sufficiently smooth
@@ -134,6 +145,11 @@ because it seperates the convective ($(\vu\cdot\nabla)\vu$) and diffusive ($\Div
     \end{flalign*}
     where \(\nu\defined\eta/\rho\).
 \end{definition}
+
+Thus the 3D PDE tier is not introduced independently: flow maps and material
+volumes support Reynolds transport, Reynolds transport gives mass and momentum
+balance, the Cauchy stress law closes momentum, and incompressibility selects
+the Navier--Stokes systems above.
 
 \begin{definition}[Navier--Stokes residual notation]
     \label{def:standard-form-ns}
@@ -206,6 +222,10 @@ dimension-reduced modeling arguments
 \cite[Sec.~2, pp.~253--257]{FormaggiaLamponiQuarteroni2003}
 \cite[Ch.~3, Secs.~3.2 and~3.6]{KopplHelmig2023DimensionReducedModeling}
 \cite[Sec.~3, pp.~24--26]{ShiLawfordHose2011}.
+The reduced variables \(A\), \(Q\), \(\bar u\), and \(p_{\mathrm g}\) should
+therefore be read as cross-sectional outputs of the continuum fields under
+additional averaging, geometry, wall-law, and profile assumptions, not as
+independent replacements for the blood-dynamics setting above.
 
 \begin{figure}[!htb]
     \centering
@@ -309,35 +329,38 @@ dimension-reduced modeling arguments
         A_0(z) &= \pi R_0(z)^2 .
         \numberthis\label{eq:1d-stenosis-area} &&
     \end{flalign*}
-    A convenient localized test profile is
+    The baseline idealized stenotic-vessel profile is the smooth asymmetric
+    kernel
     \begin{flalign*}
-        \quad s(z) =
-        \begin{cases}
-            \displaystyle
-            \frac{s_{\max}}{2}
-            \left[
-                1 + \cos\left(\frac{2\pi(z-z_c)}{\ell_s}\right)
-            \right],
-            & |z-z_c| \leq \ell_s/2, \\
-            0, & \text{otherwise}.
-        \end{cases}
+        \quad
+        g(z) &= z-z_s+\kappa
+        \exp\left(-\frac{(z-z_a)^2}{2\sigma_a^2}\right),
+        &
+        \psi(z) &= \exp\left(-\lambda g(z)^4\right),
+        \numberthis\label{eq:1d-stenosis-kernel} && \\
+        \quad
+        s(z) &= s_{\max}\psi(z), \qquad 0\leq s_{\max}<1 .
         \numberthis\label{eq:1d-stenosis-profile} &&
     \end{flalign*}
+    In the default centimeter-scale simulation record, \(z_a=2.5\,\mathrm{cm}\),
+    \(z_s=3.4\,\mathrm{cm}\), \(\sigma_a=1\,\mathrm{cm}\),
+    \(\kappa=0.95\,\mathrm{cm}\), and
+    \(\lambda=50\,\mathrm{cm}^{-4}\).
     The geometry is an idealized numerical design choice, not a
     patient-specific plaque morphology or clinical calibration.
 \end{definition}
 
 \begin{remark}[Stenosis-profile and variable-radius boundary]
     \label{rmk:1d-stenosis-profile-scope}
-    The raised-cosine profile in Eq.~\ref{eq:1d-stenosis-profile} is compactly
-    supported and \(C^1\) at the support endpoints, but it is not a smooth
-    strong-form contract for all variable-radius correction terms. Canic et al.
-    show that standard 1D variable-geometry models may miss stenotic pressure
-    and velocity trends unless additional variable-radius terms are included
-    \cite[Abstract; Secs.~1--2]{CanicEtAl2024Extended1DStenosis}. Those
-    corrections motivate later comparison questions, but they are not active in
-    the baseline model unless a separate closure identifier and numerical
-    contract are declared.
+    The profile in Eq.~\ref{eq:1d-stenosis-profile} is \(C^\infty\) and
+    rapidly localized rather than compactly supported. This smooth idealized
+    geometry is the baseline for the reduced simulations in this report. Canic
+    et al. show that standard 1D variable-geometry models may miss stenotic
+    pressure and velocity trends unless additional variable-radius terms are
+    included \cite[Abstract; Secs.~1--2]{CanicEtAl2024Extended1DStenosis}.
+    Those corrections motivate later comparison questions, but they are not
+    active in the baseline model unless a separate closure identifier and
+    numerical contract are declared.
 \end{remark}
 
 \begin{definition}[Conservative flux and source notation]
@@ -409,8 +432,9 @@ particular boundary discretization.
 
 Reduced hemodynamic models form a hierarchy of modeling roles rather than a
 simple accuracy ranking. A higher-dimensional model becomes a comparison only
-after geometry, wall response, rheology, inlet and outlet data, numerical
-resolution, output operators, and discrepancy metrics are matched.
+after the kinematic and continuum assumption package, geometry, wall response,
+rheology, inlet and outlet data, numerical resolution, output operators, and
+discrepancy metrics are matched.
 
 \begin{figure}[!htb]
     \centering
@@ -447,8 +471,8 @@ resolution, output operators, and discrepancy metrics are matched.
         Classical 1D compliant-vessel models
             & Distributed area-flow description after cross-sectional averaging
             & \(A(z,t)\), \(Q(z,t)\), \(p_{\mathrm g}(z,t)\), wave speed, pressure drop
-            & Main reduced model tier under declared wall, friction, inlet, and
-            outlet assumptions \\
+            & Main reduced model tier under declared continuum, wall, friction,
+            inlet, and outlet assumptions \\
         Stenosis-aware 1D and pressure-loss ROMs
             & Idealized stenosis trends, variable-radius corrections, or algebraic
             loss estimates
@@ -460,8 +484,9 @@ resolution, output operators, and discrepancy metrics are matched.
             & Higher-fidelity local flow and wall-motion comparison
             & Velocity, pressure, wall traction, WSS, wall displacement, mesh and
             time diagnostics
-            & Reference-tier context unless the same geometry, rheology, wall,
-            boundary data, and outputs are compared directly \\
+            & Reference-tier context unless the same continuum setting,
+            geometry, rheology, wall, boundary data, and outputs are compared
+            directly \\
         Numerical reference problems for 1D solvers
             & Scheme comparison, reproducibility expectations, and implementation
             context
@@ -473,12 +498,12 @@ resolution, output operators, and discrepancy metrics are matched.
     \end{tabularx}
 \end{table}
 
-Across these categories, the recurring descriptors are stenosis geometry, wall
-stiffness or compliance, density, viscosity or effective-viscosity law, inlet
-waveform, outlet pressure or load, pressure-reference convention, and tap
-locations. The recurring outputs are pressure drop, reduced pressure ratio,
-area, flow, radius, and either a reduced wall-friction/shear proxy or a
-resolved traction-based WSS quantity
+Across these categories, the recurring descriptors are the kinematic/continuum
+setting, stenosis geometry, wall stiffness or compliance, density, viscosity or
+effective-viscosity law, inlet waveform, outlet pressure or load,
+pressure-reference convention, and tap locations. The recurring outputs are
+pressure drop, reduced pressure ratio, area, flow, radius, and either a reduced
+wall-friction/shear proxy or a resolved traction-based WSS quantity
 \cite{ShiLawfordHose2011,FormaggiaLamponiQuarteroni2003,KopplHelmig2023DimensionReducedModeling}
 \cite{CanicEtAl2024Extended1DStenosis,FormaggiaMouraNobile2007Coupling}.
 The report therefore treats the selected 1D area-flow model as the controlled

@@ -1,0 +1,68 @@
+\begin{tikzpicture}
+  \begin{axis}[
+    name=case77radial,
+    width=0.44\textwidth,
+    height=5.8cm,
+    title={case 77, 23\%},
+    xlabel={\(r/R_0(z)\)},
+    ylabel={axial velocity (cm/s)},
+    xmin=0, xmax=1,
+    grid=both,
+    unbounded coords=discard,
+    filter discard warning=false,
+    legend style={font=\tiny, at={(0.03,0.03)}, anchor=south west},
+  ]
+    \addplot+[bloodred, only marks, mark=*, mark size=1.2pt]
+      table[x=r, y=u3d1p951] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
+    \addlegendentry{\(z=1.951\) 3D}
+    \addplot+[bloodred, mark=none, dashed, line width=0.8pt]
+      table[x=r, y=u1d1p951] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
+    \addlegendentry{\(z=1.951\) 1D}
+    \addplot+[mathblue, only marks, mark=square*, mark size=1.2pt]
+      table[x=r, y=u3d2p451] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
+    \addlegendentry{\(z=2.451\) 3D}
+    \addplot+[mathblue, mark=none, dashed, line width=0.8pt]
+      table[x=r, y=u1d2p451] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
+    \addlegendentry{\(z=2.451\) 1D}
+    \addplot+[accentTeal, only marks, mark=triangle*, mark size=1.4pt]
+      table[x=r, y=u3d2p951] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
+    \addlegendentry{\(z=2.951\) 3D}
+    \addplot+[accentTeal, mark=none, dashed, line width=0.8pt]
+      table[x=r, y=u1d2p951] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
+    \addlegendentry{\(z=2.951\) 1D}
+  \end{axis}
+
+  \begin{axis}[
+    at={(case77radial.east)},
+    anchor=west,
+    xshift=0.85cm,
+    width=0.44\textwidth,
+    height=5.8cm,
+    title={case 60, 40\%},
+    xlabel={\(r/R_0(z)\)},
+    xmin=0, xmax=1,
+    grid=both,
+    unbounded coords=discard,
+    filter discard warning=false,
+    legend style={font=\tiny, at={(0.03,0.03)}, anchor=south west},
+  ]
+    \addplot+[bloodred, only marks, mark=*, mark size=1.2pt]
+      table[x=r, y=u3d1p951] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
+    \addlegendentry{\(z=1.951\) 3D}
+    \addplot+[bloodred, mark=none, dashed, line width=0.8pt]
+      table[x=r, y=u1d1p951] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
+    \addlegendentry{\(z=1.951\) 1D}
+    \addplot+[mathblue, only marks, mark=square*, mark size=1.2pt]
+      table[x=r, y=u3d2p451] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
+    \addlegendentry{\(z=2.451\) 3D}
+    \addplot+[mathblue, mark=none, dashed, line width=0.8pt]
+      table[x=r, y=u1d2p451] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
+    \addlegendentry{\(z=2.451\) 1D}
+    \addplot+[accentTeal, only marks, mark=triangle*, mark size=1.4pt]
+      table[x=r, y=u3d2p951] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
+    \addlegendentry{\(z=2.951\) 3D}
+    \addplot+[accentTeal, mark=none, dashed, line width=0.8pt]
+      table[x=r, y=u1d2p951] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
+    \addlegendentry{\(z=2.951\) 1D}
+  \end{axis}
+\end{tikzpicture}

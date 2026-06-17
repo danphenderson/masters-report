@@ -3,7 +3,7 @@ function print_usage(io::IO = stdout)
         io,
         """
         Usage:
-          julia simulations/run_canic_extended_1d.jl [options]
+          ./scripts/julia-release simulations/run_canic_extended_1d.jl [options]
 
         Options:
           --severity VALUE        Stenosis severity percentage, default 50

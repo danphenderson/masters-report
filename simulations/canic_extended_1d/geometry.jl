@@ -15,7 +15,8 @@ end
 """
     stenosis(z, p) -> (R0, dR0_dz, d2R0_dz2)
 
-Asymmetric stenosis profile used for the 23%, 40%, and 50% cases in the paper.
+C^infinity asymmetric stenosis profile used for the 23%, 40%, and 50% cases
+in the paper and as the baseline idealized-vessel geometry in the report.
 """
 function stenosis(z::Float64, p::Params)
     a = stenosis_amplitude(p)

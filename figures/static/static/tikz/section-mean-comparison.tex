@@ -1,0 +1,25 @@
+\begin{tikzpicture}
+  \begin{axis}[
+    width=\textwidth,
+    height=6.1cm,
+    xlabel={axial coordinate \(z\) (cm)},
+    ylabel={section-mean axial velocity (cm/s)},
+    xmin=0, xmax=6,
+    grid=both,
+    legend columns=2,
+    legend style={font=\tiny, at={(0.5,-0.25)}, anchor=north},
+  ]
+    \addplot+[bloodred, mark=none, line width=0.9pt]
+      table[x=z, y=u3d77] {figures/static/static/data/stenosis-comparison/section-mean.dat};
+    \addlegendentry{case 77 3D}
+    \addplot+[bloodred, mark=none, dashed, line width=0.9pt]
+      table[x=z, y=u1d77] {figures/static/static/data/stenosis-comparison/section-mean.dat};
+    \addlegendentry{case 77 1D}
+    \addplot+[accentTeal, mark=none, line width=0.9pt]
+      table[x=z, y=u3d60] {figures/static/static/data/stenosis-comparison/section-mean.dat};
+    \addlegendentry{case 60 3D}
+    \addplot+[accentTeal, mark=none, dashed, line width=0.9pt]
+      table[x=z, y=u1d60] {figures/static/static/data/stenosis-comparison/section-mean.dat};
+    \addlegendentry{case 60 1D}
+  \end{axis}
+\end{tikzpicture}

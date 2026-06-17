@@ -1,0 +1,136 @@
+\section{Resolved 3D Comparison at \texorpdfstring{\(T=1\)}{T=1}}
+\label{sec:resolved-3d-comparison}
+
+This section records the numerical comparison produced by the Julia
+implementation of the stenosis-aware 1D area--flow model against the available
+resolved 3D velocity data. The comparison is an output-operator check, not a
+clinical validation claim and not an exact cross-section quadrature of the 3D
+tetrahedral solution. The 3D diagnostic averages node-centered axial velocity
+over thin axial slabs and compares those values with the interpolated 1D
+quantity \(Q/A\). Radial profiles use the same slab nodes binned by
+\(\sqrt{x^2+y^2}/R_0(z)\) and compare them with the 1D closure profile.
+
+The two included upstream states are case 77, treated as a 23\% stenosis, and
+case 60, treated as a 40\% stenosis. Both XDMF files report
+\(t=0.9994999999999453\), within \(5.0\times 10^{-4}\) of \(T=1\). Upstream
+case 50 was not used because its XDMF time is
+\(t=1.4994999999998904\), outside the \(10^{-3}\) tolerance for the \(T=1\)
+comparison.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Section-mean and radial-profile discrepancy summary for the
+    \(T=1\) resolved-node comparison. Velocity errors are in cm/s.}
+    \label{tab:t1-3d-comparison-summary}
+    \begin{tabular}{@{}rrrrrrrrrr@{}}
+        \toprule
+        \textbf{Case}
+            & \textbf{Severity}
+            & \textbf{Sections}
+            & \textbf{Min nodes}
+            & \textbf{Mean \(|e_s|\)}
+            & \textbf{Max \(|e_s|\)}
+            & \textbf{Mean rel.}
+            & \textbf{Max rel.}
+            & \textbf{Mean \(|e_r|\)}
+            & \textbf{Max \(|e_r|\)} \\
+        \midrule
+        77 & 23\% & 200 & 64 & 7.471 & 26.26 & 0.4534 & 1.622 & 10.03 & 23.01 \\
+        60 & 40\% & 200 & 43 & 9.440 & 47.48 & 0.5141 & 2.458 & 15.35 & 41.72 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Figure~\ref{fig:t1-section-mean-comparison} shows the section-mean comparison.
+The 1D model captures the smooth upstream and downstream trend but overpredicts
+the highest-velocity region near the stenosis, especially for the 40\% case.
+The largest section errors occur for case 60 around \(z=2.4\)--\(2.8\) cm,
+where the 1D mean velocity is between 58 and 67 cm/s while the node-slab 3D
+mean is between 19 and 27 cm/s.
+
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{section-mean-comparison}
+    \caption{Section-mean axial velocity comparison at \(T=1\). Solid curves
+    are resolved 3D node-slab means; dashed curves are interpolated 1D
+    \(Q/A\).}
+    \label{fig:t1-section-mean-comparison}
+\end{figure}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Five largest section-mean absolute errors across the two
+    included \(T=1\) cases. Velocities and errors are in cm/s.}
+    \label{tab:t1-largest-section-errors}
+    \begin{tabular}{@{}rrrrrrrr@{}}
+        \toprule
+        \textbf{Rank}
+            & \textbf{Case}
+            & \(\boldsymbol{z}\) \textbf{(cm)}
+            & \(\boldsymbol{u_{\mathrm{1D}}}\)
+            & \(\boldsymbol{u_{\mathrm{3D}}}\)
+            & \(\boldsymbol{|e|}\)
+            & \textbf{Rel.}
+            & \textbf{Nodes} \\
+        \midrule
+        1 & 60 & 2.714 & 66.79 & 19.31 & 47.48 & 2.458 & 72 \\
+        2 & 60 & 2.774 & 63.74 & 24.57 & 39.17 & 1.594 & 60 \\
+        3 & 60 & 2.412 & 61.90 & 23.51 & 38.39 & 1.633 & 67 \\
+        4 & 60 & 2.563 & 63.71 & 27.15 & 36.56 & 1.347 & 72 \\
+        5 & 60 & 2.834 & 57.59 & 21.68 & 35.92 & 1.657 & 82 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The radial-profile diagnostics in
+Figure~\ref{fig:t1-radial-profile-comparison} show the same pattern at the
+profile level. For both cases, the throat slice \(z=2.451\) cm has fewer
+populated radial bins because fewer 3D nodes lie in the narrowest cross-section
+slab. The largest radial-profile discrepancy is downstream of the throat at
+\(z=2.951\) cm, where case 60 reaches a maximum per-bin absolute error of
+41.72 cm/s.
+
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{radial-profile-comparison}
+    \caption{Radial velocity profile comparison at the default throat-centered
+    slices. Markers are resolved 3D radial-bin means; dashed curves are the 1D
+    closure profile reconstructed from the local \(Q/A\).}
+    \label{fig:t1-radial-profile-comparison}
+\end{figure}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Radial-profile discrepancy by case and slice. Errors are in
+    cm/s.}
+    \label{tab:t1-radial-profile-summary}
+    \begin{tabular}{@{}rrrrr@{}}
+        \toprule
+        \textbf{Case}
+            & \(\boldsymbol{z}\) \textbf{(cm)}
+            & \textbf{Populated bins}
+            & \textbf{Mean \(|e_r|\)}
+            & \textbf{Max \(|e_r|\)} \\
+        \midrule
+        77 & 1.951 & 17 & 9.404 & 18.60 \\
+        77 & 2.451 & 12 & 6.949 & 13.33 \\
+        77 & 2.951 & 16 & 13.01 & 23.01 \\
+        60 & 1.951 & 18 & 10.04 & 18.90 \\
+        60 & 2.451 & 10 & 7.562 & 17.17 \\
+        60 & 2.951 & 17 & 25.55 & 41.72 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+These discrepancies should be read in light of the comparison boundary in
+Section~\ref{subsubsec:model-hierarchy}. The present 1D solver is compared to
+a resolved 3D velocity field through simple node-slab output operators. The
+result is useful for locating where the reduced velocity closure departs from
+the resolved state, but it does not by itself identify whether the discrepancy
+comes from the 1D closure, the boundary data, the 3D post-processing operator,
+or differences between the numerical formulations.

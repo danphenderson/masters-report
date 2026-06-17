@@ -88,22 +88,38 @@ struct StudyResult
     summary_csv::String
 end
 
-function params_with(p::Params; nx::Int = p.nx, severity::Float64 = p.severity)
+function params_with(
+    p::Params;
+    nx::Int = p.nx,
+    length_cm::Float64 = p.length_cm,
+    tfinal::Float64 = p.tfinal,
+    dt::Float64 = p.dt,
+    cfl::Float64 = p.cfl,
+    severity::Float64 = p.severity,
+    rmax::Float64 = p.rmax,
+    rho::Float64 = p.rho,
+    nu::Float64 = p.nu,
+    young::Float64 = p.young,
+    wall_h::Float64 = p.wall_h,
+    sigma::Float64 = p.sigma,
+    alpha::Float64 = p.alpha,
+    inlet_umax::Float64 = p.inlet_umax,
+)
     return Params(
         nx=nx,
-        length_cm=p.length_cm,
-        tfinal=p.tfinal,
-        dt=p.dt,
-        cfl=p.cfl,
+        length_cm=length_cm,
+        tfinal=tfinal,
+        dt=dt,
+        cfl=cfl,
         severity=severity,
-        rmax=p.rmax,
-        rho=p.rho,
-        nu=p.nu,
-        young=p.young,
-        wall_h=p.wall_h,
-        sigma=p.sigma,
-        alpha=p.alpha,
-        inlet_umax=p.inlet_umax,
+        rmax=rmax,
+        rho=rho,
+        nu=nu,
+        young=young,
+        wall_h=wall_h,
+        sigma=sigma,
+        alpha=alpha,
+        inlet_umax=inlet_umax,
     )
 end
 

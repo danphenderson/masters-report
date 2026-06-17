@@ -148,13 +148,22 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
 
         $s_{\max}$ & maximum fractional radius-reduction parameter in $s(z)$ & $-$ \\
 
-        $z_c$ & preferred notation for center of the stenosis profile & $\mathrm{m}$ \\
+        $g(z)$ & smooth asymmetric stenosis-kernel coordinate & $\mathrm{m}$ \\
 
-        $z_s$ & alias for center of the stenosis profile used in legacy figures or prior notation & $\mathrm{m}$ \\
+        $\psi(z)=\exp(-\lambda g(z)^4)$
+            & smooth rapidly localized stenosis kernel used by the baseline
+            profile $s(z)=s_{\max}\psi(z)$
+            & $-$ \\
 
-        $\ell_s$ & preferred notation for length of the stenosis profile & $\mathrm{m}$ \\
+        $z_a$ & center of the Gaussian asymmetry term in $g(z)$ & $\mathrm{m}$ \\
 
-        $L_s$ & alias for length of the stenosis profile used in legacy figures or prior notation & $\mathrm{m}$ \\
+        $z_s$ & axial shift parameter in $g(z)$ & $\mathrm{m}$ \\
+
+        $\sigma_a$ & width parameter for the Gaussian asymmetry term in $g(z)$ & $\mathrm{m}$ \\
+
+        $\kappa$ & amplitude of the Gaussian asymmetry term in $g(z)$ & $\mathrm{m}$ \\
+
+        $\lambda$ & localization strength in $\psi(z)=\exp(-\lambda g(z)^4)$ & $\mathrm{m}^{-4}$ \\
 
         $\beta(z)$ & wall-stiffness parameter in
         $p_{\mathrm{g}}=p_{\mathrm{ext}}+\beta A_0^{-1}(\sqrt A-\sqrt{A_0})$ & $\mathrm{Pa}\cdot\mathrm{m}$ \\

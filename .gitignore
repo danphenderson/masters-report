@@ -209,3 +209,4 @@ notes/notes.synctex(busy)
 # Julia simulation runtime/output
 .julia_depot/
 simulations/output/
+simulations/data/3d/
