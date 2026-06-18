@@ -436,7 +436,7 @@ independent replacements for the blood-dynamics setting above.
     pressure and velocity trends unless additional variable-radius terms are
     included \cite[Abstract; Secs.~1--2]{CanicEtAl2024Extended1DStenosis}.
     Those corrections motivate later comparison questions, but they are not
-    active in the baseline model unless a separate closure identifier and
+    included in the baseline model unless a separate closure identifier and
     numerical contract are declared.
 \end{remark}
 
@@ -500,7 +500,7 @@ independent replacements for the blood-dynamics setting above.
     \end{flalign*}
     The wall/FSI descriptor $\mathcal W$ determines the pressure--area law,
     elastic potential, wave speed, and geometry source; the rheology descriptor
-    $\mathcal R$ determines the viscosity or friction hook. A resolved FSI
+    $\mathcal R$ determines the viscosity or friction closure. A resolved FSI
     model is therefore not obtained by merely relabeling
     $S_{\mathrm{geom}}$: it introduces structural state and interface laws.
     The displayed split records the balance-law objects needed by finite-volume

@@ -1,13 +1,12 @@
 \section{Code Availability and Build Statement}
 \label{app:code-and-ai-use}
 
-This report is built from the local \LaTeX{} sources rooted at
+This report is built from the \LaTeX{} sources rooted at
 \texttt{final-report.tex}. The compiled PDF should be treated as the rendered
-form of those sources. The local checkout used for this report is rooted at
-\path{/Users/doe/hemodynamics/masters-report}. The parent checkout for this
-report-source update was git commit \texttt{019fa39}. No git remote is
-configured in this checkout, so this appendix does not claim a public repository
-or archival URL.
+form of those sources. The report package used for this build is rooted at
+\path{/Users/doe/hemodynamics/masters-report}. Because no public remote or
+archival release is declared here, this appendix does not claim a public
+repository or archival URL.
 
 The Julia simulation code is packaged as \path{CanicExtended1D} in the root
 Julia project. The tracked source inventory is:
@@ -54,19 +53,18 @@ run_available_resolved3d_comparison(
 )
 \end{lstlisting}
 
-The Section~\ref{sec:resolved-3d-comparison} comparison record is the ignored
-local directory
+The Section~\ref{sec:resolved-3d-comparison} comparison artifact is the
+non-archived directory
 \path{simulations/output/3d_comparison/full_t1_native_nx400/}. The command
-shape for regenerating the available comparison, when the ignored raw 3D inputs
-are restored, is:
+shape for regenerating the comparison, when the raw 3D inputs are restored, is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 ./scripts/julia-release -e 'using CanicExtended1D; run_available_resolved3d_comparison(output_dir="simulations/output/3d_comparison/full_t1_native_nx400", overwrite=true)'
 \end{lstlisting}
 
 The raw upstream XDMF/HDF5 inputs under
-\path{simulations/data/3d/canic_case3/} are ignored by git and are absent from
-this checkout. Therefore the comparison is not independently reproducible from
-the tracked report package alone. The tracked static data copied into the PDF
+\path{simulations/data/3d/canic_case3/} are not archived in this report package.
+Therefore the comparison is not independently reproducible from the tracked
+report package alone. The tracked static data copied into the PDF
 has the following SHA-256 hashes:
 \begin{center}
 \scriptsize
@@ -87,14 +85,14 @@ has the following SHA-256 hashes:
 \end{tabularx}
 \end{center}
 
-The ignored local comparison record observed in this checkout contains the
-following output hashes; these files are local evidence, not tracked archive
-contents:
+The non-archived comparison artifact observed for this build contains the
+following output hashes; these files are provenance evidence, not tracked
+archive contents:
 \begin{center}
 \scriptsize
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\ttfamily\raggedright\arraybackslash}X@{}}
 \toprule
-\textbf{Ignored record file} & \textbf{SHA-256} \\
+\textbf{Generated artifact file} & \textbf{SHA-256} \\
 \midrule
 \path{comparison_summary.csv}
 & 8dbb4eb5f6e9fa369fa1a4bf215ff2c3\newline

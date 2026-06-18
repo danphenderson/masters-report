@@ -1,4 +1,4 @@
-\section{Introduction and Report Scope}
+\section{Introduction}
 \label{sec:intro}
 
 Coronary and arterial stenoses motivate a basic computational question: how do
@@ -30,23 +30,26 @@ are included to fix the output vocabulary for subsequent reduced-order studies.
 
 
 
-\subsection*{Report Roadmap}
+\subsection*{Literature Review Roadmap}
 
-\addcontentsline{toc}{subsection}{Report Roadmap}
+\addcontentsline{toc}{subsection}{Literature Review Roadmap}
 
-Section~\ref{subsec:continuum-constitutive-assumptions} fixes the continuum,
+\begin{itemize}
+    \item Section~\ref{subsec:continuum-constitutive-assumptions} fixes the continuum,
 kinematic, balance-law, and constitutive assumptions used throughout the report.
-Section~\ref{subsec:governing-equations-model-hierarchy} states the governing
+    \item Section~\ref{subsec:governing-equations-model-hierarchy} states the governing
 incompressible Navier--Stokes and generalized-Newtonian setting and then records
 the selected one-dimensional area--flow reduction.
-Section~\ref{subsec:model-hierarchy-comparison-boundary} places 0D, 1D, 2D,
+    \item Section~\ref{subsec:model-hierarchy-comparison-boundary} places 0D, 1D, 2D,
 3D, and multiscale models into a comparison hierarchy and clarifies what each
 tier can and cannot support. Section~\ref{subsec:pressure-flow-motivation}
 motivates pressure-drop, pressure-ratio, and shear-output conventions from the
-clinical anatomy--function distinction. Section~\ref{sec:resolved-3d-comparison}
-reports the preliminary resolved-velocity diagnostic at $T=1$.
-Section~\ref{sec:conclusions-limitations} summarizes the limitations and
-identifies the next evidence needed for stronger pressure--flow claims.
+clinical anatomy--function distinction.
+    \item Section~\ref{sec:resolved-3d-comparison} reports the preliminary
+resolved-velocity diagnostic at $T=1$. Section~\ref{sec:conclusions-limitations}
+summarizes the limitations and identifies the next evidence needed for stronger
+pressure--flow claims.
+\end{itemize}
 
 \input{sections/01-intro/blood-continuum}
 \input{sections/01-intro/governing-equations}

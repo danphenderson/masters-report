@@ -1,10 +1,11 @@
 \section{Numerical Methods Details}
 \label{app:numerical-methods-details}
 This appendix supplies the numerical-method detail behind
-Sec.~\ref{subsubsec:cross-sectional-reduction-selected-1d-model} and the
-comparison boundary in Sec.~\ref{subsec:model-hierarchy-comparison-boundary}. It is supporting
-method detail, not a claim that the active solver record has external-solver
-parity.
+Section~\ref{subsubsec:cross-sectional-reduction-selected-1d-model} and the
+comparison boundary in
+Section~\ref{subsec:model-hierarchy-comparison-boundary}. It is supporting
+method detail, not a claim of external-solver parity for the implemented
+solver.
 The continuous identities are read under
 Convention~\ref{conv:foundation-standing-regularity}; computed quantities are
 read through the following numerical-record convention.
@@ -96,15 +97,14 @@ $\Psi$ are continuum notation for the model contract. A computed record may
 realize them through explicitly recorded finite-difference or source-split
 operators; changing that realization changes the computed map.
 
-\subsection{Recorded semi-discrete solver operator}
+\subsection{Semi-discrete solver operator}
 \label{app:num-current-solver-operator}
 
-The active solver record uses the code variable $A$ for a radius-squared area
-coordinate. In this subsection write that coordinate as $a=R^2$. The
+The implemented solver stores a radius-squared area coordinate in the variable
+\texttt{A}. In this subsection write that coordinate as $a=R^2$. The
 physical circular cross-sectional area is
-$A_{\mathrm{phys}}=\pi a$. This is a local convention for the active solver
-record; the continuum and classical 1D model sections keep $A$ for physical
-cross-sectional area.
+$A_{\mathrm{phys}}=\pi a$. This is a solver-specific convention; the continuum
+and classical 1D model sections keep $A$ for physical cross-sectional area.
 
 For $N$ finite-volume cells, let
 \begin{flalign*}
@@ -134,12 +134,12 @@ parameters. Componentwise,
     \frac{\widehat F^Q_{i+1/2}-\widehat F^Q_{i-1/2}}{\Delta z}
     +\widehat S_i. &&
 \end{flalign*}
-All divisions by $a$ in the active solver record use the recorded positive-area
-floor.
+All divisions by $a$ use the positivity-regularized value of the
+radius-squared area coordinate.
 
 With $K=Eh/(1-\sigma^2)$, velocity-profile momentum factor
 $\alpha_{\mathcal P}$, and
-$\alpha_c(R_0')=-2(R_0')^2/35$, the recorded full-state flux is
+$\alpha_c(R_0')=-2(R_0')^2/35$, the semi-discrete full-state flux is
 \begin{flalign*}
     \quad
     \mathbf F(a,Q,z)
@@ -164,8 +164,8 @@ At each interface,
     \frac{1}{2}s_{i+1/2}
     \left(\mathbf U^+_{i+1/2}-\mathbf U^-_{i+1/2}\right), &&
 \end{flalign*}
-where $\mathbf U=(a,Q)^\top$ and the active solver record uses neighboring
-first-order states plus ghost boundary states. The recorded local speed is
+where $\mathbf U=(a,Q)^\top$ and the finite-volume realization uses neighboring
+first-order states plus ghost boundary states. The local numerical speed is
 \begin{flalign*}
     \quad
     s_{i+1/2}
@@ -197,7 +197,7 @@ with
     +\frac{K}{2\rho R_{\max}^2}\sqrt a. &&
 \end{flalign*}
 
-The source term uses the recorded centered interior and one-sided boundary
+The source term uses the specified centered interior and one-sided boundary
 difference $D_z^h$ on the cell averages. Let $g_{\mathcal P}$ denote the
 profile shear factor,
 \[
@@ -238,17 +238,17 @@ $\alpha_c'(z)=-4R_0'(z)R_0''(z)/35$. The implemented source is
 \end{flalign*}
 For the \texttt{newtonian} descriptor, this reduces to the constant value
 $\nu_{\mathrm{eff},i}^{\mathcal R}=\nu$. For the non-Newtonian closures,
-the code applies the recorded shear-rate floor and optional minimum/maximum
-dynamic viscosity clamps before dividing by density.
+the effective viscosity is evaluated with the shear-rate regularization and any
+declared interval projection before division by density.
 For the power-family profile,
 $g_{\mathcal P}=\gamma+2=\alpha_{\mathcal P}/(\alpha_{\mathcal P}-1)$.
-The flat profile is not evaluated through that singular limit; it records
+The flat profile is not evaluated through that singular limit; it is assigned
 $\alpha_{\mathcal P}=1$ and an explicit finite $g_{\mathcal P}$.
 
-\subsection{Time and backend realization}
-\label{app:num-time-backend-realization}
+\subsection{Time-integration realization}
+\label{app:num-time-integration-realization}
 
-The native backend advances the semi-discrete operator with the recorded
+The native time integrator advances the semi-discrete operator with the declared
 third-order strong-stability-preserving Runge--Kutta map
 \begin{flalign*}
     \quad
@@ -286,17 +286,17 @@ The native step size is
         T_{\mathrm{final}}-t^n
     \right\}. &&
 \end{flalign*}
-The SciML backend constructs an \texttt{ODEProblem} for the same
+The SciML realization constructs an \texttt{ODEProblem} for the same
 $\dot u_h=\mathcal L_h(u_h,t;\theta)$ and applies the selected
-OrdinaryDiffEq policy recorded in the solve specification. Thus backend
-comparisons change the time integrator, not the semi-discrete spatial
-operator.
+OrdinaryDiffEq policy recorded in the solve specification. Thus comparisons
+between these realizations change the time integrator, not the semi-discrete
+spatial operator.
 
 \subsection{Boundary-state realization}
 \label{app:num-boundary-state-realization}
 
-The active finite-volume record imposes one incoming boundary condition at each
-boundary in the subcritical regime using the code's Riemann-invariant
+The finite-volume boundary realization imposes one incoming boundary condition
+at each boundary in the subcritical regime using a Riemann-invariant
 construction. Let
 \begin{flalign*}
     \quad

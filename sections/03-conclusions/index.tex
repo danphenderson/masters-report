@@ -16,20 +16,21 @@ two included idealized cases at $T=1$, the 1D solution gives broadly similar
 upstream and downstream velocity trends but overpredicts the near-throat
 velocity, especially for the 40\% case. The largest errors are therefore not a
 minor plotting discrepancy; they occur in the region where the reduced velocity
-closure, boundary realization, and simple node-slab 3D post-processing operator
-are least interchangeable.
+closure, boundary realization, and node-slab 3D post-processing operator are
+least interchangeable.
 
-The comparison does not validate the 1D model against resolved 3D flow, does
-not establish clinical validity, and does not demonstrate pressure-drop or
-pressure-ratio accuracy. It is a preliminary velocity diagnostic for a local
-record whose raw XDMF/HDF5 inputs are not present in the checkout. The
+The comparison does not establish 1D accuracy against resolved 3D flow, does
+not supply clinical pressure evidence, and does not demonstrate pressure-drop
+or pressure-ratio accuracy. It is a preliminary velocity diagnostic whose raw
+XDMF/HDF5 inputs are not archived in the report package. The
 pressure-ratio and shear-proxy conventions are included to fix the output
 vocabulary for later reduced-order studies, not as completed numerical evidence
 in this report.
 
 A stronger follow-up comparison would restore or archive the raw 3D inputs,
-record source hashes or release identifiers, preserve per-run diagnostics such
+archive source hashes or release identifiers, preserve per-run diagnostics such
 as time-step counts, CFL extrema, positivity checks, and residual summaries,
-and then vary one declared closure or boundary choice at a time. That study
-would also need pressure-drop and pressure-ratio outputs if the clinical
-motivation is to be tested rather than only framed.
+and then vary one declared closure or boundary choice at a time. A later
+pressure-focused study would also need declared pressure-drop and
+pressure-ratio outputs, plus an external comparison record if the clinical
+motivation is to be evaluated rather than only framed.

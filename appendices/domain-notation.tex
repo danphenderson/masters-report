@@ -12,9 +12,9 @@ $\mathrm{m}^2/\mathrm{s}$.
 \begin{convention}[Centimeter--second numerical-record convention]
 \label{conv:cm-second-numerical-record}
 The SI convention above governs continuum notation and unqualified analytical
-parameters. The active Julia solver records and the
+parameters. The Julia solver outputs and the
 Section~\ref{sec:resolved-3d-comparison} tables instead use the
-centimeter--gram--second numerical convention inherited from the implementation:
+centimeter--gram--second convention of the numerical realization:
 lengths are in $\mathrm{cm}$, time in $\mathrm{s}$, density in
 $\mathrm{g}/\mathrm{cm}^3$, velocity in $\mathrm{cm}/\mathrm{s}$, pressure
 and stress in $\mathrm{dyn}/\mathrm{cm}^2$, dynamic viscosity in
@@ -23,36 +23,39 @@ and kinematic viscosity in $\mathrm{cm}^2/\mathrm{s}$. Thus the default
 solver geometry parameters $L$, $R_{\max}$, $z_a$, $z_s$,
 $\sigma_a$, and $\kappa$ are centimeter quantities, while the stenosis
 localization $\lambda$ in $\exp(-\lambda g^4)$ has units
-$\mathrm{cm}^{-4}$. The active solver state coordinate $a=R^2$ has units
+$\mathrm{cm}^{-4}$. The radius-squared solver state coordinate $a=R^2$ has units
 $\mathrm{cm}^2$; when a physical circular area is meant it is
 $A_{\mathrm{phys}}=\pi a$, also reported in square centimeters.
 
 Output fields carry their display units in their names. In particular,
 \texttt{z\_cm} and \texttt{R0\_cm} are geometry fields, \texttt{A\_cm2} is the
-recorded area-coordinate field in $\mathrm{cm}^2$, and \texttt{Q\_cm3\_s} is
+area-coordinate field in $\mathrm{cm}^2$, and \texttt{Q\_cm3\_s} is
 the flow-coordinate field paired with $a$ in nominal $\mathrm{cm}^3/\mathrm{s}$.
-For the active radius-squared solver convention, the corresponding physical
+For the radius-squared solver convention, the corresponding physical
 circular-area flow is $Q_{\mathrm{phys}}=\pi Q$, while
-\texttt{uavg\_cm\_s} records
+\texttt{uavg\_cm\_s} denotes
 $Q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$. The
 Section~\ref{sec:resolved-3d-comparison} velocity/error columns are in
 $\mathrm{cm}/\mathrm{s}$, \texttt{pressure\_dyn\_cm2} and initial-condition
 pressure-drop fields are in $\mathrm{dyn}/\mathrm{cm}^2$, and
 \texttt{nu\_eff\_cm2\_s} is in $\mathrm{cm}^2/\mathrm{s}$. A pressure supplied
 through a Pa-valued command-line option is converted before storage using
-$1\,\mathrm{Pa}=10\,\mathrm{dyn}/\mathrm{cm}^2$. Any value from a numerical
-record used in an SI formula must first be converted; for example
+$1\,\mathrm{Pa}=10\,\mathrm{dyn}/\mathrm{cm}^2$. Any numerical-output value
+used in an SI formula must first be converted; for example
 $1\,\mathrm{cm}=10^{-2}\,\mathrm{m}$,
 $1\,\mathrm{cm}^2/\mathrm{s}=10^{-4}\,\mathrm{m}^2/\mathrm{s}$,
 $1\,\mathrm{g}/(\mathrm{cm}\,\mathrm{s})=10^{-1}\,\mathrm{Pa}\cdot\mathrm{s}$,
 and $1\,\mathrm{dyn}/\mathrm{cm}^2=10^{-1}\,\mathrm{Pa}$.
 \end{convention}
 
-\begin{convention}[Pressure-reference and ratio convention]
+\begin{convention}[Pressure-output convention]
 \label{conv:appendix-pressure-reference-ratio}
-Pressure-ratio outputs are reported only with a ratio-output specification that
-declares proximal and distal scalar pressure observations, a time-averaging
-window, and a pressure reference. The general specification is
+Pressure-drop and pressure-ratio quantities are reduced output vocabulary. A
+pressure-drop trace requires proximal and distal scalar pressure observations,
+and a pressure-ratio output is reported only with a ratio-output specification
+that declares proximal and distal scalar pressure observations, a time-averaging
+window, a pressure reference, and the denominator admissibility condition below.
+The general ratio-output specification is
 \begin{flalign*}
     \quad
     \pi_{\mathrm{PR}}
@@ -64,8 +67,9 @@ window, and a pressure reference. The general specification is
 \end{flalign*}
 Here $\mathcal O_{\mathrm{prox}}$ and $\mathcal O_{\mathrm{dist}}$ are the
 declared scalar observation maps applied to the gauge-pressure field
-$p_{\mathrm g}$, and $p_{\mathrm{ref}}$ is recorded in the same reference
-frame as $p_{\mathrm g}$. In the 1D axial-tap or cross-sectional
+$p_{\mathrm g}$, and $p_{\mathrm{ref}}$ is the fixed scalar pressure reference
+added to observed gauge-pressure traces before forming the ratio. In the 1D
+axial-tap or cross-sectional
 pressure-average specialization, this report may use the shorthand
 \begin{flalign*}
     \quad
@@ -95,7 +99,7 @@ The corresponding pressure-drop trace is
     \defined
     P_{\mathrm{prox}}(t)-P_{\mathrm{dist}}(t). &&
 \end{flalign*}
-A pressure ratio is not invariant under additive pressure shifts. The
+A pressure ratio is not invariant under common additive pressure shifts. The
 reference-consistent ratio traces are therefore defined after observation:
 \begin{flalign*}
     \quad
@@ -123,8 +127,8 @@ ratio-pressure traces are integrable on that window, and
     \rangle_{\mathcal{T}_{\mathrm{HF}}}
     \ne 0. &&
 \end{flalign*}
-For an admissible $\pi_{\mathrm{PR}}$, the corresponding nonclinical
-pressure ratio is
+For an admissible $\pi_{\mathrm{PR}}$, the corresponding reduced
+pressure-ratio output is
 \begin{flalign*}
     \quad \mathrm{PR}_{1D}(\pi_{\mathrm{PR}}) \defined
     \frac{\langle P_{\mathrm{dist}}^{\mathrm{ratio}}(t)\rangle_{\mathcal{T}_{\mathrm{HF}}}}
@@ -144,7 +148,7 @@ measurement model
 absent or inadmissible, the pressure ratio is outside the reported output space.
 \end{convention}
 
-\begin{convention}[Shear-diagnostic convention]
+\begin{convention}[Shear-output convention]
 \label{conv:appendix-shear-diagnostic}
 Shear terminology is model-tier dependent. A resolved wall shear stress output
 requires a resolved stress tensor, wall normal, wall location, output operator,
@@ -154,7 +158,8 @@ reduced shear proxy such as $\tau_{w,z}^{1D}$ requires the model tier, wall
 closure, rheology descriptor, velocity-profile or friction closure, evaluation
 location or spatial averaging operator, and sign or time-window convention.
 Reduced shear proxies are closure diagnostics; they are not interchangeable with
-resolved traction-based WSS unless a separate comparison map is declared.
+resolved traction-based wall shear stress unless a separate comparison map is
+declared.
 \end{convention}
 
 
@@ -233,13 +238,13 @@ resolved traction-based WSS unless a separate comparison map is declared.
 
         $\mathcal P$
             & cross-sectional velocity-profile descriptor used by the 1D
-            closure; admitted implementation values include flat, parabolic,
-            and power-family profiles
+            closure; admitted values include flat, parabolic, and
+            power-family profiles
             & mixed \\
 
         $\alpha_{\mathcal P}$
-            & momentum-flux correction induced by the recorded profile
-            $\mathcal P$; the parabolic default uses
+            & momentum-flux correction induced by the declared profile
+            $\mathcal P$; the parabolic baseline uses
             $\alpha_{\mathcal P}=4/3$
             & $-$ \\
 
@@ -251,7 +256,7 @@ resolved traction-based WSS unless a separate comparison map is declared.
         $g_{\mathcal P}$
             & profile shear-rate factor used by the 1D rheology proxy; for
             power profiles $g_{\mathcal P}=\gamma+2$, while flat profiles
-            record this value explicitly
+            assign this value explicitly
             & $-$ \\
 
         $R(A(z,t))=\sqrt{A(z,t)/\pi}$
@@ -264,8 +269,8 @@ resolved traction-based WSS unless a separate comparison map is declared.
 
         $\mathcal R$
             & rheology descriptor in $a_{1D}$; distinct from radius symbols
-            $R$, $R_0$, and $R_{\mathrm{base}}$; admitted implementation
-            values are \texttt{newtonian}, \texttt{carreau},
+            $R$, $R_0$, and $R_{\mathrm{base}}$; admitted values are
+            \texttt{newtonian}, \texttt{carreau},
             \texttt{carreau-yasuda}, \texttt{casson}, and \texttt{power-law}
             & mixed \\
 
@@ -342,13 +347,13 @@ resolved traction-based WSS unless a separate comparison map is declared.
             & $\mathrm{m},\mathrm{s}$ \\
 
         $\dot\gamma_{1D}$
-            & implementation shear-rate proxy
+            & computed shear-rate proxy
             $g_{\mathcal P} |Q|/(a\sqrt a)$, where $a=R^2$
             & $\mathrm{s}^{-1}$ \\
 
         $\nu_{\mathrm{eff}}^{\mathcal R}$
             & closure-indexed effective kinematic viscosity used in the
-            current reduced viscous/source and pressure-correction terms
+            reduced viscous/source and pressure-correction terms
             & $\mathrm{m}^2/\mathrm{s}$ \\
 
         $C_f$ or $C_f(z,A)$ & wall-friction coefficient in the 1D source
@@ -357,10 +362,10 @@ resolved traction-based WSS unless a separate comparison map is declared.
         $\eta_{\mathrm{fric}}(z,t)$
             & dynamic viscosity used by the reduced wall-friction and
             signed-shear-proxy formula; $\eta_{\mathrm{fric}}=\eta$ for
-            constant-viscosity records and
+            constant-viscosity realizations and
             $\eta_{\mathrm{fric}}=\eta_{\mathrm{eff}}^{\mathcal R}
             (\dot\gamma_{1D})$ for admitted non-Newtonian descriptor
-            records
+            realizations
             & $\mathrm{Pa}\cdot\mathrm{s}$ \\
 
         $c_{\mathrm{wave}}$ or $c$ & 1D pulse-wave speed,
@@ -413,6 +418,11 @@ resolved traction-based WSS unless a separate comparison map is declared.
             for pressure-drop or pressure-ratio outputs
             & input/output $\mathrm{Pa}$ \\
 
+        $P_{\mathrm{prox}},P_{\mathrm{dist}}$
+            & observed proximal and distal gauge-pressure traces after applying
+            the declared pressure observation maps
+            & $\mathrm{Pa}$ \\
+
         $P_{\mathrm{prox}}^{\mathrm{ratio}},
         P_{\mathrm{dist}}^{\mathrm{ratio}}$
             & observed proximal and distal pressure traces after adding
@@ -428,7 +438,7 @@ resolved traction-based WSS unless a separate comparison map is declared.
             & ratio-output specification
             $(\mathcal O_{\mathrm{prox}},
             \mathcal O_{\mathrm{dist}},\mathcal{T}_{\mathrm{HF}},
-            p_{\mathrm{ref}})$; axial taps may be recorded by shorthand
+            p_{\mathrm{ref}})$; axial taps may be specified by shorthand
             & mixed \\
 
         $\langle f\rangle_{\mathcal{T}_{\mathrm{HF}}}$
@@ -436,6 +446,11 @@ resolved traction-based WSS unless a separate comparison map is declared.
             window; not the Appendix~\ref{app:mathematical-notation} inner
             product
             & same as $f$ \\
+
+        $\langle P_{\mathrm{prox}}^{\mathrm{ratio}}\rangle_{\mathcal{T}_{\mathrm{HF}}}\ne0$
+            & denominator admissibility condition required before
+            $\mathrm{PR}_{1D}$ is reported
+            & $-$ \\
 
         $p_{\mathrm{out},\mathrm{g}}$
             & prescribed outlet gauge pressure in the same reference frame as
@@ -448,7 +463,7 @@ resolved traction-based WSS unless a separate comparison map is declared.
             & $\mathrm{Pa}$ \\
 
         $\overline{\Delta p}_{\mathcal{T}_{\mathrm{HF}}}$
-            & scalar pressure-drop output averaged over recorded high-flow
+            & scalar pressure-drop output averaged over the declared high-flow
             window $\mathcal{T}_{\mathrm{HF}}$
             & $\mathrm{Pa}$ \\
 
@@ -459,13 +474,13 @@ resolved traction-based WSS unless a separate comparison map is declared.
             & $-$ \\
 
         $\mathrm{PR}_{1D}(\pi_{\mathrm{PR}})$
-            & nonclinical pressure-ratio output under the declared observation
+            & reduced pressure-ratio output under the declared observation
             maps, pressure reference, and averaging window
             & $-$ \\
 
         $\tau_w$ or $|\tau_w|$
-            & resolved traction-based WSS output after declaring the stress
-            tensor, wall normal, location, and output operator
+            & resolved traction-based wall-shear-stress output after declaring
+            the stress tensor, wall normal, location, and output operator
             & $\mathrm{Pa}$ \\
 
         $\tau_{w,z}^{1D}$
@@ -474,17 +489,17 @@ resolved traction-based WSS unless a separate comparison map is declared.
             & $\mathrm{Pa}$ \\
 
         \texttt{shear\_rate\_1\_s}
-            & CSV output field for the implementation shear-rate proxy
+            & CSV output field for the computed shear-rate proxy
             $\dot\gamma_{1D}$
             & $\mathrm{s}^{-1}$ \\
 
         \texttt{nu\_eff\_cm2\_s}
             & CSV output field for the effective kinematic viscosity used by
-            the recorded rheology closure
+            the declared rheology closure
             & $\mathrm{cm}^2/\mathrm{s}$ \\
 
         \texttt{rheology}
-            & CSV and summary output field naming the recorded rheology
+            & CSV and summary output field naming the declared rheology
             descriptor
             & $-$ \\
         \bottomrule

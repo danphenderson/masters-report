@@ -14,7 +14,7 @@ not by themselves define a pressure--flow output
 \cite[Abstract; Methods]{VanDenHoogenEtAl2022CoronaryLesionCTA}. This
 anatomy--function split motivates reporting pressure drop and reduced pressure
 ratio under declared observation and reference conventions, rather than treating
-stenosis severity $s_{\max}$ alone as the modeled functional output.
+stenosis severity $s_{\max}$ alone as the reported reduced output.
 Section~\ref{sec:resolved-3d-comparison} reports velocity diagnostics only; the
 pressure-drop and pressure-ratio conventions fix reduced-output vocabulary for
 the model framework.
@@ -35,6 +35,10 @@ pressure--flow quantities from coronary computed tomography angiography
 reference measurements
 \cite[Abstract; Methods]{NorgaardEtAl2014NXTFFRCT}
 \cite[Secs.~1.1--1.2]{ShaikhEtAl2025CTFFR}.
+Those clinical settings motivate the output vocabulary but are not reproduced
+by the completed numerical study in this report. The reduced pressure ratio
+$\mathrm{PR}_{1D}$ is therefore a convention-governed model output, not a
+reported FFR, CT-FFR, or pressure-measurement comparison.
 
 \begin{figure}[!htbp]
     \centering
@@ -59,20 +63,24 @@ maps:
     \defined
     \mathcal O_{\mathrm{dist}}[p_{\mathrm g}(\cdot,t)]. &&
 \end{flalign*}
-The pressure-drop waveform is invariant under additive pressure shifts:
+The pressure-drop trace is invariant under common additive pressure shifts:
 \begin{flalign*}
     \quad
     \Delta p(t)
     \defined
     P_{\mathrm{prox}}(t)-P_{\mathrm{dist}}(t). &&
 \end{flalign*}
-Unlike $\Delta p(t)$, a pressure ratio is not invariant under additive pressure
-shifts, so a reduced pressure-ratio output must also declare its pressure
-reference, averaging window, observation maps, and denominator admissibility.
+Unlike $\Delta p(t)$, a pressure ratio depends on the pressure reference used
+before forming the numerator and denominator. A reduced pressure-ratio output
+must therefore declare its proximal and distal observation maps, pressure
+reference, averaging window, and denominator admissibility.
 Convention~\ref{conv:appendix-pressure-reference-ratio} records those
 requirements and the trace-level definition of
-$\mathrm{PR}_{1D}(\pi_{\mathrm{PR}})$. Figure~\ref{fig:pressure-tap-convention}
-shows the corresponding axial-tap shorthand for an idealized 1D stenosis.
+$\mathrm{PR}_{1D}(\pi_{\mathrm{PR}})$. Its high-flow averaging window is a
+recorded output window, not a clinical hyperemia model unless an external
+measurement comparison is separately specified.
+Figure~\ref{fig:pressure-tap-convention} shows the corresponding axial-tap
+shorthand for an idealized 1D stenosis.
 
 \begin{figure}[!htb]
     \centering
@@ -87,11 +95,12 @@ shows the corresponding axial-tap shorthand for an idealized 1D stenosis.
 \end{figure}
 
 \paragraph{Shear diagnostics.}
-Pressure drops and pressure ratios summarize lesion-scale pressure--flow loss.
-A resolved WSS output belongs to a resolved stress state and must declare the
-stress tensor, wall normal, wall location, output operator, and signed tangent
-direction when a signed component is reported
+Pressure drops and pressure ratios are lesion-scale pressure-output
+conventions. A resolved wall-shear-stress output belongs to a resolved stress
+state and must declare the stress tensor, wall normal, wall location, output
+operator, and signed tangent direction when a signed component is reported
 \cite[Abstract; Sec.~2, pp.~8--10]{JohnEtAl2017WallShearStressVectorForm}.
 Reduced shear proxies are model-tier diagnostics rather than clinical
 anatomy--function outputs; Convention~\ref{conv:appendix-shear-diagnostic}
-records the declaration requirements for comparisons with traction-based WSS.
+records the declaration requirements for comparisons with traction-based wall
+shear stress.

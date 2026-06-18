@@ -291,28 +291,37 @@ viscosity; dividing by density gives the corresponding kinematic viscosity.
 The Newtonian incompressible model is recovered from this generalized
 Newtonian form when $\eta_{\mathrm{eff}}$ is constant.
 
-\begin{definition}[Numerical-record rheology closures]
+\begin{definition}[Computed rheology closures]
     \label{def:rheology-closure-catalog}
-    The numerical record uses the rheology descriptor $\mathcal R$ to choose
+    A computed 1D realization uses the rheology descriptor $\mathcal R$ to choose
     the scalar effective dynamic viscosity law
     $\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma)$. Its admitted values are
     \texttt{newtonian}, \texttt{carreau}, \texttt{carreau-yasuda},
-    \texttt{casson}, and \texttt{power-law}. This catalog records pointwise
+    \texttt{casson}, and \texttt{power-law}. This catalog states pointwise
     scalar dynamic-viscosity laws only; Assumption~\ref{ass:1d-first-run-alpha-friction}
-    states how the reduced 1D implementation evaluates them as an effective
-    kinematic-viscosity hook. For computed records, all non-Newtonian laws are
-    evaluated at the positive shear-rate argument
+    states how the reduced 1D model evaluates them as a closure-indexed
+    effective kinematic viscosity. For computed realizations, all
+    non-Newtonian laws are evaluated at the positive regularized shear rate
     \begin{flalign*}
         \quad
         \dot\gamma_\epsilon\defined\max\{|\dot\gamma|,\epsilon_\gamma\},
         \qquad \epsilon_\gamma>0,\qquad [\epsilon_\gamma]=\mathrm{s}^{-1}. &&
     \end{flalign*}
-    The same floor is used for Casson and power-law records, where the formulas
-    are singular or degenerate at zero shear for common parameter ranges.
-    Optional dynamic-viscosity clamps satisfy
-    $0\leq\eta_{\min}\leq\eta_{\max}\leq\infty$ with
-    $\eta_{\max}>0$; the clamp is applied after evaluating the displayed
-    model law.
+    This positive regularization is required for the Casson and power-law
+    families when their zero-shear limits are singular or degenerate. If
+    dynamic-viscosity bounds are declared, they satisfy
+    $0\leq\eta_{\min}\leq\eta_{\max}\leq\infty$ with $\eta_{\max}>0$ and define
+    the interval projection
+    \begin{flalign*}
+        \quad
+        \Pi_{[\eta_{\min},\eta_{\max}]}(\xi)
+        \defined
+        \min\{\eta_{\max},\max\{\eta_{\min},\xi\}\}. &&
+    \end{flalign*}
+    The bounded viscosity is then
+    $\Pi_{[\eta_{\min},\eta_{\max}]}
+    (\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma))$; without declared bounds,
+    this projection is the identity on the displayed model law.
     \begin{flalign*}
         \quad \eta_{\mathrm{eff}}^{\mathrm{newt}}
         &\equiv \eta, &&\\
@@ -352,17 +361,17 @@ Newtonian form when $\eta_{\mathrm{eff}}$ is constant.
     $\mathrm{Pa}\cdot\mathrm{s}$, $\lambda_{\mathrm C}$ and
     $\lambda_{\mathrm{CY}}$ have units $\mathrm{s}$, $\tau_y$ has units
     $\mathrm{Pa}$, and $K_{\mathrm{pl}}$ has units
-    $\mathrm{Pa}\cdot\mathrm{s}^{n_{\mathrm{pl}}}$. In the active cgs
-    numerical records of Convention~\ref{conv:cm-second-numerical-record}, the
+    $\mathrm{Pa}\cdot\mathrm{s}^{n_{\mathrm{pl}}}$. In the cgs numerical
+    convention of Convention~\ref{conv:cm-second-numerical-record}, the
     corresponding dynamic-viscosity parameters are in
     $\mathrm{g}/(\mathrm{cm}\,\mathrm{s})$, $\tau_y$ is in
     $\mathrm{dyn}/\mathrm{cm}^2$, and $K_{\mathrm{pl}}$ is in
     $\mathrm{dyn}\,\mathrm{s}^{n_{\mathrm{pl}}}/\mathrm{cm}^2$.
     The Yasuda transition exponent is denoted $a_{\mathrm Y}$ here so that it
     is not confused with the solver coordinate $a=R^2$ used in the reduced
-    numerical record.
+    numerical realization.
     The listed families are included as implemented generalized-Newtonian
-    viscosity options for the numerical-record
+    viscosity options for the computed-rheology
     catalog~\cite[Part~I, Ch.~1, Secs.~2.7--3.1, pp.~16--19]{GaldiEtAl2008HemodynamicalFlows}~\cite{KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}.
 \end{definition}
 
