@@ -137,6 +137,24 @@ available resolved 3D velocity datasets at $t=1.0$ s. The cases are labelled
 C23 and C40 by stenosis severity. They are computational cross-model
 diagnostics, not pressure-flow results and not clinical validation.
 
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \includegraphics[width=0.98\textwidth]{figures/static/static/rendered/resolved-3d-flow-field.pdf}
+    \caption{Resolved 3D node-centered axial velocity fields for the two
+    $T=1$ comparison cases used in Section~\ref{sec:resolved-3d-comparison}.
+    Panel (a) shows C23 with 22,691 loaded nodes; panel (b) shows C40 with
+    21,975 loaded nodes. The shared color scale makes the stronger
+    axial-velocity concentration in C40 visible. Sparse arrows indicate local
+    vector direction, and the transparent surface frames the 3D point cloud.
+    These are resolved velocity-data renderings, not the
+    stationary-Stokes pathline proxy or a pressure-drop, FFR, or
+    patient-specific clinical calibration measurement.}
+    \label{fig:stenosis-3d-reference-geometry}
+\end{figure}
+
+\FloatBarrier
+
 \begin{center}
 \fbox{\begin{minipage}{0.90\linewidth}
 \small
@@ -220,6 +238,8 @@ archives the generated CSV and PGFPlots-ready static data.
         \bottomrule
     \end{tabularx}
 \end{table}
+
+\FloatBarrier
 
 For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
 operator listed in Table~\ref{tab:t1-case-matching} intersects every

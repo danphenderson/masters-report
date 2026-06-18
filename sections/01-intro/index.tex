@@ -86,12 +86,13 @@ cross-model comparison only.
     \item Section~\ref{subsec:continuum-constitutive-assumptions} fixes the continuum,
 kinematic, balance-law, and constitutive assumptions used throughout the report.
     \item Section~\ref{subsec:governing-equations-model-hierarchy} states the governing
-incompressible Navier--Stokes and generalized-Newtonian setting and then records
-the selected one-dimensional area--flow reduction.
+incompressible Navier--Stokes and generalized-Newtonian setting in three
+dimensions, including boundary-data and well-posedness context.
     \item Section~\ref{subsec:model-hierarchy-comparison-boundary} places 3D,
 multiscale, 2D, 1D, and 0D models into a descending-dimension comparison
 hierarchy and clarifies what each tier can and cannot support.
-Section~\ref{subsec:pressure-flow-motivation}
+Section~\ref{subsec:selected-1d-forward-model} records the selected
+one-dimensional area--flow forward model. Section~\ref{subsec:pressure-flow-motivation}
 motivates pressure-drop, pressure-ratio, and shear-output conventions from the
 clinical anatomy--function distinction.
     \item Section~\ref{sec:resolved-3d-comparison} reports implementation
@@ -105,8 +106,9 @@ pressure--flow claims.
 \input{sections/01-intro/blood-continuum}
 \input{sections/01-intro/governing-equations}
 \input{sections/01-intro/model-hierarchy/index}
+\input{sections/01-intro/selected-1d-model}
 The pressure--flow motivation is stated after the continuum and model-hierarchy
-setup so that pressure-drop, pressure-ratio, and shear quantities are introduced
-as model outputs with declared conventions, not as clinical measurements or
-validation targets.
+setup and selected 1D contract so that pressure-drop, pressure-ratio, and shear
+quantities are introduced as model outputs with declared conventions, not as
+clinical measurements or validation targets.
 \input{sections/01-intro/pressure-flow-motivation}

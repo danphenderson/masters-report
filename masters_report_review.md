@@ -1,1129 +1,622 @@
-# Second Independent Editorial Review and Final Revision Plan
+Editorial assessment
 
-**Manuscript:** *Mathematical Simulation of Blood Flow: A Literature Review and Idealized Stenosis Study*
-**Author:** Daniel Henderson
-**Review basis:** Complete second reading of all 68 pages, including figures, tables, appendices, notation, numerical-method statements, and references.
+The manuscript has several strong foundations: it is unusually disciplined about claim boundaries, distinguishes reduced outputs from clinical quantities, documents the cross-section quadrature operator, and takes reproducibility seriously. The claim–evidence matrix on page 5 is especially effective.
 
-## Editorial judgment
+The manuscript nevertheless requires major revision before its mathematical and numerical claims are fully auditable. The most consequential mathematical issue is an internal inconsistency between the displayed pressure–area law and the elastic flux/source pair used by the solver. The main narrative issue is that the actual contribution—the extended 1D implementation and 3D velocity diagnostic—does not emerge until after roughly twenty pages of textbook-style continuum background. The report currently reads as four partially integrated documents: a continuum-mechanics primer, a model-hierarchy review, a software-verification report, and a preliminary cross-model study.
 
-The manuscript has a strong technical foundation and an unusually careful attitude toward scope, reproducibility, and overclaiming. Its most defensible contribution is not clinical hemodynamic prediction. It is a **mathematical model contract, a documented 1D implementation, a software-verification record, and a preliminary cross-model velocity diagnostic**.
+Review plan applied
 
-I recommend **major revision before final submission**, primarily because the present structure obscures that contribution and because several mathematical and numerical definitions do not yet connect cleanly enough to the implemented experiment. The necessary changes are achievable without turning the report into a new research project.
+I evaluated the manuscript in four passes:
 
-The strongest features to preserve are:
+1. Claim-to-evidence audit: whether each claim is supported by the reported analysis.
+2. Mathematical consistency audit: notation, dimensional consistency, derivations, closure assumptions, and agreement between the continuous model and implemented operator.
+3. Numerical-evidence audit: verification design, error metrics, boundary treatment, and cross-model comparison.
+4. Narrative audit: research focus, ordering, redundancy, literature synthesis, and the relationship between figures, results, and conclusions.
 
-- explicit distinctions among 0D, 1D, 2D, 3D, and FSI model roles;
-- disciplined separation of model outputs from clinical measurements;
-- unusually detailed unit and provenance conventions;
-- a reproducible Julia/Python benchmark pipeline;
-- candid reporting of large near-throat discrepancies rather than selective presentation.
+The revisions below are ordered by importance.
 
-The most important weaknesses are:
+I. Highest-priority mathematical revisions
 
-1. **The narrative promise and delivered evidence are misaligned.** Pressure ratio and FFR motivation receive substantial space, but the completed experiment is velocity-only.
-2. **The selected continuum/1D model is not fully bridged to the radius-squared extended solver.** The reader must infer how the wall law, physical area-flow equations, Canic corrections, and stored variables correspond.
-3. **The current 3D observation operator is not a physical cross-sectional mean.** Arithmetic averaging of mesh nodes produces a useful sampling diagnostic, but it should not be called a section mean without qualification.
-4. **Several numerical metrics and pass/fail labels are undefined.** This affects the interpretation of Tables 2-5 and Figures 11-15.
-5. **There are two substantive mathematical points requiring correction or qualification:** the strict-hyperbolicity statement for general alpha, and the use of alpha-equals-one Riemann invariants with an interior model using alpha greater than one.
-6. **The manuscript is over-formalized in the main body and over-documented in the appendices.** Definitions, conventions, code identifiers, future notation, and repeated disclaimers compete with the scientific argument.
+1. Resolve the pressure-law versus flux/source inconsistency
 
-## Recommended scope decision
+This is the most serious internal issue.
 
-The manuscript should make an explicit choice between two possible final identities.
+On page 22, Definition 1.29 gives the radius-squared pressure law as
 
-### Recommended track: velocity-focused mathematical and numerical study
+p_{1,g}(a,z,t)
+=
+p_{\mathrm{ext}}(z,t)
++
+\frac{K}{R_0(z)^2}
+\left(\sqrt a-R_0(z)\right).
 
-Keep the completed evidence and revise the framing to emphasize:
+But page 23 and Appendix G use
 
-- mathematical formulation and model hierarchy;
-- implementation of an extended 1D stenosis model;
-- code and solution verification;
-- a preliminary 1D-versus-resolved-3D velocity comparison under a declared observation operator;
-- limitations and requirements for future pressure validation.
-
-Under this track, shorten the clinical pressure-ratio material to motivation and future work. Do not imply that pressure or FFR is a principal result.
-
-### Alternative track: pressure-flow study
-
-Retain the current prominence of pressure-ratio motivation only if the final manuscript adds:
-
-- computed pressure-drop traces;
-- a fully specified pressure reference;
-- proximal and distal observation operators;
-- a declared averaging window;
-- matched 3D or experimental pressure data;
-- uncertainty and denominator-admissibility analysis.
-
-This is a materially larger project. Unless those data are already available, the velocity-focused track is the stronger final manuscript.
-
-## Revision priorities
-
-| Priority | Revision | Completion test |
-|---|---|---|
-| P0 | Separate physical and solver variables | No A/Q ambiguity |
-| P0 | State the implemented extended model | Main equations match code |
-| P0 | Correct hyperbolicity conditions | Radicand condition stated |
-| P0 | Qualify boundary invariants | Exact or approximate declared |
-| P0 | Redefine the 3D observation operator | Quadrature or renamed statistic |
-| P0 | Define every error and benchmark metric | Formula and units supplied |
-| P0 | Add full parameter tables | Run reproducible from manuscript |
-| P1 | Reorder verification before comparison | Scientific sequence is clear |
-| P1 | Rewrite abstract and introduction | Results and claims align |
-| P1 | Consolidate repeated limitations | One claim-evidence section |
-| P1 | Explain anomalous velocity features | Negative dip addressed |
-| P2 | Reduce appendices and hash tables | Human-readable main document |
-| P2 | Improve figure scale and legends | Readable in print |
-| P3 | Add optional pressure/2D studies | Only if scope permits |
-
----
-
-# 1. Narrative and organization
-
-## 1.1 State research questions and original contributions
-
-The introduction currently poses a broad question about geometry, wall properties, rheology, and boundary data, then moves quickly into model vocabulary. It should instead identify two or three answerable questions, such as:
-
-1. What assumptions and closures define the selected stenosis-aware 1D model?
-2. Does the implementation exhibit the expected numerical behavior under self-convergence and backend checks?
-3. Under a declared velocity observation operator, where does the 1D solution differ from the available resolved 3D data?
-
-Follow those questions with a short list of original contributions. A suitable contribution statement would be:
-
-> This report contributes a consistent model-and-output specification for an idealized stenotic vessel, a reproducible implementation and benchmark suite for the selected extended 1D model, and a preliminary comparison that localizes velocity discrepancies relative to two resolved 3D datasets. The comparison is diagnostic rather than clinical or experimental validation.
-
-This is clearer and stronger than describing the contribution primarily as “fixing vocabulary.”
-
-## 1.2 Move clinical motivation earlier, then reduce it
-
-The anatomy-function distinction is important, but it appears after approximately twenty pages of continuum and model-hierarchy material. Move a concise version to the first two pages of the introduction.
-
-Then shorten the present Section 1.4. If the report remains velocity-focused, retain only:
-
-- why geometry alone does not determine functional obstruction;
-- why pressure drop is a future output of interest;
-- why the present results are not FFR or CT-FFR.
-
-The detailed ratio-output convention can remain in an appendix. Figures 7 and 8 should either move to the introduction or be reduced to one figure. Five pages of pressure conventions before a velocity-only experiment creates a promise-result mismatch.
-
-## 1.3 Create a real separation between review, model, methods, and results
-
-The current Chapter 1 simultaneously functions as introduction, literature review, mathematical foundations, model specification, clinical motivation, and methods preface. This makes the report harder to navigate.
-
-A clearer final structure is:
-
-### Proposed chapter structure
-
-1. **Introduction**
-   - motivation;
-   - research questions;
-   - contributions;
-   - evidence and claim boundaries;
-   - chapter roadmap.
-
-2. **Literature Review and Model Hierarchy**
-   - continuum and rheology in concise form;
-   - 0D/1D/2D/3D/FSI comparison;
-   - stenosis-specific reduced models;
-   - selection of the extended 1D model.
-
-3. **Selected Model and Numerical Method**
-   - physical area-flow equations;
-   - wall and rheology assumptions;
-   - physical-to-solver variable map;
-   - extended variable-radius terms;
-   - finite-volume/DG discretization;
-   - time integration and boundary states.
-
-4. **Verification and Reproducibility**
-   - exact or manufactured tests;
-   - self-convergence;
-   - conservation and positivity;
-   - backend agreement;
-   - benchmark thresholds and environment.
-
-5. **Resolved-Velocity Comparison**
-   - matched case definitions;
-   - geometry and boundary-data correspondence;
-   - 3D observation operators;
-   - error definitions;
-   - results and sensitivity;
-   - limitations.
-
-6. **Discussion and Conclusions**
-
-This order makes verification precede cross-model comparison, which is the correct scientific sequence.
-
-## 1.4 Reduce textbook derivations in the main body
-
-The flow map, material derivative, Reynolds transport theorem, stress decomposition, and coordinate formulas are mathematically correct background topics, but the main body currently gives them nearly equal weight to the original numerical work.
-
-Retain in the main text:
-
-- continuum scale assumption;
-- incompressibility and mass balance;
-- Newtonian/generalized-Newtonian stress;
-- governing Navier-Stokes system;
-- cross-sectional variables;
-- selected 1D balance law;
-- selected wall law.
-
-Move or leave in appendices:
-
-- proof-level Reynolds transport details;
-- Jacobian evolution derivation;
-- full cylindrical component formulas;
-- basic Banach-space definitions;
-- future passive-scalar notation;
-- full closure catalogs not used in the reported comparison.
-
-The main narrative will improve if each background subsection ends with one sentence explaining how it supports the selected model.
-
-## 1.5 Replace repeated disclaimers with a claim-evidence matrix
-
-The manuscript repeatedly states that figures are not clinical data, not pressure evidence, not FFR, and not validation. The caution is appropriate, but repetition weakens the prose.
-
-Use one compact matrix near the end of the introduction:
-
-| Claim | Evidence | Permitted wording |
-|---|---|---|
-| Model formulation | Derivation and literature | “Defines” |
-| Code behavior | Tests and self-convergence | “Verifies selected properties” |
-| Backend agreement | Same spatial operator | “Agrees for reported metrics” |
-| 1D/3D velocity | Node or quadrature operator | “Diagnostic comparison” |
-| Pressure accuracy | None | “Future work” |
-| Clinical validity | None | No claim |
-
-Thereafter, use concise captions and avoid repeating the full limitation list.
-
-## 1.6 Improve the abstract
-
-The current abstract is accurate but does not report the main numerical findings. It foregrounds conventions and software surfaces rather than the scientific result.
-
-### Proposed revised abstract
-
-> This report develops a mathematical and numerical framework for idealized stenotic blood-flow simulation, connecting incompressible Navier-Stokes and generalized-Newtonian continuum models to reduced 0D, 1D, 2D, and coupled formulations. The selected numerical model is an extended one-dimensional compliant area-flow system with variable-radius corrections. Its implementation is assessed through self-convergence, backend agreement, closure-health checks, and reproducibility records. A preliminary comparison at \(t=1.0\) s evaluates the 1D solution against two resolved 3D velocity datasets representing 23% and 40% radius reductions. Under the reported node-slab observation operator, the mean absolute axial-velocity discrepancies are 7.47 and 9.44 cm/s, with maxima of 26.26 and 47.48 cm/s. The largest differences occur near and downstream of the stenosis, where the 1D model overpredicts velocity. Because the comparison uses node-based sampling and incomplete archived 3D diagnostics, it is interpreted as a mismatch-localization study rather than validation. The report concludes by identifying the matched quadrature, boundary, pressure, and provenance data required for a stronger comparison.
-
-Revise the numerical values if the 3D operator is recomputed.
-
-## 1.7 Rewrite the conclusion around answers, not recap
-
-The current conclusion accurately repeats limitations but largely restates prior sections. A stronger conclusion should answer the research questions:
-
-- what was defined;
-- what was numerically verified;
-- what the comparison showed;
-- what remains unresolved;
-- which next experiment is decisive.
-
-A proposed conclusion appears later in this review.
-
-## 1.8 Style and terminology
-
-Replace software-contract language where ordinary scientific prose is clearer.
-
-Examples:
-
-- “fixes the vocabulary” → “defines the model and output conventions”;
-- “bounded numerical record” → “scope-limited numerical study”;
-- “CLI surfaces” → “command-line implementations”;
-- “admitted descriptor values” → “implemented options”;
-- “model-record data” → “case parameters”;
-- “resolved-3D validation” → “agreement with a resolved 3D computational dataset”;
-- “blood-dynamics setting” → “continuum hemodynamic setting”;
-- “package-benchmark” → “package benchmark.”
-
-Use “validation” only for comparison against experimental or clinical reality. Use “verification,” “cross-model comparison,” or “diagnostic agreement” elsewhere.
-
----
-
-# 2. Numerical experiment
-
-## 2.1 What the current experiment does establish
-
-The current study establishes that:
-
-- the 1D and 3D velocity datasets can be placed in a common axial/radial plotting framework;
-- the largest discrepancies occur near and downstream of the stenosis;
-- the 40% case shows larger maximum errors than the 23% case;
-- the assumed 1D radial profile is a poor representation of parts of the resolved field;
-- the current comparison is insufficient for pressure, clinical, or general 3D-accuracy claims.
-
-These are useful findings. They should be presented as the result, not buried beneath defensive wording.
-
-## 2.2 The current “section mean” is not a physical section average
-
-The manuscript averages node-centered axial velocities over thin slabs. That statistic is
-
-\[
-\widetilde u_{\mathrm{node}}(z_j)
-= \frac{1}{N_j}\sum_{n\in\mathcal N_j} u_z(x_n),
-\]
-
-not the physical cross-sectional mean
-
-\[
-\overline u_{3D}(z)
-= \frac{1}{|S(z)|}\int_{S(z)}u_z\,dS.
-\]
-
-These quantities coincide only under restrictive sampling conditions. Tetrahedral nodes are generally not uniformly distributed in area, and local refinement can bias an arithmetic node mean.
-
-Figure 9 visibly contains regular sawtooth oscillations in nominally uniform upstream and downstream regions. This pattern may reflect mesh-layer or slab-sampling aliasing rather than physical oscillation. The operator should be recomputed before the plot is used to interpret detailed axial structure.
-
-### Preferred revision
-
-Intersect the tetrahedral field with each cross-sectional plane, interpolate the finite-element velocity, and evaluate an area quadrature. Then compute:
-
-- area;
-- volumetric flow;
-- area-mean axial velocity;
-- optional standard deviation or profile residual.
-
-### Minimum revision if quadrature is unavailable
-
-Rename every instance of “section mean” as **node-slab arithmetic mean**. Add the formula, node-count weighting, slab width, and a sensitivity study over at least three slab widths. Do not interpret the sawtooth structure as physics.
-
-## 2.3 Match geometry, wall model, boundary data, and initial state
-
-A valid 1D/3D comparison needs a case-matching table. The manuscript currently provides paths, times, node counts, and two severities, but not a complete matching record.
-
-Add the following for both models:
-
-- reference radius or area profile;
-- throat position and minimum radius;
-- stenosis definition: radius reduction versus area reduction;
-- wall treatment: fixed, prescribed, 1D compliant, or resolved FSI;
-- density and viscosity;
-- inlet profile and time dependence;
-- outlet pressure, traction, area, or impedance;
-- initial condition and any inflow ramp;
-- final time and sampling time;
-- 3D element order, element count, and time step;
-- 1D grid, time step, limiter, and wall parameters.
-
-The 3D wall model is particularly important. If the resolved data are fixed-wall while the 1D model is compliant, either:
-
-1. compare against a rigid/frozen-area 1D case, or
-2. report the 1D area change and quantify the wall-model mismatch.
-
-## 2.4 Address the transient nature of the comparison
-
-The 1D run begins from \(Q=0\) and immediately imposes a positive inlet flow. This is a startup-wave problem, not automatically a steady stenosis problem.
-
-Figure 9 contains a pronounced negative excursion of the 40% 1D curve immediately upstream of the throat. The manuscript does not explain whether this is:
-
-- physical transient flow reversal;
-- a reflected characteristic wave;
-- source-term imbalance;
-- interpolation behavior;
-- or a plotting/data error.
-
-Add:
-
-- time histories at inlet, pre-throat, throat, and outlet;
-- minimum and maximum flow over space and time;
-- wave-travel or settling-time discussion;
-- a statement of whether \(t=1\) s is transient, periodic, or quasi-steady;
-- a comparison using matched inflow ramps if the 3D data used one.
-
-If the goal is steady comparison, solve or demonstrate convergence to a steady state rather than selecting one transient snapshot.
-
-## 2.5 Define every discrepancy metric
-
-The symbols \(e_s\), \(e_r\), “Mean rel.,” and “Max rel.” are not formally defined in the numerical section.
-
-Add explicit formulas. For axial targets \(z_j\),
-
-\[
-e_s(z_j)=\overline u_{1D}(z_j)-\overline u_{3D}(z_j),
-\]
-
-\[
-\mathrm{MAE}_s=\frac{1}{J}\sum_{j=1}^{J}|e_s(z_j)|,
+\Psi_h(a)
+=
+\frac{K}{3\rho R_{\max}^2}a^{3/2},
 \qquad
-\mathrm{RMSE}_s=
-\left(\frac{1}{J}\sum_{j=1}^{J}e_s(z_j)^2\right)^{1/2}.
-\]
-
-Prefer a global relative norm,
-
-\[
-E_{2,\mathrm{rel}}
+\partial_a\Psi_h(a)
 =
-\frac{
-\left(\sum_j w_j e_s(z_j)^2\right)^{1/2}
-}{
-\left(\sum_j w_j \overline u_{3D}(z_j)^2\right)^{1/2}
-},
-\]
+\frac{K}{2\rho R_{\max}^2}\sqrt a,
 
-over pointwise relative error. Pointwise ratios are unstable near zero and can dominate maxima.
+together with a geometry source containing R_{\max}^{-2}.
 
-For radial bins, weight discrepancies by annular area. Equal weighting of populated bins gives the same influence to bins with very different physical area and node counts.
+The manuscript itself defines the compatibility requirement
 
-## 2.6 Report sampling uncertainty and occupancy
-
-For each node slab or radial bin, report:
-
-- number of nodes;
-- standard deviation of \(u_z\);
-- standard error or a descriptive spread;
-- empty-bin handling;
-- minimum occupancy threshold.
-
-Use uncertainty bands or error bars in Figure 10. A radial-bin mean based on a small or nonuniform node sample should not be plotted with the same visual authority as a densely sampled bin.
-
-## 2.7 Compare flow before reconstructed profile shape
-
-The most natural reduced variable is flow. A stronger comparison sequence is:
-
-1. geometry or area profile;
-2. \(Q_{1D}(z,t)\) versus \(Q_{3D}(z,t)=\int_{S(z)}u_z\,dS\);
-3. mean velocity;
-4. radial profile;
-5. pressure, when available.
-
-The current analysis jumps directly to velocity, even though node averages cannot verify flow conservation. A quadrature-based flow comparison would separate disagreement in total transport from disagreement in profile shape.
-
-## 2.8 Add a complete physical and numerical parameter table
-
-The manuscript lists \(L\), \(N\), \(\Delta z\), \(\Delta t_{\max}\), CFL cap, viscosity, and some geometry parameters, but omits enough parameters that the run cannot be reconstructed from the manuscript alone.
-
-Add values and units for:
-
-- density \(\rho\);
-- healthy radius \(R_{\max}\) or \(R_{\mathrm{base}}\);
-- Young’s modulus \(E\);
-- wall thickness \(h\);
-- Poisson ratio \(\sigma\);
-- \(K=Eh/(1-\sigma^2)\);
-- wall-law coefficient \(\beta\);
-- external pressure;
-- positivity floor;
-- source-difference stencil;
-- limiter parameter;
-- all non-Newtonian parameters used in Figure 13;
-- shear-rate regularization and viscosity bounds;
-- inlet ramp or waveform;
-- outlet reference pressure or area.
-
-A machine-readable manifest is valuable, but the principal case must also be readable in the manuscript.
-
-## 2.9 Reassess the radial-profile comparison
-
-Figure 10 compares reconstructed 1D profile curves with radial-bin node means. Strengthen it by:
-
-- using local current radius or explicitly justifying \(R_0(z)\);
-- stating bin edges and evaluation points;
-- showing annular area weighting;
-- reporting node count per bin;
-- plotting 3D variability;
-- separating the three axial stations by line style as well as color;
-- moving the legend away from the x-axis label;
-- avoiding a single error summary that equally weights all populated bins.
-
-The current result is still useful: it shows that a fixed parabolic closure cannot represent all local resolved profiles. Frame the conclusion around that closure limitation rather than general 1D failure.
-
-## 2.10 Expand cases only after fixing the operator
-
-Additional severities and times would improve generality, but they are lower priority than correcting the observation operator and matching the cases.
-
-The minimum strong study is:
-
-- the existing 23% and 40% cases;
-- multiple time points or a demonstrated steady state;
-- correct area quadrature;
-- complete case matching;
-- defined error norms;
-- sensitivity to one closure choice.
-
-A larger design could add 50% severity. Treat the 73% package case as an internal stress test unless it has independently matched resolved data and physical-admissibility checks.
-
-## 2.11 Separate software benchmark from scientific experiment
-
-Section 2.1 currently sits under the resolved-velocity section, although it evaluates a different evidence class. Move it before the 3D comparison and rename it **Verification and Reproducibility**.
-
-The scientific sequence should be:
-
-1. model;
-2. discretization;
-3. verification;
-4. cross-model comparison;
-5. interpretation.
-
-## 2.12 Define benchmark “OK” criteria
-
-Table 5 reports 252 rows as “OK,” but no reader-facing thresholds are given. Add a compact criteria table.
-
-Examples:
-
-- finite values;
-- positive area;
-- maximum CFL below threshold;
-- mass-conservation tolerance;
-- expected observed-order interval;
-- backend relative-difference tolerance;
-- maximum permitted reflected-wave metric;
-- MPS/CPU comparison tolerance.
-
-“Execution completed” and “scientific result passed” must be different statuses.
-
-## 2.13 Strengthen numerical verification
-
-Self-convergence is useful but cannot show convergence to the correct equation. Add at least one independent target:
-
-- exact preservation of a zero-flow rest state;
-- an analytic uniform-tube wave problem;
-- a manufactured solution with source terms;
-- an independent implementation for a simplified case.
-
-For the geometry-rest test, report:
-
-- \(\max|a-a_0|\);
-- \(\max|Q|\);
-- mass defect;
-- source-flux imbalance;
-- positivity-projection activations.
-
-## 2.14 Explain observed convergence orders
-
-Figure 11 should state:
-
-- the self-convergence formula;
-- refinement ratios;
-- error norm;
-- reference grid or successive-grid comparison;
-- time-step scaling;
-- interpolation between grids;
-- expected order for each method;
-- reason for order reduction near boundaries, sources, limiters, or time integration.
-
-The current median-and-range summary can remain, but it should not replace the underlying table.
-
-## 2.15 Define backend parity metrics
-
-Figure 12 uses “Max final-state L2 difference” and an “aggregate difference,” but the manuscript does not define:
-
-- whether area and flow are normalized;
-- how quantities with different units are combined;
-- whether the maximum is over fields, cases, or cells;
-- whether the native solution is a reference or simply another realization.
-
-Use separate dimensionless relative norms for area and flow, or nondimensionalize the state before aggregation.
-
-The SciML comparison changes the time integrator while retaining the same spatial operator. It tests time-integration agreement, not independent solver parity.
-
-## 2.16 Improve performance reporting
-
-If runtime remains in the main text, report:
-
-- hardware model;
-- CPU/GPU/MPS device;
-- thread count;
-- warm-up and compilation policy;
-- number of repetitions;
-- median and spread;
-- whether transfer time is included;
-- separate CPU and MPS times.
-
-Figure 15 currently shows a combined “compare elapsed” quantity rather than a transparent CPU-versus-MPS speed comparison. Either revise the plot or move it to the software supplement.
-
----
-
-# 3. Mathematical rigor
-
-## 3.1 Correct the strict-hyperbolicity statement
-
-For the homogeneous flux
-
-\[
-F(A,Q)=
-\begin{pmatrix}
-Q\\
-\alpha Q^2/A+\Psi(A)
-\end{pmatrix},
-\]
-
-with \(u=Q/A\) and \(c^2=(A/\rho)\partial_A p_g\), the eigenvalues are
-
-\[
-\lambda_\pm
+\partial_a\Psi
 =
-\alpha u
-\pm
-\sqrt{c^2+\alpha(\alpha-1)u^2}.
-\]
+\frac{a}{\rho}\partial_a p_{1,g}.
 
-The manuscript states that \(c^2>0\) implies strict hyperbolicity. That conclusion is automatic when \(\alpha\ge 1\), but not for a general \(0<\alpha<1\). In the latter case the radicand can become nonpositive.
+For the pressure law displayed on page 22, the right-hand side is
 
-Revise the result to state the pointwise condition
+\frac{K}{2\rho R_0(z)^2}\sqrt a,
 
-\[
-c^2+\alpha(\alpha-1)u^2>0.
-\]
+which is not the derivative of the implemented potential unless R_0(z)=R_{\max}. Freezing the denominator at R_{\max} is not merely a notation change; it changes the wall law and its geometry source.
 
-For the implemented variable coefficient
+The revision should do one of the following:
 
-\[
+* Make the implemented wall law explicitly
+    p_{1,g}
+    =
+    p_{\mathrm{ext}}
+    +
+    \frac{K}{R_{\max}^2}(\sqrt a-R_0),
+    and derive the displayed potential and source from it; or
+* Retain the local R_0(z)^{-2} law and derive a flux/source pair that satisfies the compatibility identity; or
+* State clearly that R_0^{-2}\mapsto R_{\max}^{-2} is a numerical approximation, derive the additional consistency error it introduces, and test its effect.
+
+A compact proposition should show that the chosen rest state a=R_0^2,\ q=0 is an exact equilibrium of both the continuous and discrete operators. At present, the implemented R_{\max}-based pair appears constructed to preserve that equilibrium, but the main-text pressure law does not match it.
+
+2. Enforce one notation system for physical and solver variables
+
+Definition 1.30 appropriately distinguishes
+
+A_{\mathrm{phys}}=\pi a,
+\qquad
+Q_{\mathrm{phys}}=\pi q,
+\qquad
+\bar u=q/a.
+
+Appendix G then reuses Q for the solver variable paired with a. The output conventions also call the solver coordinate A cm2 and the scaled flow coordinate Q cm3 s. This makes it difficult to determine whether individual formulas contain physical flow Q_{\mathrm{phys}} or scaled flow q.
+
+Use the following convention everywhere:
+
+(A,Q) \quad \text{physical area and flow},
+\qquad
+(a,q)=(A/\pi,Q/\pi) \quad \text{solver coordinates}.
+
+Then rewrite Appendix G with U_h=(a_i,q_i), not (a_i,Q_i). Rename exported fields accordingly:
+
+* a_cm2
+* q_cm3_s
+* Aphys_cm2
+* Qphys_cm3_s
+* uavg_cm_s
+
+This single edit will remove a substantial fraction of the manuscript’s cognitive burden and make dimensional checks much easier.
+
+3. Correct the logic connecting no-slip and the parabolic profile
+
+Definition 1.26 currently suggests that a no-slip antecedent becomes the parabolic closure \alpha_P=4/3,\ g_P=4 after averaging. No-slip alone does not imply a parabolic velocity profile in an unsteady stenotic vessel. A parabolic profile follows from additional assumptions such as straight circular geometry, Newtonian flow, and fully developed laminar conditions.
+
+A more accurate formulation would be:
+
+The baseline reduced model assumes a parabolic cross-sectional profile. This profile is compatible with no-slip for fully developed Newtonian flow in a straight circular tube, but it is an independent closure assumption in the stenotic and transient setting.
+
+For the same reason, classical-1d-no-slip should preferably be renamed classical-1d-parabolic-profile, unless no-slip is being used only as historical provenance.
+
+4. Clarify or repair the non-Newtonian extension of the p_2 correction
+
+Definition 1.29 defines
+
+p_{2,g}
+=
+g_P\rho\nu_{\mathrm{eff}}^{\mathcal R}
+\frac{q}{a}\frac{R_0'}{R_0}.
+
+Appendix G.3 differentiates the factors q, a, and R_0, but does not include a derivative of \nu_{\mathrm{eff}}^{\mathcal R}(\dot\gamma). For a non-Newtonian realization,
+
+\partial_z p_{2,g}
+
+generally contains a term proportional to \partial_z\nu_{\mathrm{eff}}. The current formula is exact only for constant viscosity, or under a deliberate “locally frozen viscosity” approximation.
+
+The manuscript should either:
+
+1. Restrict the Canic p_2 correction to the Newtonian model;
+2. State that effective viscosity is frozen when differentiating p_2, and call this a computational closure rather than a derived generalized-Newtonian law; or
+3. Compute p_{2,g} at cells and apply the declared discrete derivative D_z^h p_{2,g}. That approach automatically includes spatial variation of effective viscosity and avoids differentiating the nonsmooth max regularization and viscosity projection analytically.
+
+Also clarify that the quantity called \partial_{dz}p_2 in Appendix G is apparently a density-scaled pressure derivative. As written, the factor 1/\rho is hidden.
+
+5. Separate isotropy from frame indifference
+
+Remark 1.12 equates isotropy with independence of the selected coordinate system. Coordinate-frame independence is principally an objectivity or frame-indifference requirement; isotropy concerns material symmetry. These concepts are related in the representation of constitutive laws but are not identical.
+
+The constitutive subsection should say, more precisely, that an objective isotropic linear constitutive mapping of the symmetric rate tensor has the Newtonian form
+
+\mathbf T=-p\mathbf I+2\eta\mathbf D+\lambda\,\operatorname{tr}(\mathbf D)\mathbf I.
+
+The heading “Blood isotropy justification” should also be reconsidered. The cited evidence discussed there concerns scale-dependent apparent viscosity more directly than isotropy.
+
+6. Tighten the analytic classification claims
+
+The statement that “positive regular viscosity laws” give the usual parabolic–elliptic interpretation is too weak mathematically. Pointwise positivity of \eta_{\mathrm{eff}} does not by itself ensure uniform ellipticity or monotonicity of the nonlinear stress operator
+
+\mathbf S(\mathbf D)
+=
+2\eta_{\mathrm{eff}}\!\left(\sqrt{2\mathbf D:\mathbf D}\right)\mathbf D.
+
+Either state the relevant coercivity, growth, and monotonicity assumptions, including a positive lower bound where uniform parabolicity is claimed, or replace the analytic classification with a less theorem-like description.
+
+Similarly:
+
+* Allowing \eta_{\min}=0 admits degeneracy.
+* Casson and power-law regularizations change the constitutive law and should be described as regularized computational models.
+* The global Navier–Stokes regularity discussion on pages 15–16 is not needed for the reported 1D computation. If retained, distinguish global weak existence from unresolved global strong regularity and avoid using the Clay problem as general-purpose well-posedness context for a bounded moving vessel.
+
+7. Make the selected extended 1D equation explicit in the main text
+
+The main formulation uses a generic \alpha, but the implementation uses
+
 \alpha_{\mathrm{eff}}(z)
 =
-\alpha_P+\alpha_c(R_0'(z)),
-\]
+\alpha_P+\alpha_c(R_0'(z))
 
-report:
+and adds an \alpha_c'-dependent source. The actual model therefore cannot be reconstructed from Equations (1.1)–(1.8) alone.
 
-- \(\min_z\alpha_{\mathrm{eff}}\);
-- \(\max_z\alpha_{\mathrm{eff}}\);
-- the minimum characteristic radicand over every run;
-- any hyperbolicity guard in the implementation.
+Place one definitive model statement in Section 1.4:
 
-## 3.2 Qualify the boundary Riemann invariants
+\partial_t a+\partial_z q=0,
 
-Appendix G uses
-
-\[
-w_\pm=u\pm 4c_0a^{1/4}.
-\]
-
-These are the standard invariants for the homogeneous reference system with \(\alpha=1\) and \(c=c_0a^{1/4}\). The reported interior model uses a parabolic momentum factor \(\alpha_P=4/3\) plus a variable-radius correction.
-
-Therefore, one of the following must be done:
-
-1. derive the exact characteristic boundary relation for the implemented \(\alpha_{\mathrm{eff}}\);
-2. solve the incoming characteristic condition numerically using the actual left eigenvector;
-3. explicitly label the current formula as an \(\alpha=1\) boundary approximation and quantify reflected-wave sensitivity.
-
-Do not call the displayed expressions exact Riemann invariants for the full implemented system unless that derivation is supplied.
-
-## 3.3 Bridge the physical wall law to the solver flux
-
-The main model uses physical area \(A\), pressure law \(\beta\), and elastic potential \(\Psi\). Appendix G switches to \(a=R^2\), \(K=Eh/(1-\sigma^2)\), and a flux term proportional to \(a^{3/2}\).
-
-Add a derivation showing:
-
-- \(A_{\mathrm{phys}}=\pi a\);
-- \(Q_{\mathrm{phys}}=\pi q\);
-- the solver pressure law;
-- the relationship between \(K\), \(\beta\), \(R_{\max}\), and \(A_0\);
-- the transformed elastic potential;
-- the transformed geometry source;
-- the transformed friction term.
-
-This derivation is necessary to demonstrate that the implemented operator realizes the stated physical model.
-
-## 3.4 State the extended Canic model in the main methods section
-
-The main area-flow equations describe a conventional compliant 1D system. The experiment, however, uses:
-
-- \(\alpha_c(R_0')\);
-- \(\alpha_c'(z)\);
-- \(R_0'\) and \(R_0''\) terms;
-- a \(p_2\) correction.
-
-These terms define the actual selected model and should not appear only as implementation detail in Appendix G.
-
-Add a boxed equation for the full extended system, identify which terms vanish in the classical baseline, and explain the asymptotic or modelling origin of each correction.
-
-## 3.5 Define every implementation parameter and correction term
-
-The following are used without adequate reader-facing definition:
-
-- \(E\);
-- \(h\);
-- \(\sigma\);
-- \(K\);
-- \(R_{\max}\);
-- \(p_2\);
-- the discrete derivative in \(\partial_z^d p_2\);
-- the positivity floor;
-- limiter slopes;
-- reconstruction states.
-
-Every symbol in the numerical operator must appear in the notation table and parameter table.
-
-## 3.6 Resolve the MUSCL/first-order inconsistency
-
-Section 2 states that the experiment uses MUSCL finite volume with a minmod limiter. Appendix G.2 says the interface flux uses “neighboring first-order states.”
-
-Revise Appendix G to give the actual reconstruction:
-
-- cell slopes;
-- minmod definition;
-- left and right interface states;
-- positivity treatment after reconstruction;
-- boundary reconstruction;
-- source evaluation order.
-
-If Appendix G intentionally presents the first-order scheme, label it as such and add a separate MUSCL subsection.
-
-## 3.7 Define and audit the positivity projection
-
-The SSPRK3 stages apply a projection \(\Pi\), but \(\Pi\) is not fully defined.
-
-State:
-
-- the area floor;
-- whether only \(a\) or both \(a\) and \(Q\) change;
-- whether conservation is lost;
-- whether the projection is applied before flux evaluation;
-- activation count per run;
-- effect on convergence order.
-
-Third-order SSPRK accuracy can only be interpreted straightforwardly when the nonlinear projection is inactive or its effect is controlled.
-
-## 3.8 Explain flux-source consistency and well balancing
-
-The flux depends explicitly on geometry, and the source includes geometry derivatives and an \(\alpha_c'\) term. Add a derivation showing why the chosen flux/source split recovers the intended continuous equation.
-
-Then state whether the discretization is:
-
-- exactly well balanced;
-- approximately well balanced;
-- or not designed to preserve rest.
-
-The geometry-rest benchmark should quantify this property.
-
-## 3.9 Clarify the outlet condition
-
-The general model section says the numerical study uses prescribed inlet flow and outlet gauge pressure. The implementation section fixes \(a_{\mathrm{out}}=R_0(L)^2\) and obtains ghost flow from an outgoing characteristic relation.
-
-Explain explicitly that, under the selected wall law and external-pressure convention, setting \(a_{\mathrm{out}}=a_0(L)\) corresponds to a particular outlet gauge pressure. State the equivalence and its assumptions.
-
-## 3.10 Separate wall mechanics from multiscale coupling
-
-The current wall/FSI descriptor includes a “multiscale” option. Multiscale coupling is not a wall law in the same sense as rigid, elastic-1D, or resolved FSI mechanics.
-
-Use separate axes:
-
-- wall model \(\mathcal W\): rigid, reduced elastic, resolved FSI;
-- coupling model \(\mathcal C\): isolated vessel, 0D outlet, 1D network, 3D-1D coupling.
-
-This improves conceptual rigor and avoids implying that an interface condition is a wall closure.
-
-## 3.11 Supply non-Newtonian parameters or reduce the claim
-
-Figure 13 compares Newtonian, Carreau, Carreau-Yasuda, Casson, and power-law descriptors, but the manuscript does not present the parameter values needed to interpret the bars.
-
-Add a table of:
-
-- zero- and infinite-shear viscosities;
-- time constants;
-- exponents;
-- yield stress;
-- power-law consistency;
-- regularization;
-- viscosity clipping bounds.
-
-If those runs are only descriptor health checks, relabel the figure accordingly and move it to the supplement. Do not present it as a physical rheology sensitivity study without a parameter rationale.
-
-## 3.12 Use verification and validation terminology consistently
-
-Recommended terminology:
-
-- **code verification:** tests against exact/manufactured results;
-- **solution verification:** discretization and iterative error;
-- **cross-model comparison:** 1D versus 3D computation;
-- **validation:** comparison against experiment or clinical measurement;
-- **reproducibility:** ability to regenerate results;
-- **software health:** tests, smoke runs, and interface checks.
-
-This vocabulary will make the evidence hierarchy more precise than repeated use of “not validation.”
-
-## 3.13 Tighten theorem assumptions without overloading the main text
-
-The continuum results can remain classical, but each theorem should either:
-
-- state the necessary regularity and domain hypotheses directly; or
-- cite a standing assumption and avoid repeating proof-level detail.
-
-The report does not need a full introductory functional-analysis chapter unless those spaces are used in an original theorem or weak formulation. Appendix D can be substantially shortened.
-
----
-
-# 4. Labels and notation
-
-## 4.1 Adopt a non-overloaded symbol map
-
-| Current use | Recommended use | Purpose |
-|---|---|---|
-| \(A\), stored A | \(A\), \(a\) | Area vs radius squared |
-| \(Q\), scaled Q | \(Q\), \(q\) | Physical vs scaled flow |
-| \(R\), rheology R | \(R\), \(\mathcal R\) | Radius vs descriptor |
-| \(W\), multiscale W | \(\mathcal W\), \(\mathcal C\) | Wall vs coupling |
-| \(T\), final time | \(\mathbf T\), \(t_f\) | Stress vs terminal time |
-| \(F_t\), flux F | \(\mathbf F_{\rm def}\), \(\mathcal F\) | Deformation vs flux |
-| profile P, pressure p | \(\mathcal P\), \(p\) | Profile vs pressure |
-| case 77, case 60 | C23, C40 | Severity-first labels |
-
-Use \(q=Q_{\mathrm{phys}}/\pi\) in the solver derivation. Then
-
-\[
-u_{\mathrm{avg}}
+\partial_t q+
+\partial_z\!\left[
+\alpha_{\mathrm{eff}}(z)\frac{q^2}{a}
++
+\Psi(a,z)
+\right]
 =
-\frac{Q_{\mathrm{phys}}}{A_{\mathrm{phys}}}
+S_{\mathrm{wall}}(a,z)
++
+S_{\mathrm{fric}}(a,q,z)
++
+S_{\alpha}(a,q,z)
++
+S_{p_2}(a,q,z).
+
+Define every term immediately below it and state which terms disappear in the classical baseline. At present, readers must reconcile several definitions and Appendix G to infer the selected equation.
+
+8. Strengthen the pressure-observation convention
+
+Convention C.3 says the pressure observation maps do not have to preserve constant shifts. That weakens the physical meaning of the gauge-to-reference conversion. For taps and averages, impose
+
+\mathcal O[p+c]=\mathcal O[p]+c.
+
+Then adding p_{\mathrm{ref}} after observation is gauge-consistent. The admissibility criterion should also be stronger than a merely nonzero mean denominator. For numerical and physical stability, require something like
+
+\left\langle P_{\mathrm{prox}}^{\mathrm{ratio}}\right\rangle_{T_{\mathrm{HF}}}
+\ge P_{\min}>0.
+
+Because no pressure ratio is actually computed, most of this formalism could be shortened and moved to an appendix or future-work subsection.
+
+II. Numerical verification needs a more rigorous design
+
+9. Separate software QA, numerical verification, and model validation
+
+Section 2.1 currently combines:
+
+* test-suite status,
+* backend comparisons,
+* self-convergence,
+* rheology sensitivity,
+* GPU/CPU differences,
+* boundary diagnostics,
+* and cross-model comparison.
+
+These do not provide the same kind of evidence.
+
+Use three explicit categories:
+
+Software quality assurance: unit tests, descriptor parsing, file schemas, CPU/MPS consistency, package reproducibility.
+
+Numerical verification: manufactured solutions, exact equilibria, grid convergence, time convergence, conservation, positivity, and boundary implementation.
+
+Model comparison or validation: comparison with another computational model or physical observations. The present 3D comparison is a computational cross-model diagnostic, not validation.
+
+“128 rows OK” demonstrates that checks ran; it does not communicate what mathematical property was tested or the accepted tolerance. Table 1 should therefore list the tested property, metric, threshold, and observed result.
+
+10. Add verification problems with known answers
+
+Self-convergence alone does not establish correctness. The following tests would exercise the central implementation far more effectively:
+
+1. Geometry-rest equilibrium
+    a(z)=R_0(z)^2,\qquad q(z)=0.
+    Report the continuous residual, discrete residual, and drift over time.
+2. Constant-radius steady-flow test with a known frictional pressure gradient.
+3. Linearized wave test on a uniform vessel with an analytical or high-accuracy reference solution.
+4. Manufactured variable-geometry solution that activates the elastic source, \alpha_c' term, and p_2 derivative.
+5. Separate temporal refinement: hold the spatial grid fixed and refine \Delta t.
+6. Separate spatial refinement: choose a time step small enough that temporal error is negligible.
+
+For each test, show the raw error sequence and compute
+
+p_h
 =
-\frac{q}{a}.
-\]
+\frac{\log(E_h/E_{h/2})}{\log 2}.
 
-This removes the repeated warning that stored \(Q\) is not physical flow.
+Figure 8’s medians and min–max whiskers conceal whether an asymptotic convergence regime has been reached. Log–log error curves and a compact numerical table would be much more persuasive.
 
-## 4.2 Reserve formal environments for formal content
+11. Document the actual MUSCL operator
 
-Use:
+Table 3 identifies the selected method as MUSCL with a minmod limiter, but Appendix G.3 presents an interface flux in terms of generic U^\pm and then says the realization uses neighboring first-order states. That is ambiguous.
 
-- **Definition** for mathematical objects;
-- **Assumption** for modelling hypotheses;
-- **Proposition/Theorem** for derived mathematical claims;
-- **Convention** for units, signs, or output choices;
-- **Implementation note** for code identifiers and storage;
-- **Remark** only when it adds interpretation.
+State explicitly:
 
-Code names such as `canic-extended-1d` and `classical-1d-no-slip` should be in a model table, not elevated to mathematical definitions.
+* slope formula,
+* limiter definition,
+* left/right reconstruction,
+* whether reconstruction is performed in conservative or primitive variables,
+* source reconstruction or quadrature,
+* treatment next to boundaries,
+* positivity limiting,
+* and whether the same reconstruction is used by every backend.
 
-## 4.3 Rename observation quantities accurately
+The DG p0/p1/p2 results in Figure 8 are not supported by a corresponding method description. Either document the DG discretization or move those results to a software supplement.
 
-Use:
+12. Record positivity and conservation effects
 
-- “node-slab mean” for the current arithmetic node statistic;
-- “cross-sectional mean” only for area quadrature;
-- “radial-bin node mean” for the current radial statistic;
-- “resolved computational dataset” instead of “3D truth”;
-- “comparison error” rather than “model accuracy” unless matching is complete.
+The SSPRK stages apply a projection \Pi to the area coordinates. Such a projection can modify mass conservation and formal order. The manuscript acknowledges that positivity events were not persisted for the comparison runs, which prevents the reader from knowing whether the reported solution was produced by the nominal scheme or by repeated clipping.
 
-## 4.4 Define case identifiers once
+Every run supporting a result should record:
 
-At the start of the comparison section, add a table:
+* minimum a,
+* projection activation count,
+* total projected correction,
+* minimum and maximum realized CFL,
+* accepted step count,
+* mass-balance defect,
+* and NaN/finite-state checks.
 
-| Label | Source ID | Radius reduction | Time |
-|---|---:|---:|---:|
-| C23 | 77 | 23% | 0.9995 s |
-| C40 | 60 | 40% | 0.9995 s |
+If the projection is never activated, say so. If it is activated, quantify its effect or replace it with a documented positivity-preserving limiter.
 
-Use C23 and C40 in figures and prose. Preserve source IDs in the provenance table only.
+13. Rework backend “agreement” metrics
 
-## 4.5 Remove unused acronyms and future notation
+Figure 9 reports a “max final-state L_2 difference,” but the normalization, component scaling, and units are not clear. Area and flow have incompatible dimensions and should not be combined into an unscaled state norm.
 
-The acronym and notation appendices contain terms not used in the report, including several clinical imaging acronyms, beats per minute, finite-difference method, Womersley number, and passive-scalar/Peclet notation.
+Report componentwise nondimensional errors, for example,
 
-Remove unused entries. A final thesis should document the work actually presented, not reserve symbols for possible future extensions.
+E_a
+=
+\frac{\|a^{(1)}-a^{(2)}\|_2}
+{\|a^{(1)}\|_2},
+\qquad
+E_q
+=
+\frac{\|q^{(1)}-q^{(2)}\|_2}
+{\|q^{(1)}\|_2}.
 
-## 4.6 Standardize equation and figure references
+Also document solver tolerances and whether the SciML path applies the same positivity treatment. If the native path includes stage projections but the SciML path only integrates \dot u=L_h(u,t), the two backends are not solving identical fully discrete problems.
 
-Use “Equation (1.2)” consistently, not a mix of “Eq. 1.2,” “the equation above,” and definition-only references.
+“Cross-integrator discrepancy” is more accurate wording than “backend agreement” unless an acceptance threshold is specified and met.
 
-Every result paragraph should refer directly to the relevant figure or table. Every figure caption should identify:
+14. The boundary approximation requires direct evidence
 
-- quantity;
-- operator;
-- case;
-- time;
-- units;
-- line/marker meaning.
+Appendix G.5 uses \alpha=1, fixed-area Riemann invariants for a solver with variable \alpha_{\mathrm{eff}} and geometry sources. The approximation is disclosed, but its influence is not quantified.
 
-Keep the central caveat in the section text rather than repeating a long negative list in each caption.
+Before using the final state in a cross-model comparison, add at least one of:
 
----
+* a characteristic boundary treatment based on the actual flux Jacobian;
+* a linearized incoming-characteristic condition for the full model;
+* a vessel-length sensitivity test;
+* an outlet-condition sensitivity test;
+* or a measured reflection coefficient.
 
-# 5. Supplemental enhancements
+A constant inflow imposed on a rest state creates a start-up wave. The manuscript must show whether t=1 s is still influenced by the initial transient and outlet reflections. A time trace of inlet, throat, and outlet a,q,\bar u is essential.
 
-## 5.1 Add a literature synthesis table
+III. Rebuild the 1D–3D comparison as a controlled diagnostic
 
-The manuscript explains model tiers conceptually but provides limited synthesis of individual studies. Add a concise literature table with:
+15. Add a complete model-matching matrix
 
-- reference;
-- dimension/model;
-- wall treatment;
-- rheology;
-- stenosis type;
-- comparison data;
-- key limitation.
+The comparison is commendably cautious, but the mismatch is described primarily through disclaimers rather than quantified inputs. Add a table with a row for each of the following:
 
-This will make the document function more clearly as a literature review and allow several pages of repetitive hierarchy prose to be shortened.
+* reference geometry and current geometry,
+* wall model,
+* density and viscosity,
+* initial condition,
+* inlet condition and waveform,
+* outlet condition,
+* time origin and transient history,
+* numerical resolution,
+* velocity representation order,
+* and pressure availability.
 
-## 5.2 Add a model-case manifest
+Mark each item as matched, approximately matched, unmatched, or unknown.
 
-Create one human-readable table for the principal numerical cases and one machine-readable JSON/TOML/YAML manifest.
+Until that table is complete, call the 3D data a “comparison dataset,” not a reference solution.
 
-The human-readable table belongs in the main text. The machine-readable manifest belongs in the repository or supplement.
+16. Demonstrate that the snapshot is temporally comparable
 
-## 5.3 Archive the raw 3D inputs
+The 1D state is evaluated at 1.0 s and the 3D data at approximately 0.9995 s. The 5\times10^{-4} s difference is probably small, but its significance depends on the transient derivative. More importantly, the two simulations have unmatched histories.
 
-Hashes prove identity only when the corresponding files are available. Archive:
+The preferred comparison is one of:
 
-- XDMF;
-- HDF5;
-- geometry metadata;
-- time metadata;
-- extraction script;
-- license/source information.
+* interpolation of both models to the same time;
+* a time-window comparison;
+* a periodic steady-state phase comparison;
+* or a genuinely steady comparison.
 
-Use an institutional repository, release archive, or DOI-bearing data deposit. If redistribution is not permitted, provide an automated acquisition script and immutable upstream identifiers.
+If only the single 3D snapshot is available, show that the 1D solution is locally stationary near t=1, or bound the expected temporal discrepancy using adjacent 1D outputs.
 
-## 5.4 Move hash inventories out of the main PDF
+17. Separate flow mismatch from area mismatch
 
-Appendix H devotes several pages to SHA-256 tables. Keep:
+The cut-area audit is a strong idea, but its implications are not carried into the velocity analysis. The maximum cut-area discrepancies are 2.94% and 4.46%, large enough to matter near the stenosis.
 
-- repository tag or commit;
-- environment versions;
-- archive DOI or release;
-- one manifest hash;
-- regeneration command.
+Use the identity
 
-Move per-file hashes to a machine-readable manifest. This preserves reproducibility while improving readability.
+\frac{Q_{1D}}{A_{1D}}-\frac{Q_{3D}}{A_{3D}}
+=
+\frac{Q_{1D}-Q_{3D}}{A_{1D}}
++
+Q_{3D}
+\left(
+\frac{1}{A_{1D}}-\frac{1}{A_{3D}}
+\right)
 
-## 5.5 Add a list of figures and tables
+to decompose velocity discrepancy into:
 
-The report contains fifteen figures and five tables. A list of figures and list of tables would improve navigation, especially if the document remains near its current length.
+* a flow component, and
+* a geometry/area component.
 
-## 5.6 Rationalize the appendices
+Plot \epsilon_A(z), |e_Q(z)|, and |e_u(z)| together. Report where the maximum area error occurs and test whether the largest velocity errors coincide with cut-area errors.
 
-Recommended appendices:
+The area-audit statement should also be more exact: the median discrepancy is below 0.3%, but the maximum is several percent. “Sub-percent typical discrepancy with localized multi-percent outliers” is clearer.
 
-- A. Symbols and acronyms actually used;
-- B. Continuum derivations;
-- C. Extended 1D model derivation;
-- D. Numerical discretization and boundary treatment;
-- E. Reproducibility and data manifest.
+18. Improve the section-error metrics
 
-Move basic function-space material, unused scalar-transport notation, and full hash inventories to a separate supplement.
+The present metrics are transparent but should be described as empirical sample metrics:
 
-## 5.7 Improve figure design
+* mean absolute error,
+* root-mean-square error,
+* maximum absolute error.
 
-Specific figure revisions:
+Calling them L_1,L_2,L_\infty invites confusion with continuous function-space norms. If a normalized axial norm is desired, use quadrature weights:
 
-- **Figure 1:** enlarge the 3D mesh or use a clearer orthographic view.
-- **Figure 5:** increase vertical size and show one cross-sectional slice or zoom near the throat.
-- **Figure 9:** add an error panel; explain the negative 1D excursion; remove sampling sawtooth through better quadrature.
-- **Figure 10:** move the legend; add variability/occupancy; use line style plus color.
-- **Figure 11:** add expected-order reference labels.
-- **Figure 12:** define and nondimensionalize the difference metric.
-- **Figure 13:** plot relative change from Newtonian or separate profile and rheology effects; identify 73% as stress test.
-- **Figure 14:** reconcile its values/configuration with Table 2.
-- **Figure 15:** show CPU and MPS times separately, or move to supplement.
+E_p
+=
+\left(
+\frac{1}{L}
+\sum_j w_j |e(z_j)|^p
+\right)^{1/p}.
 
-The current page layout leaves substantial unused space on page 32 and crowds two figures onto page 33. Rebalance the floats.
+This also handles endpoints correctly. The abstract would be clearer if it reported “MAE, RMSE, and maximum absolute discrepancy.”
 
-## 5.8 Audit the references
+19. Make the radial comparison geometrically and statistically defensible
 
-Before submission:
+The radial comparison currently assigns each cut triangle to a radial bin using its centroid. A triangle crossing a bin boundary is therefore allocated wholly to one annulus. With only twenty bins, this introduces an uncontrolled binning error.
 
-- verify DOI metadata and page ranges;
-- check whether preprints have later versions or journal publications;
-- standardize capitalization and journal names;
-- remove editorial comments from bibliography entries;
-- add literature where current 2D/FSI and validation coverage is thin;
-- distinguish sources used for derivation from sources used for empirical evidence.
+A stronger operator would clip cut triangles against annular bin boundaries and integrate over the resulting pieces. At minimum, include a 10/20/40-bin sensitivity study.
 
----
+The radial analysis should also:
 
-# 6. Section-by-section final edit map
+* use annular-area-weighted aggregate errors for physical interpretation;
+* retain the current unweighted metric only as a profile-shape diagnostic;
+* report within-bin azimuthal variance, because radial averaging discards skewness and secondary-flow structure;
+* distinguish r/R_0 from normalization by the current 1D radius \sqrt a;
+* and state the exact reconstructed 1D profile formula in Section 2.
 
-## Abstract, page 1
+The statement that discrepancies are “consistent with” secondary flow, skewness, or separation should be recast as a hypothesis. The current diagnostic does not uniquely identify which omitted phenomenon caused the mismatch.
 
-- Replace convention-heavy summary with motivation, method, quantitative result, and limitation.
-- Write \(t=1.0\) s, not \(T=1\).
-- State 23% and 40% cases.
-- Report the principal errors.
-- Avoid “CLI surfaces” and “bounded parts.”
+20. Add resolution and operator sensitivity to the comparison
 
-## Introduction, pages 4-5
+The general package convergence study is not a substitute for convergence of the actual C23 and C40 comparison outputs. At minimum, recompute the comparison at:
 
-- Move anatomy-function motivation to the opening.
-- Add research questions and contributions.
-- Add the claim-evidence boundary.
-- Move Figure 1 after the contribution paragraph.
-- Replace “hierarchy of the single-vessel hemodynamic models” with “hierarchy of single-vessel hemodynamic models.”
-- Replace “idealized \((C^\infty)\) model of stenosed vessels” with “smooth idealized stenosis geometry.”
+* N=200,400,800 for the 1D grid;
+* multiple time-step caps;
+* 100, 200, and 400 target planes;
+* and multiple radial-bin resolutions.
 
-## Continuum foundations, pages 5-11
+If a second 3D mesh is unavailable, explicitly identify 3D discretization uncertainty as unquantified. Node count alone is not a mesh-resolution statement; report element count, field order, and characteristic mesh size near the throat.
 
-- Reduce by approximately one-third to one-half.
-- Keep physical assumptions and governing equations.
-- Move proof detail and full rheology catalog to appendices.
-- Retain a short Newtonian versus generalized-Newtonian discussion.
-- Remove implementation descriptor names from this section.
+IV. Add physical and asymptotic context
 
-## Governing equations and selected model, pages 11-19
+21. Characterize the operating regime
 
-- Add a compact assumption box.
-- State the physical 1D model.
-- Add the physical-to-solver map.
-- Add the full extended model used in Section 2.
-- Correct the hyperbolicity statement.
-- Separate wall and coupling descriptors.
-- Define the exact outlet-pressure/area equivalence.
+The reader should not have to infer whether the computation is in the regime where the reduced assumptions are plausible. Add a case table reporting:
 
-## Model hierarchy, pages 19-23
+* healthy and throat Reynolds numbers;
+* Womersley number if a pulsatile waveform is introduced;
+* maximum u/c or characteristic Mach number;
+* minimum and maximum area;
+* maximum |R_0'|;
+* a vessel slenderness parameter;
+* and radius versus area stenosis severity.
 
-- Replace repetitive prose with one comparison table and shorter interpretation.
-- Preserve the important statement that fidelity is not a validation rank.
-- Add a literature synthesis rather than only conceptual descriptions.
+This is especially important for the 50% and 73% sensitivity cases in Figure 10. High severity and steep geometry may lie outside the asymptotic regime motivating a 1D reduction. The manuscript should not present those cases without a model-admissibility discussion.
 
-## Clinical pressure-flow motivation, pages 23-25
+The numerical experiment uses a constant inlet applied to a rest state. Unless there is a periodic waveform elsewhere in the code record, describe this as a start-up transient, not a physiological pulse-wave simulation.
 
-- Move a concise version to the introduction.
-- Keep detailed output conventions in the appendix.
-- Retain Figures 7-8 only if pressure remains a central future objective.
-- Do not let pressure occupy more space than the completed velocity study.
+V. Narrative restructuring
 
-## Resolved-velocity comparison, pages 26-29
+22. Put the actual study before the general continuum tutorial
 
-- Rename as “Preliminary cross-model velocity comparison.”
-- Add a model/data matching table.
-- Replace the long setup paragraph with parameter and operator tables.
-- Recompute physical cross-sectional integrals.
-- Define errors and weights.
-- Add time-history and operator-sensitivity checks.
-- Explain the negative pre-throat excursion.
-- Reconcile Figure 14 with Tables 2-4.
+The strongest structure would be:
 
-## Package benchmark, pages 29-33
+1. Introduction
 
-- Move before the 3D comparison.
-- Rename as verification and reproducibility.
-- Define “OK” thresholds.
-- Add exact/manufactured verification.
-- Define observed-order and backend metrics.
-- Move environment-specific runtime plots to supplement unless central.
+Problem, gap, contributions, research questions, and claim boundary.
 
-## Conclusions, page 34
+2. Selected model and assumptions
 
-- Answer the research questions explicitly.
-- State one central result and one central limitation.
-- Identify the next decisive experiment.
-- Remove repeated lists of what was not established.
+Geometry; physical variables; solver variables; wall law; extended terms; initial and boundary conditions; parameter table; regime indicators.
 
-## Acronyms and notation, pages 35-46
+3. Numerical method and verification
 
-- Consolidate.
-- Remove unused/future symbols.
-- Resolve symbol overloading.
-- Add missing solver symbols and parameter values.
-- Keep physical and numerical unit systems in one clear conversion table.
+Finite-volume operator; source discretization; boundary method; positivity; grid/time verification; reproducibility statement.
 
-## Mathematical and numerical appendices, pages 47-61
+4. Cross-model comparison protocol
 
-- Retain derivations directly supporting the selected model.
-- Correct hyperbolicity and boundary-characteristic statements.
-- Add actual MUSCL reconstruction.
-- Define positivity projection and \(p_2\).
-- State well-balancing and conservation properties.
+3D data, matching matrix, quadrature operator, metrics, and audit tests.
 
-## Code availability, pages 62-65
+5. Results
 
-- Replace per-file hash tables with one manifest reference.
-- Add public or institutional archive information.
-- Record exact release/tag, clean/dirty status, and environment.
-- Keep commands concise.
+Verification first, followed by C23/C40 comparison and sensitivity.
 
-## References, pages 66-68
+6. Discussion
 
-- Verify current versions and metadata.
-- Standardize formatting.
-- Expand the literature-review coverage where needed.
+What the patterns plausibly mean, what cannot be attributed, relation to the literature, and dominant limitations.
 
----
+7. Conclusions
 
-# 7. Proposed revised conclusion
+Move the material derivative, Reynolds transport theorem, coordinate forms, generic function-space definitions, and most of the 3D model hierarchy to appendices. These topics are valid, but they currently delay the research problem and create the impression that foundational exposition is itself a contribution.
 
-> This report defined a consistent hierarchy for idealized stenotic blood-flow models and specified an extended one-dimensional area-flow realization with declared wall, rheology, boundary, numerical, and output conventions. Verification experiments documented self-convergence and implementation agreement for the reported metrics. Under the declared \(t=1.0\) s velocity observation operator, the 1D model reproduced the broad upstream and downstream flow trend in the 23% and 40% cases but overpredicted velocity near the stenosis. The largest discrepancies occurred near and downstream of the throat, with the stronger mismatch in the 40% case.
->
-> The comparison does not isolate a unique source of error because the current 3D statistic is node based and the 1D and 3D wall, boundary, initial, and post-processing assumptions are not yet fully matched. The next decisive study is therefore not a broader parameter sweep. It is a matched comparison using archived 3D inputs, area-quadrature flow and mean-velocity operators, complete run diagnostics, and controlled variation of one modelling choice at a time. Pressure-drop and pressure-ratio studies should follow only after the pressure reference, observation maps, and external comparison data are specified.
+23. Convert the literature review from description to synthesis
 
----
+The current review explains what 3D, 2D, 1D, and 0D models are, but it rarely compares evidence, assumptions, or unresolved issues across sources. A literature review should establish:
 
-# 8. Final revision sequence
+1. What classical 1D models retain and omit.
+2. Why stenotic geometry is difficult for classical 1D closures.
+3. What the Canic extension changes mathematically.
+4. Which parts of that extension this manuscript adopts or modifies.
+5. What prior validation or numerical evidence exists.
+6. What gap the present implementation and output operator address.
 
-## Stage 1: Scientific and mathematical corrections
+A synthesis table could compare model family, wall closure, profile assumption, stenosis correction, boundary treatment, and type of supporting evidence. This would be more valuable than several pages of general hierarchy description.
 
-1. Freeze the intended final scope.
-2. Rename physical and solver variables.
-3. Add the model-to-solver derivation.
-4. correct hyperbolicity and boundary-characteristic statements.
-5. Define the MUSCL operator and positivity projection.
-6. Add full physical/numerical parameters.
-7. Define errors and benchmark thresholds.
+The manuscript should also distinguish inherited material from original work. State plainly that the governing extended model is adopted from the cited Canic work, while the implementation, benchmark framework, geometry/operator audit, or comparison workflow constitute the report’s contribution.
 
-## Stage 2: Recompute or relabel the comparison
+24. Consolidate the scope disclaimers
 
-1. Restore the raw 3D data.
-2. Match geometry and boundary metadata.
-3. Implement area quadrature.
-4. Add flow and mean-velocity outputs.
-5. test slab/operator sensitivity.
-6. inspect time histories and flow reversal.
-7. regenerate Tables 2-4 and Figures 9-10.
-8. reconcile Figure 14.
+The manuscript repeats variants of “not clinical validation,” “not FFR evidence,” “not patient-specific,” and “not resolved-FSI evidence” in the introduction, section openings, captions, results, and conclusion. The caution is appropriate, but the repetition interrupts the argument and sometimes makes the prose defensive.
 
-## Stage 3: Restructure the manuscript
+Retain the excellent claim–evidence table on page 5, rename it “Scope and evidence matrix,” and rely on it. Repeat a limitation only where a result could otherwise be misread.
 
-1. Rewrite abstract and introduction.
-2. Move verification ahead of cross-model comparison.
-3. Compress continuum derivations.
-4. Replace hierarchy repetition with tables.
-5. shorten clinical pressure discussion.
-6. rewrite conclusion.
+Figure captions should explain what a figure shows, not restate the entire evidence boundary.
 
-## Stage 4: Presentation and reproducibility
+25. Add a genuine Discussion section
 
-1. Consolidate notation and acronyms.
-2. improve figure readability.
-3. move hashes to a manifest.
-4. add release/archive information.
-5. audit references.
-6. run a final cross-reference and unit check.
+The current manuscript moves almost directly from results to conclusions. A Discussion section should address:
 
----
+* why C40 differs more than C23;
+* how much of the discrepancy may arise from area, flow, wall, boundary, and transient mismatch;
+* whether the error localization supports or challenges the extended closure;
+* which conclusions are robust under the available sensitivity tests;
+* and which experiment would discriminate among competing explanations.
 
-# 9. Final acceptance checklist
+That is also the proper place to reconnect the results to the literature reviewed in Section 1.
 
-## Scientific claims
+26. Move software-engineering detail out of the scientific results
 
-- [ ] Every claim has a matching evidence class.
-- [ ] “Validation” is reserved for experimental or clinical comparison.
-- [ ] Pressure and FFR are clearly motivation or completed outputs, not both.
-- [ ] 3D data are described as a computational comparison dataset.
+The CPU/MPS timing comparison, long command invocations, package stage counts, and four pages of hashes are valuable reproducibility assets but impede the scientific narrative.
 
-## Numerical experiment
+Keep in the paper:
 
-- [ ] Geometry, wall, rheology, inlet, outlet, initial state, and time are matched or explicitly unmatched.
-- [ ] 3D mean velocity is area integrated, or the statistic is renamed.
-- [ ] Flow is compared before profile reconstruction.
-- [ ] Error formulas, weights, norms, and units are defined.
-- [ ] Sampling occupancy and variability are reported.
-- [ ] Negative or oscillatory features are explained.
-- [ ] Raw inputs and run diagnostics are archived.
+* exact software release or commit;
+* environment file;
+* archive identifier;
+* one regeneration command;
+* and a concise data manifest.
 
-## Mathematical rigor
+Move individual hashes and device-specific performance plots to a machine-readable manifest or repository supplement. Figure 12 is primarily a software portability result and does not advance the hemodynamic argument.
 
-- [ ] Hyperbolicity condition is correct for the stated alpha range.
-- [ ] Boundary invariants match the implemented system or are labelled approximate.
-- [ ] Physical-to-solver transformation is derived.
-- [ ] Extended variable-radius equations are stated.
-- [ ] MUSCL reconstruction is documented.
-- [ ] Positivity projection is defined and activation counts are reported.
-- [ ] All source terms and parameters are defined.
-- [ ] Wall and multiscale coupling axes are separate.
+VI. Section-specific editorial actions
 
-## Labels and presentation
+Abstract, page 1
 
-- [ ] \(A\)/\(a\), \(Q\)/\(q\), \(R\)/\(\mathcal R\), and \(T\)/\(t_f\) are unambiguous.
-- [ ] Case labels include severity.
-- [ ] Formal labels match content type.
-- [ ] Unused acronyms and symbols are removed.
-- [ ] Figures remain interpretable in grayscale.
-- [ ] Captions state operators, time, cases, and units.
-- [ ] Tables use readable font sizes.
+The abstract contains the right quantitative results and an appropriately limited interpretation. Improve it by:
 
-## Reproducibility
+* identifying the selected numerical method;
+* replacing “L_1/L_2/L_\infty” with MAE/RMSE/maximum discrepancy;
+* avoiding undefined implementation language such as “closure-health checks”;
+* and stating the central contribution before listing package checks.
 
-- [ ] Principal parameters appear in the manuscript.
-- [ ] Exact code release and environment are recorded.
-- [ ] Benchmark pass/fail criteria are explicit.
-- [ ] Runtime methodology is documented or moved to supplement.
-- [ ] Hashes are available in a machine-readable manifest.
-- [ ] The final archive contains the data required to reproduce every main figure.
+“Backend agreement” should not appear until a tolerance and normalized metric have been defined.
 
-## Overall recommendation
+Introduction, pages 4–5
 
-The report should be finalized as a **mathematical framework, numerical verification, and preliminary velocity-comparison study**. That framing is scientifically honest, technically substantial, and well supported by the existing work. The final manuscript will be materially stronger if it concentrates on that contribution rather than expanding its clinical claims.
+The three research questions are useful and should remain. Add a one-paragraph novelty statement distinguishing adopted model equations from original implementation and diagnostic work.
+
+The “Literature Review Roadmap” mostly repeats the table of contents and can be deleted.
+
+Continuum foundations, pages 6–16
+
+Condense to approximately two pages in the main text:
+
+* continuum assumption;
+* incompressible generalized-Newtonian equations;
+* stress law;
+* fixed versus moving wall distinction.
+
+Move the flow-map theorem, Reynolds transport proof, function-space material, global regularity aside, and cylindrical-coordinate equations to appendices.
+
+Model hierarchy, pages 16–20
+
+Figure 4 communicates most of the conceptual point. The following subsections repeat similar statements about what each tier cannot do. Replace them with one comparison table and a short synthesis.
+
+Clinical motivation, pages 25–27
+
+Because the manuscript reports no pressure result, this section is disproportionately long. Reduce it to a paragraph in the introduction and move the detailed pressure-ratio convention to an appendix. Otherwise readers expect pressure or FFR results that never arrive.
+
+Verification section, pages 28–32
+
+Rename it “Software QA and numerical verification.” Replace status counts and performance plots with:
+
+* exact verification problem;
+* error definition;
+* refinement sequence;
+* expected order;
+* observed order;
+* acceptance threshold;
+* and pass/fail conclusion.
+
+The rheology/profile sensitivity figure requires a parameter table and a clearer interpretation. If it is not used to support a research question, move it to supplementary material.
+
+Cross-model comparison, pages 32–37
+
+This is the strongest and most original part of the manuscript. Preserve the quadrature derivation, but add:
+
+* the matching matrix;
+* actual 3D discretization metadata;
+* transient-status evidence;
+* area/flow decomposition;
+* error-versus-z panel;
+* and operator-sensitivity results.
+
+Figure 14 should become the central results figure. Add a lower panel showing \bar u_{1D}-\bar u_{3D}, and optionally overlay the area-audit discrepancy.
+
+Conclusions, page 38
+
+Answer the three research questions explicitly rather than repeating the scope language. A strong conclusion would distinguish:
+
+1. what model was defined;
+2. what numerical behavior was verified;
+3. what the comparison showed;
+4. and what remains indeterminate.
+
+The stationary-Stokes extension should be described as a geometry/implementation verification tier, not as a physically stronger stenosis-flow model. For the reported Reynolds regime, neglecting inertia may make it unsuitable for interpreting jets or recirculation.
+
+Appendices, pages 39–70
+
+The appendices contain useful material but are overexpanded.
+
+* Merge Appendices B, C, and D into a concise notation appendix.
+* Remove definitions of standard C^k and L^p spaces unless used in a theorem.
+* Replace the rheology descriptor R, which conflicts with vessel radius R, with \mathcal R or rheo.
+* Ensure the open and closed time intervals are visually distinguishable.
+* Retain the derivation and numerical-operator appendices after resolving the continuous/discrete model inconsistency.
+* Replace the printed hash inventory with a machine-readable manifest.
+
+Suggested tighter abstract
+
+This study formulates and numerically evaluates an extended one-dimensional compliant-vessel model for flow through a smooth idealized stenosis. Physical area and flow variables are mapped explicitly to the radius-squared coordinates used by a MUSCL finite-volume and SSPRK3 implementation. Numerical verification examines equilibrium preservation, refinement behavior, and cross-integrator discrepancies. At t=1.0 s, section-averaged axial velocities are compared with two three-dimensional computational datasets using plane–tetrahedron quadrature. For 23% and 40% radius reductions, the mean absolute discrepancies are 0.505 and 0.966 cm/s, the root-mean-square discrepancies are 0.664 and 1.87 cm/s, and the maximum discrepancies are 2.35 and 9.92 cm/s. Errors are concentrated near the stronger stenosis and in reconstructed radial profiles. Because wall models, boundary conditions, and transient histories are not fully matched, these results identify where the models differ rather than validating the 1D model. The principal contribution is a reproducible model specification and cross-sectional comparison operator for subsequent matched verification and pressure–flow studies.
+
+Recommended revision sequence
+
+First, correct the mathematical specification. Resolve the R_0 versus R_{\max} wall law, standardize A,Q,a,q, define the full extended balance law, and clarify the non-Newtonian p_2 treatment.
+
+Second, rerun the evidence-generating cases. Persist CFL, positivity, conservation, boundary, temporal, and grid-refinement diagnostics. Add equilibrium and manufactured-solution tests.
+
+Third, rebuild the comparison. Supply the model-matching matrix, decompose area and flow effects, improve radial integration, and perform grid/operator sensitivity.
+
+Fourth, rewrite the narrative around the actual contribution. Move general continuum material to appendices, synthesize rather than catalog the literature, add a Discussion section, and transfer software manifests and hardware benchmarking to supplementary material.
+
+After those revisions, the manuscript would present a much clearer and more defensible contribution: not a broad validation of stenotic blood-flow prediction, but a precisely specified, reproducibly implemented reduced model with a carefully delimited computational comparison operator.
