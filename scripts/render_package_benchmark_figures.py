@@ -6,14 +6,17 @@ from __future__ import annotations
 import argparse
 import csv
 import math
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
+from statistics import median
+from textwrap import wrap
 from typing import Iterable
 
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 
 CSV_FILES = {
@@ -26,6 +29,53 @@ CSV_FILES = {
     "resolved3d": "resolved3d.csv",
     "python_mps": "python_mps.csv",
 }
+
+METRIC_LABELS = {
+    "area_l2": "Area",
+    "flow_l2": "Flow",
+    "velocity_l2": "Velocity",
+    "pressure_l2": "Pressure",
+}
+
+METHOD_LABELS = {
+    "fv-first-order": "FV first",
+    "fv-muscl": "FV MUSCL",
+    "fv-muscl-minmod": "FV MUSCL",
+    "fv-lax-wendroff": "FV LW",
+    "dg": "DG p-sweep",
+    "dg-p0": "DG p0",
+    "dg-p1": "DG p1",
+    "dg-p2": "DG p2",
+}
+
+PROFILE_LABELS = {
+    "flat": "Flat",
+    "parabolic": "Parabolic",
+    "power": "Power",
+}
+
+RHEOLOGY_LABELS = {
+    "newtonian": "Newtonian",
+    "carreau": "Carreau",
+    "carreau-yasuda": "Carreau-Yasuda",
+    "casson": "Casson",
+    "power-law": "Power law",
+}
+
+STATUS_COLORS = {
+    "ok": "#4f8f58",
+    "skipped": "#9b8e54",
+    "error": "#b65f5f",
+}
+
+QUALITATIVE_COLORS = [
+    "#356f9f",
+    "#b45a3c",
+    "#5f8a48",
+    "#7a5aa6",
+    "#c08a2d",
+    "#4f8f8f",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -73,6 +123,50 @@ def ok_rows(rows: Iterable[dict[str, str]]) -> list[dict[str, str]]:
     return [row for row in rows if (row.get("status") or "").strip().lower() == "ok"]
 
 
+def ordered_unique(values: Iterable[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            ordered.append(value)
+    return ordered
+
+
+def method_label(value: str) -> str:
+    return METHOD_LABELS.get(value, value.replace("-", " ").strip() or "Unspecified")
+
+
+def metric_label(value: str) -> str:
+    return METRIC_LABELS.get(value, value.replace("_l2", "").replace("_", " ").title())
+
+
+def profile_label(value: str) -> str:
+    return PROFILE_LABELS.get(value, value.replace("-", " ").title() or "Unspecified")
+
+
+def rheology_label(value: str) -> str:
+    return RHEOLOGY_LABELS.get(value, value.replace("-", " ").title() or "Unspecified")
+
+
+def severity_sort_key(value: str) -> tuple[int, float | str]:
+    try:
+        return (0, float(value))
+    except ValueError:
+        return (1, value)
+
+
+def integer_sort_key(value: str) -> tuple[int, int | str]:
+    try:
+        return (0, int(value))
+    except ValueError:
+        return (1, value)
+
+
+def min_median_max(values: list[float]) -> tuple[float, float, float]:
+    return min(values), median(values), max(values)
+
+
 def save_figure(fig: plt.Figure, output_dir: Path, stem: str, formats: Iterable[str]) -> list[Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = []
@@ -93,28 +187,61 @@ def placeholder_figure(title: str, message: str) -> plt.Figure:
 
 
 def convergence_figure(rows: list[dict[str, str]]) -> plt.Figure:
-    points = [
-        (
-            row.get("method", ""),
-            row.get("metric", ""),
-            as_float(row, "observed_order"),
-        )
-        for row in ok_rows(rows)
-    ]
-    points = [(method, metric, value) for method, metric, value in points if value is not None]
-    if not points:
+    grouped: dict[tuple[str, str], list[float]] = defaultdict(list)
+    for row in ok_rows(rows):
+        value = as_float(row, "observed_order")
+        if value is not None:
+            grouped[(row.get("method", ""), row.get("metric", ""))].append(value)
+    if not grouped:
         return placeholder_figure("Package Benchmark Convergence", "No finite smoke or overnight convergence rows.")
 
-    labels = [f"{method}\n{metric.replace('_l2', '')}" for method, metric, _ in points]
-    values = [value for _, _, value in points]
-    fig, ax = plt.subplots(figsize=(max(6.5, 0.45 * len(values)), 3.8))
-    ax.bar(range(len(values)), values, color="#3a6ea5")
+    methods = ordered_unique(method for method, _ in grouped)
+    metric_order = ["area_l2", "flow_l2", "velocity_l2", "pressure_l2"]
+    metrics = [metric for metric in metric_order if any((method, metric) in grouped for method in methods)]
+    metrics.extend(sorted({metric for _, metric in grouped if metric not in metrics}))
+    x_positions = list(range(len(methods)))
+    bar_width = min(0.18, 0.78 / max(1, len(metrics)))
+
+    fig, ax = plt.subplots(figsize=(7.6, 4.2))
+    for metric_index, metric in enumerate(metrics):
+        offset = (metric_index - (len(metrics) - 1) / 2.0) * bar_width
+        positions: list[float] = []
+        medians: list[float] = []
+        lower_errors: list[float] = []
+        upper_errors: list[float] = []
+        for method_index, method in enumerate(methods):
+            values = grouped.get((method, metric), [])
+            if not values:
+                continue
+            low, mid, high = min_median_max(values)
+            positions.append(method_index + offset)
+            medians.append(mid)
+            lower_errors.append(mid - low)
+            upper_errors.append(high - mid)
+        ax.bar(
+            positions,
+            medians,
+            width=bar_width * 0.88,
+            yerr=[lower_errors, upper_errors],
+            capsize=2.5,
+            label=metric_label(metric),
+        )
     ax.axhline(1.0, color="#666666", linewidth=0.8, linestyle="--")
+    ax.axhline(2.0, color="#888888", linewidth=0.8, linestyle=":")
     ax.set_ylabel("Observed order")
-    ax.set_title("Self-convergence observed order")
-    ax.set_xticks(range(len(labels)))
-    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
+    ax.set_title("Self-convergence observed-order summary")
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels([method_label(method) for method in methods], rotation=25, ha="right", fontsize=8)
     ax.grid(axis="y", alpha=0.25)
+    ax.legend(
+        fontsize=8,
+        ncols=len(metrics),
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.22),
+        frameon=False,
+    )
+    ax.text(0.01, 0.96, "Bars show medians; whiskers span min-max.", transform=ax.transAxes, fontsize=8, va="top")
+    fig.tight_layout()
     return fig
 
 
@@ -131,43 +258,139 @@ def backend_parity_figure(rows: list[dict[str, str]]) -> plt.Figure:
         ]
         finite_errors = [value for value in errors if value is not None]
         if native is not None and sciml is not None and finite_errors:
-            points.append((native + sciml, max(finite_errors), row.get("algorithm", "")))
+            points.append((row.get("method", ""), row.get("algorithm", ""), native + sciml, max(finite_errors)))
     if not points:
         return placeholder_figure("Backend Parity", "No finite native/SciML parity rows.")
 
-    fig, ax = plt.subplots(figsize=(6.5, 3.8))
-    for runtime, error, label in points:
-        ax.scatter(runtime, max(error, 1.0e-16), s=55, label=label)
+    methods = ordered_unique(method for method, _, _, _ in points)
+    algorithms = ordered_unique(algorithm for _, algorithm, _, _ in points)
+    color_map = {method: QUALITATIVE_COLORS[index % len(QUALITATIVE_COLORS)] for index, method in enumerate(methods)}
+    marker_cycle = ["o", "s", "^", "D", "P", "X"]
+    marker_map = {algorithm: marker_cycle[index % len(marker_cycle)] for index, algorithm in enumerate(algorithms)}
+
+    fig, ax = plt.subplots(figsize=(7.0, 4.1))
+    for method, algorithm, runtime, error in points:
+        ax.scatter(
+            runtime,
+            max(error, 1.0e-16),
+            s=62,
+            color=color_map[method],
+            marker=marker_map[algorithm],
+            edgecolor="white",
+            linewidth=0.5,
+            alpha=0.9,
+        )
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel("Combined runtime, seconds")
     ax.set_ylabel("Max final-state L2 difference")
-    ax.set_title("Backend agreement versus runtime")
+    ax.set_title("Backend parity: runtime versus final-state difference")
     ax.grid(True, which="both", alpha=0.25)
-    handles, labels = ax.get_legend_handles_labels()
-    if labels:
-        ax.legend(fontsize=8)
+    ax.annotate(
+        "Lower left is better",
+        xy=(0.11, 0.14),
+        xycoords="axes fraction",
+        xytext=(0.39, 0.45),
+        textcoords="axes fraction",
+        arrowprops={"arrowstyle": "->", "color": "#555555", "linewidth": 0.9},
+        fontsize=8,
+        ha="center",
+        va="center",
+        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "#cccccc", "alpha": 0.9},
+    )
+    method_handles = [
+        Line2D([0], [0], marker="o", linestyle="", color=color_map[method], label=method_label(method), markersize=6)
+        for method in methods
+    ]
+    algorithm_handles = [
+        Line2D(
+            [0],
+            [0],
+            marker=marker_map[algorithm],
+            linestyle="",
+            markerfacecolor="#777777",
+            markeredgecolor="#777777",
+            color="#777777",
+            label=algorithm or "unspecified",
+            markersize=6,
+        )
+        for algorithm in algorithms
+    ]
+    method_legend = ax.legend(
+        handles=method_handles,
+        title="Method",
+        loc="upper left",
+        bbox_to_anchor=(1.01, 1.0),
+        fontsize=8,
+        title_fontsize=8,
+    )
+    ax.add_artist(method_legend)
+    ax.legend(
+        handles=algorithm_handles,
+        title="SciML algorithm",
+        loc="lower left",
+        bbox_to_anchor=(1.01, 0.0),
+        fontsize=8,
+        title_fontsize=8,
+    )
+    fig.tight_layout()
     return fig
 
 
 def rheology_profile_figure(rows: list[dict[str, str]]) -> plt.Figure:
-    points = []
+    values_by_key: dict[tuple[str, str, str], float] = {}
     for row in ok_rows(rows):
         value = as_float(row, "max_abs_u")
         if value is not None:
-            points.append((row.get("rheology", ""), row.get("profile", ""), value))
-    if not points:
+            values_by_key[(row.get("severity", ""), row.get("rheology", ""), row.get("profile", ""))] = value
+    if not values_by_key:
         return placeholder_figure("Rheology/Profile Sensitivity", "No finite sensitivity rows.")
 
-    labels = [f"{rheology}\n{profile}" for rheology, profile, _ in points]
-    values = [value for _, _, value in points]
-    fig, ax = plt.subplots(figsize=(max(6.5, 0.55 * len(values)), 3.8))
-    ax.bar(range(len(values)), values, color="#7a8b48")
-    ax.set_ylabel("Max absolute velocity, cm/s")
-    ax.set_title("Rheology/profile sensitivity")
-    ax.set_xticks(range(len(labels)))
-    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
-    ax.grid(axis="y", alpha=0.25)
+    severities = sorted(ordered_unique(severity for severity, _, _ in values_by_key), key=severity_sort_key)
+    rheologies = ordered_unique(rheology for _, rheology, _ in values_by_key)
+    profiles = ordered_unique(profile for _, _, profile in values_by_key)
+    ncols = 2 if len(severities) > 1 else 1
+    nrows = math.ceil(len(severities) / ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(8.0, 2.8 * nrows), squeeze=False)
+    bar_width = min(0.22, 0.78 / max(1, len(profiles)))
+    profile_colors = {profile: QUALITATIVE_COLORS[index % len(QUALITATIVE_COLORS)] for index, profile in enumerate(profiles)}
+
+    for ax, severity in zip(axes.ravel(), severities):
+        x_positions = list(range(len(rheologies)))
+        for profile_index, profile in enumerate(profiles):
+            offset = (profile_index - (len(profiles) - 1) / 2.0) * bar_width
+            positions: list[float] = []
+            heights: list[float] = []
+            for rheology_index, rheology in enumerate(rheologies):
+                value = values_by_key.get((severity, rheology, profile))
+                if value is None:
+                    continue
+                positions.append(rheology_index + offset)
+                heights.append(value)
+            ax.bar(positions, heights, width=bar_width * 0.88, color=profile_colors[profile], label=profile_label(profile))
+        ax.set_title(f"Severity {severity}%")
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels([rheology_label(rheology) for rheology in rheologies], rotation=25, ha="right", fontsize=8)
+        ax.grid(axis="y", alpha=0.25)
+        ax.set_ylabel("Max |u|, cm/s")
+
+    for ax in axes.ravel()[len(severities) :]:
+        ax.axis("off")
+    handles = [
+        Line2D([0], [0], color=profile_colors[profile], linewidth=6, label=profile_label(profile))
+        for profile in profiles
+    ]
+    fig.legend(
+        handles=handles,
+        title="Velocity profile",
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.95),
+        ncols=len(handles),
+        fontsize=8,
+        title_fontsize=8,
+    )
+    fig.suptitle("Rheology/profile sensitivity by stenosis severity", y=0.995)
+    fig.tight_layout(rect=[0, 0, 1, 0.86])
     return fig
 
 
@@ -178,7 +401,45 @@ def resolved3d_figure(rows: list[dict[str, str]]) -> plt.Figure:
         if value is not None:
             points.append((row.get("case_label", ""), row.get("profile", ""), value))
     if not points:
-        return placeholder_figure("Resolved-Velocity Diagnostic", "Resolved-3D diagnostics were skipped or unavailable.")
+        statuses = Counter((row.get("status") or "missing").strip().lower() or "missing" for row in rows)
+        if not rows:
+            statuses["missing"] = 1
+        status_order = [status for status in ("ok", "skipped", "error", "missing") if status in statuses]
+        status_order.extend(sorted(status for status in statuses if status not in status_order))
+        fig, (ax_status, ax_note) = plt.subplots(
+            1,
+            2,
+            figsize=(6.4, 1.9),
+            gridspec_kw={"width_ratios": [1.0, 2.35]},
+        )
+        ax_status.barh(
+            range(len(status_order)),
+            [statuses[status] for status in status_order],
+            color=[STATUS_COLORS.get(status, "#777777") for status in status_order],
+        )
+        ax_status.set_yticks(range(len(status_order)))
+        ax_status.set_yticklabels([status.title() for status in status_order], fontsize=8)
+        ax_status.set_xlabel("Rows", fontsize=8)
+        ax_status.set_title("CSV status", fontsize=9)
+        ax_status.tick_params(axis="x", labelsize=8)
+        ax_status.grid(axis="x", alpha=0.2)
+
+        total = len(rows)
+        ok_count = statuses.get("ok", 0)
+        profiles = ", ".join(profile_label(value) for value in ordered_unique(row.get("profile", "") for row in rows if row.get("profile", "")))
+        first_message = next((row.get("error_message", "") for row in rows if row.get("error_message", "")), "")
+        reason = (
+            "No OK rows were emitted; the source CSV records row-level error details."
+            if first_message
+            else "No OK resolved-velocity diagnostic rows were emitted."
+        )
+        ax_note.axis("off")
+        ax_note.text(0.0, 0.82, "Resolved-velocity diagnostic availability", fontsize=10, fontweight="bold")
+        ax_note.text(0.0, 0.58, f"{ok_count}/{total} rows OK; profiles: {profiles or 'none'}", fontsize=8.5)
+        for line_index, line in enumerate(wrap(f"Boundary: {reason}", width=58)[:3]):
+            ax_note.text(0.0, 0.36 - 0.16 * line_index, line, fontsize=8, color="#444444")
+        fig.tight_layout()
+        return fig
 
     labels = [f"{case}\n{profile}" for case, profile, _ in points]
     values = [value for _, _, value in points]
@@ -197,23 +458,57 @@ def python_mps_figure(rows: list[dict[str, str]]) -> plt.Figure:
     for row in ok_rows(rows):
         elapsed = as_float(row, "elapsed_s")
         rel_area = as_float(row, "relative_area_mean_final")
+        rel_flow = as_float(row, "relative_flow_mean_final")
+        finite_errors = [value for value in [rel_area, rel_flow] if value is not None]
         if elapsed is not None:
-            points.append((row.get("method", ""), row.get("nx", ""), elapsed, rel_area))
+            points.append((row.get("method", ""), row.get("nx", ""), elapsed, max(finite_errors) if finite_errors else None))
     if not points:
-        return placeholder_figure("Python CPU/MPS Benchmark", "Python/Torch-MPS rows were skipped or unavailable.")
+        return placeholder_figure("Python CPU/MPS Benchmark", "Python/Torch-MPS rows did not emit OK records.")
 
-    labels = [f"{method}\nN={nx}" for method, nx, _, _ in points]
-    values = [elapsed for _, _, elapsed, _ in points]
-    fig, ax = plt.subplots(figsize=(max(6.5, 0.55 * len(values)), 3.8))
-    ax.bar(range(len(values)), values, color="#4c7899")
-    ax.set_ylabel("Comparison runtime, seconds")
-    ax.set_title("Python native CPU versus Torch-MPS")
-    ax.set_xticks(range(len(labels)))
-    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
-    ax.grid(axis="y", alpha=0.25)
-    for index, (_, _, _, rel_area) in enumerate(points):
-        if rel_area is not None:
-            ax.text(index, values[index], f"{rel_area:.1e}", ha="center", va="bottom", fontsize=7)
+    methods = ordered_unique(method for method, _, _, _ in points)
+    nxs = sorted(ordered_unique(nx for _, nx, _, _ in points), key=integer_sort_key)
+    by_key = {(method, nx): (elapsed, relative_error) for method, nx, elapsed, relative_error in points}
+    width = min(0.22, 0.78 / max(1, len(nxs)))
+    nx_colors = {nx: QUALITATIVE_COLORS[index % len(QUALITATIVE_COLORS)] for index, nx in enumerate(nxs)}
+
+    fig, (ax_runtime, ax_error) = plt.subplots(
+        2,
+        1,
+        figsize=(7.4, 5.0),
+        sharex=True,
+        gridspec_kw={"height_ratios": [1.35, 1.0]},
+    )
+    x_positions = list(range(len(methods)))
+    for nx_index, nx in enumerate(nxs):
+        offset = (nx_index - (len(nxs) - 1) / 2.0) * width
+        positions: list[float] = []
+        runtimes: list[float] = []
+        errors: list[float] = []
+        error_positions: list[float] = []
+        for method_index, method in enumerate(methods):
+            values = by_key.get((method, nx))
+            if values is None:
+                continue
+            elapsed, relative_error = values
+            positions.append(method_index + offset)
+            runtimes.append(elapsed)
+            if relative_error is not None:
+                error_positions.append(method_index + offset)
+                errors.append(max(relative_error, 1.0e-16))
+        ax_runtime.bar(positions, runtimes, width=width * 0.88, color=nx_colors[nx], label=f"N={nx}")
+        ax_error.scatter(error_positions, errors, s=42, color=nx_colors[nx], edgecolor="white", linewidth=0.5)
+
+    ax_runtime.set_ylabel("Compare elapsed, seconds")
+    ax_runtime.set_title("Python native/Torch-MPS comparison runtime and final differences")
+    ax_runtime.grid(axis="y", alpha=0.25)
+    ax_runtime.legend(title="Grid", fontsize=8, title_fontsize=8, ncols=len(nxs))
+    ax_error.set_ylabel("Max relative final difference")
+    ax_error.set_yscale("log")
+    ax_error.grid(axis="y", which="both", alpha=0.25)
+    ax_error.set_xticks(x_positions)
+    ax_error.set_xticklabels([method_label(method) for method in methods], rotation=25, ha="right", fontsize=8)
+    ax_error.set_xlabel("Python spatial method")
+    fig.tight_layout()
     return fig
 
 

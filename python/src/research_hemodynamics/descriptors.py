@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Iterable
 
+PUBLICATION_TIER = "publication"
+EXPERIMENTAL_SMOKE_TIER = "experimental-smoke"
+JULIA_REFERENCE_ONLY_TIER = "julia-reference-only"
+
 
 def normalize_name(value: str) -> str:
     return value.strip().lower().replace("_", "-")
@@ -63,19 +67,67 @@ def d(category: str, name: str, description: str, **metadata: Any) -> Descriptor
 
 registry = DescriptorRegistry(
     [
-        d("spatial", "fv-first-order", "First-order finite-volume Rusanov method.", family="fvm", order=1),
-        d("spatial", "fv-muscl", "MUSCL finite-volume method with minmod limiting.", family="fvm", order=2),
+        d(
+            "spatial",
+            "fv-first-order",
+            "Publication-tier first-order finite-volume Rusanov method.",
+            family="fvm",
+            order=1,
+            tier=PUBLICATION_TIER,
+        ),
+        d(
+            "spatial",
+            "fv-muscl",
+            "Publication-tier MUSCL finite-volume method with minmod limiting.",
+            family="fvm",
+            order=2,
+            tier=PUBLICATION_TIER,
+        ),
         d(
             "spatial",
             "fv-lax-wendroff",
-            "Lax-Wendroff descriptor; v1 uses a stable MUSCL/minmod fallback.",
+            "Publication-tier Richtmyer/Lax-Wendroff finite-volume method with minmod interface reconstruction.",
             family="fvm",
-            fallback="fv-muscl",
+            order=2,
+            tier=PUBLICATION_TIER,
         ),
-        d("spatial", "dg-p0", "DG degree-0 descriptor smoke path.", family="dg", degree=0),
-        d("spatial", "dg-p1", "DG degree-1 descriptor smoke path using cell-average update.", family="dg", degree=1),
-        d("spatial", "dg-p2", "DG degree-2 descriptor smoke path using cell-average update.", family="dg", degree=2),
-        d("spatial", "fem-stationary-stokes", "CPU stationary-Stokes resistance/projection path.", family="fem"),
+        d(
+            "spatial",
+            "dg-p0",
+            "Experimental-smoke DG degree-0 descriptor using a cell-average FV update.",
+            family="dg",
+            degree=0,
+            fallback="cell-average-fv-update",
+            tier=EXPERIMENTAL_SMOKE_TIER,
+            scientific_tier=JULIA_REFERENCE_ONLY_TIER,
+        ),
+        d(
+            "spatial",
+            "dg-p1",
+            "Experimental-smoke DG degree-1 descriptor using a cell-average FV update.",
+            family="dg",
+            degree=1,
+            fallback="cell-average-fv-update",
+            tier=EXPERIMENTAL_SMOKE_TIER,
+            scientific_tier=JULIA_REFERENCE_ONLY_TIER,
+        ),
+        d(
+            "spatial",
+            "dg-p2",
+            "Experimental-smoke DG degree-2 descriptor using a cell-average FV update.",
+            family="dg",
+            degree=2,
+            fallback="cell-average-fv-update",
+            tier=EXPERIMENTAL_SMOKE_TIER,
+            scientific_tier=JULIA_REFERENCE_ONLY_TIER,
+        ),
+        d(
+            "spatial",
+            "fem-stationary-stokes",
+            "Publication-tier deterministic CPU stationary-Stokes projection/initializer, not transient FEM.",
+            family="fem",
+            tier=PUBLICATION_TIER,
+        ),
         d("limiter", "minmod", "TVD minmod limiter."),
         d("time-stepper", "euler", "Forward Euler stepper."),
         d("time-stepper", "ssprk2", "Second-order SSP Runge-Kutta stepper."),

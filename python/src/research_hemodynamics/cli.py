@@ -10,6 +10,7 @@ import typer
 
 from .backends import BackendUnavailable, compare_backends, detect_devices, run_backend
 from .descriptors import DescriptorFactory, registry
+from .logging import configure_logging
 from .numerics import RunRequest, write_outputs
 
 app = typer.Typer(
@@ -87,6 +88,22 @@ def build_request(
 def fail(exc: Exception) -> None:
     typer.echo(f"error: {exc}", err=True)
     raise typer.Exit(1) from exc
+
+
+@app.callback()
+def configure(
+    log_level: str = typer.Option(
+        "WARNING",
+        "--log-level",
+        help="Python logging level for operational telemetry on stderr.",
+    )
+) -> None:
+    """Configure CLI logging."""
+
+    try:
+        configure_logging(log_level)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc), param_hint="--log-level") from exc
 
 
 @app.command()
@@ -242,9 +259,30 @@ def compare(
         False, "--allow-cpu-fallback", help="Allow CPU fallback for unavailable Torch devices."
     ),
     space: str = typer.Option("fv-first-order", "--space", help="Spatial descriptor."),
+    time_stepper: str = typer.Option("ssprk2", "--time-stepper", help="Time-stepper descriptor."),
     nx: int = typer.Option(24, "--nx", help="Number of cells."),
     tfinal: float = typer.Option(0.002, "--tfinal", help="Final time."),
+    dt: float = typer.Option(0.001, "--dt", help="Maximum time step."),
+    cfl: float = typer.Option(0.25, "--cfl", help="CFL limit."),
     saveat: float = typer.Option(0.001, "--saveat", help="Save interval."),
+    severity: float = typer.Option(30.0, "--severity", help="Stenosis severity percent."),
+    rheology: str = typer.Option("newtonian", "--rheology", help="Rheology descriptor."),
+    velocity_profile: str = typer.Option("parabolic", "--velocity-profile", help="flat, parabolic, or power."),
+    profile_exponent: Optional[float] = typer.Option(None, "--profile-exponent", help="Power-profile exponent."),
+    profile_shear_factor: float = typer.Option(4.0, "--profile-shear-factor", help="Flat-profile shear factor."),
+    alpha: Optional[float] = typer.Option(
+        None, "--alpha", help="Legacy-compatible power-profile alpha, 1 < alpha < 2."
+    ),
+    ic: str = typer.Option("geometry-rest", "--ic", help="geometry-rest or stationary-stokes."),
+    ic_pressure_drop_pa: float = typer.Option(
+        100.0, "--ic-pressure-drop-pa", help="Stationary-Stokes pressure drop in Pa."
+    ),
+    inlet: str = typer.Option("steady-velocity", "--inlet", help="steady-velocity or flow-waveform."),
+    inlet_umax: float = typer.Option(45.0, "--inlet-umax", help="Steady inlet maximum velocity in cm/s."),
+    flow_waveform: Optional[Path] = typer.Option(None, "--flow-waveform", help="Time/flow waveform file."),
+    outlet: str = typer.Option("fixed-area-characteristic", "--outlet", help="Outlet descriptor."),
+    reflection_coefficient: float = typer.Option(0.0, "--reflection-coefficient", help="Reflection coefficient Rt."),
+    reference_flow: float = typer.Option(0.0, "--reference-flow", help="Reference outlet flow in cm^3/s."),
     scipy_method: str = typer.Option("RK45", "--scipy-method", help="SciPy solve_ivp method."),
     sciml_label: str = typer.Option("auto", "--sciml-label", help="SciML policy label."),
     julia_project: Optional[Path] = typer.Option(
@@ -256,26 +294,26 @@ def compare(
     try:
         request = build_request(
             space=space,
-            time_stepper="euler",
-            rheology="newtonian",
-            velocity_profile="parabolic",
-            profile_exponent=None,
-            alpha=None,
-            profile_shear_factor=4.0,
-            inlet="steady-velocity",
-            inlet_umax=45.0,
-            flow_waveform=None,
-            outlet="fixed-area-characteristic",
-            reflection_coefficient=0.0,
-            reference_flow=0.0,
-            ic="geometry-rest",
+            time_stepper=time_stepper,
+            rheology=rheology,
+            velocity_profile=velocity_profile,
+            profile_exponent=profile_exponent,
+            alpha=alpha,
+            profile_shear_factor=profile_shear_factor,
+            inlet=inlet,
+            inlet_umax=inlet_umax,
+            flow_waveform=flow_waveform,
+            outlet=outlet,
+            reflection_coefficient=reflection_coefficient,
+            reference_flow=reference_flow,
+            ic=ic,
             nx=nx,
             tfinal=tfinal,
-            dt=0.001,
-            cfl=0.25,
+            dt=dt,
+            cfl=cfl,
             saveat=saveat,
-            severity=30.0,
-            ic_pressure_drop_pa=100.0,
+            severity=severity,
+            ic_pressure_drop_pa=ic_pressure_drop_pa,
             scipy_method=scipy_method,
             sciml_label=sciml_label,
             julia_project=julia_project,

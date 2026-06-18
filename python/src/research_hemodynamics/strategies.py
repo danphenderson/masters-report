@@ -9,7 +9,7 @@ from typing import Callable
 
 import numpy as np
 
-from .descriptors import normalize_name
+from .descriptors import EXPERIMENTAL_SMOKE_TIER, JULIA_REFERENCE_ONLY_TIER, PUBLICATION_TIER, normalize_name
 
 ArrayPair = tuple[np.ndarray, np.ndarray]
 Rhs = Callable[[np.ndarray, np.ndarray, float, float], ArrayPair]
@@ -22,6 +22,8 @@ class SpatialStrategy:
     native_scheme: str | None
     degree: int | None = None
     fallback: str | None = None
+    tier: str = PUBLICATION_TIER
+    scientific_tier: str | None = None
 
     def metadata(self) -> dict[str, object]:
         return {
@@ -31,6 +33,8 @@ class SpatialStrategy:
             "degree": self.degree,
             "fallback": self.fallback,
             "cell_average_update": self.family == "dg",
+            "tier": self.tier,
+            "scientific_tier": self.scientific_tier or self.tier,
         }
 
 
@@ -41,11 +45,19 @@ def spatial_strategy(name: str) -> SpatialStrategy:
     if normalized == "fv-muscl":
         return SpatialStrategy(normalized, "fvm", "muscl")
     if normalized == "fv-lax-wendroff":
-        return SpatialStrategy(normalized, "fvm", "muscl", fallback="stable-muscl-minmod")
+        return SpatialStrategy(normalized, "fvm", "lax-wendroff")
     if normalized in {"dg-p0", "dg-p1", "dg-p2"}:
         degree = int(normalized[-1])
         scheme = "first-order" if degree == 0 else "muscl"
-        return SpatialStrategy(normalized, "dg", scheme, degree=degree, fallback="cell-average-fv-update")
+        return SpatialStrategy(
+            normalized,
+            "dg",
+            scheme,
+            degree=degree,
+            fallback="cell-average-fv-update",
+            tier=EXPERIMENTAL_SMOKE_TIER,
+            scientific_tier=JULIA_REFERENCE_ONLY_TIER,
+        )
     if normalized == "fem-stationary-stokes":
         return SpatialStrategy(normalized, "fem", None)
     raise ValueError(f"unknown spatial descriptor {name!r}")

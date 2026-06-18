@@ -201,7 +201,7 @@ end
 function available_resolved3d_cases(data_root::String = default_resolved3d_data_root())
     cases = [case for case in default_resolved3d_cases(data_root) if isfile(case.velocity_xdmf)]
     if isempty(cases)
-        @info "skipping resolved 3D comparison because no case XDMF files were found" data_root expected_layout=[
+        @telemetry_info "skipping resolved 3D comparison because no case XDMF files were found" event="resolved3d_skipped" stage="resolved3d" backend="resolved3d" method="" nx="" tfinal="" status="skipped" rows=0 reason="missing_xdmf" data_root expected_layout=[
             joinpath(data_root, "77", "velocity.xdmf"),
             joinpath(data_root, "60", "velocity.xdmf"),
         ]

@@ -9,10 +9,12 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 import numpy as np
 
+from .logging import event_fields, get_logger
 from .numerics import (
     AREA_FLOOR,
     AREA_LIMITER_FLOOR,
@@ -26,6 +28,8 @@ from .numerics import (
     run_native,
     save_times,
 )
+
+_LOG = get_logger(__name__)
 
 
 class BackendUnavailable(RuntimeError):
@@ -47,12 +51,33 @@ def detect_devices() -> list[DeviceInfo]:
     except Exception as exc:
         devices.append(DeviceInfo("mps", False, "torch", f"torch unavailable: {exc}"))
         devices.append(DeviceInfo("cuda", False, "torch", "torch unavailable"))
+        _LOG.debug(
+            "device probe completed",
+            extra=event_fields(event="device_probe", stage="detect_devices", backend="torch", status="partial", rows=len(devices), reason=str(exc)),
+        )
         return devices
     mps = getattr(getattr(torch, "backends", None), "mps", None)
     mps_available = bool(mps is not None and mps.is_available())
     cuda_available = bool(getattr(torch, "cuda", None) is not None and torch.cuda.is_available())
     devices.append(DeviceInfo("mps", mps_available, "torch", "" if mps_available else "torch MPS unavailable"))
     devices.append(DeviceInfo("cuda", cuda_available, "torch", "" if cuda_available else "torch CUDA unavailable"))
+    for item in devices:
+        if not item.available:
+            _LOG.debug(
+                "device unavailable",
+                extra=event_fields(
+                    event="device_unavailable",
+                    stage="detect_devices",
+                    backend=item.backend,
+                    device=item.name,
+                    status="skipped",
+                    reason=item.reason,
+                ),
+            )
+    _LOG.debug(
+        "device probe completed",
+        extra=event_fields(event="device_probe", stage="detect_devices", backend="torch", status="ok", rows=len(devices)),
+    )
     return devices
 
 
@@ -63,6 +88,17 @@ def resolve_torch_device(device: str, allow_cpu_fallback: bool) -> str:
     if available[device].available:
         return device
     if allow_cpu_fallback:
+        _LOG.warning(
+            "falling back to CPU device",
+            extra=event_fields(
+                event="device_fallback",
+                stage="resolve_torch_device",
+                backend="torch",
+                device=device,
+                status="degraded",
+                reason=available[device].reason,
+            ),
+        )
         return "cpu"
     raise BackendUnavailable(f"device {device!r} unavailable: {available[device].reason}")
 
@@ -170,7 +206,12 @@ def _torch_invariants(torch, area, flow, request: RunRequest):
 
 
 def _torch_boundary_states(torch, area, flow, time: float, request: RunRequest, dtype, device):
-    ain = torch.maximum(area[0], torch.as_tensor(AREA_LIMITER_FLOOR, dtype=dtype, device=device))
+    z_in = torch.zeros(1, dtype=dtype, device=device)
+    r0_in, _, _ = _torch_geometry(torch, z_in, request)
+    ain = torch.maximum(
+        torch.maximum(area[0], r0_in[0] ** 2),
+        torch.as_tensor(AREA_LIMITER_FLOOR, dtype=dtype, device=device),
+    )
     qin = _torch_inlet_flow(torch, time, request, dtype, device)
     z_out = torch.as_tensor([request.length_cm], dtype=dtype, device=device)
     r0_out, _, _ = _torch_geometry(torch, z_out, request)
@@ -190,9 +231,9 @@ def _torch_boundary_states(torch, area, flow, time: float, request: RunRequest, 
     return ain, qin, aout, qout
 
 
-def _torch_method_fluxes(torch, area, flow, z, time: float, request: RunRequest, dtype, device):
+def _torch_method_fluxes(torch, area, flow, z, dx: float, time: float, dt: float, request: RunRequest, dtype, device):
     ain, qin, aout, qout = _torch_boundary_states(torch, area, flow, time, request, dtype, device)
-    if request.spatial.native_scheme == "muscl":
+    if request.spatial.native_scheme in {"muscl", "lax-wendroff"}:
         slope_a = _torch_slopes(torch, area)
         slope_q = _torch_slopes(torch, flow)
     else:
@@ -217,8 +258,30 @@ def _torch_method_fluxes(torch, area, flow, z, time: float, request: RunRequest,
         _torch_wave_speed(torch, left_a, left_q, z_faces, request),
         _torch_wave_speed(torch, right_a, right_q, z_faces, request),
     )
-    flux_a = 0.5 * (fa_l + fa_r) - 0.5 * speed * (right_a - left_a)
-    flux_q = 0.5 * (fq_l + fq_r) - 0.5 * speed * (right_q - left_q)
+    rusanov_a = 0.5 * (fa_l + fa_r) - 0.5 * speed * (right_a - left_a)
+    rusanov_q = 0.5 * (fq_l + fq_r) - 0.5 * speed * (right_q - left_q)
+    if request.spatial.native_scheme == "lax-wendroff":
+        half_a = 0.5 * (left_a + right_a) - 0.5 * dt / dx * (fa_r - fa_l)
+        half_q = 0.5 * (left_q + right_q) - 0.5 * dt / dx * (fq_r - fq_l)
+        half_u = half_q / torch.clamp(half_a, min=AREA_LIMITER_FLOOR)
+        local_u = torch.maximum(torch.abs(left_q / left_a), torch.abs(right_q / right_a))
+        velocity_limit = 2.0 * (local_u + speed + 1.0)
+        area_min = torch.minimum(left_a, right_a)
+        area_max = torch.maximum(left_a, right_a)
+        usable = (
+            torch.isfinite(half_a)
+            & torch.isfinite(half_q)
+            & (half_a > AREA_LIMITER_FLOOR)
+            & (half_a >= 0.5 * area_min)
+            & (half_a <= 2.0 * area_max)
+            & (torch.abs(half_u) <= velocity_limit)
+        )
+        lw_a, lw_q = _torch_flux(torch, torch.clamp(half_a, min=AREA_LIMITER_FLOOR), half_q, z_faces, request)
+        flux_a = torch.where(usable, lw_a, rusanov_a)
+        flux_q = torch.where(usable, lw_q, rusanov_q)
+        return flux_a, flux_q
+    flux_a = rusanov_a
+    flux_q = rusanov_q
     return flux_a, flux_q
 
 
@@ -232,8 +295,8 @@ def _torch_source(torch, area, flow, z, dx: float, request: RunRequest):
     return stiffness_source + friction
 
 
-def _torch_rhs(torch, area, flow, z, dx: float, time: float, request: RunRequest, dtype, device):
-    flux_a, flux_q = _torch_method_fluxes(torch, area, flow, z, time, request, dtype, device)
+def _torch_rhs(torch, area, flow, z, dx: float, time: float, dt: float, request: RunRequest, dtype, device):
+    flux_a, flux_q = _torch_method_fluxes(torch, area, flow, z, dx, time, dt, request, dtype, device)
     da = -(flux_a[1:] - flux_a[:-1]) / dx
     dq = -(flux_q[1:] - flux_q[:-1]) / dx + _torch_source(torch, area, flow, z, dx, request)
     return da, dq
@@ -241,18 +304,18 @@ def _torch_rhs(torch, area, flow, z, dx: float, time: float, request: RunRequest
 
 def _torch_step(torch, area, flow, z, dx: float, time: float, dt: float, request: RunRequest, dtype, device):
     if request.time_stepper.descriptor == "euler":
-        da, dq = _torch_rhs(torch, area, flow, z, dx, time, request, dtype, device)
+        da, dq = _torch_rhs(torch, area, flow, z, dx, time, dt, request, dtype, device)
         return area + dt * da, flow + dt * dq
     if request.time_stepper.descriptor == "ssprk2":
-        k1a, k1q = _torch_rhs(torch, area, flow, z, dx, time, request, dtype, device)
+        k1a, k1q = _torch_rhs(torch, area, flow, z, dx, time, dt, request, dtype, device)
         a1, q1 = area + dt * k1a, flow + dt * k1q
-        k2a, k2q = _torch_rhs(torch, a1, q1, z, dx, time + dt, request, dtype, device)
+        k2a, k2q = _torch_rhs(torch, a1, q1, z, dx, time + dt, dt, request, dtype, device)
         return 0.5 * area + 0.5 * (a1 + dt * k2a), 0.5 * flow + 0.5 * (q1 + dt * k2q)
-    k1a, k1q = _torch_rhs(torch, area, flow, z, dx, time, request, dtype, device)
+    k1a, k1q = _torch_rhs(torch, area, flow, z, dx, time, dt, request, dtype, device)
     a1, q1 = area + dt * k1a, flow + dt * k1q
-    k2a, k2q = _torch_rhs(torch, a1, q1, z, dx, time + dt, request, dtype, device)
+    k2a, k2q = _torch_rhs(torch, a1, q1, z, dx, time + dt, dt, request, dtype, device)
     a2, q2 = 0.75 * area + 0.25 * (a1 + dt * k2a), 0.75 * flow + 0.25 * (q1 + dt * k2q)
-    k3a, k3q = _torch_rhs(torch, a2, q2, z, dx, time + 0.5 * dt, request, dtype, device)
+    k3a, k3q = _torch_rhs(torch, a2, q2, z, dx, time + 0.5 * dt, dt, request, dtype, device)
     return (area + 2.0 * (a2 + dt * k3a)) / 3.0, (flow + 2.0 * (q2 + dt * k3q)) / 3.0
 
 
@@ -376,10 +439,53 @@ def run_sciml_reference(request: RunRequest) -> SimulationResult:
             "--progress-every",
             "0",
         ]
+        started = perf_counter()
+        _LOG.debug(
+            "SciML subprocess starting",
+            extra=event_fields(
+                event="subprocess_started",
+                stage="sciml_reference",
+                backend="sciml-reference",
+                method=request.spatial.descriptor,
+                nx=request.nx,
+                tfinal=request.tfinal,
+                status="started",
+                command=" ".join(command),
+            ),
+        )
         completed = subprocess.run(command, cwd=project, text=True, capture_output=True, timeout=60, check=False)
+        elapsed_s = round(perf_counter() - started, 6)
         if completed.returncode != 0:
+            _LOG.warning(
+                "SciML subprocess failed",
+                extra=event_fields(
+                    event="subprocess_failed",
+                    stage="sciml_reference",
+                    backend="sciml-reference",
+                    method=request.spatial.descriptor,
+                    nx=request.nx,
+                    tfinal=request.tfinal,
+                    status="error",
+                    elapsed_s=elapsed_s,
+                    reason=completed.stderr.strip() or completed.stdout.strip() or f"returncode={completed.returncode}",
+                ),
+            )
             raise BackendUnavailable(completed.stderr.strip() or completed.stdout.strip())
         rows = list(csv.DictReader(csv_path.read_text().splitlines()))
+        _LOG.info(
+            "SciML subprocess completed",
+            extra=event_fields(
+                event="subprocess_completed",
+                stage="sciml_reference",
+                backend="sciml-reference",
+                method=request.spatial.descriptor,
+                nx=request.nx,
+                tfinal=request.tfinal,
+                status="ok",
+                elapsed_s=elapsed_s,
+                rows=len(rows),
+            ),
+        )
         z = np.asarray([float(row["z_cm"]) for row in rows])
         area_last = np.asarray([float(row["A_cm2"]) for row in rows])
         flow_last = np.asarray([float(row["Q_cm3_s"]) for row in rows])
@@ -393,15 +499,64 @@ def run_backend(
     request: RunRequest, backend: str, *, device: str = "cpu", allow_cpu_fallback: bool = False
 ) -> tuple[SimulationResult, str]:
     normalized = backend.strip().lower().replace("_", "-")
-    if normalized in {"native", "numpy"}:
-        return run_native(request), "cpu"
-    if normalized == "torch":
-        return run_torch(request, device=device, allow_cpu_fallback=allow_cpu_fallback)
-    if normalized == "scipy":
-        return run_scipy(request), "cpu"
-    if normalized in {"sciml", "sciml-reference"}:
-        return run_sciml_reference(request), "cpu"
-    raise ValueError("unknown backend {!r}; expected native, torch, scipy, or sciml-reference".format(backend))
+    started = perf_counter()
+    _LOG.info(
+        "backend started",
+        extra=event_fields(
+            event="backend_started",
+            stage="run_backend",
+            backend=normalized,
+            device=device,
+            method=request.spatial.descriptor,
+            nx=request.nx,
+            tfinal=request.tfinal,
+            status="started",
+        ),
+    )
+    try:
+        if normalized in {"native", "numpy"}:
+            result, selected = run_native(request), "cpu"
+        elif normalized == "torch":
+            result, selected = run_torch(request, device=device, allow_cpu_fallback=allow_cpu_fallback)
+        elif normalized == "scipy":
+            result, selected = run_scipy(request), "cpu"
+        elif normalized in {"sciml", "sciml-reference"}:
+            result, selected = run_sciml_reference(request), "cpu"
+        else:
+            raise ValueError("unknown backend {!r}; expected native, torch, scipy, or sciml-reference".format(backend))
+    except Exception as exc:
+        _LOG.exception(
+            "backend failed",
+            extra=event_fields(
+                event="backend_failed",
+                stage="run_backend",
+                backend=normalized,
+                device=device,
+                method=request.spatial.descriptor,
+                nx=request.nx,
+                tfinal=request.tfinal,
+                status="error",
+                elapsed_s=round(perf_counter() - started, 6),
+                reason=str(exc),
+            ),
+        )
+        raise
+    _LOG.info(
+        "backend completed",
+        extra=event_fields(
+            event="backend_completed",
+            stage="run_backend",
+            backend=normalized,
+            device=selected,
+            method=request.spatial.descriptor,
+            nx=request.nx,
+            tfinal=request.tfinal,
+            status="ok",
+            elapsed_s=round(perf_counter() - started, 6),
+            rows=result.area.shape[0],
+        ),
+    )
+    return result, selected
 
 
 def compare_backends(

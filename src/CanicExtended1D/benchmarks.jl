@@ -168,52 +168,83 @@ function run_package_benchmark(spec::PackageBenchmarkSpec=PackageBenchmarkSpec()
     profile in ("smoke", "overnight") ||
         throw(ArgumentError("profile must be smoke or overnight, got $(spec.profile)"))
 
-    if isdir(spec.output_dir)
-        spec.overwrite ||
-            throw(ArgumentError("output directory exists; pass overwrite=true to replace it: $(spec.output_dir)"))
-        rm(spec.output_dir; recursive=true, force=true)
-    elseif isfile(spec.output_dir)
-        throw(ArgumentError("output path exists and is not a directory: $(spec.output_dir)"))
+    start_ns = telemetry_start_ns()
+    @telemetry_info "package benchmark started" event="package_benchmark_started" stage="run_package_benchmark" backend="package-benchmark" method=profile nx="" tfinal="" status="started" output_dir=spec.output_dir
+    try
+        if isdir(spec.output_dir)
+            spec.overwrite ||
+                throw(ArgumentError("output directory exists; pass overwrite=true to replace it: $(spec.output_dir)"))
+            rm(spec.output_dir; recursive=true, force=true)
+        elseif isfile(spec.output_dir)
+            throw(ArgumentError("output path exists and is not a directory: $(spec.output_dir)"))
+        end
+        mkpath(spec.output_dir)
+
+        paths = Dict{String,String}(
+            "case_results" => joinpath(spec.output_dir, "case_results.csv"),
+            "refinement" => joinpath(spec.output_dir, "refinement.csv"),
+            "backend_parity" => joinpath(spec.output_dir, "backend_parity.csv"),
+            "stokes_ic" => joinpath(spec.output_dir, "stokes_ic.csv"),
+            "rheology_profile" => joinpath(spec.output_dir, "rheology_profile.csv"),
+            "boundary_openbf" => joinpath(spec.output_dir, "boundary_openbf.csv"),
+            "resolved3d" => joinpath(spec.output_dir, "resolved3d.csv"),
+            "python_mps" => joinpath(spec.output_dir, "python_mps.csv"),
+        )
+
+        csv_outputs = String[]
+        run_benchmark_stage!(csv_outputs, paths["case_results"], CASE_RESULTS_HEADER, "case_results", spec, profile) do
+            descriptor_health_rows(profile, spec)
+        end
+        run_benchmark_stage!(csv_outputs, paths["refinement"], REFINEMENT_HEADER, "refinement", spec, profile) do
+            refinement_rows(profile, spec)
+        end
+        run_benchmark_stage!(csv_outputs, paths["backend_parity"], BACKEND_PARITY_HEADER, "backend_parity", spec, profile) do
+            backend_parity_rows(profile, spec)
+        end
+        run_benchmark_stage!(csv_outputs, paths["stokes_ic"], STOKES_IC_HEADER, "stokes_ic", spec, profile) do
+            stokes_ic_rows(profile, spec)
+        end
+        run_benchmark_stage!(csv_outputs, paths["rheology_profile"], RHEOLOGY_PROFILE_HEADER, "rheology_profile", spec, profile) do
+            rheology_profile_rows(profile, spec)
+        end
+        run_benchmark_stage!(csv_outputs, paths["boundary_openbf"], BOUNDARY_OPENBF_HEADER, "boundary_openbf", spec, profile) do
+            boundary_openbf_rows(profile, spec)
+        end
+        run_benchmark_stage!(csv_outputs, paths["resolved3d"], RESOLVED3D_HEADER, "resolved3d", spec, profile) do
+            resolved3d_rows(profile, spec)
+        end
+        run_benchmark_stage!(csv_outputs, paths["python_mps"], PYTHON_MPS_HEADER, "python_mps", spec, profile) do
+            python_mps_rows(profile, spec)
+        end
+
+        manifest_path = joinpath(spec.output_dir, "manifest.json")
+        write_manifest(manifest_path, spec, profile, csv_outputs)
+
+        if spec.publish_report_assets
+            publish_package_benchmark_assets(spec.output_dir, csv_outputs, manifest_path)
+        end
+
+        @telemetry_info "package benchmark completed" event="package_benchmark_completed" stage="run_package_benchmark" backend="package-benchmark" method=profile nx="" tfinal="" status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(csv_outputs) output_dir=spec.output_dir
+        return PackageBenchmarkResult(spec.output_dir, manifest_path, csv_outputs)
+    catch err
+        @telemetry_error "package benchmark failed" event="package_benchmark_failed" stage="run_package_benchmark" backend="package-benchmark" method=profile nx="" tfinal="" status="error" elapsed_s=telemetry_elapsed_s(start_ns) output_dir=spec.output_dir reason=sprint(showerror, err)
+        rethrow()
     end
-    mkpath(spec.output_dir)
+end
 
-    paths = Dict{String,String}(
-        "case_results" => joinpath(spec.output_dir, "case_results.csv"),
-        "refinement" => joinpath(spec.output_dir, "refinement.csv"),
-        "backend_parity" => joinpath(spec.output_dir, "backend_parity.csv"),
-        "stokes_ic" => joinpath(spec.output_dir, "stokes_ic.csv"),
-        "rheology_profile" => joinpath(spec.output_dir, "rheology_profile.csv"),
-        "boundary_openbf" => joinpath(spec.output_dir, "boundary_openbf.csv"),
-        "resolved3d" => joinpath(spec.output_dir, "resolved3d.csv"),
-        "python_mps" => joinpath(spec.output_dir, "python_mps.csv"),
-    )
-
-    csv_outputs = String[]
-    write_csv(paths["case_results"], CASE_RESULTS_HEADER, descriptor_health_rows(profile, spec))
-    push!(csv_outputs, paths["case_results"])
-    write_csv(paths["refinement"], REFINEMENT_HEADER, refinement_rows(profile, spec))
-    push!(csv_outputs, paths["refinement"])
-    write_csv(paths["backend_parity"], BACKEND_PARITY_HEADER, backend_parity_rows(profile, spec))
-    push!(csv_outputs, paths["backend_parity"])
-    write_csv(paths["stokes_ic"], STOKES_IC_HEADER, stokes_ic_rows(profile, spec))
-    push!(csv_outputs, paths["stokes_ic"])
-    write_csv(paths["rheology_profile"], RHEOLOGY_PROFILE_HEADER, rheology_profile_rows(profile, spec))
-    push!(csv_outputs, paths["rheology_profile"])
-    write_csv(paths["boundary_openbf"], BOUNDARY_OPENBF_HEADER, boundary_openbf_rows(profile, spec))
-    push!(csv_outputs, paths["boundary_openbf"])
-    write_csv(paths["resolved3d"], RESOLVED3D_HEADER, resolved3d_rows(profile, spec))
-    push!(csv_outputs, paths["resolved3d"])
-    write_csv(paths["python_mps"], PYTHON_MPS_HEADER, python_mps_rows(profile, spec))
-    push!(csv_outputs, paths["python_mps"])
-
-    manifest_path = joinpath(spec.output_dir, "manifest.json")
-    write_manifest(manifest_path, spec, profile, csv_outputs)
-
-    if spec.publish_report_assets
-        publish_package_benchmark_assets(spec.output_dir, csv_outputs, manifest_path)
+function run_benchmark_stage!(producer, csv_outputs::Vector{String}, path::String, header, stage::String, spec::PackageBenchmarkSpec, profile::String)
+    start_ns = telemetry_start_ns()
+    @telemetry_info "package benchmark stage started" event="stage_started" stage=stage backend="package-benchmark" method=profile nx="" tfinal="" status="started" output_dir=spec.output_dir
+    try
+        rows = producer()
+        write_csv(path, header, rows)
+        push!(csv_outputs, path)
+        @telemetry_info "package benchmark stage completed" event="stage_completed" stage=stage backend="package-benchmark" method=profile nx="" tfinal="" status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(rows) output_dir=spec.output_dir
+        return rows
+    catch err
+        @telemetry_error "package benchmark stage failed" event="stage_failed" stage=stage backend="package-benchmark" method=profile nx="" tfinal="" status="error" elapsed_s=telemetry_elapsed_s(start_ns) rows=0 output_dir=spec.output_dir reason=sprint(showerror, err)
+        rethrow()
     end
-
-    return PackageBenchmarkResult(spec.output_dir, manifest_path, csv_outputs)
 end
 
 function descriptor_health_rows(profile::String, spec::PackageBenchmarkSpec)
@@ -634,9 +665,11 @@ end
 
 function resolved3d_rows(profile::String, spec::PackageBenchmarkSpec)
     if !spec.include_resolved3d
+        @telemetry_info "package benchmark stage skipped" event="stage_skipped" stage="resolved3d" backend="package-benchmark" method=profile nx="" tfinal="" status="skipped" rows=1 output_dir=spec.output_dir reason="include_resolved3d=false"
         return [["resolved3d", "", "", "", "", "", "", "", "", "skipped", 0.0, "include_resolved3d=false"]]
     end
     if profile == "smoke"
+        @telemetry_info "package benchmark stage skipped" event="stage_skipped" stage="resolved3d" backend="package-benchmark" method=profile nx="" tfinal="" status="skipped" rows=1 output_dir=spec.output_dir reason="smoke profile does not run resolved-3D diagnostics"
         return [["resolved3d", "", "", "", "", "", "", "", "", "skipped", 0.0, "smoke profile does not run resolved-3D diagnostics"]]
     end
 
@@ -657,6 +690,7 @@ function resolved3d_rows(profile::String, spec::PackageBenchmarkSpec)
                 base_params=base_params,
             )
             if result === nothing
+                @telemetry_info "package benchmark case skipped" event="case_skipped" stage="resolved3d" backend="package-benchmark" method=profile nx="" tfinal="" status="skipped" elapsed_s=elapsed rows=1 output_dir=output_dir reason="no local resolved-3D comparison files found"
                 push!(rows, [case_id, "", "", profile_name(velocity_profile), "", "", "", "", "", "skipped", elapsed, "no local resolved-3D comparison files found"])
             else
                 for row in result.summary_rows
@@ -686,12 +720,11 @@ end
 
 function python_mps_rows(profile::String, spec::PackageBenchmarkSpec)
     if !spec.include_python
+        @telemetry_info "package benchmark stage skipped" event="stage_skipped" stage="python_mps" backend="package-benchmark" method=profile nx="" tfinal="" status="skipped" rows=1 output_dir=spec.output_dir reason="include_python=false"
         return [["python", "python", "torch", "mps", "", "", "", "", "skipped", 0.0, "", "", "", "include_python=false"]]
     end
     rows = Vector{Vector{Any}}()
-    methods = profile == "smoke" ?
-        [("fv-first-order", -1)] :
-        [("fv-first-order", -1), ("fv-muscl", -1), ("dg-p0", 0), ("dg-p1", 1), ("dg-p2", 2)]
+    methods = [("fv-first-order", -1), ("fv-muscl", -1), ("fv-lax-wendroff", -1)]
     nxs = profile == "smoke" ? [16] : [64, 128, 256]
     tfinal = profile == "smoke" ? 1.0e-4 : 1.0e-2
     for (method, degree) in methods, nx in nxs

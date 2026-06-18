@@ -123,12 +123,16 @@ pipenv run research-hemodynamics run --space dg-p2 --out tmp/python-dg-p2
 pipenv run research-hemodynamics run --space fem-stationary-stokes --ic stationary-stokes --ic-pressure-drop-pa 100 --out tmp/python-fem-stokes
 ```
 
-`fv-lax-wendroff` is exposed as the Julia descriptor but uses the stable
-MUSCL/minmod finite-volume fallback in this v1 Python implementation. `dg-p1`
-and `dg-p2` smoke-run through the cell-average FV update with descriptor-specific
-metadata; they are not finished high-order DG solvers. `fem-stationary-stokes`
-is a deterministic CPU stationary-Stokes resistance/projection path based on
-the Julia projection contract, without adding a heavy Python FEM dependency.
+`descriptors --json` exposes Python maturity tiers. The publication-tier Python
+surface is `fv-first-order`, `fv-muscl`, `fv-lax-wendroff`, and
+`fem-stationary-stokes`. `fv-lax-wendroff` uses a true Richtmyer/Lax-Wendroff
+finite-volume interface predictor, with only a local positivity fallback for
+invalid half-step interface states. `dg-p0`, `dg-p1`, and `dg-p2` are
+`experimental-smoke` descriptors that run through a cell-average FV update; they
+are not finished modal DG solvers and should be treated as Julia-reference-only
+for publication-grade DG claims. `fem-stationary-stokes` is a deterministic CPU
+stationary-Stokes resistance/projection initializer based on the Julia projection
+contract, without adding a heavy Python FEM dependency or claiming transient FEM.
 
 Boundary descriptor parameters are validated and recorded:
 
@@ -145,6 +149,17 @@ pipenv run research-hemodynamics run \
 SciPy and SciML comparison surfaces:
 
 ```bash
+pipenv run research-hemodynamics compare \
+  --left-backend native \
+  --right-backend torch \
+  --device mps \
+  --space fv-lax-wendroff \
+  --rheology carreau \
+  --velocity-profile power \
+  --alpha 1.1 \
+  --inlet steady-velocity \
+  --outlet fixed-area-characteristic
+
 pipenv run research-hemodynamics compare --left-backend native --right-backend scipy
 pipenv run research-hemodynamics compare \
   --left-backend native \

@@ -160,6 +160,7 @@ export AbstractTimeBackend,
        write_study_csv,
        write_svg
 
+include("CanicExtended1D/logging.jl")
 include("CanicExtended1D/methods.jl")
 include("CanicExtended1D/rheology.jl")
 include("CanicExtended1D/initial_conditions.jl")

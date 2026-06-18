@@ -6,6 +6,13 @@
         assert_finite_positive_state(result, native_params)
     end
 
+    @testset "native lifecycle logs" begin
+        result = @test_logs (:info, "simulation started") (:info, "simulation completed") begin
+            simulate(native_params, NativeRK3Backend(); progress_every=0)
+        end
+        assert_finite_positive_state(result, native_params)
+    end
+
     @testset "native short run with Carreau-Yasuda rheology" begin
         rheology_params = Params(
             nx=8,

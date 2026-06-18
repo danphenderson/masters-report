@@ -34,54 +34,73 @@ backend_algorithm_name(backend::SciMLTimeBackend) = algorithm_name(backend.solve
 Advance one case through the selected backend and return the final state.
 """
 function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
-    validate(p)
     p.space isa DGMethod && return simulate_dg(p, p.space; progress_every=progress_every)
 
-    initial = initial_state_result(p)
-    z, A, Q, dx = initial.z, initial.area, initial.flow, initial.dx
-    step_cache = NativeStepCache(length(A))
-    t = 0.0
-    step = 0
+    start_ns = telemetry_start_ns()
+    @telemetry_info "simulation started" event="simulation_started" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="started"
+    try
+        validate(p)
 
-    while t < p.tfinal - 1.0e-14
-        dt = min(choose_dt(A, Q, z, dx, p), p.tfinal - t)
-        native_step!(A, Q, z, dx, dt, t, p, step_cache)
-        t += dt
-        step += 1
+        initial = initial_state_result(p)
+        z, A, Q, dx = initial.z, initial.area, initial.flow, initial.dx
+        step_cache = NativeStepCache(length(A))
+        t = 0.0
+        step = 0
 
-        if progress_every > 0 && step % progress_every == 0
-            @info "simulation progress" step t dt minA=minimum(A) maxU=maximum(abs.(Q ./ A))
+        while t < p.tfinal - 1.0e-14
+            dt = min(choose_dt(A, Q, z, dx, p), p.tfinal - t)
+            native_step!(A, Q, z, dx, dt, t, p, step_cache)
+            t += dt
+            step += 1
+
+            if progress_every > 0 && step % progress_every == 0
+                @telemetry_info "simulation progress" event="simulation_progress" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="running" step t dt minA=minimum(A) maxU=maximum(abs.(Q ./ A))
+            end
+
+            if !all(isfinite, A) || !all(isfinite, Q)
+                error("non-finite solution at t=$(t)")
+            end
         end
 
-        if !all(isfinite, A) || !all(isfinite, Q)
-            error("non-finite solution at t=$(t)")
-        end
+        result = SimulationResult(z, A, Q, t, step, initial.summary)
+        @telemetry_info "simulation completed" event="simulation_completed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(A)
+        return result
+    catch err
+        @telemetry_error "simulation failed" event="simulation_failed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="error" elapsed_s=telemetry_elapsed_s(start_ns) reason=sprint(showerror, err)
+        rethrow()
     end
-
-    return SimulationResult(z, A, Q, t, step, initial.summary)
 end
 
 function simulate(p::Params, backend::SciMLTimeBackend; progress_every::Int = 0)
-    _ = progress_every
-    validate(p)
-    p.space isa FVLaxWendroffMethod &&
-        throw(ArgumentError("fv-lax-wendroff requires native fixed-step prediction and is not available with SciMLTimeBackend"))
-    p.space isa DGMethod && p.space.degree > 0 &&
-        throw(ArgumentError("DG degree $(p.space.degree) currently uses the native modal DG solver, not SciMLTimeBackend"))
+    start_ns = telemetry_start_ns()
+    @telemetry_info "simulation started" event="simulation_started" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="started"
+    try
+        _ = progress_every
+        validate(p)
+        p.space isa FVLaxWendroffMethod &&
+            throw(ArgumentError("fv-lax-wendroff requires native fixed-step prediction and is not available with SciMLTimeBackend"))
+        p.space isa DGMethod && p.space.degree > 0 &&
+            throw(ArgumentError("DG degree $(p.space.degree) currently uses the native modal DG solver, not SciMLTimeBackend"))
 
-    sim = semidiscretize(p)
-    initial = initial_state_result(p)
-    prob = ode_problem(sim; u0=pack_state(initial.area, initial.flow))
-    sol = solve_ode_problem(prob, backend)
-    final_state = Vector(sol.u[end])
-    A, Q = unpack_state(final_state, sim.layout)
+        sim = semidiscretize(p)
+        initial = initial_state_result(p)
+        prob = ode_problem(sim; u0=pack_state(initial.area, initial.flow))
+        sol = solve_ode_problem(prob, backend)
+        final_state = Vector(sol.u[end])
+        A, Q = unpack_state(final_state, sim.layout)
 
-    if !all(isfinite, A) || !all(isfinite, Q)
-        error("non-finite SciML solution at t=$(sol.t[end])")
+        if !all(isfinite, A) || !all(isfinite, Q)
+            error("non-finite SciML solution at t=$(sol.t[end])")
+        end
+        minimum(A) > 0.0 || error("nonpositive SciML area at t=$(sol.t[end])")
+
+        result = SimulationResult(copy(sim.z), A, Q, sol.t[end], sciml_step_count(sol), initial.summary)
+        @telemetry_info "simulation completed" event="simulation_completed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(A)
+        return result
+    catch err
+        @telemetry_error "simulation failed" event="simulation_failed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="error" elapsed_s=telemetry_elapsed_s(start_ns) reason=sprint(showerror, err)
+        rethrow()
     end
-    minimum(A) > 0.0 || error("nonpositive SciML area at t=$(sol.t[end])")
-
-    return SimulationResult(copy(sim.z), A, Q, sol.t[end], sciml_step_count(sol), initial.summary)
 end
 
 function simulate(p::Params; backend::AbstractTimeBackend = NativeRK3Backend(), progress_every::Int = 0)

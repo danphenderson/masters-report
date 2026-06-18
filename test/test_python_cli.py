@@ -1,17 +1,28 @@
 import json
+import logging
+from io import StringIO
 from pathlib import Path
 
+import numpy as np
 import pytest
 from research_hemodynamics.backends import compare_backends, run_backend
 from research_hemodynamics.cli import app, build_request
 from research_hemodynamics.descriptors import DescriptorFactory, registry
+from research_hemodynamics.logging import PACKAGE_LOGGER_NAME, configure_logging, event_fields
+from research_hemodynamics.numerics import (
+    AREA_LIMITER_FLOOR,
+    flux,
+    lax_wendroff_flux,
+    lax_wendroff_interface_state,
+    write_outputs,
+)
 from typer.testing import CliRunner
 
 RUNNER = CliRunner()
 
 
-def request(space: str = "fv-first-order"):
-    return build_request(
+def request(space: str = "fv-first-order", **overrides):
+    params = dict(
         space=space,
         time_stepper="euler",
         rheology="newtonian",
@@ -37,6 +48,8 @@ def request(space: str = "fv-first-order"):
         sciml_label="auto",
         julia_project=None,
     )
+    params.update(overrides)
+    return build_request(**params)
 
 
 def test_descriptor_registry_covers_julia_surface() -> None:
@@ -63,6 +76,25 @@ def test_descriptor_registry_covers_julia_surface() -> None:
     }
     for category, names in expected.items():
         assert {item.name for item in registry.by_category(category)} >= names
+
+
+def test_descriptor_json_exposes_python_maturity_tiers() -> None:
+    result = RUNNER.invoke(app, ["descriptors", "--json"])
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    spatial = {item["name"]: item["metadata"] for item in payload["spatial"]}
+    for name in ["fv-first-order", "fv-muscl", "fv-lax-wendroff", "fem-stationary-stokes"]:
+        assert spatial[name]["tier"] == "publication"
+        assert spatial[name].get("fallback") is None
+    for name in ["dg-p0", "dg-p1", "dg-p2"]:
+        assert spatial[name]["tier"] == "experimental-smoke"
+        assert spatial[name]["scientific_tier"] == "julia-reference-only"
+        assert spatial[name]["fallback"] == "cell-average-fv-update"
+    tier_values = {metadata["tier"] for metadata in spatial.values()}
+    tier_values |= {metadata["scientific_tier"] for metadata in spatial.values() if "scientific_tier" in metadata}
+    assert {"publication", "experimental-smoke", "julia-reference-only"} <= tier_values
+    for metadata in spatial.values():
+        assert not (metadata.get("tier") == "publication" and metadata.get("fallback"))
 
 
 def test_cli_help_has_commands_and_no_fno() -> None:
@@ -109,6 +141,123 @@ def test_native_minimal_run_writes_outputs(tmp_path: Path) -> None:
     assert payload["metadata"]["spatial"]["descriptor"] == "fv-first-order"
 
 
+def test_event_fields_filters_stdlib_reserved_message_keys() -> None:
+    fields = event_fields(event="logging_test", message="reserved", asctime="reserved", backend="native")
+    assert fields == {"event": "logging_test", "backend": "native"}
+    logging.getLogger(PACKAGE_LOGGER_NAME).info("record accepts filtered fields", extra=fields)
+
+
+def test_configure_logging_uses_single_nonpropagating_cli_handler(capsys: pytest.CaptureFixture[str]) -> None:
+    logger = logging.getLogger(PACKAGE_LOGGER_NAME)
+    root = logging.getLogger()
+    original_handlers = list(logger.handlers)
+    original_level = logger.level
+    original_propagate = logger.propagate
+    original_root_level = root.level
+    root_stream = StringIO()
+    root_handler = logging.StreamHandler(root_stream)
+    root.addHandler(root_handler)
+    root.setLevel(logging.INFO)
+    try:
+        configure_logging("INFO")
+        configure_logging("INFO")
+        logger.info("single cli handler")
+        captured = capsys.readouterr()
+        assert captured.err.count("single cli handler") == 1
+        assert root_stream.getvalue() == ""
+        assert logger.propagate is False
+    finally:
+        logger.handlers = original_handlers
+        logger.setLevel(original_level)
+        logger.propagate = original_propagate
+        root.removeHandler(root_handler)
+        root.setLevel(original_root_level)
+
+
+def test_backend_and_output_logging_uses_standard_records(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    logger = logging.getLogger(PACKAGE_LOGGER_NAME)
+    original_handlers = list(logger.handlers)
+    original_level = logger.level
+    original_propagate = logger.propagate
+    logger.handlers = []
+    logger.propagate = True
+    req = request("fv-first-order")
+    try:
+        caplog.set_level(logging.INFO, logger=PACKAGE_LOGGER_NAME)
+        result, selected = run_backend(req, "native")
+        outputs = write_outputs(result, req, tmp_path, "native", selected)
+        assert Path(outputs["summary_json"]).exists()
+        events = {getattr(record, "event", None): record for record in caplog.records}
+        assert {"backend_started", "native_completed", "backend_completed", "outputs_written"} <= set(events)
+        assert events["backend_completed"].backend == "native"
+        assert events["backend_completed"].method == "fv-first-order"
+        assert events["backend_completed"].status == "ok"
+        assert events["outputs_written"].output_dir == str(tmp_path)
+    finally:
+        logger.handlers = original_handlers
+        logger.setLevel(original_level)
+        logger.propagate = original_propagate
+
+
+def test_cli_info_logging_stays_on_stderr_and_stdout_remains_json(tmp_path: Path) -> None:
+    result = RUNNER.invoke(
+        app,
+        [
+            "--log-level",
+            "INFO",
+            "run",
+            "--out",
+            str(tmp_path),
+            "--space",
+            "fv-first-order",
+            "--time-stepper",
+            "euler",
+            "--nx",
+            "24",
+            "--tfinal",
+            "0.002",
+            "--saveat",
+            "0.001",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "ok"
+    assert "backend completed" in result.stderr
+    assert "backend completed" not in result.stdout
+
+
+def test_lax_wendroff_descriptor_dispatches_to_true_lw() -> None:
+    strategy = DescriptorFactory(registry).spatial("fv-lax-wendroff")
+    assert strategy.native_scheme == "lax-wendroff"
+    assert strategy.fallback is None
+    assert strategy.metadata()["tier"] == "publication"
+
+
+def test_lax_wendroff_interface_prediction_matches_richtmyer_formula() -> None:
+    req = request("fv-lax-wendroff")
+    al, ql = 0.030, 0.010
+    ar, qr = 0.031, 0.011
+    z = 3.0
+    dx = 0.25
+    dt = 1.0e-6
+    fa_l, fq_l = flux(np.asarray([al]), np.asarray([ql]), np.asarray([z]), req)
+    fa_r, fq_r = flux(np.asarray([ar]), np.asarray([qr]), np.asarray([z]), req)
+    ah, qh, usable = lax_wendroff_interface_state(al, ql, ar, qr, z, dx, dt, req)
+    assert usable
+    assert ah == pytest.approx(0.5 * (al + ar) - 0.5 * dt / dx * (fa_r[0] - fa_l[0]))
+    assert qh == pytest.approx(0.5 * (ql + qr) - 0.5 * dt / dx * (fq_r[0] - fq_l[0]))
+
+
+def test_lax_wendroff_invalid_half_state_uses_positive_fallback() -> None:
+    req = request("fv-lax-wendroff")
+    ah, _qh, usable = lax_wendroff_interface_state(0.01, 0.0, 2.0, 100.0, 3.0, 0.01, 1.0, req)
+    assert not usable
+    assert ah == pytest.approx(AREA_LIMITER_FLOOR)
+    fa, fq = lax_wendroff_flux(0.01, 0.0, 2.0, 100.0, 3.0, 0.01, 1.0, req)
+    assert np.isfinite([fa, fq]).all()
+
+
 @pytest.mark.parametrize("space", ["fv-first-order", "fv-muscl", "fv-lax-wendroff", "dg-p0", "dg-p1", "dg-p2"])
 def test_fvm_and_dg_smoke(space: str) -> None:
     result, _ = run_backend(request(space), "native")
@@ -120,7 +269,19 @@ def test_fem_projection_smoke() -> None:
     result, _ = run_backend(request("fem-stationary-stokes"), "native")
     assert result.area.shape == (24, 3)
     assert result.metadata["mode"] == "stationary-stokes-projection"
+    assert len(result.metadata["projection_hash"]) == 64
     assert float(result.flow.mean()) > 0.0
+
+
+def test_fem_projection_is_deterministic_and_finite() -> None:
+    req = request("fem-stationary-stokes", ic="stationary-stokes", severity=40.0, ic_pressure_drop_pa=40.0)
+    left, _ = run_backend(req, "native")
+    right, _ = run_backend(req, "native")
+    assert left.metadata["projection_hash"] == right.metadata["projection_hash"]
+    assert np.allclose(left.area, right.area)
+    assert np.allclose(left.flow, right.flow)
+    assert np.all(np.isfinite(left.pressure))
+    assert float(np.min(left.area)) > 0.0
 
 
 def test_compare_native_native() -> None:
@@ -136,6 +297,25 @@ def test_torch_backend_uses_torch_native_rhs_metadata() -> None:
     assert selected == "cpu"
     assert result.metadata["mode"] == "torch-tensor-update"
     assert result.metadata["rhs"] == "torch-native"
+
+
+@pytest.mark.parametrize("space", ["fv-first-order", "fv-muscl", "fv-lax-wendroff"])
+def test_torch_cpu_matches_numpy_for_publication_fvm(space: str) -> None:
+    pytest.importorskip("torch")
+    payload = compare_backends(request(space), "native", "torch", device="cpu")
+    for key in ["area_mean_final", "flow_mean_final", "pressure_mean_final", "velocity_max"]:
+        assert payload["relative_difference"][key] <= 1.0e-10
+
+
+@pytest.mark.parametrize("space", ["fv-first-order", "fv-muscl", "fv-lax-wendroff"])
+def test_torch_mps_matches_numpy_for_publication_fvm_when_available(space: str) -> None:
+    torch = pytest.importorskip("torch")
+    if not torch.backends.mps.is_available():
+        pytest.skip("Torch MPS is not available")
+    req = request(space, nx=64, tfinal=0.002, dt=0.001, saveat=0.002)
+    payload = compare_backends(req, "native", "torch", device="mps")
+    for key in ["area_mean_final", "flow_mean_final", "pressure_mean_final", "velocity_max"]:
+        assert payload["relative_difference"][key] <= 1.0e-3
 
 
 def test_torch_cli_run_writes_outputs_on_cpu(tmp_path: Path) -> None:
@@ -173,8 +353,63 @@ def test_torch_cli_run_writes_outputs_on_cpu(tmp_path: Path) -> None:
 def test_compare_command_exposes_documented_backend_options() -> None:
     result = RUNNER.invoke(app, ["compare", "--help"])
     assert result.exit_code == 0
-    for option in ["--device", "--allow-cpu-fallback", "--scipy-method", "--sciml-label", "--julia-project"]:
+    for option in [
+        "--device",
+        "--allow-cpu-fallback",
+        "--time-stepper",
+        "--dt",
+        "--cfl",
+        "--severity",
+        "--rheology",
+        "--velocity-profile",
+        "--inlet",
+        "--outlet",
+        "--ic",
+        "--scipy-method",
+        "--sciml-label",
+        "--julia-project",
+    ]:
         assert option in result.output
+
+
+def test_compare_command_accepts_run_descriptor_options() -> None:
+    result = RUNNER.invoke(
+        app,
+        [
+            "compare",
+            "--left-backend",
+            "native",
+            "--right-backend",
+            "native",
+            "--space",
+            "fv-lax-wendroff",
+            "--time-stepper",
+            "ssprk2",
+            "--rheology",
+            "carreau",
+            "--velocity-profile",
+            "flat",
+            "--inlet",
+            "steady-velocity",
+            "--outlet",
+            "fixed-area-characteristic",
+            "--nx",
+            "24",
+            "--tfinal",
+            "0.002",
+            "--dt",
+            "0.001",
+            "--cfl",
+            "0.25",
+            "--saveat",
+            "0.001",
+            "--severity",
+            "40",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["relative_difference"]["area_mean_final"] == pytest.approx(0.0)
 
 
 def test_boundary_strategy_metadata(tmp_path: Path) -> None:

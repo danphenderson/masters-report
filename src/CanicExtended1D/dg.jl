@@ -271,30 +271,39 @@ function choose_dt_dg(Acoef::Matrix{Float64}, Qcoef::Matrix{Float64}, z::Vector{
 end
 
 function simulate_dg(p::Params, method::DGMethod; progress_every::Int = 0)
-    validate(p)
-    method.degree == 0 && return simulate(params_with(p; space=FVFirstOrderMethod()), NativeRK3Backend(); progress_every=progress_every)
+    start_ns = telemetry_start_ns()
+    @telemetry_info "simulation started" event="simulation_started" stage="simulate" backend="native" method=spatial_method_name(method) nx=p.nx tfinal=p.tfinal status="started"
+    try
+        validate(p)
+        method.degree == 0 && return simulate(params_with(p; space=FVFirstOrderMethod()), NativeRK3Backend(); progress_every=progress_every)
 
-    z, Acoef, Qcoef, dx, initial_summary = dg_initial_coefficients_with_summary(p, method)
-    limit_dg_coefficients!(Acoef, Qcoef, method)
-    t = 0.0
-    step = 0
+        z, Acoef, Qcoef, dx, initial_summary = dg_initial_coefficients_with_summary(p, method)
+        limit_dg_coefficients!(Acoef, Qcoef, method)
+        t = 0.0
+        step = 0
 
-    while t < p.tfinal - 1.0e-14
-        dt = min(choose_dt_dg(Acoef, Qcoef, z, dx, p, method), p.tfinal - t)
-        Acoef, Qcoef = dg_step(Acoef, Qcoef, z, dx, dt, t, p, method)
-        t += dt
-        step += 1
+        while t < p.tfinal - 1.0e-14
+            dt = min(choose_dt_dg(Acoef, Qcoef, z, dx, p, method), p.tfinal - t)
+            Acoef, Qcoef = dg_step(Acoef, Qcoef, z, dx, dt, t, p, method)
+            t += dt
+            step += 1
 
-        if progress_every > 0 && step % progress_every == 0
-            @info "DG simulation progress" degree=method.degree step t dt minA=minimum(Acoef[:, 1]) maxU=maximum(abs.(Qcoef[:, 1] ./ Acoef[:, 1]))
+            if progress_every > 0 && step % progress_every == 0
+                @telemetry_info "DG simulation progress" event="simulation_progress" stage="simulate" backend="native" method=spatial_method_name(method) nx=p.nx tfinal=p.tfinal status="running" degree=method.degree step t dt minA=minimum(Acoef[:, 1]) maxU=maximum(abs.(Qcoef[:, 1] ./ Acoef[:, 1]))
+            end
+
+            if !all(isfinite, Acoef) || !all(isfinite, Qcoef)
+                error("non-finite DG solution at t=$(t)")
+            end
         end
 
-        if !all(isfinite, Acoef) || !all(isfinite, Qcoef)
-            error("non-finite DG solution at t=$(t)")
-        end
+        A = max.(vec(Acoef[:, 1]), AREA_LIMITER_FLOOR)
+        Q = vec(Qcoef[:, 1])
+        result = SimulationResult(z, A, Q, t, step, initial_summary)
+        @telemetry_info "simulation completed" event="simulation_completed" stage="simulate" backend="native" method=spatial_method_name(method) nx=p.nx tfinal=p.tfinal status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(A)
+        return result
+    catch err
+        @telemetry_error "simulation failed" event="simulation_failed" stage="simulate" backend="native" method=spatial_method_name(method) nx=p.nx tfinal=p.tfinal status="error" elapsed_s=telemetry_elapsed_s(start_ns) reason=sprint(showerror, err)
+        rethrow()
     end
-
-    A = max.(vec(Acoef[:, 1]), AREA_LIMITER_FLOOR)
-    Q = vec(Qcoef[:, 1])
-    return SimulationResult(z, A, Q, t, step, initial_summary)
 end

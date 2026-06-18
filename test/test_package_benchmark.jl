@@ -8,7 +8,9 @@
             include_resolved3d=false,
             publish_report_assets=false,
         )
-        result = run_package_benchmark(spec)
+        result = @test_logs (:info, "package benchmark started") (:info, "package benchmark stage completed") (:info, "package benchmark completed") match_mode=:any begin
+            run_package_benchmark(spec)
+        end
         @test result.output_dir == dir
         @test isfile(result.manifest_path)
         expected = Set([
