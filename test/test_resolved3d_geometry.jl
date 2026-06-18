@@ -16,6 +16,8 @@
         field = load_resolved3d_velocity(case_spec)
         @test size(field.coordinates) == size(coords)
         @test size(field.velocity) == size(velocity_values)
+        @test minimum(field.topology) == 1
+        @test maximum(field.topology) <= size(coords, 1)
         @test field.metadata.time ≈ 5.0e-5
 
         mismatched_time = Resolved3DCaseSpec("synthetic", 23.0, xdmf_path; target_time=1.0, time_atol=1.0e-8)
@@ -30,6 +32,102 @@
     end
 end
 
+@testset "CanicExtended1D cross-section quadrature" begin
+    mktempdir() do dir
+        xdmf_path, _, _ = write_single_tetra_xdmf_hdf5_case(joinpath(dir, "tetra"))
+        case_spec = Resolved3DCaseSpec("tetra", 0.0, xdmf_path; target_time=5.0e-5)
+        field = load_resolved3d_velocity(case_spec)
+
+        mid = CanicExtended1D.quadrature_section_observation(field, 0.5)
+        @test mid.area_valid
+        @test mid.cut_status == "valid"
+        @test mid.area_cm2 ≈ 0.125
+        @test mid.flow_cm3_s / mid.area_cm2 ≈ 10.5
+        @test mid.intersection_count == 3
+
+        face = CanicExtended1D.quadrature_section_observation(field, 0.0)
+        @test face.area_valid
+        @test face.cut_status == "valid"
+        @test face.area_cm2 ≈ 0.5
+        @test face.mean_velocity_cm_s ≈ 10.0
+
+        empty = CanicExtended1D.quadrature_section_observation(field, 2.0)
+        @test !empty.area_valid
+        @test empty.cut_status == "empty-plane"
+        @test empty.intersection_count == 0
+
+        tangent = CanicExtended1D.quadrature_section_observation(field, 1.0)
+        @test !tangent.area_valid
+        @test tangent.cut_status == "degenerate-cut"
+
+        radial = CanicExtended1D.radial_profile_observations(field, 0.5, 1.0, 4, CrossSectionQuadratureOperator())
+        @test sum(row.area_valid ? row.area_cm2 : 0.0 for row in radial) ≈ mid.area_cm2
+        @test any(row.intersection_count > 0 for row in radial)
+
+        constant_path, _, _ = write_single_tetra_xdmf_hdf5_case(
+            joinpath(dir, "constant");
+            velocity_function=coord -> 12.25,
+        )
+        constant_field = load_resolved3d_velocity(
+            Resolved3DCaseSpec("constant", 0.0, constant_path; target_time=5.0e-5),
+        )
+        constant_mid = CanicExtended1D.quadrature_section_observation(constant_field, 0.5)
+        @test constant_mid.area_valid
+        @test constant_mid.mean_velocity_cm_s ≈ 12.25 atol=1.0e-12
+        @test constant_mid.flow_cm3_s ≈ 12.25 * constant_mid.area_cm2 atol=1.0e-12
+
+        linear_path, _, _ = write_single_tetra_xdmf_hdf5_case(
+            joinpath(dir, "linear");
+            velocity_function=coord -> 2.0 + 3.0 * coord[1] + 5.0 * coord[2] + 7.0 * coord[3],
+        )
+        linear_field = load_resolved3d_velocity(
+            Resolved3DCaseSpec("linear", 0.0, linear_path; target_time=5.0e-5),
+        )
+        linear_mid = CanicExtended1D.quadrature_section_observation(linear_field, 0.5)
+        exact_linear_mean = 2.0 + 3.0 * (1.0 / 6.0) + 5.0 * (1.0 / 6.0) + 7.0 * 0.5
+        @test linear_mid.area_valid
+        @test linear_mid.area_cm2 ≈ 0.125 atol=1.0e-12
+        @test linear_mid.mean_velocity_cm_s ≈ exact_linear_mean atol=1.0e-12
+        @test linear_mid.flow_cm3_s ≈ linear_mid.area_cm2 * exact_linear_mean atol=1.0e-12
+
+        vertex_path, _, _ = write_custom_tetra_xdmf_hdf5_case(
+            joinpath(dir, "vertex_on_plane"),
+            [
+                0.0 0.0 0.0
+                1.0 0.0 -1.0
+                0.0 1.0 -1.0
+                0.0 0.0 1.0
+            ];
+            velocity_function=coord -> 4.0 + coord[1] - coord[2] + 2.0 * coord[3],
+        )
+        vertex_field = load_resolved3d_velocity(
+            Resolved3DCaseSpec("vertex", 0.0, vertex_path; target_time=5.0e-5),
+        )
+        vertex_cut = CanicExtended1D.quadrature_section_observation(vertex_field, 0.0)
+        @test vertex_cut.area_valid
+        @test vertex_cut.cut_status == "valid"
+        @test isfinite(vertex_cut.flow_cm3_s)
+        @test vertex_cut.intersection_count == 3
+
+        edge_path, _, _ = write_custom_tetra_xdmf_hdf5_case(
+            joinpath(dir, "edge_on_plane"),
+            [
+                0.0 0.0 0.0
+                1.0 0.0 0.0
+                0.0 1.0 1.0
+                0.0 0.0 1.0
+            ],
+        )
+        edge_field = load_resolved3d_velocity(
+            Resolved3DCaseSpec("edge", 0.0, edge_path; target_time=5.0e-5),
+        )
+        edge_cut = CanicExtended1D.quadrature_section_observation(edge_field, 0.0)
+        @test !edge_cut.area_valid
+        @test edge_cut.cut_status == "degenerate-cut"
+        @test edge_cut.intersection_count == 0
+    end
+end
+
 @testset "CanicExtended1D resolved 3D comparison diagnostics" begin
     mktempdir() do dir
         xdmf_path, _, _ = write_synthetic_xdmf_hdf5_case(joinpath(dir, "case77"))
@@ -40,7 +138,7 @@ end
             base_params=Params(nx=8, tfinal=5.0e-5, severity=23.0, initial_condition=GeometryRestIC()),
             output_dir=output_dir,
             section_count=3,
-            profile_slices=[3.0],
+            profile_slices=[0.0],
             radial_bins=5,
             overwrite=true,
             write_svg=false,
@@ -49,24 +147,66 @@ end
         result = run_comparison(spec)
         @test length(result.section_rows) == 3
         @test length(result.profile_rows) == 5
+        @test length(result.sensitivity_rows) == 9
         @test length(result.summary_rows) == 1
         @test isfile(result.section_csvs[1])
         @test isfile(result.profile_csvs[1])
+        @test isfile(result.sensitivity_csv)
         @test isfile(result.summary_csv)
 
-        for row in result.section_rows
-            @test row.node_count > 0
-            @test row.u3d_cm_s ≈ 10.0 + row.z_cm
-            @test isfinite(row.u1d_cm_s)
-            @test isfinite(row.abs_error_cm_s)
+        report_dir = joinpath(dir, "report-assets")
+        report_paths = publish_resolved3d_report_assets(result; output_dir=report_dir, overwrite=true)
+        area_audit_path = joinpath(report_dir, "area-audit.dat")
+        @test area_audit_path in report_paths
+        @test isfile(area_audit_path)
+
+        valid_sections = [row for row in result.section_rows if row.area_valid]
+        @test !isempty(valid_sections)
+        for row in valid_sections
+            @test row.operator == "CrossSectionQuadratureOperator"
+            @test row.intersection_count > 0
+            @test row.cut_status == "valid"
+            @test row.mean_u3d_cm_s ≈ 10.0 + row.z_cm
+            @test isfinite(row.mean_u1d_cm_s)
+            @test isfinite(row.abs_velocity_error_cm_s)
             @test isfinite(row.rel_error)
         end
+        @test only(result.summary_rows).area_valid_count == length(valid_sections)
+        @test isfinite(only(result.summary_rows).l2_velocity_error_cm_s)
+        @test isfinite(only(result.summary_rows).relative_l1_velocity_error)
+        @test isfinite(only(result.summary_rows).rel_l2_velocity_error)
+        @test isfinite(only(result.summary_rows).flow_l2_error_cm3_s)
+        @test isfinite(only(result.summary_rows).profile_l2_error_cm_s)
+        @test isfinite(only(result.summary_rows).characteristic_radicand_min)
 
-        populated_profiles = [row for row in result.profile_rows if row.node_count > 0]
+        area_audit_lines = readlines(area_audit_path)
+        @test split(area_audit_lines[1]) == [
+            "case",
+            "sections",
+            "eps_min_percent",
+            "eps_median_percent",
+            "eps_mean_percent",
+            "eps_max_percent",
+            "area3d_min_cm2",
+            "area3d_max_cm2",
+            "aref_min_cm2",
+            "aref_max_cm2",
+        ]
+        area_audit_values = split(area_audit_lines[2])
+        @test area_audit_values[1] == "C23"
+        @test parse(Int, area_audit_values[2]) == length(valid_sections)
+        @test parse(Float64, area_audit_values[3]) >= 0.0
+        @test parse(Float64, area_audit_values[6]) >= parse(Float64, area_audit_values[3])
+
+        populated_profiles = [row for row in result.profile_rows if row.area_valid]
         @test !isempty(populated_profiles)
-        @test all(isfinite(row.u1d_cm_s) for row in result.profile_rows)
-        @test all(isfinite(row.u3d_cm_s) for row in populated_profiles)
-        @test all(isfinite(row.abs_error_cm_s) for row in populated_profiles)
+        @test all(isfinite(row.mean_u1d_cm_s) for row in result.profile_rows)
+        @test all(isfinite(row.mean_u3d_cm_s) for row in populated_profiles)
+        @test all(isfinite(row.abs_velocity_error_cm_s) for row in populated_profiles)
+
+        slab_rows = [row for row in result.sensitivity_rows if row.node_count > 0]
+        @test !isempty(slab_rows)
+        @test all(row.mean_u3d_cm_s ≈ 10.0 + row.z_cm for row in slab_rows)
     end
 end
 

@@ -25,8 +25,8 @@ matplotlib.rcParams.update(
         "axes.unicode_minus": False,
     }
 )
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
+import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
 
 
 CSV_FILES = {
@@ -160,6 +160,17 @@ def metric_label(value: str) -> str:
 
 def profile_label(value: str) -> str:
     return PROFILE_LABELS.get(value, value.replace("-", " ").title() or "Unspecified")
+
+
+def resolved_case_label(row: dict[str, str]) -> str:
+    severity = as_float(row, "severity")
+    if severity is not None:
+        return f"C{int(round(severity))}"
+    return row.get("case_label", "").strip() or "case"
+
+
+def resolved_profile_tick_label(value: str) -> str:
+    return value.replace("-", " ").strip() or "unspecified"
 
 
 def rheology_label(value: str) -> str:
@@ -371,7 +382,9 @@ def rheology_profile_figure(rows: list[dict[str, str]]) -> plt.Figure:
     nrows = math.ceil(len(severities) / ncols)
     fig, axes = plt.subplots(nrows, ncols, figsize=(8.0, 2.8 * nrows), squeeze=False)
     bar_width = min(0.22, 0.78 / max(1, len(profiles)))
-    profile_colors = {profile: QUALITATIVE_COLORS[index % len(QUALITATIVE_COLORS)] for index, profile in enumerate(profiles)}
+    profile_colors = {
+        profile: QUALITATIVE_COLORS[index % len(QUALITATIVE_COLORS)] for index, profile in enumerate(profiles)
+    }
 
     for ax, severity in zip(axes.ravel(), severities):
         x_positions = list(range(len(rheologies)))
@@ -385,7 +398,9 @@ def rheology_profile_figure(rows: list[dict[str, str]]) -> plt.Figure:
                     continue
                 positions.append(rheology_index + offset)
                 heights.append(value)
-            ax.bar(positions, heights, width=bar_width * 0.88, color=profile_colors[profile], label=profile_label(profile))
+            ax.bar(
+                positions, heights, width=bar_width * 0.88, color=profile_colors[profile], label=profile_label(profile)
+            )
         ax.set_title(f"Severity {severity}%")
         ax.set_xticks(x_positions)
         ax.set_xticklabels([rheology_label(rheology) for rheology in rheologies], rotation=25, ha="right", fontsize=8)
@@ -417,7 +432,7 @@ def resolved3d_figure(rows: list[dict[str, str]]) -> plt.Figure:
     for row in ok_rows(rows):
         value = as_float(row, "mean_abs_error_cm_s")
         if value is not None:
-            points.append((row.get("case_label", ""), row.get("profile", ""), value))
+            points.append((resolved_case_label(row), row.get("profile", ""), value))
     if not points:
         statuses = Counter((row.get("status") or "missing").strip().lower() or "missing" for row in rows)
         if not rows:
@@ -444,7 +459,10 @@ def resolved3d_figure(rows: list[dict[str, str]]) -> plt.Figure:
 
         total = len(rows)
         ok_count = statuses.get("ok", 0)
-        profiles = ", ".join(profile_label(value) for value in ordered_unique(row.get("profile", "") for row in rows if row.get("profile", "")))
+        profiles = ", ".join(
+            profile_label(value)
+            for value in ordered_unique(row.get("profile", "") for row in rows if row.get("profile", ""))
+        )
         first_message = next((row.get("error_message", "") for row in rows if row.get("error_message", "")), "")
         reason = (
             "No OK rows were emitted; the source CSV records row-level error details."
@@ -459,14 +477,14 @@ def resolved3d_figure(rows: list[dict[str, str]]) -> plt.Figure:
         fig.tight_layout()
         return fig
 
-    labels = [f"{case}\n{profile}" for case, profile, _ in points]
+    labels = [f"{case} {resolved_profile_tick_label(profile)}" for case, profile, _ in points]
     values = [value for _, _, value in points]
     fig, ax = plt.subplots(figsize=(max(6.5, 0.6 * len(values)), 3.8))
     ax.bar(range(len(values)), values, color="#217A7A")
-    ax.set_ylabel("Mean absolute velocity error, cm/s")
-    ax.set_title("Resolved-velocity output-operator diagnostic")
+    ax.set_ylabel("Velocity $L_1$ average error, cm/s")
+    ax.set_title("Resolved-velocity CrossSectionQuadratureOperator diagnostic")
     ax.set_xticks(range(len(labels)))
-    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
+    ax.set_xticklabels(labels, rotation=25, ha="right", fontsize=8)
     ax.grid(axis="y", alpha=0.25)
     return fig
 
@@ -479,7 +497,9 @@ def python_mps_figure(rows: list[dict[str, str]]) -> plt.Figure:
         rel_flow = as_float(row, "relative_flow_mean_final")
         finite_errors = [value for value in [rel_area, rel_flow] if value is not None]
         if elapsed is not None:
-            points.append((row.get("method", ""), row.get("nx", ""), elapsed, max(finite_errors) if finite_errors else None))
+            points.append(
+                (row.get("method", ""), row.get("nx", ""), elapsed, max(finite_errors) if finite_errors else None)
+            )
     if not points:
         return placeholder_figure("Python CPU/MPS Benchmark", "Python/Torch-MPS rows did not emit OK records.")
 
@@ -566,9 +586,7 @@ def write_summary_table(tables: dict[str, list[dict[str, str]]], table_dir: Path
         statuses = Counter((row.get("status") or "").strip().lower() for row in rows)
         ok = statuses.get("ok", 0)
         skipped_or_error = len(rows) - ok
-        lines.append(
-            f"        {latex_escape(name.replace('_', ' '))} & {len(rows)} & {ok} & {skipped_or_error} \\\\"
-        )
+        lines.append(f"        {latex_escape(name.replace('_', ' '))} & {len(rows)} & {ok} & {skipped_or_error} \\\\")
     lines.extend(
         [
             r"        \bottomrule",
@@ -584,11 +602,28 @@ def write_summary_table(tables: dict[str, list[dict[str, str]]], table_dir: Path
 def render_all(benchmark_dir: Path, output_dir: Path, table_dir: Path, formats: Iterable[str]) -> list[Path]:
     tables = read_benchmark_tables(benchmark_dir)
     written: list[Path] = []
-    written.extend(save_figure(convergence_figure(tables["refinement"]), output_dir, "package-benchmark-convergence", formats))
-    written.extend(save_figure(backend_parity_figure(tables["backend_parity"]), output_dir, "package-benchmark-backend-parity", formats))
-    written.extend(save_figure(rheology_profile_figure(tables["rheology_profile"]), output_dir, "package-benchmark-rheology-profile", formats))
-    written.extend(save_figure(resolved3d_figure(tables["resolved3d"]), output_dir, "package-benchmark-resolved3d", formats))
-    written.extend(save_figure(python_mps_figure(tables["python_mps"]), output_dir, "package-benchmark-python-mps", formats))
+    written.extend(
+        save_figure(convergence_figure(tables["refinement"]), output_dir, "package-benchmark-convergence", formats)
+    )
+    written.extend(
+        save_figure(
+            backend_parity_figure(tables["backend_parity"]), output_dir, "package-benchmark-backend-parity", formats
+        )
+    )
+    written.extend(
+        save_figure(
+            rheology_profile_figure(tables["rheology_profile"]),
+            output_dir,
+            "package-benchmark-rheology-profile",
+            formats,
+        )
+    )
+    written.extend(
+        save_figure(resolved3d_figure(tables["resolved3d"]), output_dir, "package-benchmark-resolved3d", formats)
+    )
+    written.extend(
+        save_figure(python_mps_figure(tables["python_mps"]), output_dir, "package-benchmark-python-mps", formats)
+    )
     written.append(write_summary_table(tables, table_dir))
     return written
 

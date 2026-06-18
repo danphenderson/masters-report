@@ -263,49 +263,54 @@ independent replacements for the blood-dynamics setting above.
     separately in Convention~\ref{conv:appendix-pressure-reference-ratio}.
 \end{definition}
 
-\begin{definition}[Wall and FSI closure catalog]
+\begin{definition}[Wall and coupling closure axes]
     \label{def:wall-fsi-closure-catalog}
-    The descriptor $\mathcal W$ records how the wall or wall-reduced
-    mechanics are closed. It is independent of the rheology descriptor
-    $\mathcal R$: $\mathcal R$ changes the stress or effective-viscosity
-    law, while $\mathcal W$ changes whether the vessel wall is fixed,
-    algebraically reduced, coupled to another model tier, or resolved as a
-    structure.
+    The wall descriptor $\mathcal W$ records how the wall or wall-reduced
+    mechanics are closed. The coupling descriptor $\mathcal C$ records whether
+    the single vessel is isolated or coupled to another model tier. Both are
+    independent of the rheology descriptor $\mathcal R$: $\mathcal R$ changes
+    the stress or effective-viscosity law, $\mathcal W$ changes the wall
+    mechanics, and $\mathcal C$ changes the interface or network contract.
     \begin{center}
     \footnotesize
     \begin{tabularx}{\textwidth}{@{}
-        >{\raggedright\arraybackslash}p{0.21\textwidth}
+        >{\raggedright\arraybackslash}p{0.17\textwidth}
+        >{\raggedright\arraybackslash}p{0.18\textwidth}
         >{\raggedright\arraybackslash}X
         >{\raggedright\arraybackslash}X
         @{}}
         \toprule
-        \textbf{Closure descriptor}
-            & \textbf{Wall information retained}
+        \textbf{Axis}
+            & \textbf{Descriptor}
+            & \textbf{Information retained}
             & \textbf{Reading in this report} \\
         \midrule
-        $\mathcal W_{\mathrm{rigid}}$
+        Wall
+            & $\mathcal W_{\mathrm{rigid}}$
             & Fixed or prescribed wall geometry; no structural state is solved
-            & A fixed-wall continuum or rigid-tube reduced baseline. This is not
-            an FSI model, even when no-slip or no-penetration wall data are
-            imposed. \\
-        $\mathcal W_{\mathrm{elastic1D}}$
+            & A fixed-wall continuum or rigid-tube reduced baseline. \\
+        Wall
+            & $\mathcal W_{\mathrm{elastic1D}}$
             & Dynamic area $A(z,t)$, gauge pressure $p_{\mathrm g}(A,z,t)$,
-            reference area $A_0(z)$, wall stiffness $\beta(z)$, and
-            external pressure
-            & The selected single-vessel model. Wall mechanics are reduced to a
-            pressure--area law, wave speed, elastic potential, and geometry
-            source; no separate structural PDE is solved. \\
-        $\mathcal W_{\mathrm{multiscale}}$
-            & Interface pressure, flow, traction, or characteristic data coupling
-            0D, 1D, and 3D model tiers
-            & A boundary or coupling model requiring a separate interface and
-            stability contract; it is not implied by the single-vessel
-            flux/source notation. \\
-        $\mathcal W_{\mathrm{resolvedFSI}}$
+            reference area $A_0(z)$, wall stiffness $\beta(z)$, and external
+            pressure
+            & The selected single-vessel model; no separate structural PDE is
+            solved. \\
+        Wall
+            & $\mathcal W_{\mathrm{resolvedFSI}}$
             & Fluid velocity and pressure plus wall displacement, wall velocity,
             structural stress, and interface conditions
-            & A full moving-wall FSI PDE system. It is a comparison tier for this
-            report, not the selected reduced model. \\
+            & A full moving-wall FSI PDE system, used here only as comparison
+            vocabulary. \\
+        Coupling
+            & $\mathcal C_{\mathrm{isolated}}$
+            & Inlet and outlet data close one vessel
+            & The baseline numerical study. \\
+        Coupling
+            & $\mathcal C_{\mathrm{network}}$ or $\mathcal C_{\mathrm{3D/1D}}$
+            & Interface pressure, flow, traction, impedance, or characteristic
+            data connecting 0D, 1D, and 3D tiers
+            & A separate boundary/interface contract, not a wall law. \\
         \bottomrule
     \end{tabularx}
     \end{center}
@@ -360,7 +365,7 @@ independent replacements for the blood-dynamics setting above.
     the selected cross-sectional velocity profile, $C_f$ is the wall-friction
     closure, and $p_{\mathrm g}(A,z,t)$ is the wall-law gauge pressure
     closing the reduced system. This is the reduced
-    $\mathcal W_{\mathrm{elastic1D}}$ member of the FSI closure axis: wall
+    $\mathcal W_{\mathrm{elastic1D}}$ member of the wall-model axis: wall
     response is represented through the pressure--area law rather than through a
     separate structural PDE
     \cite[Sec.~2, pp.~253--255]{FormaggiaEtAl2003OneDimensionalBloodFlow}
@@ -397,6 +402,37 @@ independent replacements for the blood-dynamics setting above.
     $p_{\mathrm{ext}}$ are supplied. Resolved FSI would replace this algebraic
     pressure--area closure with structural unknowns and fluid--structure
     interface conditions.
+\end{definition}
+
+\begin{definition}[Physical-to-solver map for the implemented 1D state]
+    \label{def:physical-to-solver-map}
+    The continuum 1D model uses physical area $A_{\mathrm{phys}}$ and
+    physical flow $Q_{\mathrm{phys}}$. The implemented radius-squared solver
+    instead stores
+    \begin{flalign*}
+        \quad
+        a=R^2,\qquad q=\frac{Q_{\mathrm{phys}}}{\pi}.
+        &&
+    \end{flalign*}
+    Thus
+    \begin{flalign*}
+        \quad
+        A_{\mathrm{phys}}=\pi a,\qquad
+        Q_{\mathrm{phys}}=\pi q,\qquad
+        \bar u=\frac{Q_{\mathrm{phys}}}{A_{\mathrm{phys}}}=\frac{q}{a}.
+        &&
+    \end{flalign*}
+    With $K=Eh/(1-\sigma^2)$, the solver elastic flux contribution recorded
+    in Appendix~\ref{app:num-current-solver-operator} is
+    \begin{flalign*}
+        \quad
+        \Psi_h(a)=\frac{K}{3\rho R_{\max}^2}a^{3/2},
+        \qquad
+        \pd_a\Psi_h(a)=\frac{K}{2\rho R_{\max}^2}\sqrt a.
+        &&
+    \end{flalign*}
+    This map is the convention used by the Section~\ref{sec:resolved-3d-comparison}
+    velocity and flow comparisons.
 \end{definition}
 
 \begin{definition}[Stenosis reference geometry]
@@ -438,11 +474,11 @@ independent replacements for the blood-dynamics setting above.
     \includegraphics[width=0.98\textwidth]{figures/static/static/rendered/resolved-3d-flow-field.pdf}
     \caption{Resolved 3D node-centered axial velocity fields for the two
     $T=1$ comparison cases used in Section~\ref{sec:resolved-3d-comparison}.
-    Panel (a) shows case 77 with 22,691 loaded nodes; panel (b) shows case 60
-    with 21,975 loaded nodes. The shared color scale makes the stronger
-    axial-velocity concentration in the 40\% case visible. Sparse arrows
-    indicate local vector direction, and the transparent surface frames the 3D
-    point cloud. These are resolved velocity-data renderings, not the
+    Panel (a) shows C23 with 22,691 loaded nodes; panel (b) shows C40 with
+    21,975 loaded nodes. The shared color scale makes the stronger
+    axial-velocity concentration in C40 visible. Sparse arrows indicate local
+    vector direction, and the transparent surface frames the 3D point cloud.
+    These are resolved velocity-data renderings, not the
     stationary-Stokes pathline proxy or a pressure-drop, FFR, or
     patient-specific clinical calibration measurement.}
     \label{fig:stenosis-3d-reference-geometry}
@@ -452,13 +488,17 @@ independent replacements for the blood-dynamics setting above.
     \label{rmk:1d-stenosis-profile-scope}
     The profile in Eq.~\ref{eq:1d-stenosis-profile} is $C^\infty$ and
     rapidly localized rather than compactly supported. This smooth idealized
-    geometry is the baseline for the reduced simulations in this report. Canic
-    et al.\ show that standard 1D variable-geometry models may miss stenotic
-    pressure and velocity trends unless additional variable-radius terms are
-    included \cite[Abstract; Secs.~1--2]{CanicEtAl2024Extended1DStenosis}.
-    Those corrections motivate later comparison questions, but they are not
-    included in the baseline model unless a separate closure identifier and
-    numerical contract are declared.
+    geometry is the baseline for the reduced simulations in this report and is
+    also useful for fixed-wall 3D studies: the same analytic radius profile
+    supplies controlled derivatives, wall normals, severity variation, and
+    repeatable mesh-refinement families without introducing segmentation noise
+    or patient-specific morphology. Canic et al.\ show that standard 1D
+    variable-geometry models may miss stenotic pressure and velocity trends
+    unless additional variable-radius terms are included
+    \cite[Abstract; Secs.~1--2]{CanicEtAl2024Extended1DStenosis}. Those
+    corrections motivate later comparison questions, but they are not included
+    in the baseline model unless a separate closure identifier and numerical
+    contract are declared.
 \end{remark}
 
 \begin{definition}[Conservative flux/source notation for the reduced wall law]
@@ -519,7 +559,7 @@ independent replacements for the blood-dynamics setting above.
         +S_f^{\mathcal R}(A,Q,z),
         \numberthis\label{eq:1d-conservative-momentum} &&
     \end{flalign*}
-    The wall/FSI descriptor $\mathcal W$ determines the pressure--area law,
+    The wall descriptor $\mathcal W$ determines the pressure--area law,
     elastic potential, wave speed, and geometry source; the rheology descriptor
     $\mathcal R$ determines the viscosity or friction closure. A resolved FSI
     model is therefore not obtained by merely relabeling

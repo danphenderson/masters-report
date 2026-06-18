@@ -93,6 +93,73 @@ function write_synthetic_xdmf_hdf5_case(
     return xdmf_path, coords, velocity_values
 end
 
+function write_single_tetra_xdmf_hdf5_case(
+    case_dir::String;
+    time::Float64 = 5.0e-5,
+    velocity_offset::Float64 = 10.0,
+    velocity_function = nothing,
+)
+    coords = [
+        0.0 0.0 0.0
+        1.0 0.0 0.0
+        0.0 1.0 0.0
+        0.0 0.0 1.0
+    ]
+    velocity_fn = velocity_function === nothing ?
+        (coord -> velocity_offset + coord[3]) :
+        velocity_function
+    return write_custom_tetra_xdmf_hdf5_case(case_dir, coords; time=time, velocity_function=velocity_fn)
+end
+
+function write_custom_tetra_xdmf_hdf5_case(
+    case_dir::String,
+    coords::Matrix{Float64};
+    time::Float64 = 5.0e-5,
+    velocity_function = coord -> 10.0 + coord[3],
+)
+    mkpath(case_dir)
+    velocity_values = zeros(Float64, size(coords, 1), 3)
+    for i in axes(coords, 1)
+        velocity_values[i, 3] = velocity_function(view(coords, i, :))
+    end
+    topology = Int32[0 1 2 3]
+
+    h5_path = joinpath(case_dir, "velocity.h5")
+    h5open(h5_path, "w") do file
+        mesh = create_group(create_group(create_group(file, "Mesh"), "0"), "mesh")
+        mesh["geometry"] = coords
+        mesh["topology"] = topology
+        vector_group = create_group(file, "VisualisationVector")
+        vector_group["0"] = velocity_values
+    end
+
+    xdmf_path = joinpath(case_dir, "velocity.xdmf")
+    write(
+        xdmf_path,
+        """
+        <?xml version="1.0"?>
+        <Xdmf Version="3.0">
+          <Domain>
+            <Grid Name="mesh" GridType="Uniform">
+              <Topology NumberOfElements="$(size(topology, 1))" TopologyType="Tetrahedron" NodesPerElement="4">
+                <DataItem Dimensions="$(size(topology, 1)) 4" NumberType="UInt" Format="HDF">velocity.h5:/Mesh/0/mesh/topology</DataItem>
+              </Topology>
+              <Geometry GeometryType="XYZ">
+                <DataItem Dimensions="$(size(coords, 1)) 3" Format="HDF">velocity.h5:/Mesh/0/mesh/geometry</DataItem>
+              </Geometry>
+              <Time Value="$time" />
+              <Attribute Name="velocity" AttributeType="Vector" Center="Node">
+                <DataItem Dimensions="$(size(coords, 1)) 3" Format="HDF">velocity.h5:/VisualisationVector/0</DataItem>
+              </Attribute>
+            </Grid>
+          </Domain>
+        </Xdmf>
+        """,
+    )
+
+    return xdmf_path, coords, velocity_values
+end
+
 function read_simple_csv(path::String)
     lines = readlines(path)
     headers = split(lines[1], ",")

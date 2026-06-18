@@ -40,8 +40,4 @@ def configure_logging(level: str = "WARNING") -> None:
 def event_fields(**fields: Any) -> dict[str, Any]:
     """Return non-null LogRecord extras while avoiding stdlib field collisions."""
 
-    return {
-        key: value
-        for key, value in fields.items()
-        if value is not None and key not in _RESERVED_LOG_RECORD_KEYS
-    }
+    return {key: value for key, value in fields.items() if value is not None and key not in _RESERVED_LOG_RECORD_KEYS}

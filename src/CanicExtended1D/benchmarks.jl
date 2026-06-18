@@ -136,11 +136,23 @@ const RESOLVED3D_HEADER = [
     "case_label",
     "severity",
     "profile",
+    "operator",
     "section_count",
     "mean_abs_error_cm_s",
+    "l2_velocity_error_cm_s",
     "max_abs_error_cm_s",
     "mean_relative_error",
+    "relative_l1_velocity_error",
     "max_relative_error",
+    "relative_l2_velocity_error",
+    "mean_flow_abs_error_cm3_s",
+    "flow_l2_error_cm3_s",
+    "max_flow_abs_error_cm3_s",
+    "min_intersection_count",
+    "area_valid_count",
+    "alpha_eff_min",
+    "alpha_eff_max",
+    "characteristic_radicand_min",
     "status",
     "elapsed_s",
     "error_message",
@@ -666,11 +678,11 @@ end
 function resolved3d_rows(profile::String, spec::PackageBenchmarkSpec)
     if !spec.include_resolved3d
         @telemetry_info "package benchmark stage skipped" event="stage_skipped" stage="resolved3d" backend="package-benchmark" method=profile nx="" tfinal="" status="skipped" rows=1 output_dir=spec.output_dir reason="include_resolved3d=false"
-        return [["resolved3d", "", "", "", "", "", "", "", "", "skipped", 0.0, "include_resolved3d=false"]]
+        return [["resolved3d", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "skipped", 0.0, "include_resolved3d=false"]]
     end
     if profile == "smoke"
         @telemetry_info "package benchmark stage skipped" event="stage_skipped" stage="resolved3d" backend="package-benchmark" method=profile nx="" tfinal="" status="skipped" rows=1 output_dir=spec.output_dir reason="smoke profile does not run resolved-3D diagnostics"
-        return [["resolved3d", "", "", "", "", "", "", "", "", "skipped", 0.0, "smoke profile does not run resolved-3D diagnostics"]]
+        return [["resolved3d", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "skipped", 0.0, "smoke profile does not run resolved-3D diagnostics"]]
     end
 
     rows = Vector{Vector{Any}}()
@@ -691,7 +703,7 @@ function resolved3d_rows(profile::String, spec::PackageBenchmarkSpec)
             )
             if result === nothing
                 @telemetry_info "package benchmark case skipped" event="case_skipped" stage="resolved3d" backend="package-benchmark" method=profile nx="" tfinal="" status="skipped" elapsed_s=elapsed rows=1 output_dir=output_dir reason="no local resolved-3D comparison files found"
-                push!(rows, [case_id, "", "", profile_name(velocity_profile), "", "", "", "", "", "skipped", elapsed, "no local resolved-3D comparison files found"])
+                push!(rows, [case_id, "", "", profile_name(velocity_profile), "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "skipped", elapsed, "no local resolved-3D comparison files found"])
             else
                 for row in result.summary_rows
                     push!(rows, [
@@ -699,11 +711,23 @@ function resolved3d_rows(profile::String, spec::PackageBenchmarkSpec)
                         row.case_label,
                         row.severity,
                         profile_name(velocity_profile),
+                        row.operator,
                         row.section_count,
                         row.mean_abs_error_cm_s,
+                        row.l2_velocity_error_cm_s,
                         row.max_abs_error_cm_s,
                         row.mean_rel_error,
+                        row.relative_l1_velocity_error,
                         row.max_rel_error,
+                        row.rel_l2_velocity_error,
+                        row.mean_flow_abs_error_cm3_s,
+                        row.flow_l2_error_cm3_s,
+                        row.max_flow_abs_error_cm3_s,
+                        row.min_intersection_count,
+                        row.area_valid_count,
+                        row.alpha_eff_min,
+                        row.alpha_eff_max,
+                        row.characteristic_radicand_min,
                         "ok",
                         elapsed,
                         "",
@@ -711,10 +735,10 @@ function resolved3d_rows(profile::String, spec::PackageBenchmarkSpec)
                 end
             end
         catch err
-            push!(rows, [case_id, "", "", profile_name(velocity_profile), "", "", "", "", "", "error", elapsed, sprint(showerror, err)])
+            push!(rows, [case_id, "", "", profile_name(velocity_profile), "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "error", elapsed, sprint(showerror, err)])
         end
     end
-    isempty(rows) && push!(rows, ["resolved3d", "", "", "", "", "", "", "", "", "skipped", 0.0, "no diagnostics produced"])
+    isempty(rows) && push!(rows, ["resolved3d", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "skipped", 0.0, "no diagnostics produced"])
     return rows
 end
 

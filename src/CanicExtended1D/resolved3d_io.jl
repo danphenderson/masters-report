@@ -102,7 +102,9 @@ function load_resolved3d_velocity(case_spec::Resolved3DCaseSpec)
     geometry_file = resolve_xdmf_hdf_path(xdmf_dir, metadata.geometry_file)
     velocity_file = resolve_xdmf_hdf_path(xdmf_dir, metadata.velocity_file)
 
-    topology = read_hdf_matrix(topology_file, metadata.topology_path, metadata.topology_dims, 4, "topology")
+    topology = normalized_tetra_topology(
+        read_hdf_matrix(topology_file, metadata.topology_path, metadata.topology_dims, 4, "topology"),
+    )
     size(topology, 2) == 4 || throw(DimensionMismatch("topology dataset must have 4 columns"))
 
     coordinates = Matrix{Float64}(
@@ -114,8 +116,30 @@ function load_resolved3d_velocity(case_spec::Resolved3DCaseSpec)
 
     size(coordinates, 1) == size(velocity, 1) ||
         throw(DimensionMismatch("geometry node count $(size(coordinates, 1)) does not match velocity node count $(size(velocity, 1))"))
+    validate_tetra_topology(topology, size(coordinates, 1))
 
-    return Resolved3DVelocityField(case_spec, metadata, coordinates, velocity)
+    return Resolved3DVelocityField(case_spec, metadata, topology, coordinates, velocity)
+end
+
+function normalized_tetra_topology(raw_topology)
+    topology = Matrix{Int}(raw_topology)
+    isempty(topology) && throw(ArgumentError("topology dataset is empty"))
+    min_index = minimum(topology)
+    if min_index == 0
+        return topology .+ 1
+    elseif min_index == 1
+        return topology
+    end
+    throw(ArgumentError("tetra topology must be zero- or one-based; minimum index is $min_index"))
+end
+
+function validate_tetra_topology(topology::Matrix{Int}, node_count::Int)
+    size(topology, 2) == 4 || throw(DimensionMismatch("tetra topology must have 4 columns"))
+    min_index = minimum(topology)
+    max_index = maximum(topology)
+    min_index >= 1 || throw(ArgumentError("tetra topology contains an index below 1 after normalization"))
+    max_index <= node_count || throw(ArgumentError("tetra topology max index $max_index exceeds node count $node_count"))
+    return topology
 end
 
 function resolve_xdmf_hdf_path(xdmf_dir::String, h5_file::String)

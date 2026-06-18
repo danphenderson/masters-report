@@ -18,6 +18,10 @@ function comparison_summary_path(spec::ComparisonSpec)
     return joinpath(spec.output_dir, "comparison_summary.csv")
 end
 
+function sensitivity_csv_path(spec::ComparisonSpec)
+    return joinpath(spec.output_dir, "node_slab_sensitivity.csv")
+end
+
 function comparison_case_token(case::Resolved3DCaseSpec)
     return "case$(case.case_label)_sev$(round(Int, case.severity))"
 end
@@ -36,6 +40,7 @@ function write_comparison_csvs(result::ComparisonResult; overwrite::Bool = false
     end
 
     write_comparison_summary_csv(result.summary_csv, result.summary_rows; overwrite=overwrite)
+    write_node_slab_sensitivity_csv(result.sensitivity_csv, result.sensitivity_rows; overwrite=overwrite)
     return result
 end
 
@@ -67,11 +72,20 @@ function section_comparison_header()
     return join((
         "case_label",
         "severity",
+        "operator",
         "z_cm",
-        "u1d_cm_s",
-        "u3d_cm_s",
-        "abs_error_cm_s",
+        "area_cm2",
+        "flow_3d_cm3_s",
+        "flow_1d_cm3_s",
+        "mean_u3d_cm_s",
+        "mean_u1d_cm_s",
+        "abs_velocity_error_cm_s",
+        "flow_abs_error_cm3_s",
         "rel_error",
+        "rel_l2_velocity_component",
+        "intersection_count",
+        "area_valid",
+        "cut_status",
         "node_count",
         "observed_radius_cm",
         "xdmf_time_s",
@@ -83,11 +97,20 @@ function section_comparison_csv_row(row::SectionComparisonRow)
     return join((
         row.case_label,
         row.severity,
+        row.operator,
         row.z_cm,
-        row.u1d_cm_s,
-        row.u3d_cm_s,
-        row.abs_error_cm_s,
+        row.area_cm2,
+        row.flow_3d_cm3_s,
+        row.flow_1d_cm3_s,
+        row.mean_u3d_cm_s,
+        row.mean_u1d_cm_s,
+        row.abs_velocity_error_cm_s,
+        row.flow_abs_error_cm3_s,
         row.rel_error,
+        row.rel_l2_velocity_component,
+        row.intersection_count,
+        row.area_valid,
+        row.cut_status,
         row.node_count,
         row.observed_radius_cm,
         row.xdmf_time_s,
@@ -112,13 +135,18 @@ function radial_profile_header()
     return join((
         "case_label",
         "severity",
+        "operator",
         "z_slice_cm",
         "radial_bin",
         "r_over_r0_mid",
-        "u1d_cm_s",
-        "u3d_cm_s",
-        "abs_error_cm_s",
+        "area_cm2",
+        "flow_3d_cm3_s",
+        "mean_u3d_cm_s",
+        "mean_u1d_cm_s",
+        "abs_velocity_error_cm_s",
         "rel_error",
+        "intersection_count",
+        "area_valid",
         "node_count",
         "xdmf_time_s",
         "time_error_s",
@@ -129,13 +157,18 @@ function radial_profile_csv_row(row::RadialProfileRow)
     return join((
         row.case_label,
         row.severity,
+        row.operator,
         row.z_slice_cm,
         row.radial_bin,
         row.r_over_r0_mid,
-        row.u1d_cm_s,
-        row.u3d_cm_s,
-        row.abs_error_cm_s,
+        row.area_cm2,
+        row.flow_3d_cm3_s,
+        row.mean_u3d_cm_s,
+        row.mean_u1d_cm_s,
+        row.abs_velocity_error_cm_s,
         row.rel_error,
+        row.intersection_count,
+        row.area_valid,
         row.node_count,
         row.xdmf_time_s,
         row.time_error_s,
@@ -159,15 +192,28 @@ function comparison_summary_header()
     return join((
         "case_label",
         "severity",
+        "operator",
         "section_count",
         "profile_count",
         "mean_abs_error_cm_s",
+        "l2_velocity_error_cm_s",
         "max_abs_error_cm_s",
         "mean_rel_error",
+        "relative_l1_velocity_error",
         "max_rel_error",
+        "rel_l2_velocity_error",
+        "mean_flow_abs_error_cm3_s",
+        "flow_l2_error_cm3_s",
+        "max_flow_abs_error_cm3_s",
         "profile_mean_abs_error_cm_s",
+        "profile_l2_error_cm_s",
         "profile_max_abs_error_cm_s",
+        "min_intersection_count",
         "min_section_nodes",
+        "area_valid_count",
+        "alpha_eff_min",
+        "alpha_eff_max",
+        "characteristic_radicand_min",
         "xdmf_time_s",
         "time_error_s",
     ), ",")
@@ -177,15 +223,75 @@ function comparison_summary_csv_row(row::ComparisonSummaryRow)
     return join((
         row.case_label,
         row.severity,
+        row.operator,
         row.section_count,
         row.profile_count,
         row.mean_abs_error_cm_s,
+        row.l2_velocity_error_cm_s,
         row.max_abs_error_cm_s,
         row.mean_rel_error,
+        row.relative_l1_velocity_error,
         row.max_rel_error,
+        row.rel_l2_velocity_error,
+        row.mean_flow_abs_error_cm3_s,
+        row.flow_l2_error_cm3_s,
+        row.max_flow_abs_error_cm3_s,
         row.profile_mean_abs_error_cm_s,
+        row.profile_l2_error_cm_s,
         row.profile_max_abs_error_cm_s,
+        row.min_intersection_count,
         row.min_section_nodes,
+        row.area_valid_count,
+        row.alpha_eff_min,
+        row.alpha_eff_max,
+        row.characteristic_radicand_min,
+        row.xdmf_time_s,
+        row.time_error_s,
+    ), ",")
+end
+
+function write_node_slab_sensitivity_csv(
+    path::String,
+    rows::Vector{NodeSlabSensitivityRow};
+    overwrite::Bool = false,
+)
+    guarded_open_write(path, overwrite) do io
+        println(io, node_slab_sensitivity_header())
+        for row in rows
+            println(io, node_slab_sensitivity_csv_row(row))
+        end
+    end
+end
+
+function node_slab_sensitivity_header()
+    return join((
+        "case_label",
+        "severity",
+        "half_width_cm",
+        "z_cm",
+        "mean_u3d_cm_s",
+        "mean_u1d_cm_s",
+        "abs_velocity_error_cm_s",
+        "rel_error",
+        "node_count",
+        "observed_radius_cm",
+        "xdmf_time_s",
+        "time_error_s",
+    ), ",")
+end
+
+function node_slab_sensitivity_csv_row(row::NodeSlabSensitivityRow)
+    return join((
+        row.case_label,
+        row.severity,
+        row.half_width_cm,
+        row.z_cm,
+        row.mean_u3d_cm_s,
+        row.mean_u1d_cm_s,
+        row.abs_velocity_error_cm_s,
+        row.rel_error,
+        row.node_count,
+        row.observed_radius_cm,
         row.xdmf_time_s,
         row.time_error_s,
     ), ",")
@@ -203,8 +309,8 @@ function write_section_comparison_svg(
         mid = 285
         colors = ("#a51f2d", "#1d5f8f", "#2d7a36", "#6f4a8e")
         cases = unique(row.case_label for row in rows)
-        finite_u = finite_values(Iterators.flatten((row.u1d_cm_s, row.u3d_cm_s) for row in rows))
-        finite_e = finite_values(row.abs_error_cm_s for row in rows)
+        finite_u = finite_values(Iterators.flatten((row.mean_u1d_cm_s, row.mean_u3d_cm_s) for row in rows))
+        finite_e = finite_values(row.abs_velocity_error_cm_s for row in rows)
         z_values = finite_values(row.z_cm for row in rows)
         xmin = isempty(z_values) ? 0.0 : minimum(z_values)
         xmax = isempty(z_values) ? 1.0 : maximum(z_values)
@@ -213,16 +319,16 @@ function write_section_comparison_svg(
 
         println(io, """<svg xmlns="http://www.w3.org/2000/svg" width="$width" height="$height" viewBox="0 0 $width $height">""")
         println(io, """<rect width="100%" height="100%" fill="white"/>""")
-        println(io, """<text x="$margin" y="32" font-family="Arial" font-size="18" fill="#111">Resolved 3D vs 1D section mean velocity</text>""")
+        println(io, """<text x="$margin" y="32" font-family="Arial" font-size="18" fill="#111">Resolved 3D vs 1D quadrature mean velocity</text>""")
         svg_panel_axes(io, margin, 58, width - margin, mid - 28, "mean axial velocity (cm/s)", xmin, xmax, umin, umax)
         svg_panel_axes(io, margin, mid + 26, width - margin, height - margin, "absolute error (cm/s)", xmin, xmax, emin, emax)
 
         for (case_index, case_label) in enumerate(cases)
             color = colors[mod1(case_index, length(colors))]
             case_rows = [row for row in rows if row.case_label == case_label]
-            svg_polyline(io, case_rows, xmin, xmax, umin, umax, margin, 58, width - margin, mid - 28, color, row -> row.u3d_cm_s)
-            svg_polyline(io, case_rows, xmin, xmax, umin, umax, margin, 58, width - margin, mid - 28, color, row -> row.u1d_cm_s; dash=true)
-            svg_polyline(io, case_rows, xmin, xmax, emin, emax, margin, mid + 26, width - margin, height - margin, color, row -> row.abs_error_cm_s)
+            svg_polyline(io, case_rows, xmin, xmax, umin, umax, margin, 58, width - margin, mid - 28, color, row -> row.mean_u3d_cm_s)
+            svg_polyline(io, case_rows, xmin, xmax, umin, umax, margin, 58, width - margin, mid - 28, color, row -> row.mean_u1d_cm_s; dash=true)
+            svg_polyline(io, case_rows, xmin, xmax, emin, emax, margin, mid + 26, width - margin, height - margin, color, row -> row.abs_velocity_error_cm_s)
             println(io, """<text x="$(margin + 12 + 110 * (case_index - 1))" y="54" font-family="Arial" font-size="12" fill="$color">case $case_label solid=3D dashed=1D</text>""")
         end
 
@@ -279,3 +385,206 @@ function svg_polyline(
     println(io, """<polyline points="$(join(points, " "))" fill="none" stroke="$color" stroke-width="2"$dash_attr/>""")
     return nothing
 end
+
+function publish_resolved3d_report_assets(
+    result::ComparisonResult;
+    output_dir::String = joinpath("figures", "static", "static", "data", "stenosis-comparison"),
+    overwrite::Bool = false,
+)
+    mkpath(output_dir)
+    paths = String[]
+    push!(
+        paths,
+        write_report_section_dat(
+            joinpath(output_dir, "section-quadrature.dat"),
+            result.section_rows;
+            overwrite=overwrite,
+        ),
+    )
+    append!(
+        paths,
+        write_report_radial_dat_files(
+            output_dir,
+            result.profile_rows;
+            overwrite=overwrite,
+        ),
+    )
+    push!(
+        paths,
+        write_report_node_slab_sensitivity_csv(
+            joinpath(output_dir, "node-slab-sensitivity.csv"),
+            result.sensitivity_rows;
+            overwrite=overwrite,
+        ),
+    )
+    push!(
+        paths,
+        write_report_area_audit_dat(
+            joinpath(output_dir, "area-audit.dat"),
+            result.section_rows,
+            result.spec.base_params;
+            overwrite=overwrite,
+        ),
+    )
+    return paths
+end
+
+function report_case_token(severity::Real)
+    return "C$(round(Int, severity))"
+end
+
+function report_slice_token(z::Real)
+    return replace(string(round(Float64(z); digits=3)), "." => "p", "-" => "m")
+end
+
+function report_fmt(value)
+    value isa Bool && return value ? "true" : "false"
+    value isa Integer && return string(value)
+    value isa Real || return string(value)
+    number = Float64(value)
+    isfinite(number) || return "nan"
+    return string(round(number; sigdigits=12))
+end
+
+function write_report_section_dat(path::String, rows::Vector{SectionComparisonRow}; overwrite::Bool = false)
+    cases = sort(collect(unique(row.severity for row in rows)))
+    z_values = sort(collect(unique(row.z_cm for row in rows)))
+    rows_by_case_z = Dict((row.severity, row.z_cm) => row for row in rows)
+    guarded_open_write(path, overwrite) do io
+        headers = ["z"]
+        for severity in cases
+            token = report_case_token(severity)
+            append!(
+                headers,
+                [
+                    "u1d$(token)",
+                    "u3d$(token)",
+                    "err$(token)",
+                    "flow1d$(token)",
+                    "flow3d$(token)",
+                    "flowerr$(token)",
+                    "area$(token)",
+                    "intersections$(token)",
+                ],
+            )
+        end
+        println(io, join(headers, " "))
+        for z in z_values
+            values = Any[z]
+            for severity in cases
+                row = rows_by_case_z[(severity, z)]
+                append!(
+                    values,
+                    [
+                        row.mean_u1d_cm_s,
+                        row.mean_u3d_cm_s,
+                        row.abs_velocity_error_cm_s,
+                        row.flow_1d_cm3_s,
+                        row.flow_3d_cm3_s,
+                        row.flow_abs_error_cm3_s,
+                        row.area_cm2,
+                        row.intersection_count,
+                    ],
+                )
+            end
+            println(io, join(report_fmt.(values), " "))
+        end
+    end
+end
+
+function write_report_radial_dat_files(output_dir::String, rows::Vector{RadialProfileRow}; overwrite::Bool = false)
+    paths = String[]
+    cases = sort(collect(unique(row.severity for row in rows)))
+    for severity in cases
+        case_rows = [row for row in rows if row.severity == severity]
+        path = joinpath(output_dir, "radial-quadrature-$(report_case_token(severity)).dat")
+        slices = sort(collect(unique(row.z_slice_cm for row in case_rows)))
+        bins = sort(collect(unique(row.radial_bin for row in case_rows)))
+        rows_by_slice_bin = Dict((row.z_slice_cm, row.radial_bin) => row for row in case_rows)
+        guarded_open_write(path, overwrite) do io
+            headers = ["r"]
+            for z in slices
+                token = report_slice_token(z)
+                append!(headers, ["u1d$(token)", "u3d$(token)", "area$(token)", "err$(token)"])
+            end
+            println(io, join(headers, " "))
+            for bin in bins
+                first_row = rows_by_slice_bin[(slices[begin], bin)]
+                values = Any[first_row.r_over_r0_mid]
+                for z in slices
+                    row = rows_by_slice_bin[(z, bin)]
+                    append!(values, [row.mean_u1d_cm_s, row.mean_u3d_cm_s, row.area_cm2, row.abs_velocity_error_cm_s])
+                end
+                println(io, join(report_fmt.(values), " "))
+            end
+        end
+        push!(paths, path)
+    end
+    return paths
+end
+
+function write_report_node_slab_sensitivity_csv(
+    path::String,
+    rows::Vector{NodeSlabSensitivityRow};
+    overwrite::Bool = false,
+)
+    write_node_slab_sensitivity_csv(path, rows; overwrite=overwrite)
+end
+
+function write_report_area_audit_dat(
+    path::String,
+    rows::Vector{SectionComparisonRow},
+    base_params::Params;
+    overwrite::Bool = false,
+)
+    cases = sort(collect(unique(row.severity for row in rows)))
+    guarded_open_write(path, overwrite) do io
+        headers = [
+            "case",
+            "sections",
+            "eps_min_percent",
+            "eps_median_percent",
+            "eps_mean_percent",
+            "eps_max_percent",
+            "area3d_min_cm2",
+            "area3d_max_cm2",
+            "aref_min_cm2",
+            "aref_max_cm2",
+        ]
+        println(io, join(headers, " "))
+        for severity in cases
+            case_rows = [
+                row for row in rows if row.severity == severity && row.area_valid && isfinite(row.area_cm2)
+            ]
+            params = params_with(base_params; severity=severity)
+            epsilons = Float64[]
+            area_values = Float64[]
+            reference_values = Float64[]
+            for row in case_rows
+                r0, _, _ = stenosis(row.z_cm, params)
+                area_ref = pi * r0^2
+                if isfinite(area_ref) && area_ref > 0.0
+                    push!(epsilons, abs(row.area_cm2 - area_ref) / area_ref)
+                    push!(area_values, row.area_cm2)
+                    push!(reference_values, area_ref)
+                end
+            end
+            values = Any[
+                report_case_token(severity),
+                length(epsilons),
+                100.0 * minimum_or_nan(epsilons),
+                100.0 * median_or_nan(epsilons),
+                100.0 * mean_or_nan(epsilons),
+                100.0 * maximum_or_nan(epsilons),
+                minimum_or_nan(area_values),
+                maximum_or_nan(area_values),
+                minimum_or_nan(reference_values),
+                maximum_or_nan(reference_values),
+            ]
+            println(io, join(report_fmt.(values), " "))
+        end
+    end
+end
+
+minimum_or_nan(values::Vector{Float64}) = isempty(values) ? NaN : minimum(values)
+median_or_nan(values::Vector{Float64}) = isempty(values) ? NaN : median(values)

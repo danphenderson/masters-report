@@ -36,6 +36,7 @@ export AbstractTimeBackend,
        CarreauYasudaRheology,
        CassonRheology,
        AbstractStudySpec,
+       CrossSectionQuadratureOperator,
        ComparisonResult,
        ComparisonSpec,
        ComparisonSummaryRow,
@@ -55,6 +56,8 @@ export AbstractTimeBackend,
        MinmodLimiter,
        NativeSSPRKPolicy,
        NativeRK3Backend,
+       NodeSlabOperator,
+       NodeSlabSensitivityRow,
        NewtonianRheology,
        Params,
        OutputSpec,
@@ -81,6 +84,9 @@ export AbstractTimeBackend,
        SSPRK2Stepper,
        SSPRK3Stepper,
        StationaryStokesIC,
+       StationaryStokesRefinementResult,
+       StationaryStokesRefinementRow,
+       StationaryStokesRefinementSpec,
        SteadyVelocityInlet,
        SeveritySweepSpec,
        StudyResult,
@@ -131,8 +137,10 @@ export AbstractTimeBackend,
        pressure,
        profile_exponent,
        profile_name,
+       publish_resolved3d_report_assets,
        radial_profile_velocity,
        run_refinement_study,
+       run_stationary_stokes_refinement,
        run_available_resolved3d_comparison,
        run_package_benchmark,
        run_cli,
@@ -157,6 +165,7 @@ export AbstractTimeBackend,
        write_refinement_latex_tables,
        write_refinement_study_csv,
        write_section_comparison_svg,
+       write_stationary_stokes_refinement_csv,
        write_study_csv,
        write_svg
 
@@ -185,6 +194,7 @@ include("CanicExtended1D/resolved3d_types.jl")
 include("CanicExtended1D/resolved3d_io.jl")
 include("CanicExtended1D/resolved3d_compare.jl")
 include("CanicExtended1D/resolved3d_outputs.jl")
+include("CanicExtended1D/stationary_stokes_refinement.jl")
 include("CanicExtended1D/geometry_exports.jl")
 include("CanicExtended1D/benchmarks.jl")
 include("CanicExtended1D/cli.jl")

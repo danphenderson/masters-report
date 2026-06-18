@@ -1,45 +1,49 @@
 \section{Conclusions and Limitations}
 \label{sec:conclusions-limitations}
 
-This report established a mathematical vocabulary for idealized stenotic blood
-flow and used it to state bounded numerical diagnostics. The continuum portion
-connected the flow map, material derivative, transport theorem, balance laws,
-stress closure, Navier--Stokes equations, and one-dimensional area--flow
-reduction. The model-hierarchy discussion then separated reduced pressure
-ratios, reduced shear proxies, velocity diagnostics, and implementation
-benchmarks from clinical measurements or resolved three-dimensional wall
-quantities.
+This report specified a velocity-focused mathematical and numerical study for
+an idealized stenotic vessel. The continuum material-flow setting, balance
+laws, stress closure, Navier--Stokes specialization, and 1D area--flow
+reduction define the modeling vocabulary. The selected implementation is a
+Canic-extended, radius-squared 1D compliant-vessel solver with declared wall,
+rheology, velocity-profile, boundary, and output conventions.
 
-The numerical comparison demonstrated that the selected one-dimensional solver
-can be placed in a declared diagnostic relationship with available resolved 3D
-velocity data through section-mean and radial-profile output operators. For the
-two included idealized cases at $T=1$, the 1D solution gives broadly similar
-upstream and downstream velocity trends but overpredicts the near-throat
-velocity, especially for the 40\% case. The largest errors are therefore not a
-minor plotting discrepancy; they occur in the region where the reduced velocity
-closure, boundary realization, and node-slab 3D post-processing operator are
-least interchangeable.
+The implementation evidence answers the reproducibility question, not a
+clinical one. The package benchmark suite records descriptor health,
+self-convergence, native/SciML agreement, stationary-Stokes initialization
+checks, boundary diagnostics, rheology/profile sensitivity, resolved-velocity
+diagnostics, and Python CPU/MPS comparisons for the emitted artifacts. The
+$C^\infty$ stenosis profile is useful here because it supplies one analytic
+geometry for the 1D solver, the fixed-wall stationary-Stokes mesh, and future
+3D/FSI mesh-refinement studies. Those records support the reported
+implementation properties and benchmark figures; they do not establish pressure
+accuracy, full transient 3D parity, structural deformation, or clinical
+validity.
 
-The package benchmark suite records descriptor health, refinement,
-native/SciML agreement, rheology and velocity-profile sensitivity,
-OpenBF-style boundary handling, resolved-velocity checks, and Python CPU/MPS
-comparisons for the emitted CSV records. It is an internal reproducibility and
-implementation diagnostic suite; it is not clinical validation, full transient
-FEM validation, or proof of Julia--Python scientific equivalence beyond the
-reported metrics.
+The quadrature-backed cross-model velocity diagnostic answers where the
+selected 1D velocity field differs from the available resolved 3D velocity data
+at $t=1.0$ s. For C23 and C40, the section-wise area-mean velocity errors have
+sample-average $L_1$ errors of 0.505 and 0.966 cm/s, root-mean-square $L_2$
+errors of 0.664 and 1.87 cm/s, and $L_\infty$ maxima of 2.35 and 9.92 cm/s.
+The largest discrepancies localize near the stenosis throat and in the
+reconstructed radial profiles, especially for C40. This supports mismatch
+localization under the declared tetrahedral cross-section quadrature operator,
+not a claim that the 1D model has been validated against resolved flow.
 
-The numerical record does not establish 1D accuracy against resolved 3D flow,
-does not supply clinical pressure evidence, and does not demonstrate
-pressure-drop or pressure-ratio accuracy. The resolved-velocity comparison is a
-preliminary diagnostic whose raw XDMF/HDF5 inputs are not archived in the report
-package. The pressure-ratio and shear-proxy conventions are included to fix the
-output vocabulary for later reduced-order studies, not as completed numerical
-evidence in this report.
+Pressure-ratio and shear-proxy notation are retained only as reduced
+model-output vocabulary for later work. The present manuscript does not add a
+pressure-drop result, a pressure-ratio result, a reported FFR or CT-FFR
+comparison, or an external measurement validation. A pressure-focused follow-up
+would need declared proximal and distal pressure observations, reference and
+averaging conventions, archived source identifiers or hashes, and a matched
+comparison record. A stronger velocity follow-up would also preserve per-run
+diagnostics such as timestep counts, CFL extrema, positivity checks, residual
+summaries, and closure/boundary perturbations varied one at a time.
 
-A stronger follow-up comparison would restore or archive the raw 3D inputs,
-archive source hashes or release identifiers, preserve per-run diagnostics such
-as time-step counts, CFL extrema, positivity checks, and residual summaries,
-and then vary one declared closure or boundary choice at a time. A later
-pressure-focused study would also need declared pressure-drop and
-pressure-ratio outputs, plus an external comparison record if the clinical
-motivation is to be evaluated rather than only framed.
+The feasible local three-dimensional extension is a fixed-wall
+stationary-Stokes refinement study on the same smooth stenotic geometry. That
+study can report resolved velocity, pressure, and sampled wall-traction/WSS
+diagnostics. A full stenotic FSI study with wall displacement, wall velocity,
+structural stress, and interface work remains a separate future model tier
+requiring a structural solver and interface contract beyond the present
+implementation.

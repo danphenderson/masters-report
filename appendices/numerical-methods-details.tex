@@ -26,6 +26,41 @@ Definition~\ref{def:foundation-norm-conventions}; discrete residuals use the
 recorded $D_t$, $D_z$, grid, and quadrature weights rather than unnamed
 continuum derivatives.
 
+\subsection{Fixed-wall stationary-Stokes refinement record}
+\label{app:num-stationary-stokes-refinement}
+
+The local three-dimensional refinement study is limited to a fixed-wall
+stationary-Stokes problem on the smooth idealized stenosis geometry. The public
+entrypoint \path{run_stationary_stokes_refinement} constructs generated Gridap
+tetrahedral meshes from the same $C^\infty$ radius profile used by the reduced
+model, solves a pressure-drop-driven stationary Stokes problem, evaluates
+section-averaged velocity and pressure from the finite-element field, and
+compares those averages with the resistance/projection quantities used by the
+stationary-Stokes initializer. This keeps the initializer behavior unchanged:
+the study is an additional diagnostic record, not a replacement for the 1D
+initial-condition contract.
+
+For a Newtonian fixed-wall Stokes field, the sampled stress and wall-traction
+diagnostics use
+\begin{flalign*}
+    \quad
+    \boldsymbol\sigma(\vu,p)
+    &=
+    -p\mathbf I+\mu\left(\nabla\vu+\nabla\vu^\top\right), &&
+    \mu=\rho\nu,\\
+    \quad
+    \mathbf t_w
+    &=
+    \boldsymbol\sigma\mathbf n, &
+    \boldsymbol\tau_w
+    &=
+    \mathbf t_w-(\mathbf t_w\cdot\mathbf n)\mathbf n. &&
+\end{flalign*}
+Here $\mathbf n$ is the analytic outward normal of the $C^\infty$ wall profile.
+The reported means and maxima are fixed-wall fluid-stress diagnostics sampled
+from the finite-element solution. They are not structural displacement, wall
+velocity, structural stress, or resolved FSI interface-work outputs.
+
 \subsection{Elastic-potential balance-law form}
 \label{app:num-elastic-potential-form}
 
@@ -85,8 +120,14 @@ $c^2(A,z)\defined(A/\rho)\pd_A p_{\mathrm g}(A,z,t)$, its eigenvalues are
     \sqrt{c^2(A,z)+\alpha(\alpha-1)\left(\frac{Q}{A}\right)^2}. &&
 \end{flalign*}
 For the displayed elastic wall law, $c^2>0$ when $\beta>0$, $A>0$,
-$A_0>0$, and $\rho>0$. Thus the positive-area region is strictly
-hyperbolic under the stated wall-law assumptions. These speeds reduce to
+$A_0>0$, and $\rho>0$. Strict hyperbolicity of the homogeneous elastic
+subsystem further requires the characteristic radicand
+\begin{flalign*}
+\quad
+    c^2(A,z)+\alpha(\alpha-1)\left(\frac{Q}{A}\right)^2
+    >0 &&
+\end{flalign*}
+to be positive on the reported state set. These speeds reduce to
 $Q/A\pm c(A,z)$ in the special $\alpha=1$ reference case. The subcritical
 case used in Assumption~\ref{ass:1d-subcritical-boundary-regime} is
 $\lambda_-<0<\lambda_+$, so one characteristic enters through the inlet, one
@@ -203,7 +244,8 @@ with
 The source term uses the specified centered interior and one-sided boundary
 difference $D_z^h$ on the cell averages. Let $g_{\mathcal P}$ denote the
 profile shear factor,
-\[
+\begin{flalign*}
+    \quad
     \dot\gamma_{1D,i}=g_{\mathcal P}\frac{|Q_i|}{a_i\sqrt{a_i}},
     \qquad
     \nu_{\mathrm{eff},i}^{\mathcal R}
@@ -211,7 +253,8 @@ profile shear factor,
     \frac{
         \eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma_{1D,i})
     }{\rho},
-\]
+    &&
+\end{flalign*}
 and
 $\alpha_c'(z)=-4R_0'(z)R_0''(z)/35$. The implemented source is
 \begin{flalign*}
@@ -299,8 +342,10 @@ spatial operator.
 \label{app:num-boundary-state-realization}
 
 The finite-volume boundary realization imposes one incoming boundary condition
-at each boundary in the subcritical regime using a Riemann-invariant
-construction. Let
+at each boundary in the subcritical regime using an $\alpha=1$, fixed-area
+characteristic approximation. This is the implemented boundary-state rule for
+the variable-$\alpha_{\mathrm{eff}}$ solver, not an exact invariant derivation
+for the full variable-radius balance law. Let
 \begin{flalign*}
     \quad
     c_0=\left(\frac{K}{2\rho R_{\max}^2}\right)^{1/2}. &&

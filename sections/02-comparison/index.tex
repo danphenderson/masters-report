@@ -1,288 +1,40 @@
-\section{Preliminary Resolved-Velocity Diagnostic at \texorpdfstring{$T=1$}{T=1}}
+\section{Verification, Reproducibility, and Cross-Model Velocity Comparison}
 \label{sec:resolved-3d-comparison}
 
-This section reports a numerical comparison between the stenosis-aware 1D
-area--flow model and the available resolved 3D velocity data. The comparison is
-an output-operator check: it is not clinical pressure evidence, nor is it an
-exact cross-section quadrature of the 3D tetrahedral solution. The completed
-diagnostic averages node-centered axial velocity over thin axial slabs and
-compares those values with the interpolated 1D mean velocity $Q/a$, where
-$a=R^2$ is the solver coordinate.
-Radial profiles use the same slab nodes binned by
-$\sqrt{x^2+y^2}/R_0(z)$ and compare them with the 1D closure profile.
-The tables and figures in this section are baseline Newtonian diagnostics;
-non-Newtonian rheology descriptors require separately generated comparison
-datasets.
+This section first records the reproducibility checks for the solver package
+and then reports the final-time resolved-velocity comparison. The comparison is
+velocity-focused: pressure-drop, pressure-ratio, FFR, and clinical validation
+claims remain outside the completed numerical evidence.
 
-\begin{center}
-\fbox{\begin{minipage}{0.90\linewidth}
-\small
-\textbf{Section 2 notation warning.} In this section only, the stored variable
-named \texttt{A} is the solver coordinate $a=R^2$, not physical
-cross-sectional area. The physical area is
-$A_{\mathrm{phys}}=\pi a$, and the reported mean velocity is $Q/a$,
-equivalently $Q_{\mathrm{phys}}/A_{\mathrm{phys}}$ under the declared
-$\pi$-scaling.
-\end{minipage}}
-\end{center}
-
-All numbers below come from the comparison artifact
-\path{simulations/output/3d_comparison/full_t1_native_nx400/}, interpreted
-under Convention~\ref{conv:computed-realization-record}. The regeneration
-command, source-path convention, and file hashes are listed in
-Appendix~\ref{app:code-and-ai-use}. The comparison uses baseline parameters
-with final time
-$T=1.0$ s and the geometry-rest initial condition, with $N=400$
-finite-volume cells on $L=6$ cm
-($\Delta z=0.015$ cm), the native SSPRK3 time integrator, MUSCL finite volume
-with the minmod limiter, timestep cap $10^{-5}$ s, and CFL cap $0.45$.
-The initial state is geometry-rest, $a=R_0^2$ and $Q=0$. The inlet boundary
-uses the parabolic-profile mean velocity
-$\bar u_{\mathrm{in}}=0.5(45)=22.5$ cm/s and imposes
-$Q_{\mathrm{in}}=R_0(0)^2\bar u_{\mathrm{in}}$; the outlet fixes
-$a_{\mathrm{out}}=R_0(L)^2$ and computes the ghost flow from the outgoing
-Riemann invariant. The two 3D source identifiers are the default upstream XDMF
-paths \path{simulations/data/3d/canic_case3/77/velocity.xdmf} and
-\path{simulations/data/3d/canic_case3/60/velocity.xdmf}, with severities
-23\% and 40\%, target time $1.0$ s, and tolerance $10^{-3}$ s. The matched
-XDMF time for both included cases is $0.9994999999999453$ s. Section means
-use 200 equally spaced axial targets and slab half-width
-$\max(\Delta z_{\mathrm{sec}}/2,0.015)=0.0150753769$ cm; radial profiles use
-the declared slices $z=1.951,2.451,2.951$ cm and 20 radial bins in
-$\sqrt{x^2+y^2}/R_0(z)$. The raw XDMF/HDF5 inputs are not archived in the
-report package; the archived evidence available to the PDF consists of the
-copied static plot data in \path{figures/static/static/data/stenosis-comparison/}
-and the provenance hashes in Appendix~\ref{app:code-and-ai-use}.
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Availability and run-diagnostic status for the $T=1$ comparison
-    artifact. The controls are known from the declared setup; per-step
-    diagnostics are not persisted in the available CSV/SVG outputs.}
-    \label{tab:t1-run-diagnostic-availability}
-    \begin{tabular}{@{}rrrrlp{0.28\textwidth}@{}}
-        \toprule
-        \textbf{Case}
-            & \textbf{Severity}
-            & $\boldsymbol{\Delta t_{\max}}$ \textbf{(s)}
-            & \textbf{CFL cap}
-            & \textbf{3D time (s)}
-            & \textbf{Missing per-step diagnostics} \\
-        \midrule
-        77 & 23\% & $10^{-5}$ & 0.45 & 0.9994999999999453
-            & steps, realized max CFL, min $a$, residual summary, positivity
-            failures \\
-        60 & 40\% & $10^{-5}$ & 0.45 & 0.9994999999999453
-            & steps, realized max CFL, min $a$, residual summary, positivity
-            failures \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-In the radius-squared solver convention, the stored variable \texttt{A} is the
-coordinate $a=R^2$, not the physical area $A_{\mathrm{phys}}=\pi a$. The flow
-variable is therefore the corresponding $\pi$-scaled flow:
-$Q_{\mathrm{phys}}=\pi Q$. All comparison velocities in this section use the
-field $\texttt{velocity(result)}=Q/a$, which equals
-$Q_{\mathrm{phys}}/A_{\mathrm{phys}}$ under this scaling. The plots and
-tables should not be read as using the stored $Q$ divided by
-$A_{\mathrm{phys}}$.
-
-The Section~\ref{sec:resolved-3d-comparison} diagnostic uses the Canic extended
-radius-squared finite-volume realization. The corresponding forward-model
-descriptor is \path{canic-extended-1d}. It uses
-$\mathcal W_{\mathrm{elastic1D}}$, the elastic pressure--area wall law in
-Definition~\ref{def:1d-elastic-wall-law}, \texttt{newtonian} rheology
-($\nu=0.04$ cm$^2$/s), and the parabolic velocity profile
-$\mathcal P=\texttt{parabolic}$, so $\alpha_{\mathcal P}=4/3$ and
-$g_{\mathcal P}=4$. The Canic variable-radius corrections are included: the
-flux uses $\alpha_{\mathcal P}+\alpha_c(R_0')$, and the source
-includes the $p_2$, $R_0'$, $R_0''$, and $\alpha_c'$ terms described in
-Appendix~\ref{app:numerical-methods-details}.
-
-The two included upstream states are case 77, treated as a 23\% stenosis, and
-case 60, treated as a 40\% stenosis. Both XDMF files report
-$t=0.9994999999999453$, within $5.0\times 10^{-4}$ of $T=1$. Upstream
-case 50 was not used because its XDMF time is
-$t=1.4994999999998904$, outside the $10^{-3}$ tolerance for the $T=1$
-comparison.
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Section-mean and radial-profile discrepancy summary for the
-    $T=1$ resolved-node comparison. Velocity errors are in cm/s.}
-    \label{tab:t1-3d-comparison-summary}
-    \begin{tabular}{@{}rrrrrrrrrr@{}}
-        \toprule
-        \textbf{Case}
-            & \textbf{Severity}
-            & \textbf{Sections}
-            & \textbf{Min nodes}
-            & \textbf{Mean $|e_s|$}
-            & \textbf{Max $|e_s|$}
-            & \textbf{Mean rel.}
-            & \textbf{Max rel.}
-            & \textbf{Mean $|e_r|$}
-            & \textbf{Max $|e_r|$} \\
-        \midrule
-        77 & 23\% & 200 & 64 & 7.471 & 26.26 & 0.4534 & 1.622 & 10.03 & 23.01 \\
-        60 & 40\% & 200 & 43 & 9.440 & 47.48 & 0.5141 & 2.458 & 15.35 & 41.72 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-Figure~\ref{fig:t1-section-mean-comparison} shows the section-mean comparison.
-The 1D model captures the smooth upstream and downstream trend but overpredicts
-the highest-velocity region near the stenosis, especially for the 40\% case.
-The largest section errors occur for case 60 around $z=2.4$--$2.8$ cm,
-where the 1D mean velocity is between 58 and 67 cm/s while the node-slab 3D
-mean is between 19 and 27 cm/s.
-Because the largest relative errors exceed unity near the stenosis, this comparison
-does not support an accuracy claim for the 1D model in the throat region. It is
-still useful as a velocity-localization diagnostic: the mismatch concentrates
-where the reduced velocity closure, idealized 1D boundary state, and node-slab
-output operator are least matched to the resolved 3D field.
-
-\begin{figure}[H]
-    \centering
-    \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \figtikz{section-mean-comparison}
-    \caption{Section-mean axial velocity comparison at $T=1$. The shaded band
-    marks the throat-centered stenosis region near $z_\star$; solid curves are
-    resolved 3D node-slab means, and dashed curves are interpolated 1D $Q/a$,
-    equivalently $Q_{\mathrm{phys}}/A_{\mathrm{phys}}$ under the declared
-    $\pi$-scaling. The mismatch localizes near the stenosis and is larger for
-    the 40\% case.}
-    \label{fig:t1-section-mean-comparison}
-\end{figure}
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Five largest section-mean absolute errors across the two
-    included $T=1$ cases. Velocities and errors are in cm/s.}
-    \label{tab:t1-largest-section-errors}
-    \begin{tabular}{@{}rrrrrrrr@{}}
-        \toprule
-        \textbf{Rank}
-            & \textbf{Case}
-            & $\boldsymbol{z}$ \textbf{(cm)}
-            & $\boldsymbol{u_{\mathrm{1D}}}$
-            & $\boldsymbol{u_{\mathrm{3D}}}$
-            & $\boldsymbol{|e|}$
-            & \textbf{Rel.}
-            & \textbf{Nodes} \\
-        \midrule
-        1 & 60 & 2.714 & 66.79 & 19.31 & 47.48 & 2.458 & 72 \\
-        2 & 60 & 2.774 & 63.74 & 24.57 & 39.17 & 1.594 & 60 \\
-        3 & 60 & 2.412 & 61.90 & 23.51 & 38.39 & 1.633 & 67 \\
-        4 & 60 & 2.563 & 63.71 & 27.15 & 36.56 & 1.347 & 72 \\
-        5 & 60 & 2.834 & 57.59 & 21.68 & 35.92 & 1.657 & 82 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-The radial-profile diagnostics in
-Figure~\ref{fig:t1-radial-profile-comparison} show the same pattern at the
-profile level. For both cases, the throat slice $z=2.451$ cm has fewer
-populated radial bins because fewer 3D nodes lie in the narrowest cross-section
-slab. The largest radial-profile discrepancy is downstream of the throat at
-$z=2.951$ cm, where case 60 reaches a maximum per-bin absolute error of
-41.72 cm/s.
-The dashed 1D curves use the declared velocity-profile closure evaluated from
-the section mean $\bar u=Q/a$. For the power-family diagnostic,
-\[
-    u_{\mathcal P}(r)
-    =
-    \frac{\gamma+2}{\gamma}\,\bar u
-    \left(1-\left(\frac{r}{R}\right)^\gamma\right),
-    \qquad
-    \alpha_{\mathcal P}=\frac{\gamma+2}{\gamma+1}.
-\]
-An $\alpha=1.1$ power-profile diagnostic corresponds to the $\gamma=9$ member of
-this family; the parabolic profile is $\gamma=2$ and
-$\alpha_{\mathcal P}=4/3$. Flat-profile diagnostics use
-$u_{\mathcal P}(r)=\bar u$ with $\alpha_{\mathcal P}=1$.
-
-\begin{figure}[H]
-    \centering
-    \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \figtikz{radial-profile-comparison}
-    \caption{Radial velocity profile comparison at the declared
-    throat-centered slices. Markers are resolved 3D radial-bin means; dashed
-    curves are the 1D closure profile reconstructed from $Q/a$. Colored
-    in-panel labels identify the axial stations, making the downstream
-    case-60 discrepancy visible without repeating a separate legend in each
-    panel.}
-    \label{fig:t1-radial-profile-comparison}
-\end{figure}
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Radial-profile discrepancy by case and slice. Errors are in
-    cm/s.}
-    \label{tab:t1-radial-profile-summary}
-    \begin{tabular}{@{}rrrrr@{}}
-        \toprule
-        \textbf{Case}
-            & $\boldsymbol{z}$ \textbf{(cm)}
-            & \textbf{Populated bins}
-            & \textbf{Mean $|e_r|$}
-            & \textbf{Max $|e_r|$} \\
-        \midrule
-        77 & 1.951 & 17 & 9.404 & 18.60 \\
-        77 & 2.451 & 12 & 6.949 & 13.33 \\
-        77 & 2.951 & 16 & 13.01 & 23.01 \\
-        60 & 1.951 & 18 & 10.04 & 18.90 \\
-        60 & 2.451 & 10 & 7.562 & 17.17 \\
-        60 & 2.951 & 17 & 25.55 & 41.72 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-These discrepancies should be read in light of the comparison boundary in
-Section~\ref{subsec:model-hierarchy-comparison-boundary}. The 1D solver is
-compared to a resolved 3D velocity field through node-slab output operators.
-The result locates where the reduced velocity closure departs from the resolved
-state, but it does not attribute that departure uniquely to the 1D closure,
-boundary data, 3D post-processing operator, or formulation differences. In
-summary, the $T=1$ comparison is a declared velocity diagnostic whose largest
-deviations are localized near and downstream of the stenosis throat, especially
-for the 40\% case. It should not be converted into a pressure, clinical, or
-resolved-3D validation claim. The next defensible study step is therefore a
-matched comparison dataset that restores the raw 3D inputs, archives the source
-hashes or upstream release identifiers, and reruns the same output operators
-while varying only one declared closure or boundary choice at a time.
-
-\subsection{Package Benchmark Suite}
+\subsection{Verification and Reproducibility}
+\label{subsec:verification-reproducibility}
 \label{subsec:package-benchmark-suite}
 
-The report package now includes a reproducible package-benchmark pipeline for
-the Julia solver package and Python CLI. The suite is an internal evidence
-record for self-convergence, backend agreement, descriptor smoke/health,
-runtime comparison, and resolved-velocity output-operator diagnostics within
-the emitted CSVs. It does not upgrade those checks into clinical validation,
-pressure or FFR accuracy, full transient FEM validation, or Julia--Python
-scientific equivalence beyond the metrics actually compared.
+The report package includes a reproducible package-benchmark pipeline for the
+Julia solver package and Python CLI. The suite records descriptor health,
+self-convergence, native/SciML agreement, rheology/profile sensitivity,
+OpenBF-style boundary handling, resolved-velocity diagnostics, and Python
+CPU/MPS checks for the emitted CSV records. These are internal implementation
+and reproducibility checks. They do not become clinical validation, pressure or
+FFR accuracy evidence, full transient FEM validation, or scientific equivalence
+beyond the metrics actually compared.
 
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 ./scripts/julia-release simulations/run_package_benchmark.jl \
-  --profile smoke \
+  --profile overnight \
   --output-dir simulations/output/package_benchmark/<run_id> \
   --overwrite \
   --include-python \
+  --include-resolved3d \
   --publish-report-assets
 
 pipenv run python scripts/render_package_benchmark_figures.py \
   --benchmark-dir simulations/output/package_benchmark/<run_id>
 \end{lstlisting}
 
-The smoke profile is a deterministic wiring check. The overnight profile expands
-the same schemas to the descriptor-health, refinement, native/SciML parity,
-stationary-Stokes projection, rheology/profile, OpenBF-style boundary,
+The smoke profile is a deterministic wiring check. The overnight profile
+expands the same schemas to the descriptor-health, refinement, native/SciML
+parity, stationary-Stokes projection, rheology/profile, OpenBF-style boundary,
 resolved-velocity, and Python CPU/Torch-MPS comparison stages. Optional SciPy
 and resolved-3D inputs are treated as availability boundaries: absent inputs
 produce structured skipped rows rather than manuscript claims.
@@ -354,10 +106,9 @@ produce structured skipped rows rather than manuscript claims.
         resolved-velocity diagnostic asset unavailable in this checkout.}}
     }
     \caption{Resolved-velocity output-operator diagnostic summary for the
-    available local cases. The package-benchmark CSVs contain four OK
-    resolved-velocity rows across the parabolic and power-profile closures; the
-    panel remains an output-operator diagnostic rather than a resolved-3D
-    validation claim.}
+    available local cases. The rendered value is the section-wise velocity
+    $L_1$ average error for the declared
+    \texttt{CrossSectionQuadratureOperator}.}
     \label{fig:package-benchmark-resolved3d}
 \end{figure}
 
@@ -375,3 +126,364 @@ produce structured skipped rows rather than manuscript claims.
     emitted area and flow summaries.}
     \label{fig:package-benchmark-python-mps}
 \end{figure}
+
+\FloatBarrier
+
+\subsection{Preliminary Cross-Model Velocity Comparison}
+\label{subsec:preliminary-cross-model-velocity-comparison}
+
+The resolved-velocity comparison evaluates the selected 1D solution against two
+available resolved 3D velocity datasets at $t=1.0$ s. The cases are labelled
+C23 and C40 by stenosis severity. They are computational cross-model
+diagnostics, not pressure-flow results and not clinical validation.
+
+\begin{center}
+\fbox{\begin{minipage}{0.90\linewidth}
+\small
+\textbf{Solver-coordinate convention.} In this section, the stored solver
+state \texttt{A} is $a=R^2$, not physical circular area. The physical map is
+Definition~\ref{def:physical-to-solver-map}:
+$A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and
+$\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
+\end{minipage}}
+\end{center}
+
+All comparison numbers come from
+\path{simulations/output/3d_comparison/full_t1_native_nx400/}, interpreted
+under Convention~\ref{conv:computed-realization-record}. The regeneration
+command, source-path convention, and file hashes are listed in
+Appendix~\ref{app:code-and-ai-use}. The raw XDMF/HDF5 inputs remain local
+ignored files under \path{simulations/data/3d/canic_case3/}; the report
+archives the generated CSV and PGFPlots-ready static data.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Case matching for the resolved-velocity comparison. The case
+    labels C23 and C40 are used in the main text and figures; the source ID
+    records the upstream local data directory.}
+    \label{tab:t1-case-matching}
+    \begin{tabularx}{\textwidth}{@{}llXlrr@{}}
+        \toprule
+        \textbf{Label}
+            & \textbf{Source ID}
+            & \textbf{Velocity metadata}
+            & \textbf{Operator}
+            & \textbf{3D time (s)}
+            & \textbf{Time error (s)} \\
+        \midrule
+        C23 & 77 & \path{77/velocity.xdmf}
+            & \texttt{CrossSectionQuadratureOperator}
+            & 0.9994999999999453 & $5.0\times 10^{-4}$ \\
+        C40 & 60 & \path{60/velocity.xdmf}
+            & \texttt{CrossSectionQuadratureOperator}
+            & 0.9994999999999453 & $5.0\times 10^{-4}$ \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Shared 1D realization and output-operator parameters for the
+    $t=1.0$ comparison. Per-step diagnostics such as realized maximum CFL,
+    positivity events, and residual summaries are not persisted in the
+    available comparison artifact.}
+    \label{tab:t1-parameter-matching}
+    \begin{tabularx}{\textwidth}{@{}p{0.22\textwidth}X@{}}
+        \toprule
+        \textbf{Quantity} & \textbf{Recorded value} \\
+        \midrule
+        Forward model & \path{canic-extended-1d}. \\
+        Wall model & $\mathcal W_{\mathrm{elastic1D}}$, with reduced wall
+        response represented through the pressure--area law. \\
+        Rheology & Newtonian rheology with $\nu=0.04$ cm$^2$/s. \\
+        Velocity profile & Parabolic profile with
+        $\alpha_{\mathcal P}=4/3$. \\
+        Variable-radius terms & Canic effective-alpha and geometry-source
+        corrections. \\
+        Discretization & $N=400$, $L=6$ cm, MUSCL finite volume with minmod
+        limiter, native SSPRK3 time integration. \\
+        Time controls & $T=1.0$ s, timestep cap $10^{-5}$ s, CFL cap 0.45. \\
+        Initial and boundary state & Geometry-rest initial state
+        $a=R_0^2$, $q=0$; inlet $\bar u_{\mathrm{in}}=22.5$ cm/s; outlet
+        $a_{\mathrm{out}}=R_0(L)^2$ with the implemented characteristic
+        approximation in Appendix~\ref{app:num-boundary-state-realization}. \\
+        Section targets & 200 equally spaced axial planes on $0\le z\le 6$
+        cm. \\
+        Radial targets & Slices $z=1.951$, 2.451, and 2.951 cm with 20 bins in
+        $r/R_0(z)$. \\
+        Supplemental sensitivity & Node-slab arithmetic means are emitted only
+        to \path{node-slab-sensitivity.csv} for half-widths 0.0075,
+        0.0150753769, and 0.0301507538 cm. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
+operator listed in Table~\ref{tab:t1-case-matching} intersects every
+tetrahedron with $S_j$, linearly interpolates axial velocity on the cut edges,
+sorts the cut polygon vertices in the plane, and triangulates the polygon by a
+centroid fan. Let $\mathcal Q_j$ denote the resulting cut triangles. The
+reported 3D area, flow, and mean velocity are
+\begin{flalign*}
+    \quad
+    A_{3D,j}
+    &=
+    \sum_{\Delta\in\mathcal Q_j}|\Delta|,
+    &
+    Q_{3D,j}
+    &=
+    \sum_{\Delta\in\mathcal Q_j}|\Delta|\,\bar u_{z,\Delta},
+    &
+    \bar u_{3D,j}
+    &=
+    Q_{3D,j}/A_{3D,j}. &&
+\end{flalign*}
+For a cut triangle $\Delta$ whose vertices carry reconstructed axial
+velocities $u_{z,1}$, $u_{z,2}$, and $u_{z,3}$,
+\begin{flalign*}
+    \quad
+    \bar u_{z,\Delta}
+    =
+    \frac{u_{z,1}+u_{z,2}+u_{z,3}}{3}. &&
+\end{flalign*}
+The corresponding 1D quantities use physical flow, not the raw solver flow
+coordinate:
+\begin{flalign*}
+    \quad
+    Q_{1D,j}
+    =
+    \pi q(z_j,t),
+    \qquad
+    \bar u_{1D,j}
+    =
+    q(z_j,t)/a(z_j,t). &&
+\end{flalign*}
+Velocity and flow differences are reported with $L_1$, $L_2$, and
+$L_\infty$ summaries over valid section targets. With
+$e_{u,j}=\bar u_{1D,j}-\bar u_{3D,j}$, the velocity norms are
+\begin{flalign*}
+    \quad
+    \|e_u\|_{1,\mathrm{avg}}
+    &=
+    \frac{1}{n}\sum_j |e_{u,j}|,
+    &
+    \|e_u\|_{2,\mathrm{avg}}
+    &=
+    \left(\frac{1}{n}\sum_j |e_{u,j}|^2\right)^{1/2},
+    &
+    \|e_u\|_\infty
+    &=
+    \max_j |e_{u,j}|, &&\\
+    \quad
+    \mathrm{rel}\,L_1
+    &=
+    \frac{\sum_j|e_{u,j}|}{\sum_j|\bar u_{3D,j}|},
+    &
+    \mathrm{rel}\,L_2
+    &=
+    \frac{\left(\sum_j|e_{u,j}|^2\right)^{1/2}}
+         {\left(\sum_j|\bar u_{3D,j}|^2\right)^{1/2}}. &&
+\end{flalign*}
+Radial profile rows use the same cut triangles, binned by triangle-centroid
+radius. Empty bins are reported as invalid rows rather than zero-velocity
+observations.
+
+The same quadrature record audits whether the cut operator is sampling the
+expected static cross-section. With the reference area
+$A_{\mathrm{ref}}(z_j)=\pi R_0(z_j)^2$, define
+\begin{flalign*}
+    \quad
+    \epsilon_A(z_j)
+    =
+    \frac{|A_{3D}(z_j)-A_{\mathrm{ref}}(z_j)|}
+         {A_{\mathrm{ref}}(z_j)}. &&
+\end{flalign*}
+Table~\ref{tab:t1-area-audit} reports this geometry/operator audit for the
+same 200 section targets. It verifies that the tetrahedral cut areas agree with
+the expected fixed stenosis cross-sections to sub-percent typical discrepancy,
+with the largest differences confined to a few section targets.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Quadrature cut-area audit against the static reference
+    $A_{\mathrm{ref}}(z)=\pi R_0(z)^2$. Discrepancies are percentages over
+    valid section targets and are emitted in the tracked
+    \texttt{area-audit.dat} report asset.}
+    \label{tab:t1-area-audit}
+    \begin{tabular}{@{}lrrrrr@{}}
+        \toprule
+        \textbf{Case}
+            & \textbf{Sections}
+            & $\boldsymbol{\min \epsilon_A}$
+            & $\boldsymbol{\mathrm{median}\ \epsilon_A}$
+            & $\boldsymbol{\mathrm{mean}\ \epsilon_A}$
+            & $\boldsymbol{\max \epsilon_A}$ \\
+        \midrule
+        C23 & 200 & 0.045 & 0.281 & 0.389 & 2.94 \\
+        C40 & 200 & 0.005 & 0.291 & 0.397 & 4.46 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Quadrature-backed section velocity and physical-flow summary at
+    $t=1.0$ s. Mean velocities and velocity errors are in cm/s; physical flows
+    and flow errors are in cm$^3$/s. The 1D physical flow is
+    $Q_{1D}=\pi q$.}
+    \label{tab:t1-3d-comparison-summary}
+    \begin{tabular}{@{}lrrrrrrrrrrr@{}}
+        \toprule
+        \textbf{Case}
+            & \textbf{Sections}
+            & $\boldsymbol{\langle\bar u_{1D}\rangle}$
+            & $\boldsymbol{\langle\bar u_{3D}\rangle}$
+            & $\boldsymbol{\langle Q_{1D}\rangle}$
+            & $\boldsymbol{\langle Q_{3D}\rangle}$
+            & $\boldsymbol{L_1(u)}$
+            & $\boldsymbol{L_2(u)}$
+            & \textbf{rel.} $\boldsymbol{L_1}$
+            & \textbf{rel.} $\boldsymbol{L_2}$
+            & $\boldsymbol{L_1(Q)}$
+            & $\boldsymbol{L_2(Q)}$ \\
+        \midrule
+        C23 & 200 & 24.11 & 23.63 & 2.288 & 2.241 & 0.505 & 0.664 & 0.0214 & 0.0277 & 0.0482 & 0.0509 \\
+        C40 & 200 & 26.43 & 25.52 & 2.287 & 2.219 & 0.966 & 1.87 & 0.0379 & 0.0688 & 0.0709 & 0.0893 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Generated solver diagnostics for the same runs. The positive
+    characteristic-radicand values are in solver units of cm$^2$/s$^2$ and
+    support the reported characteristic-speed evaluation on the sampled final
+    state.}
+    \label{tab:t1-alpha-radicand-diagnostics}
+    \begin{tabular}{@{}lrrrr@{}}
+        \toprule
+        \textbf{Case}
+            & $\boldsymbol{\min \alpha_{\mathrm{eff}}}$
+            & $\boldsymbol{\max \alpha_{\mathrm{eff}}}$
+            & $\boldsymbol{\min \chi^2}$ (cm$^2$/s$^2$)
+            & \textbf{Valid sections} \\
+        \midrule
+        C23 & 1.33058 & 1.33333 & $8.15\times 10^5$ & 200 \\
+        C40 & 1.32500 & 1.33333 & $6.36\times 10^5$ & 200 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Figure~\ref{fig:t1-section-mean-comparison} shows the area-mean axial velocity
+comparison. The 1D and quadrature-averaged 3D means agree closely away from the
+largest acceleration zone, while the largest mismatch remains localized near
+the stronger stenosis. The C40 maximum section error is 9.92 cm/s at
+$z=2.261$ cm; C23 reaches 2.35 cm/s at $z=2.291$ cm.
+
+\begin{figure}[H]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{section-mean-comparison}
+    \caption{Area-mean axial velocity comparison at $t=1.0$ s. Solid curves
+    are tetrahedral cross-section quadrature means from the resolved 3D
+    velocity field; dashed curves are interpolated 1D means
+    $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$. The shaded band marks
+    the throat-centered stenosis region.}
+    \label{fig:t1-section-mean-comparison}
+\end{figure}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Five largest section-wise velocity errors across the two included
+    cases. Velocities and velocity errors are in cm/s; physical flows and flow
+    errors are in cm$^3$/s, with $Q_{1D}=\pi q$.}
+    \label{tab:t1-largest-section-errors}
+    \begin{tabular}{@{}rlrrrrrrrr@{}}
+        \toprule
+        \textbf{Rank}
+            & \textbf{Case}
+            & $\boldsymbol{z}$ \textbf{(cm)}
+            & $\boldsymbol{\bar u_{1D}}$
+            & $\boldsymbol{\bar u_{3D}}$
+            & $\boldsymbol{|e_u|}$
+            & $\boldsymbol{Q_{1D}}$
+            & $\boldsymbol{Q_{3D}}$
+            & $\boldsymbol{|e_Q|}$
+            & \textbf{Tri.} \\
+        \midrule
+        1 & C40 & 2.261 & 52.58 & 42.66 & 9.92 & 2.201 & 1.862 & 0.339 & 759 \\
+        2 & C40 & 2.291 & 56.94 & 48.20 & 8.74 & 2.230 & 1.903 & 0.327 & 749 \\
+        3 & C40 & 2.352 & 61.43 & 53.22 & 8.21 & 2.270 & 1.980 & 0.290 & 743 \\
+        4 & C40 & 2.322 & 59.81 & 52.09 & 7.72 & 2.253 & 1.970 & 0.283 & 771 \\
+        5 & C40 & 2.231 & 46.95 & 39.94 & 7.01 & 2.174 & 1.918 & 0.256 & 833 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The radial-profile reconstruction in
+Figure~\ref{fig:t1-radial-profile-comparison} is a secondary diagnostic. It
+asks whether the 1D velocity-profile closure reconstructed from the section
+mean resembles area-weighted radial bins of the resolved 3D cut. The throat and
+downstream slices show the largest C40 discrepancy, which is consistent with
+the section-mean localization and with the fact that the 1D profile closure
+cannot represent secondary flow, skewness, or separation.
+
+\begin{figure}[H]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{radial-profile-comparison}
+    \caption{Radial velocity profile comparison at the declared
+    throat-centered slices. Markers are resolved 3D area-weighted radial-bin
+    means from the quadrature triangles; dashed curves are the 1D closure
+    profile reconstructed from $q/a$. Colored in-panel labels identify the
+    axial stations.}
+    \label{fig:t1-radial-profile-comparison}
+\end{figure}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Radial-profile discrepancy by case and slice. Bin means are
+    area-weighted over the quadrature triangles in each bin; the displayed
+    $L_1$ and $L_2$ summaries are unweighted over the valid radial-bin means.
+    Velocity errors are in cm/s; radial-bin physical-flow errors are in
+    cm$^3$/s and use
+    $Q_{1D,\mathrm{bin}}=\bar u_{1D,\mathrm{bin}}A_{\mathrm{bin}}$.
+    All listed slices have 20 valid radial bins.}
+    \label{tab:t1-radial-profile-summary}
+    \begin{tabular}{@{}lrrrrrr@{}}
+        \toprule
+        \textbf{Case}
+            & $\boldsymbol{z}$ \textbf{(cm)}
+            & $\boldsymbol{L_1(u_r)}$
+            & $\boldsymbol{L_2(u_r)}$
+            & $\boldsymbol{L_\infty(u_r)}$
+            & $\boldsymbol{L_1(Q_r)}$
+            & $\boldsymbol{L_2(Q_r)}$ \\
+        \midrule
+        C23 & 1.951 & 0.493 & 0.614 & 1.34 & 0.00290 & 0.00498 \\
+        C23 & 2.451 & 7.47 & 9.47 & 16.35 & 0.0130 & 0.0152 \\
+        C23 & 2.951 & 5.15 & 5.62 & 7.62 & 0.0191 & 0.0229 \\
+        C40 & 1.951 & 0.561 & 0.649 & 1.41 & 0.00303 & 0.00478 \\
+        C40 & 2.451 & 16.79 & 21.78 & 37.73 & 0.0163 & 0.0220 \\
+        C40 & 2.951 & 16.47 & 18.89 & 28.36 & 0.0495 & 0.0568 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+These discrepancies should be read in light of the comparison boundary in
+Section~\ref{subsec:model-hierarchy-comparison-boundary}. The quadrature
+operator gives a physical cross-sectional average of the resolved velocity
+field at the matched final time, but the comparison still changes model tier,
+wall treatment, boundary realization, and transient history. The result
+therefore localizes velocity mismatch; it does not attribute that mismatch
+uniquely to the 1D closure and does not supply pressure, FFR, or clinical
+accuracy evidence. The next defensible pressure-focused study would need
+declared pressure observations and a matched evidence record, not only this
+velocity diagnostic.

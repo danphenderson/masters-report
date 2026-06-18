@@ -5,10 +5,7 @@ from pathlib import Path
 
 def write_fixture_csvs(root: Path) -> None:
     root.mkdir()
-    (root / "case_results.csv").write_text(
-        "stage,case_id,status,elapsed_s\n"
-        "descriptor_health,smoke,ok,0.01\n"
-    )
+    (root / "case_results.csv").write_text("stage,case_id,status,elapsed_s\n" "descriptor_health,smoke,ok,0.01\n")
     (root / "refinement.csv").write_text(
         "study,case_id,method,degree,nx,dofs,metric,error,observed_order,status,elapsed_s,error_message\n"
         "h_refinement,h-fv-nx10,fv-first-order,,10,10,area_l2,0.1,1.0,ok,0.01,\n"

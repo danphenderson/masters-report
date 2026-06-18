@@ -193,7 +193,35 @@
                   text opacity=1, draw=mathblue!30, line width=0.4pt,
                   inner sep=2pt, rounded corners=1pt},
   },
+  sevpanel/.style={width=5.75cm, height=3.35cm,
+    tick label style={font=\scriptsize},
+    label style={font=\scriptsize},
+    xlabel style={font=\scriptsize},
+    ylabel style={font=\scriptsize},
+    title style={font=\footnotesize\bfseries, yshift=-1pt},
+    xlabel={$t/T_h$}, xmin=0, xmax=1,
+    xtick={0,0.5,1},
+    major tick length=2pt,
+    grid=both, grid style={dashed, gray!25},
+    every axis plot/.append style={line width=0.9pt}},
+  signalpanel/.style={width=7.1cm, height=4.55cm,
+    tick label style={font=\scriptsize},
+    label style={font=\scriptsize},
+    xlabel style={font=\scriptsize},
+    ylabel style={font=\scriptsize},
+    title style={font=\footnotesize\bfseries, yshift=-1pt},
+    xlabel={$t/T_h$}, xmin=0, xmax=1,
+    xtick={0,0.5,1},
+    major tick length=2pt,
+    grid=both, grid style={dashed, gray!25},
+    every axis plot/.append style={line width=0.9pt}},
 }
+
+% Compact appendix tables should use this wrapper instead of local
+% \arraystretch overrides in body files.
+\newenvironment{compactacronymtables}
+  {\begingroup\footnotesize\renewcommand{\arraystretch}{1.08}}
+  {\endgroup}
 
 % ---------- Figure-input convenience macros ----------
 % \figtikz{name} -> \input{figures/static/static/tikz/name.tex}

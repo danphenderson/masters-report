@@ -4,21 +4,6 @@
 % Delta p(t), mean Delta p, instantaneous pressure ratio, tau_{w,z}^{1D}, Q(t).
 % ---------------------------------------------------------------
 \begin{tikzpicture}[fig]
-  \pgfplotsset{
-    compat=1.18,
-    sevpanel/.style={width=5.75cm, height=3.35cm,
-      tick label style={font=\scriptsize},
-      label style={font=\scriptsize},
-      xlabel style={font=\scriptsize},
-      ylabel style={font=\scriptsize},
-      title style={font=\footnotesize\bfseries, yshift=-1pt},
-      xlabel={$t/T_h$}, xmin=0, xmax=1,
-      xtick={0,0.5,1},
-      major tick length=2pt,
-      grid=both, grid style={dashed, gray!25},
-      every axis plot/.append style={line width=0.9pt}}
-  }
-
   % top-left: Q(t)
   \begin{axis}[name=ax1, sevpanel, ylabel={$Q$ [mL/s]},
       title={inflow $Q_{\mathrm{in}}(t)$}, ymin=0, ymax=3.2]

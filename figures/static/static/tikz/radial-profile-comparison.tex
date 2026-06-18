@@ -1,4 +1,4 @@
-\begin{tikzpicture}[
+\begin{tikzpicture}[fig,
   stationLabel/.style={font=\scriptsize, fill=white, fill opacity=0.88,
                        text opacity=1, inner sep=1pt}
 ]
@@ -6,7 +6,7 @@
     name=case77radial,
     width=0.46\textwidth,
     height=6.25cm,
-    title={case 77: 23\% stenosis},
+    title={C23: 23\% stenosis},
     xlabel={$r/R_0(z)$},
     ylabel={axial velocity (cm/s)},
     xmin=0, xmax=1,
@@ -19,22 +19,22 @@
                   fill opacity=0.92, text opacity=1},
   ]
     \addlegendimage{black, only marks, mark=*, mark size=1.4pt}
-    \addlegendentry{3D radial-bin means}
+    \addlegendentry{3D area-weighted bins}
     \addlegendimage{black, mark=none, dashed, line width=1.0pt}
     \addlegendentry{1D closure profile}
 
     \addplot+[bloodred, only marks, mark=*, mark size=1.4pt]
-      table[x=r, y=u3d1p951] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
+      table[x=r, y=u3d1p951] {figures/static/static/data/stenosis-comparison/radial-quadrature-C23.dat};
     \addplot+[bloodred, mark=none, dashed, line width=1.0pt]
-      table[x=r, y=u1d1p951] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
+      table[x=r, y=u1d1p951] {figures/static/static/data/stenosis-comparison/radial-quadrature-C23.dat};
     \addplot+[mathblue, only marks, mark=square*, mark size=1.4pt]
-      table[x=r, y=u3d2p451] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
+      table[x=r, y=u3d2p451] {figures/static/static/data/stenosis-comparison/radial-quadrature-C23.dat};
     \addplot+[mathblue, mark=none, dashed, line width=1.0pt]
-      table[x=r, y=u1d2p451] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
+      table[x=r, y=u1d2p451] {figures/static/static/data/stenosis-comparison/radial-quadrature-C23.dat};
     \addplot+[accentTeal, only marks, mark=triangle*, mark size=1.6pt]
-      table[x=r, y=u3d2p951] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
+      table[x=r, y=u3d2p951] {figures/static/static/data/stenosis-comparison/radial-quadrature-C23.dat};
     \addplot+[accentTeal, mark=none, dashed, line width=1.0pt]
-      table[x=r, y=u1d2p951] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
+      table[x=r, y=u1d2p951] {figures/static/static/data/stenosis-comparison/radial-quadrature-C23.dat};
 
     \node[stationLabel, text=mathblue!85!black, anchor=west]
       at (axis cs:0.38,56) {$z=2.451$};
@@ -51,7 +51,7 @@
     xshift=0.55cm,
     width=0.46\textwidth,
     height=6.25cm,
-    title={case 60: 40\% stenosis},
+    title={C40: 40\% stenosis},
     xlabel={$r/R_0(z)$},
     xmin=0, xmax=1,
     grid=both,
@@ -59,17 +59,17 @@
     filter discard warning=false,
   ]
     \addplot+[bloodred, only marks, mark=*, mark size=1.4pt]
-      table[x=r, y=u3d1p951] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
+      table[x=r, y=u3d1p951] {figures/static/static/data/stenosis-comparison/radial-quadrature-C40.dat};
     \addplot+[bloodred, mark=none, dashed, line width=1.0pt]
-      table[x=r, y=u1d1p951] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
+      table[x=r, y=u1d1p951] {figures/static/static/data/stenosis-comparison/radial-quadrature-C40.dat};
     \addplot+[mathblue, only marks, mark=square*, mark size=1.4pt]
-      table[x=r, y=u3d2p451] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
+      table[x=r, y=u3d2p451] {figures/static/static/data/stenosis-comparison/radial-quadrature-C40.dat};
     \addplot+[mathblue, mark=none, dashed, line width=1.0pt]
-      table[x=r, y=u1d2p451] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
+      table[x=r, y=u1d2p451] {figures/static/static/data/stenosis-comparison/radial-quadrature-C40.dat};
     \addplot+[accentTeal, only marks, mark=triangle*, mark size=1.6pt]
-      table[x=r, y=u3d2p951] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
+      table[x=r, y=u3d2p951] {figures/static/static/data/stenosis-comparison/radial-quadrature-C40.dat};
     \addplot+[accentTeal, mark=none, dashed, line width=1.0pt]
-      table[x=r, y=u1d2p951] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
+      table[x=r, y=u1d2p951] {figures/static/static/data/stenosis-comparison/radial-quadrature-C40.dat};
 
     \node[stationLabel, text=mathblue!85!black, anchor=west]
       at (axis cs:0.40,83) {$z=2.451$};

@@ -4,6 +4,7 @@ using Statistics
 
 const DEFAULT_RESOLVED3D_DATA_ROOT = joinpath("simulations", "data", "3d", "canic_case3")
 const DEFAULT_COMPARISON_OUTPUT_DIR = joinpath("simulations", "output", "3d_comparison")
+const DEFAULT_NODE_SLAB_HALF_WIDTH_CM = 0.015
 
 """
     Resolved3DCaseSpec(case_label, severity, velocity_xdmf; target_time=1.0, time_atol=1e-3)
@@ -64,9 +65,26 @@ Node-centered 3D coordinates and velocities loaded from HDF5.
 struct Resolved3DVelocityField
     case_spec::Resolved3DCaseSpec
     metadata::XDMFVelocityMetadata
+    topology::Matrix{Int}
     coordinates::Matrix{Float64}
     velocity::Matrix{Float64}
 end
+
+abstract type AbstractResolved3DOperator end
+
+"""Area quadrature over tetrahedron/plane intersections."""
+struct CrossSectionQuadratureOperator <: AbstractResolved3DOperator end
+
+"""Arithmetic mean of node-centered values in a finite axial slab."""
+struct NodeSlabOperator <: AbstractResolved3DOperator
+    half_width_cm::Float64
+end
+
+NodeSlabOperator(; half_width_cm::Real = DEFAULT_NODE_SLAB_HALF_WIDTH_CM) =
+    NodeSlabOperator(Float64(half_width_cm))
+
+operator_name(::CrossSectionQuadratureOperator) = "CrossSectionQuadratureOperator"
+operator_name(::NodeSlabOperator) = "node-slab-arithmetic-mean"
 
 """
 Configuration for comparing one or more 3D reference cases against 1D runs.
@@ -75,10 +93,12 @@ struct ComparisonSpec
     cases::Vector{Resolved3DCaseSpec}
     base_params::Params
     backend::AbstractTimeBackend
+    operator::AbstractResolved3DOperator
     output_dir::String
     section_count::Int
     profile_slices::Vector{Float64}
     radial_bins::Int
+    node_slab_half_widths::Vector{Float64}
     overwrite::Bool
     progress_every::Int
     write_svg::Bool
@@ -88,10 +108,12 @@ function ComparisonSpec(;
     cases = default_resolved3d_cases(),
     base_params::Params = Params(tfinal=1.0, initial_condition=GeometryRestIC()),
     backend::AbstractTimeBackend = NativeRK3Backend(),
+    operator::AbstractResolved3DOperator = CrossSectionQuadratureOperator(),
     output_dir::String = DEFAULT_COMPARISON_OUTPUT_DIR,
     section_count::Int = 200,
     profile_slices = nothing,
     radial_bins::Int = 20,
+    node_slab_half_widths = nothing,
     overwrite::Bool = false,
     progress_every::Int = 0,
     write_svg::Bool = true,
@@ -114,48 +136,87 @@ function ComparisonSpec(;
         0.0 <= z <= base_params.length_cm ||
             throw(ArgumentError("profile slice z=$(z) lies outside [0, $(base_params.length_cm)]"))
     end
+    widths = if node_slab_half_widths === nothing
+        current_half_width = max(0.5 * base_params.length_cm / (section_count - 1), DEFAULT_NODE_SLAB_HALF_WIDTH_CM)
+        Float64[0.0075, current_half_width, 0.0301507538]
+    else
+        [Float64(width) for width in node_slab_half_widths]
+    end
+    all(>(0.0), widths) || throw(ArgumentError("node-slab half widths must be positive"))
 
     return ComparisonSpec(
         case_values,
         base_params,
         backend,
+        operator,
         output_dir,
         section_count,
         slices,
         radial_bins,
+        widths,
         overwrite,
         progress_every,
         write_svg,
     )
 end
 
-"""One section-mean axial-velocity comparison row."""
+"""One axial cross-section comparison row."""
 struct SectionComparisonRow
     case_label::String
     severity::Float64
+    operator::String
     z_cm::Float64
-    u1d_cm_s::Float64
-    u3d_cm_s::Float64
-    abs_error_cm_s::Float64
+    area_cm2::Float64
+    flow_3d_cm3_s::Float64
+    flow_1d_cm3_s::Float64
+    mean_u3d_cm_s::Float64
+    mean_u1d_cm_s::Float64
+    abs_velocity_error_cm_s::Float64
+    flow_abs_error_cm3_s::Float64
     rel_error::Float64
+    rel_l2_velocity_component::Float64
+    intersection_count::Int
+    area_valid::Bool
+    cut_status::String
     node_count::Int
     observed_radius_cm::Float64
     xdmf_time_s::Float64
     time_error_s::Float64
 end
 
-"""One radial-bin profile comparison row."""
+"""One area-weighted radial-bin profile comparison row."""
 struct RadialProfileRow
     case_label::String
     severity::Float64
+    operator::String
     z_slice_cm::Float64
     radial_bin::Int
     r_over_r0_mid::Float64
-    u1d_cm_s::Float64
-    u3d_cm_s::Float64
-    abs_error_cm_s::Float64
+    area_cm2::Float64
+    flow_3d_cm3_s::Float64
+    mean_u3d_cm_s::Float64
+    mean_u1d_cm_s::Float64
+    abs_velocity_error_cm_s::Float64
+    rel_error::Float64
+    intersection_count::Int
+    area_valid::Bool
+    node_count::Int
+    xdmf_time_s::Float64
+    time_error_s::Float64
+end
+
+"""Supplemental node-slab sensitivity row."""
+struct NodeSlabSensitivityRow
+    case_label::String
+    severity::Float64
+    half_width_cm::Float64
+    z_cm::Float64
+    mean_u3d_cm_s::Float64
+    mean_u1d_cm_s::Float64
+    abs_velocity_error_cm_s::Float64
     rel_error::Float64
     node_count::Int
+    observed_radius_cm::Float64
     xdmf_time_s::Float64
     time_error_s::Float64
 end
@@ -164,15 +225,28 @@ end
 struct ComparisonSummaryRow
     case_label::String
     severity::Float64
+    operator::String
     section_count::Int
     profile_count::Int
     mean_abs_error_cm_s::Float64
+    l2_velocity_error_cm_s::Float64
     max_abs_error_cm_s::Float64
     mean_rel_error::Float64
+    relative_l1_velocity_error::Float64
     max_rel_error::Float64
+    rel_l2_velocity_error::Float64
+    mean_flow_abs_error_cm3_s::Float64
+    flow_l2_error_cm3_s::Float64
+    max_flow_abs_error_cm3_s::Float64
     profile_mean_abs_error_cm_s::Float64
+    profile_l2_error_cm_s::Float64
     profile_max_abs_error_cm_s::Float64
+    min_intersection_count::Int
     min_section_nodes::Int
+    area_valid_count::Int
+    alpha_eff_min::Float64
+    alpha_eff_max::Float64
+    characteristic_radicand_min::Float64
     xdmf_time_s::Float64
     time_error_s::Float64
 end
@@ -182,9 +256,11 @@ struct ComparisonResult
     spec::ComparisonSpec
     section_rows::Vector{SectionComparisonRow}
     profile_rows::Vector{RadialProfileRow}
+    sensitivity_rows::Vector{NodeSlabSensitivityRow}
     summary_rows::Vector{ComparisonSummaryRow}
     section_csvs::Vector{String}
     profile_csvs::Vector{String}
+    sensitivity_csv::String
     summary_csv::String
     svg_paths::Vector{String}
 end

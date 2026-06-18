@@ -2,50 +2,81 @@
 \label{sec:intro}
 
 Coronary and arterial stenoses motivate a basic computational question: how do
-geometry, wall properties, rheology, and boundary data determine the state of
-blood flow through a narrowed vessel? Clinical pressure-ratio measurements show
-why anatomical narrowing alone does not determine functional obstruction, but
-this report stays on the mathematical and numerical side of that problem. Its
-goal is to review the hierarchy of the single-vessel hemodynamic models and to
-present bounded numerical diagnostics for an idealized ($C^\infty$) model of
-stenosed vessels.
+geometry, wall properties, rheology, and boundary data determine blood flow
+through a narrowed vessel? Clinical pressure-ratio measurements show why
+anatomical narrowing alone does not determine functional obstruction, but this
+report stays on the mathematical and numerical side of that problem. It studies
+a $C^\infty$ idealized stenosis geometry, an extended one-dimensional
+area--flow realization, and a preliminary comparison with resolved 3D velocity
+data. The smooth geometry is a deliberate numerical device: one analytic radius
+profile supplies controlled derivatives, wall normals, severity parameters, and
+repeatable mesh families for the 1D, fixed-wall 3D Stokes, and later 3D/FSI
+model tiers.
 
 \begin{figure}[H]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \includegraphics[width=0.98\textwidth]{figures/static/static/rendered/stenosis-fem-fvm-meshes.pdf}
-    \caption{Finite-element and finite-volume views of the same smooth
+    \caption{Finite-element and finite-volume views of the same $C^\infty$
     idealized stenosis geometry used in this report. Panel (a) shows the
     generated tetrahedral Gridap mesh for the stationary-Stokes initializer;
     panel (b) shows the one-dimensional finite-volume grid sampled along the
     reference radius profile $R_0(z)$. The takeaway is that one declared
-    geometry can feed distinct discretizations; the panels show geometry only,
-    not velocity, pressure-drop, pressure-ratio, or patient-specific clinical
-    data.}
+    smooth geometry can feed distinct discretizations and controlled local
+    refinement studies; the panels show geometry only, not velocity,
+    pressure-drop, pressure-ratio, structural deformation, or patient-specific
+    clinical data.}
     \label{fig:stenosis-fem-fvm-meshes}
 \end{figure}
 
-The report fixes the vocabulary needed to move from continuum assumptions, to
-the three-dimensional incompressible Navier--Stokes and generalized-Newtonian
-settings, to reduced 0D/1D/2D hemodynamic model classes, and finally to a
-selected one-dimensional numerical record for an idealized stenosis. Its
-contribution is to organize the relevant mathematical and numerical literature,
-frame a controlled resolved-velocity diagnostic for a smooth idealized stenosed
-vessel, and record package-benchmark evidence for the implemented solver and
-CLI surfaces.
+The report is organized around three answerable questions:
+\begin{enumerate}
+    \item Which variables, wall law, rheology/profile closures, source terms,
+    and boundary-state approximation define the closed stenosis-aware 1D
+    balance law?
+    \item Under the recorded finite-volume/DG operators, time integrators, and
+    package-benchmark norms, what implementation properties are verified by the
+    reproducibility and self-convergence evidence?
+    \item Under the declared \texttt{CrossSectionQuadratureOperator}, what
+    section-wise velocity and physical-flow discrepancies separate the 1D
+    solution from the available resolved 3D velocity data?
+\end{enumerate}
 
-Pressure-ratio quantities in this report are computed model outputs, not
-clinical FFR or CT-FFR measurements, unless an external measurement comparison
-is explicitly introduced. Convention~\ref{conv:appendix-pressure-reference-ratio}
-in Appendix~\ref{app:domain-specific-notation} records the pressure-reference,
-gauge-pressure, high-flow-window, and admissibility conventions used for any
-reduced pressure-ratio output. The numerical record in
-Section~\ref{sec:resolved-3d-comparison} reports a velocity diagnostic and
-package benchmark suite only; it does not yet report pressure-drop or
-pressure-ratio outputs. Those conventions are included to fix the output
-vocabulary for subsequent reduced-order studies.
+The contribution is a consistent model-and-output specification for an
+idealized stenotic vessel, a reproducible implementation and benchmark suite for
+the selected extended 1D model, and a preliminary cross-model comparison that
+localizes velocity discrepancies relative to two resolved 3D computational
+datasets. The comparison is diagnostic rather than clinical or experimental
+validation.
 
+\begin{center}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}p{0.27\textwidth}p{0.34\textwidth}X@{}}
+\toprule
+\textbf{Claim} & \textbf{Evidence in this report} & \textbf{Permitted wording} \\
+\midrule
+Model formulation & Derivation, closure tables, and implementation map
+& Defines a selected 1D model. \\
+Smooth idealized geometry & Analytic $C^\infty$ stenosis profile and shared
+finite-volume / finite-element geometry views
+& Supports controlled numerical studies, not patient-specific morphology. \\
+Code behavior & Tests, self-convergence, backend checks, and manifests
+& Verifies reported implementation properties. \\
+Resolved velocity comparison & Tetrahedral cross-section quadrature at
+$t=1.0$ s & Reports a diagnostic cross-model comparison. \\
+Pressure accuracy & No computed pressure comparison & Future work only. \\
+Clinical validity & No experimental or clinical measurement comparison
+& No clinical validation claim. \\
+\bottomrule
+\end{tabularx}
+\end{center}
 
+Pressure-ratio quantities in this report are reduced model-output vocabulary,
+with no clinical FFR or CT-FFR measurement relationship.
+Convention~\ref{conv:appendix-pressure-reference-ratio} records the
+admissibility requirements for any later pressure-ratio output; the completed
+numerical record here reports verification diagnostics and velocity-focused
+cross-model comparison only.
 
 \subsection*{Literature Review Roadmap}
 
@@ -62,8 +93,9 @@ the selected one-dimensional area--flow reduction.
 tier can and cannot support. Section~\ref{subsec:pressure-flow-motivation}
 motivates pressure-drop, pressure-ratio, and shear-output conventions from the
 clinical anatomy--function distinction.
-    \item Section~\ref{sec:resolved-3d-comparison} reports the preliminary
-resolved-velocity diagnostic at $T=1$ and the package benchmark suite.
+    \item Section~\ref{sec:resolved-3d-comparison} reports implementation
+verification and reproducibility checks, then the quadrature-backed
+resolved-velocity comparison at $T=1$.
 Section~\ref{sec:conclusions-limitations}
 summarizes the limitations and identifies the next evidence needed for stronger
 pressure--flow claims.

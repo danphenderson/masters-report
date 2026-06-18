@@ -12,6 +12,9 @@ C^infinity asymmetric stenosis profile used as the report's idealized-vessel
 baseline, Riemann-invariant boundary treatment, Rusanov fluxes, and third-order
 SSP Runge-Kutta stepping. Units follow the paper and the authors' MATLAB code:
 centimeters, grams, seconds, and dynes.
+The smooth profile is also used by the local fixed-wall stationary-Stokes study:
+one analytic vessel definition supplies the 1D finite-volume geometry, generated
+tetrahedral Gridap meshes, wall normals, and repeatable mesh-refinement cases.
 
 This is not a line-for-line port of the authors' DG MATLAB code. It is a
 compact finite-volume implementation for reproducible local experiments,
@@ -125,6 +128,12 @@ tests can lower these values. Single-run summaries report IC kind, pressure
 drop, mesh size, FEM degrees of freedom, residual normalization, projected
 velocity/pressure ranges, and a reproducibility hash.
 
+The initializer remains a projection contract for the 1D state. For fixed-wall
+3D diagnostics, use `run_stationary_stokes_refinement`, which solves generated
+stationary-Stokes cases and writes FE section-average, projection-comparison,
+and sampled wall-traction/WSS metrics. It does not solve structural deformation
+or transient FSI.
+
 ## Recommended Commands
 
 Exploratory native smoke test:
@@ -193,6 +202,7 @@ Run small programmatic studies from the shared simulation protocol:
 ./scripts/julia-release -e 'using CanicExtended1D; run_study(SeveritySweepSpec(base_params=Params(nx=40,tfinal=0.001,initial_condition=GeometryRestIC()), severities=[23,50], overwrite=true))'
 ./scripts/julia-release -e 'using CanicExtended1D; run_study(GridConvergenceStudySpec(base_params=Params(tfinal=0.001,severity=50,initial_condition=GeometryRestIC()), nxs=[40,80], overwrite=true))'
 ./scripts/julia-release -e 'using CanicExtended1D; run_refinement_study(RefinementStudySpec(base_params=Params(tfinal=0.001,severity=40,initial_condition=GeometryRestIC()), nxs=[50,100,200,400], overwrite=true))'
+./scripts/julia-release -e 'using CanicExtended1D; run_stationary_stokes_refinement(StationaryStokesRefinementSpec(base_params=Params(nx=80,tfinal=0.0,initial_condition=GeometryRestIC()), overwrite=true, parallel_workers=1))'
 ```
 
 Study summaries are written to deterministic CSV paths under
@@ -202,6 +212,11 @@ single-run profile CSV and includes study kind, severity, grid size, backend,
 algorithm, velocity-profile provenance (`velocity_profile`, `alpha`,
 `profile_exponent`, `shear_rate_factor`), step count, final time, velocity and
 pressure ranges, and minimum area.
+Stationary-Stokes refinement summaries are written under
+`simulations/output/stationary_stokes_refinement/` by default and include mesh
+size, FE degrees of freedom, section-average ranges, relative errors against the
+finest successful mesh, sampled wall traction, sampled WSS, status, and any
+per-case error message.
 
 Programmatic severity, grid, refinement, and Stokes trajectory-export jobs use
 `JULIA_CASE_WORKERS` by default and cap workers to the number of independent
@@ -216,8 +231,8 @@ method-specific finest self-reference.
 ## Resolved 3D Comparison
 
 The resolved-data comparison layer reads upstream XDMF/HDF5 velocity output,
-runs the matching 1D case, and writes section-mean and radial-profile
-diagnostics under `simulations/output/3d_comparison/`.
+runs the matching 1D case, and writes quadrature-backed section and radial
+profile diagnostics under `simulations/output/3d_comparison/`.
 
 The supported default cases are:
 
@@ -245,7 +260,7 @@ cp -R /path/to/case3_all_3d_results/60 simulations/data/3d/canic_case3/
 Run the default comparison when the data root is present:
 
 ```bash
-./scripts/julia-release -e 'using CanicExtended1D; run_available_resolved3d_comparison(overwrite=true)'
+./scripts/julia-release -e 'using CanicExtended1D; r=run_available_resolved3d_comparison(overwrite=true); publish_resolved3d_report_assets(r; overwrite=true)'
 ```
 
 To select a SciML backend programmatically:
@@ -254,11 +269,13 @@ To select a SciML backend programmatically:
 ./scripts/julia-release -e 'using CanicExtended1D; backend=SciMLTimeBackend(solve=SolveSpec(algorithm=Tsit5Policy(), abstol=1e-7, reltol=1e-7)); run_available_resolved3d_comparison(backend=backend, overwrite=true)'
 ```
 
-The comparison uses node-centered 3D data. Section means average `u_z` over
-nodes in a small axial slab and compare against interpolated 1D `Q/A`. Radial
-profiles bin the same slab nodes by `sqrt(x^2+y^2)/R0(z)` and compare against
-the 1D closure profile. This is a resolved-node diagnostic, not exact
-tetrahedral cross-section quadrature.
+The default comparison operator intersects the tetrahedral 3D mesh with each
+target plane, linearly interpolates $u_z$ on cut edges, triangulates each cut
+polygon, and integrates physical area and flow. The resulting mean velocity is
+compared against the interpolated 1D $q/a$ value. Radial profiles use the same
+cut triangles binned by centroid $\sqrt{x^2+y^2}/R_0(z)$. Node-slab arithmetic
+means are still emitted as supplemental sensitivity rows, not as the main
+resolved-velocity result.
 
 ## Native vs SciML
 

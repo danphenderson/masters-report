@@ -22,10 +22,10 @@ matplotlib.rcParams.update(
     }
 )
 
-import matplotlib.pyplot as plt
-import numpy as np
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 - registers 3D projection
-from mpl_toolkits.mplot3d.art3d import Line3DCollection
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+from mpl_toolkits.mplot3d import Axes3D  # noqa: E402, F401 - registers 3D projection
+from mpl_toolkits.mplot3d.art3d import Line3DCollection  # noqa: E402
 
 
 DEFAULT_DATA_DIR = Path("figures/static/static/data/stenosis-geometry")
@@ -57,9 +57,7 @@ TRAJECTORY_COLORS = [
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Render stenosis geometry figures from exported CSV data."
-    )
+    parser = argparse.ArgumentParser(description="Render stenosis geometry figures from exported CSV data.")
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--formats", nargs="+", default=["pdf", "png"])
@@ -181,9 +179,7 @@ def plot_tube(
     title: str,
     alpha: float = 0.93,
 ) -> None:
-    z_grid, x_grid, y_grid, _ = surface_grid(
-        data_dir / f"analytic_surface_sev{severity}.csv"
-    )
+    z_grid, x_grid, y_grid, _ = surface_grid(data_dir / f"analytic_surface_sev{severity}.csv")
     ax.plot_surface(
         z_grid,
         x_grid,
@@ -202,9 +198,7 @@ def plot_tube(
 def read_particle_trajectories(
     data_dir: Path,
 ) -> dict[int, dict[int, list[dict[str, float]]]]:
-    grouped: dict[int, dict[int, list[dict[str, float]]]] = defaultdict(
-        lambda: defaultdict(list)
-    )
+    grouped: dict[int, dict[int, list[dict[str, float]]]] = defaultdict(lambda: defaultdict(list))
     for row in rows_from_csv(data_dir / "stokes_particle_trajectories.csv"):
         severity = int_severity(row["severity"])
         particle_id = int(row["particle_id"])
@@ -228,18 +222,11 @@ def read_particle_trajectories(
     return grouped
 
 
-def require_trajectory_cases(
-    trajectories: dict[int, dict[int, list[dict[str, float]]]]
-) -> None:
-    missing = [
-        severity
-        for severity in MANUSCRIPT_TRAJECTORY_SEVERITIES
-        if severity not in trajectories
-    ]
+def require_trajectory_cases(trajectories: dict[int, dict[int, list[dict[str, float]]]]) -> None:
+    missing = [severity for severity in MANUSCRIPT_TRAJECTORY_SEVERITIES if severity not in trajectories]
     if missing:
         raise ValueError(
-            "missing Stokes trajectory exports for s_max cases: "
-            + ", ".join(f"{severity}%" for severity in missing)
+            "missing Stokes trajectory exports for s_max cases: " + ", ".join(f"{severity}%" for severity in missing)
         )
 
     for severity in MANUSCRIPT_TRAJECTORY_SEVERITIES:
@@ -251,14 +238,10 @@ def require_trajectory_cases(
             )
         for particle_id in particle_ids:
             if not trajectories[severity][particle_id]:
-                raise ValueError(
-                    f"s_max={severity}% particle {particle_id} has no trajectory rows"
-                )
+                raise ValueError(f"s_max={severity}% particle {particle_id} has no trajectory rows")
 
 
-def render_particle_trajectories(
-    data_dir: Path, output_dir: Path, formats: list[str]
-) -> list[Path]:
+def render_particle_trajectories(data_dir: Path, output_dir: Path, formats: list[str]) -> list[Path]:
     trajectories = read_particle_trajectories(data_dir)
     require_trajectory_cases(trajectories)
 
@@ -398,9 +381,7 @@ def render_slices(data_dir: Path, output_dir: Path, formats: list[str]) -> list[
     return save_figure(fig, output_dir, "stenosis-geometry-slices", formats)
 
 
-def render_mesh_overview(
-    data_dir: Path, output_dir: Path, formats: list[str]
-) -> list[Path]:
+def render_mesh_overview(data_dir: Path, output_dir: Path, formats: list[str]) -> list[Path]:
     fem_rows = rows_from_csv(data_dir / "fem_mesh_view_sev50.csv")
     fvm_rows = sorted(
         rows_from_csv(data_dir / "fvm_mesh_view_sev50.csv"),
@@ -450,9 +431,7 @@ def render_mesh_overview(
         "cut-radial": (COLORS["bloodred"], 0.70, 0.98),
     }
     for group, segments in grouped_segments.items():
-        color, linewidth, alpha = line_styles.get(
-            group, (COLORS["wallgray"], 0.25, 0.35)
-        )
+        color, linewidth, alpha = line_styles.get(group, (COLORS["wallgray"], 0.25, 0.35))
         ax_fem.add_collection3d(
             Line3DCollection(
                 segments,
@@ -548,9 +527,7 @@ def render_severity_gallery(data_dir: Path, output_dir: Path, formats: list[str]
     return save_figure(fig, output_dir, "stenosis-severity-gallery", formats)
 
 
-def render_resolved_envelopes(
-    data_dir: Path, output_dir: Path, formats: list[str]
-) -> list[Path]:
+def render_resolved_envelopes(data_dir: Path, output_dir: Path, formats: list[str]) -> list[Path]:
     paths: list[Path] = []
     for csv_path in sorted(data_dir.glob("resolved_envelope_case*_sev*.csv")):
         rows = rows_from_csv(csv_path)
@@ -659,9 +636,7 @@ def plot_envelope_frame(ax, data_dir: Path, case_label: str, severity: int) -> N
     )
 
 
-def render_resolved_velocity_field(
-    data_dir: Path, output_dir: Path, formats: list[str]
-) -> list[Path]:
+def render_resolved_velocity_field(data_dir: Path, output_dir: Path, formats: list[str]) -> list[Path]:
     cases = read_resolved_velocity_nodes(data_dir)
     missing = [case for case in RESOLVED_FLOW_CASES if case not in cases]
     if missing:
@@ -671,9 +646,7 @@ def render_resolved_velocity_field(
         )
         return []
 
-    arrays_by_case = {
-        case: resolved_velocity_arrays(cases[case]) for case in RESOLVED_FLOW_CASES
-    }
+    arrays_by_case = {case: resolved_velocity_arrays(cases[case]) for case in RESOLVED_FLOW_CASES}
     uz_values = np.concatenate([arrays["uz"] for arrays in arrays_by_case.values()])
     color_norm = plt.Normalize(float(np.min(uz_values)), float(np.max(uz_values)))
 
@@ -729,7 +702,7 @@ def render_resolved_velocity_field(
         )
         setup_3d_axis(
             ax,
-            f"({chr(96 + index)}) case {case_label}, {severity}% velocity nodes",
+            f"({chr(96 + index)}) C{severity}, {severity}% velocity nodes",
         )
         try:
             ax.set_box_aspect((6.0, 0.68, 0.68), zoom=1.95)

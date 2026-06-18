@@ -189,9 +189,6 @@ declared.
         & $\mathrm{s}^{-1}$ \\
         $W_0:=d_v\sqrt{\frac{\omega\rho}{\eta}}$ & Womersley number, diameter-based convention & $-$ \\
         $\mathrm{Re}$ & Reynolds number & $-$ \\
-        $\mathrm{Pe}$ & Péclet number & $-$ \\
-        $c_{\mathrm{conc}}$ & concentration field when a transport scalar is discussed & $-$ \\
-        $D_m$ & molecular diffusion coefficient & $\mathrm{m}^2/\mathrm{s}$ \\
         $t$ & time & $\mathrm{s}$ \\
         $T$ or $T_{\mathrm{final}}$
             & terminal time; use $T_{\mathrm{final}}$ where it could be
@@ -209,20 +206,6 @@ declared.
         \bottomrule
 \end{tabular}
 \end{minipage}
-
-\par\smallskip\noindent
-The symbols $\mathrm{Pe}$, $c_{\mathrm{conc}}$, and $D_m$ are reserved for a
-future passive-scalar transport extension, for example
-\begin{flalign*}
-    \quad
-    \pd_t c_{\mathrm{conc}}+\vu\cdot\nabla c_{\mathrm{conc}}
-    =
-    D_m\Delta c_{\mathrm{conc}},
-    \qquad
-    \mathrm{Pe}=\frac{UL}{D_m},
-    &&
-\end{flalign*}
-where $\mathrm{Pe}$ compares advective and diffusive scalar transport.
 
 \paragraph*{Reduced-model and forward-map notation.}
 \par\smallskip\noindent
@@ -289,10 +272,14 @@ where $\mathrm{Pe}$ compares advective and diffusive scalar transport.
             & mixed \\
 
         $\mathcal W$
-            & wall or FSI closure descriptor; the selected 1D report model uses
-            $\mathcal W_{\mathrm{elastic1D}}$, while fixed-wall,
-            multiscale-coupled, and resolved-FSI models require separate
-            declarations
+            & wall descriptor; the selected 1D report model uses
+            $\mathcal W_{\mathrm{elastic1D}}$, while fixed-wall and
+            resolved-FSI wall models require separate declarations
+            & mixed \\
+
+        $\mathcal C$
+            & coupling/interface descriptor; the selected single-vessel study
+            uses $\mathcal C_{\mathrm{isolated}}$
             & mixed \\
 
         $s(z)$ & dimensionless stenosis profile, with $0\leq s(z)<1$ & $-$ \\

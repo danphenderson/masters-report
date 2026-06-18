@@ -272,6 +272,67 @@ end
     end
 end
 
+@testset "CanicExtended1D stationary Stokes refinement study" begin
+    mktempdir() do dir
+        base_params = Params(nx=4, tfinal=0.0, severity=0.0, initial_condition=GeometryRestIC())
+        spec = StationaryStokesRefinementSpec(
+            base_params=base_params,
+            severities=[0.0],
+            meshes=[(2, 2, 8), (3, 2, 8), (0, 2, 8)],
+            output_dir=dir,
+            overwrite=true,
+            parallel_workers=1,
+        )
+        result = run_stationary_stokes_refinement(spec)
+
+        @test result.summary_csv == joinpath(dir, "summary.csv")
+        @test isfile(result.summary_csv)
+        @test length(result.rows) == 3
+        ok_rows = [row for row in result.rows if row.status == "ok"]
+        error_rows = [row for row in result.rows if row.status == "error"]
+        @test length(ok_rows) == 2
+        @test length(error_rows) == 1
+        @test occursin("ic mesh_nz must be positive", only(error_rows).error_message)
+
+        for row in ok_rows
+            @test row.velocity_dofs > 0
+            @test row.pressure_dofs > 0
+            @test row.traction_samples > 0
+            @test isfinite(row.wall_traction_mean)
+            @test isfinite(row.wall_traction_max)
+            @test isfinite(row.wss_mean)
+            @test isfinite(row.wss_max)
+            @test row.wall_traction_mean >= 0.0
+            @test row.wall_traction_max >= row.wall_traction_mean
+            @test row.wss_mean >= 0.0
+            @test row.wss_max >= row.wss_mean
+            @test row.fe_projection_u_l2_relative_error >= 0.0
+            @test row.fe_projection_pressure_l2_relative_error >= 0.0
+        end
+
+        finest_row = ok_rows[end]
+        @test finest_row.finest_u_l2_relative_error == 0.0
+        @test finest_row.finest_pressure_l2_relative_error == 0.0
+
+        straight_row = ok_rows[1]
+        mu = base_params.rho * base_params.nu
+        pressure_drop_dyn_cm2 = spec.pressure_drop_pa * 10.0
+        analytic_u = pressure_drop_dyn_cm2 * base_params.rmax^2 / (8.0 * mu * base_params.length_cm)
+        @test isapprox(straight_row.projection_uavg_min, analytic_u; rtol=0.05)
+        @test isapprox(straight_row.projection_uavg_max, analytic_u; rtol=0.05)
+
+        csv_text = read(result.summary_csv, String)
+        @test occursin("wall_traction_mean", csv_text)
+        @test occursin("finest_u_l2_relative_error", csv_text)
+        csv_rows = read_simple_csv(result.summary_csv)
+        @test length(csv_rows) == 3
+        @test count(row -> row["status"] == "ok", csv_rows) == 2
+        @test count(row -> row["status"] == "error", csv_rows) == 1
+        @test parse(Int, csv_rows[1]["traction_samples"]) > 0
+        @test parse(Int, only(row for row in csv_rows if row["status"] == "error")["traction_samples"]) == 0
+    end
+end
+
 @testset "CanicExtended1D refinement studies" begin
     mktempdir() do dir
         @test SeveritySweepSpec(severities=[23.0]).base_params.initial_condition isa GeometryRestIC

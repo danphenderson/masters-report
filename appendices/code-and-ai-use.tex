@@ -58,10 +58,11 @@ The standard package import surface used by report regeneration commands is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true,language=julia]
 using CanicExtended1D
 
-run_available_resolved3d_comparison(
+r = run_available_resolved3d_comparison(
     output_dir="simulations/output/3d_comparison/full_t1_native_nx400",
     overwrite=true,
 )
+publish_resolved3d_report_assets(r; overwrite=true)
 \end{lstlisting}
 
 The package-benchmark suite is regenerated separately from the tracked PDF. A
@@ -69,10 +70,11 @@ smoke run writes deterministic schema checks; an overnight run expands the same
 schemas to the full benchmark matrix:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 ./scripts/julia-release simulations/run_package_benchmark.jl \
-  --profile smoke \
+  --profile overnight \
   --output-dir simulations/output/package_benchmark/<run_id> \
   --overwrite \
   --include-python \
+  --include-resolved3d \
   --publish-report-assets
 
 pipenv run python scripts/render_package_benchmark_figures.py \
@@ -83,17 +85,20 @@ The tracked package-benchmark assets used in
 Section~\ref{subsec:package-benchmark-suite} are copied under
 \path{figures/static/static/data/package-benchmark/} and rendered under
 \path{figures/static/static/rendered/}. The tracked manifest records an
-\texttt{overnight} profile generated at \texttt{2026-06-18T06:27:28Z}. Its
+\texttt{overnight} profile generated at \texttt{2026-06-18T20:20:04Z}. Its
 source output directory was the
-\path{overnight-python-maturity-20260617-225946/} benchmark run; Python stages
-and resolved-3D stages were enabled, and the completed run was copied into the
+\path{overnight-20260618-quadrature/} benchmark run; Python stages and
+resolved-3D stages were enabled, and the completed run was copied into the
 tracked report assets.
 The recorded runtime context was Julia \texttt{1.12.6}, Python \texttt{3.13.12},
 Torch \texttt{2.12.0}, MPS available, SciPy unavailable, and generation commit
-\texttt{2c8712b89a61b3949278986d20496d609b96612d}. The published benchmark
-CSVs contain 252 status rows across the eight report stages, all marked
-\texttt{ok}; this is an internal status summary, not an external validation
-claim.
+\texttt{24d311c0ddd169f943169b05736d439d9b877b57}. That commit identifies the
+benchmark/data-generation base state, not by itself the complete integrated
+manuscript state after the final report edits. The integrated report state is
+identified by the tracked source tree containing this appendix together with
+the file hashes below. The published benchmark CSVs contain 252 status rows
+across the eight report stages, all marked \texttt{ok}; this is an internal
+status summary, not an external validation claim.
 
 The tracked package-benchmark data and table fragment have the following
 SHA-256 hashes:
@@ -104,32 +109,32 @@ SHA-256 hashes:
 \textbf{Tracked package-benchmark file} & \textbf{SHA-256} \\
 \midrule
 \path{figures/static/static/data/package-benchmark/manifest.json}
-& 2b21c735e1ec4cacff7be33160a7cd74\newline
-3e03235fd93b0440ed4b4c9410ac203b \\
+& dde2101fcea3d9cc896847682835356f\newline
+30a5d9c1d1aaa486fc7587a6f03bee50 \\
 \path{figures/static/static/data/package-benchmark/case_results.csv}
-& f05d60c1c7a07680a02cf1e34a1f7d59\newline
-68c133bd1d291ab9c0ac556d6273df83 \\
+& 0843a3e3fa986e0ec1227bedab1ff8f\newline
+616e3d3652b9e5e609c64a171e6d124fe \\
 \path{figures/static/static/data/package-benchmark/refinement.csv}
-& e07ba7b450e0578e5b702d8b27202001\newline
-5e325e9333e1e62a97ae696aa0e104e7 \\
+& de20c481fbbfe4a5930d996887a55a2c\newline
+3fe3734de40422ff9fc83f4f4fc59e7e \\
 \path{figures/static/static/data/package-benchmark/backend_parity.csv}
-& b9c35a321c7c0deda8eea0ccb0bb33fe\newline
-a854b68b04e88fdb768ee9a610492432 \\
+& 1a52b83cebb750cca68ac68f1a508dda\newline
+11b1c649ed62f71fe239582ee4ddf671 \\
 \path{figures/static/static/data/package-benchmark/stokes_ic.csv}
-& 3dd98156ba04f28dd62f2423bd17d936\newline
-bc7c3fad390346c5c37db3c942f1d2f2 \\
+& 2379d100d1b01943b1afcd79718f298\newline
+10bad0fec9762796c72d78158963d6adb \\
 \path{figures/static/static/data/package-benchmark/rheology_profile.csv}
-& 3e8086215a9081f6a66d9a049825f20f\newline
-431ecb2a860b2819ae72d1db4e25da7b \\
+& 8c83c6119d54dd3465eb8c3ec1e96897\newline
+2a981bd41afdbe34861ea4151c4fb62a \\
 \path{figures/static/static/data/package-benchmark/boundary_openbf.csv}
-& 5472f0db7eed87051cb3ea55328b119c\newline
-acdcd896a4f8d6618ac7a6f344fdcb88 \\
+& 90fcac4d39e1e0b705837597ff15b929\newline
+cb165a84fc56853a70839d53914c993d \\
 \path{figures/static/static/data/package-benchmark/resolved3d.csv}
-& 5470d1277976c5cb99e1cd1f2c7c9f35\newline
-ccd011f8d7ac03fbc3931a81cad903fe \\
+& 96443ae2dd54f9a0132ac7979209b256\newline
+0353195ee7ebb87d07a4778b66d1a53a \\
 \path{figures/static/static/data/package-benchmark/python_mps.csv}
-& 3a5e040e98422df8b767dcca4e758bb7\newline
-e8604f7f805c946670a42a23c316baa4 \\
+& a50dfc626f2a59f1ace544337e4c1d09\newline
+0168b09e2b502f92abf3b1b4cf3177cb \\
 \path{figures/static/static/tables/package-benchmark/package-benchmark-summary.tex}
 & 9649ee00c26921196d628a2c9f17f7d8\newline
 14e4390ad194da8f399482aafa617948 \\
@@ -146,20 +151,20 @@ following SHA-256 hashes:
 \textbf{Tracked rendered file} & \textbf{SHA-256} \\
 \midrule
 \path{figures/static/static/rendered/package-benchmark-convergence.pdf}
-& e8f72fa7a18f4a6ade0a74c46d468e2\newline
-1543e95f97236dc2a70e18ef5a07e0f19 \\
+& 08bbb0dd2594681ccd8f2dda98a2c802\newline
+96cc53af4ddc94c5b60f2c72c21a33a2 \\
 \path{figures/static/static/rendered/package-benchmark-backend-parity.pdf}
-& 648c4a6e2e4e8550a07969dd7e056fdc\newline
-80822a7202a7e7670e6e4d3045227aa2 \\
+& 281d851f2d66f031fce4172da88d333d\newline
+0bfefbccc80bf9c183a147f0b59baa06 \\
 \path{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}
-& f68298da550b0ad257a52a04c08ac1db\newline
-4b0f630056988c3817dcc45b327451ec \\
+& aac13d7365ea098030aeafaeb9f3bb0f\newline
+7a9bdec4fda4e46d682ad6d243e70c6c \\
 \path{figures/static/static/rendered/package-benchmark-resolved3d.pdf}
-& 68d0a7df387d859ef3ae9060d6b5f235\newline
-40346f49e3585b8f34a677409aca52cd \\
+& 9b6282153ee2827007df74a1d394f1ec\newline
+82e7b4d8ab93b6c176d2a102c4af4cab \\
 \path{figures/static/static/rendered/package-benchmark-python-mps.pdf}
-& 3f65f0758da7a99f51a03bb57613b5cb\newline
-ad10d1c5b9a2a9940ca600229865bf76 \\
+& 2a84d08be281de3a8c81e2710065bfc1\newline
+1400be8a258a2feb401452d9a77a8817 \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -169,7 +174,7 @@ non-archived directory
 \path{simulations/output/3d_comparison/full_t1_native_nx400/}. The command
 shape for regenerating the comparison, when the raw 3D inputs are restored, is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-./scripts/julia-release -e 'using CanicExtended1D; run_available_resolved3d_comparison(output_dir="simulations/output/3d_comparison/full_t1_native_nx400", overwrite=true)'
+./scripts/julia-release -e 'using CanicExtended1D; r=run_available_resolved3d_comparison(output_dir="simulations/output/3d_comparison/full_t1_native_nx400", overwrite=true); publish_resolved3d_report_assets(r; overwrite=true)'
 \end{lstlisting}
 
 The raw upstream XDMF/HDF5 inputs used for
@@ -211,15 +216,21 @@ The tracked static data copied into the PDF has the following SHA-256 hashes:
 \toprule
 \textbf{Tracked file} & \textbf{SHA-256} \\
 \midrule
-\path{figures/static/static/data/stenosis-comparison/section-mean.dat}
-& 5939c015eaa848dbd62e0531b26799a3\newline
-297eb3ebb7c936fd6ce66e9f4b8e649e \\
-\path{figures/static/static/data/stenosis-comparison/radial-case77.dat}
-& 90d4766201f5610efdd41d93f0717a6c0\newline
-4485a00f4f60a272ba46207c7065f8a \\
-\path{figures/static/static/data/stenosis-comparison/radial-case60.dat}
-& e35b4f1e9016e22ba1ee9feb638945273\newline
-2eb81fb0ea7a9d4a686f64d89e1bbbc \\
+\path{figures/static/static/data/stenosis-comparison/section-quadrature.dat}
+& 92a6df1b035373abf9cf4fdfd2df7254\newline
+fb52c7d46378ff3ce89345d9ec34ee2c \\
+\path{figures/static/static/data/stenosis-comparison/radial-quadrature-C23.dat}
+& 27f2f12747bfb1eb87e62cac736c3df1\newline
+1b94b0a4f02b3b3ebf157e6b72435bcd \\
+\path{figures/static/static/data/stenosis-comparison/radial-quadrature-C40.dat}
+& 4e0a6527b87f5b395e96cf379346c288\newline
+9175e8e9181a7d3f4b2423b57df024f0 \\
+\path{figures/static/static/data/stenosis-comparison/node-slab-sensitivity.csv}
+& 23014b8c5342fce4bfb1e7878fff815d\newline
+b988082b0ba344fbcbc688042cd5c167 \\
+\path{figures/static/static/data/stenosis-comparison/area-audit.dat}
+& 98e1fbb5b06ebe8cd928784e8c48fdc3\newline
+9cc07b0dde228c58edaf82107a738696 \\
 \path{figures/static/static/data/stenosis-geometry/resolved_velocity_nodes_manifest.csv}
 & 372796413873c09581ced890f8de657e\newline
 f39e9ff69eabca8ce46b51b0cf758d3f \\
@@ -239,8 +250,8 @@ d0535f3a7fd45078732b837619f68d1 \\
 & e661114841a0b3f8abccb0dc244e2d4\newline
 b4409291c8f02dcd5a4da2398892a7c1d \\
 \path{figures/static/static/rendered/resolved-3d-flow-field.pdf}
-& 2dce4168706d16a862dc637397e9be0e\newline
-2b9c062ddbb7b8807d57d4a3ae50178d \\
+& dbee4f2bc37c980c8ce99f172e26edbf\newline
+90eaf8cb1b23e1fb787a77298a4e8aca \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -255,29 +266,26 @@ archive contents:
 \textbf{Generated artifact file} & \textbf{SHA-256} \\
 \midrule
 \path{comparison_summary.csv}
-& 8dbb4eb5f6e9fa369fa1a4bf215ff2c3\newline
-80b788d2b9b89f828718ae1485e79b6b \\
+& c582ee73a73b8c988a185bf55e86943c\newline
+a7a459e9ad74f6826ca83bddafb165a2 \\
 \path{section_mean_case77_sev23.csv}
-& 4efafa3c314eaa19193f3c884c9b9607\newline
-9423a2bf2985cde4cc6511f0dfaf9348 \\
+& 641a7ca341f9e6a6d1eecfd13ab94a8\newline
+4fcd77d5eb79ff4ebec63efa47605c39e \\
 \path{section_mean_case60_sev40.csv}
-& 48a6af7ef5f50bdadfcf7b043d7632acc\newline
-fc73af41750e93f02e701c16fb948b4 \\
+& 807c548d90cbb21fbecc333cfc4f185e\newline
+a60e05e0b317a4d34d480026d897afa2 \\
 \path{radial_profile_case77_sev23.csv}
-& 29bb3e13fa34396c27c91d0183bcac1\newline
-16516bedcc5b92be33cb832126216890d \\
+& 781018d4772472479a3b4f76ed61e10e\newline
+7bdefa7786c2daba263e2a130fb2b56a \\
 \path{radial_profile_case60_sev40.csv}
-& 994091f5e74d39249d8d7b9ec374d07\newline
-b36eec9fdef72050bc712f5615443458c \\
-\path{section_mean_overlay.svg}
-& c6ac9de7f3cc92782c61753c346e66e\newline
-405fc6f3ab22d45e435c7afa5d41aa322 \\
-\path{radial_profile_case77_sev23.svg}
-& fb60c63ef2963c6f13f8e28c6d0b306\newline
-485326318e32f83d12c4f296652834c63 \\
-\path{radial_profile_case60_sev40.svg}
-& e8a3794c1e07d3ea58ffeb59be3c0558\newline
-e9009473cf3fb304a8b74aa1250f7bf7 \\
+& d29c698ec8c2c35ffa39f51fa24e6b0d\newline
+96a60049fae20a7a65722050e7ca9ad4 \\
+\path{node_slab_sensitivity.csv}
+& 23014b8c5342fce4bfb1e7878fff815d\newline
+b988082b0ba344fbcbc688042cd5c167 \\
+\path{section_quadrature_overlay.svg}
+& 2b465f2593106cac942c5f3733cde046\newline
+23dbe51b6c2f4ebfa81486d6b59dab94 \\
 \bottomrule
 \end{tabularx}
 \end{center}
