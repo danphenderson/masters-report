@@ -11,6 +11,16 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
+matplotlib.rcParams.update(
+    {
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+        "font.family": "serif",
+        "font.serif": ["CMU Serif", "Computer Modern Roman", "DejaVu Serif"],
+        "mathtext.fontset": "cm",
+        "axes.unicode_minus": False,
+    }
+)
 
 import matplotlib.pyplot as plt
 import numpy as np

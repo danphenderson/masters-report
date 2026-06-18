@@ -2,12 +2,13 @@
 \label{sec:conclusions-limitations}
 
 This report established a mathematical vocabulary for idealized stenotic blood
-flow and used it to state a bounded numerical comparison. The continuum portion
+flow and used it to state bounded numerical diagnostics. The continuum portion
 connected the flow map, material derivative, transport theorem, balance laws,
 stress closure, Navier--Stokes equations, and one-dimensional area--flow
 reduction. The model-hierarchy discussion then separated reduced pressure
-ratios, reduced shear proxies, and velocity diagnostics from clinical
-measurements or resolved three-dimensional wall quantities.
+ratios, reduced shear proxies, velocity diagnostics, and implementation
+benchmarks from clinical measurements or resolved three-dimensional wall
+quantities.
 
 The numerical comparison demonstrated that the selected one-dimensional solver
 can be placed in a declared diagnostic relationship with available resolved 3D
@@ -19,13 +20,21 @@ minor plotting discrepancy; they occur in the region where the reduced velocity
 closure, boundary realization, and node-slab 3D post-processing operator are
 least interchangeable.
 
-The comparison does not establish 1D accuracy against resolved 3D flow, does
-not supply clinical pressure evidence, and does not demonstrate pressure-drop
-or pressure-ratio accuracy. It is a preliminary velocity diagnostic whose raw
-XDMF/HDF5 inputs are not archived in the report package. The
-pressure-ratio and shear-proxy conventions are included to fix the output
-vocabulary for later reduced-order studies, not as completed numerical evidence
-in this report.
+The package benchmark suite records descriptor health, refinement,
+native/SciML agreement, rheology and velocity-profile sensitivity,
+OpenBF-style boundary handling, resolved-velocity checks, and Python CPU/MPS
+comparisons for the emitted CSV records. It is an internal reproducibility and
+implementation diagnostic suite; it is not clinical validation, full transient
+FEM validation, or proof of Julia--Python scientific equivalence beyond the
+reported metrics.
+
+The numerical record does not establish 1D accuracy against resolved 3D flow,
+does not supply clinical pressure evidence, and does not demonstrate
+pressure-drop or pressure-ratio accuracy. The resolved-velocity comparison is a
+preliminary diagnostic whose raw XDMF/HDF5 inputs are not archived in the report
+package. The pressure-ratio and shear-proxy conventions are included to fix the
+output vocabulary for later reduced-order studies, not as completed numerical
+evidence in this report.
 
 A stronger follow-up comparison would restore or archive the raw 3D inputs,
 archive source hashes or release identifiers, preserve per-run diagnostics such

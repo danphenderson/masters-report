@@ -6,9 +6,9 @@ geometry, wall properties, rheology, and boundary data determine the state of
 blood flow through a narrowed vessel? Clinical pressure-ratio measurements show
 why anatomical narrowing alone does not determine functional obstruction, but
 this report stays on the mathematical and numerical side of that problem. Its
-goal is to review the hierarchy of the single-vessel
-hemodynamic models and to present a clinically motivated numerical
-study for an idealized ($C^\infty$) model of stenosed vessels.
+goal is to review the hierarchy of the single-vessel hemodynamic models and to
+present bounded numerical diagnostics for an idealized ($C^\infty$) model of
+stenosed vessels.
 
 \begin{figure}[H]
     \centering
@@ -28,10 +28,11 @@ study for an idealized ($C^\infty$) model of stenosed vessels.
 The report fixes the vocabulary needed to move from continuum assumptions, to
 the three-dimensional incompressible Navier--Stokes and generalized-Newtonian
 settings, to reduced 0D/1D/2D hemodynamic model classes, and finally to a
-selected one-dimensional numerical study of an idealized stenosis. Its
-contribution is twofold: it organizes the relevant mathematical and numerical
-literature, and it frames a controlled computation for a smooth idealized
-stenosed vessel.
+selected one-dimensional numerical record for an idealized stenosis. Its
+contribution is to organize the relevant mathematical and numerical literature,
+frame a controlled resolved-velocity diagnostic for a smooth idealized stenosed
+vessel, and record package-benchmark evidence for the implemented solver and
+CLI surfaces.
 
 Pressure-ratio quantities in this report are computed model outputs, not
 clinical FFR or CT-FFR measurements, unless an external measurement comparison
@@ -39,9 +40,10 @@ is explicitly introduced. Convention~\ref{conv:appendix-pressure-reference-ratio
 in Appendix~\ref{app:domain-specific-notation} records the pressure-reference,
 gauge-pressure, high-flow-window, and admissibility conventions used for any
 reduced pressure-ratio output. The numerical record in
-Section~\ref{sec:resolved-3d-comparison} reports velocity diagnostics only; it
-does not yet report pressure-drop or pressure-ratio outputs. Those conventions
-are included to fix the output vocabulary for subsequent reduced-order studies.
+Section~\ref{sec:resolved-3d-comparison} reports a velocity diagnostic and
+package benchmark suite only; it does not yet report pressure-drop or
+pressure-ratio outputs. Those conventions are included to fix the output
+vocabulary for subsequent reduced-order studies.
 
 
 
@@ -61,7 +63,8 @@ tier can and cannot support. Section~\ref{subsec:pressure-flow-motivation}
 motivates pressure-drop, pressure-ratio, and shear-output conventions from the
 clinical anatomy--function distinction.
     \item Section~\ref{sec:resolved-3d-comparison} reports the preliminary
-resolved-velocity diagnostic at $T=1$. Section~\ref{sec:conclusions-limitations}
+resolved-velocity diagnostic at $T=1$ and the package benchmark suite.
+Section~\ref{sec:conclusions-limitations}
 summarizes the limitations and identifies the next evidence needed for stronger
 pressure--flow claims.
 \end{itemize}

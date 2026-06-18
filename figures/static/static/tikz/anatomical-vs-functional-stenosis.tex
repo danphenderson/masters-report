@@ -6,8 +6,7 @@
 \begin{tikzpicture}[fig, scale=1.08, transform shape,
     panel/.style={draw=wallgray!65, rounded corners=3pt, fill=white,
         line width=0.8pt, minimum width=58mm, minimum height=46mm},
-    paneltag/.style={circle, draw=wallgray!70, fill=wallgraylight!45,
-        inner sep=1.4pt, font=\scriptsize\bfseries},
+    paneltag/.style={font=\scriptsize\bfseries, inner sep=1pt},
     ptitle/.style={font=\footnotesize\bfseries, align=left},
     trace/.style={line width=1.18pt, smooth, line cap=round},
     plabel/.style={font=\footnotesize, align=center},
@@ -16,7 +15,7 @@
 
   % ----- left panel: anatomically narrow, mild pressure loss -----
   \node[panel] at (-3.35,0) {};
-  \node[paneltag] at (-5.95,1.93) {A};
+  \node[paneltag, mathblue!75!black] at (-5.95,1.93) {(a)};
   \node[ptitle, mathblue!75!black, anchor=west] at (-5.68,1.93)
     {same anatomical narrowing\\small functional loss};
   \begin{scope}[shift={(-5.05,0.72)}, x=1cm, y=1cm]
@@ -59,7 +58,7 @@
 
   % ----- right panel: matched narrowing, functionally severe -----
   \node[panel] at (3.35,0) {};
-  \node[paneltag] at (0.75,1.93) {B};
+  \node[paneltag, bloodred!75!black] at (0.75,1.93) {(b)};
   \node[ptitle, bloodred!75!black, anchor=west] at (1.02,1.93)
     {same anatomical narrowing\\large functional loss};
   \draw[<->, wallgray!70, line width=0.55pt]

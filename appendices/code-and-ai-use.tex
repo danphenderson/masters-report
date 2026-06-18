@@ -79,6 +79,91 @@ pipenv run python scripts/render_package_benchmark_figures.py \
   --benchmark-dir simulations/output/package_benchmark/<run_id>
 \end{lstlisting}
 
+The tracked package-benchmark assets used in
+Section~\ref{subsec:package-benchmark-suite} are copied under
+\path{figures/static/static/data/package-benchmark/} and rendered under
+\path{figures/static/static/rendered/}. The tracked manifest records an
+\texttt{overnight} profile generated at \texttt{2026-06-18T06:27:28Z}. Its
+source output directory was the
+\path{overnight-python-maturity-20260617-225946/} benchmark run; Python stages
+and resolved-3D stages were enabled, and the completed run was copied into the
+tracked report assets.
+The recorded runtime context was Julia \texttt{1.12.6}, Python \texttt{3.13.12},
+Torch \texttt{2.12.0}, MPS available, SciPy unavailable, and generation commit
+\texttt{2c8712b89a61b3949278986d20496d609b96612d}. The published benchmark
+CSVs contain 252 status rows across the eight report stages, all marked
+\texttt{ok}; this is an internal status summary, not an external validation
+claim.
+
+The tracked package-benchmark data and table fragment have the following
+SHA-256 hashes:
+\begin{center}
+\scriptsize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\ttfamily\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Tracked package-benchmark file} & \textbf{SHA-256} \\
+\midrule
+\path{figures/static/static/data/package-benchmark/manifest.json}
+& 2b21c735e1ec4cacff7be33160a7cd74\newline
+3e03235fd93b0440ed4b4c9410ac203b \\
+\path{figures/static/static/data/package-benchmark/case_results.csv}
+& f05d60c1c7a07680a02cf1e34a1f7d59\newline
+68c133bd1d291ab9c0ac556d6273df83 \\
+\path{figures/static/static/data/package-benchmark/refinement.csv}
+& e07ba7b450e0578e5b702d8b27202001\newline
+5e325e9333e1e62a97ae696aa0e104e7 \\
+\path{figures/static/static/data/package-benchmark/backend_parity.csv}
+& b9c35a321c7c0deda8eea0ccb0bb33fe\newline
+a854b68b04e88fdb768ee9a610492432 \\
+\path{figures/static/static/data/package-benchmark/stokes_ic.csv}
+& 3dd98156ba04f28dd62f2423bd17d936\newline
+bc7c3fad390346c5c37db3c942f1d2f2 \\
+\path{figures/static/static/data/package-benchmark/rheology_profile.csv}
+& 3e8086215a9081f6a66d9a049825f20f\newline
+431ecb2a860b2819ae72d1db4e25da7b \\
+\path{figures/static/static/data/package-benchmark/boundary_openbf.csv}
+& 5472f0db7eed87051cb3ea55328b119c\newline
+acdcd896a4f8d6618ac7a6f344fdcb88 \\
+\path{figures/static/static/data/package-benchmark/resolved3d.csv}
+& 5470d1277976c5cb99e1cd1f2c7c9f35\newline
+ccd011f8d7ac03fbc3931a81cad903fe \\
+\path{figures/static/static/data/package-benchmark/python_mps.csv}
+& 3a5e040e98422df8b767dcca4e758bb7\newline
+e8604f7f805c946670a42a23c316baa4 \\
+\path{figures/static/static/tables/package-benchmark/package-benchmark-summary.tex}
+& 9649ee00c26921196d628a2c9f17f7d8\newline
+14e4390ad194da8f399482aafa617948 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The tracked package-benchmark rendered figures used by the PDF have the
+following SHA-256 hashes:
+\begin{center}
+\scriptsize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\ttfamily\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Tracked rendered file} & \textbf{SHA-256} \\
+\midrule
+\path{figures/static/static/rendered/package-benchmark-convergence.pdf}
+& e8f72fa7a18f4a6ade0a74c46d468e2\newline
+1543e95f97236dc2a70e18ef5a07e0f19 \\
+\path{figures/static/static/rendered/package-benchmark-backend-parity.pdf}
+& 648c4a6e2e4e8550a07969dd7e056fdc\newline
+80822a7202a7e7670e6e4d3045227aa2 \\
+\path{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}
+& f68298da550b0ad257a52a04c08ac1db\newline
+4b0f630056988c3817dcc45b327451ec \\
+\path{figures/static/static/rendered/package-benchmark-resolved3d.pdf}
+& 68d0a7df387d859ef3ae9060d6b5f235\newline
+40346f49e3585b8f34a677409aca52cd \\
+\path{figures/static/static/rendered/package-benchmark-python-mps.pdf}
+& 3f65f0758da7a99f51a03bb57613b5cb\newline
+ad10d1c5b9a2a9940ca600229865bf76 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
 The Section~\ref{sec:resolved-3d-comparison} comparison artifact is the
 non-archived directory
 \path{simulations/output/3d_comparison/full_t1_native_nx400/}. The command
@@ -154,8 +239,8 @@ d0535f3a7fd45078732b837619f68d1 \\
 & e661114841a0b3f8abccb0dc244e2d4\newline
 b4409291c8f02dcd5a4da2398892a7c1d \\
 \path{figures/static/static/rendered/resolved-3d-flow-field.pdf}
-& bed6431c3b0769c17219c2d766b276d1\newline
-d9807fe9cf2dd1fd1411263775198218 \\
+& 1fa7f956c56fa6721359b2708ca3a97f\newline
+723b728a9c616f5fd8c7bc89b85ab9ff \\
 \bottomrule
 \end{tabularx}
 \end{center}

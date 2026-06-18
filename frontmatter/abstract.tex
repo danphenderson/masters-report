@@ -1,8 +1,13 @@
 \medskip
 \noindent\textbf{Abstract.}\par\smallskip
-This report develops a mathematical and numerical account of idealized stenotic blood-flow
-simulation. The framework fixes the continuum, constitutive, boundary-data,
-side-condition, model-hierarchy, and output conventions needed to relate
-three-dimensional (3D) incompressible Navier--Stokes,
-fluid--structure interaction, and generalized-Newtonian models to reduced 0D,
-1D, 2D, and coupled hemodynamic formulations.
+This report develops a mathematical and numerical account of idealized stenotic
+blood-flow simulation. The framework fixes the continuum, constitutive,
+boundary-data, side-condition, model-hierarchy, and output conventions needed to
+relate three-dimensional (3D) incompressible Navier--Stokes, fluid--structure
+interaction, and generalized-Newtonian models to reduced 0D, 1D, 2D, and
+coupled hemodynamic formulations. The numerical record has two bounded parts: a
+$T=1$ resolved-velocity output-operator diagnostic for a selected 1D
+area--flow realization, and a package benchmark suite for the Julia solver and
+Python CLI surfaces. These computations support internal diagnostic and
+reproducibility claims only; they do not establish clinical pressure evidence,
+pressure-ratio accuracy, or resolved-3D validation.

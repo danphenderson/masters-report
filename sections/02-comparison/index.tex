@@ -243,32 +243,29 @@ $u_{\mathcal P}(r)=\bar u$ with $\alpha_{\mathcal P}=1$.
 \end{table}
 
 These discrepancies should be read in light of the comparison boundary in
-Section~\ref{subsec:model-hierarchy-comparison-boundary}. The 1D solver is compared to
-a resolved 3D velocity field through node-slab output operators. The
-result is useful for locating where the reduced velocity closure departs from
-the resolved state, but it does not by itself identify whether the discrepancy
-comes from the 1D closure, the boundary data, the 3D post-processing operator,
-or differences between the numerical formulations.
-In summary, the $T=1$ comparison shows that the computed 1D solution gives a
-declared velocity diagnostic whose largest deviations are localized near and
-downstream of the stenosis throat, especially for the 40\% case. It does not
-establish resolved-3D accuracy, clinical pressure evidence, pressure-drop
-accuracy, pressure-ratio accuracy, or independence from the chosen 3D node-slab
-output operator and boundary realization. The next defensible study step is
-therefore a matched comparison dataset that restores the raw 3D inputs, archives
-the source hashes or upstream release identifiers, and reruns the same output
-operators while varying only one declared closure or boundary choice at a time.
+Section~\ref{subsec:model-hierarchy-comparison-boundary}. The 1D solver is
+compared to a resolved 3D velocity field through node-slab output operators.
+The result locates where the reduced velocity closure departs from the resolved
+state, but it does not attribute that departure uniquely to the 1D closure,
+boundary data, 3D post-processing operator, or formulation differences. In
+summary, the $T=1$ comparison is a declared velocity diagnostic whose largest
+deviations are localized near and downstream of the stenosis throat, especially
+for the 40\% case. It should not be converted into a pressure, clinical, or
+resolved-3D validation claim. The next defensible study step is therefore a
+matched comparison dataset that restores the raw 3D inputs, archives the source
+hashes or upstream release identifiers, and reruns the same output operators
+while varying only one declared closure or boundary choice at a time.
 
 \subsection{Package Benchmark Suite}
 \label{subsec:package-benchmark-suite}
 
 The report package now includes a reproducible package-benchmark pipeline for
-the Julia solver package and Python CLI. The suite is intended to support
-self-convergence, backend agreement, descriptor smoke/health, runtime
-comparison, and resolved-velocity output-operator diagnostic claims only. It
-does not support clinical validation, pressure or FFR accuracy, full transient
-FEM validation, or Julia--Python scientific equivalence beyond the metrics
-actually compared in the emitted CSVs.
+the Julia solver package and Python CLI. The suite is an internal evidence
+record for self-convergence, backend agreement, descriptor smoke/health,
+runtime comparison, and resolved-velocity output-operator diagnostics within
+the emitted CSVs. It does not upgrade those checks into clinical validation,
+pressure or FFR accuracy, full transient FEM validation, or Julia--Python
+scientific equivalence beyond the metrics actually compared.
 
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 ./scripts/julia-release simulations/run_package_benchmark.jl \

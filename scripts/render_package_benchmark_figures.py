@@ -15,6 +15,16 @@ from typing import Iterable
 import matplotlib
 
 matplotlib.use("Agg")
+matplotlib.rcParams.update(
+    {
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+        "font.family": "serif",
+        "font.serif": ["CMU Serif", "Computer Modern Roman", "DejaVu Serif"],
+        "mathtext.fontset": "cm",
+        "axes.unicode_minus": False,
+    }
+)
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
@@ -63,19 +73,26 @@ RHEOLOGY_LABELS = {
 }
 
 STATUS_COLORS = {
-    "ok": "#4f8f58",
-    "skipped": "#9b8e54",
-    "error": "#b65f5f",
+    "ok": "#217A7A",
+    "skipped": "#C6862C",
+    "error": "#B23A3A",
 }
 
 QUALITATIVE_COLORS = [
-    "#356f9f",
-    "#b45a3c",
-    "#5f8a48",
-    "#7a5aa6",
-    "#c08a2d",
-    "#4f8f8f",
+    "#1F3A5F",
+    "#B23A3A",
+    "#217A7A",
+    "#8067A9",
+    "#C6862C",
+    "#6E6E6E",
 ]
+
+METRIC_COLORS = {
+    "area_l2": "#1F3A5F",
+    "flow_l2": "#C6862C",
+    "velocity_l2": "#217A7A",
+    "pressure_l2": "#B23A3A",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -225,6 +242,7 @@ def convergence_figure(rows: list[dict[str, str]]) -> plt.Figure:
             yerr=[lower_errors, upper_errors],
             capsize=2.5,
             label=metric_label(metric),
+            color=METRIC_COLORS.get(metric, QUALITATIVE_COLORS[metric_index % len(QUALITATIVE_COLORS)]),
         )
     ax.axhline(1.0, color="#666666", linewidth=0.8, linestyle="--")
     ax.axhline(2.0, color="#888888", linewidth=0.8, linestyle=":")
@@ -444,7 +462,7 @@ def resolved3d_figure(rows: list[dict[str, str]]) -> plt.Figure:
     labels = [f"{case}\n{profile}" for case, profile, _ in points]
     values = [value for _, _, value in points]
     fig, ax = plt.subplots(figsize=(max(6.5, 0.6 * len(values)), 3.8))
-    ax.bar(range(len(values)), values, color="#9a5a42")
+    ax.bar(range(len(values)), values, color="#217A7A")
     ax.set_ylabel("Mean absolute velocity error, cm/s")
     ax.set_title("Resolved-velocity output-operator diagnostic")
     ax.set_xticks(range(len(labels)))
