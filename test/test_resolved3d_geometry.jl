@@ -83,6 +83,9 @@ end
         default_opts = GeometryExportOptions()
         @test isabspath(default_opts.output_dir)
         @test isabspath(default_opts.data_root)
+        @test CanicExtended1D.portable_project_path(joinpath(CanicExtended1D.PROJECT_ROOT, "figures", "out.csv")) ==
+              joinpath("figures", "out.csv")
+        @test CanicExtended1D.portable_project_path(joinpath(dir, "outside.csv")) == joinpath(dir, "outside.csv")
 
         parsed_opts = CanicExtended1D.parse_export_args([
             "--output-dir", dir,
@@ -102,6 +105,28 @@ end
         summary_rows = read_simple_csv(joinpath(dir, "analytic_summary.csv"))
         sev73 = only(row for row in summary_rows if parse(Float64, row["severity"]) == 73.0)
         @test parse(Float64, sev73["rmin_over_rbase"]) ≈ 0.27 atol=5.0e-4
+
+        resolved_root = joinpath(dir, "resolved")
+        _, coords, velocity_values = write_synthetic_xdmf_hdf5_case(joinpath(resolved_root, "77"); time=1.0)
+        resolved_opts = GeometryExportOptions(
+            output_dir=dir,
+            data_root=resolved_root,
+            z_samples=31,
+            theta_samples=12,
+            overwrite=true,
+        )
+        velocity_paths = CanicExtended1D.export_resolved_velocity_nodes(resolved_opts)
+        @test length(velocity_paths) == 2
+        @test isfile(velocity_paths[1])
+        @test isfile(velocity_paths[2])
+        velocity_rows = read_simple_csv(velocity_paths[2])
+        @test length(velocity_rows) == size(coords, 1)
+        @test parse(Float64, velocity_rows[1]["z_cm"]) ≈ coords[1, 3]
+        @test parse(Float64, velocity_rows[1]["uz_cm_s"]) ≈ velocity_values[1, 3]
+        manifest_rows = read_simple_csv(velocity_paths[1])
+        written = only(row for row in manifest_rows if row["status"] == "written")
+        @test written["case_label"] == "77"
+        @test parse(Int, written["node_count"]) == size(coords, 1)
 
         paths = CanicExtended1D.export_stokes_particle_trajectories(
             opts;

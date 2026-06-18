@@ -1,2 +1,3 @@
 status,data_root,case_label,severity,source_xdmf,output_csv,node_count,z_bins,theta_bins,note
-skipped,simulations/data/3d/canic_case3,,,,,0,181,72,no local XDMF files found
+written,simulations/data/3d/canic_case3,77,23,simulations/data/3d/canic_case3/77/velocity.xdmf,figures/static/static/data/stenosis-geometry/resolved_envelope_case77_sev23.csv,22691,181,72,node-envelope view, not exact wall surface
+written,simulations/data/3d/canic_case3,60,40,simulations/data/3d/canic_case3/60/velocity.xdmf,figures/static/static/data/stenosis-geometry/resolved_envelope_case60_sev40.csv,21975,181,72,node-envelope view, not exact wall surface

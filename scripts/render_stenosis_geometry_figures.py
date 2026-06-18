@@ -21,6 +21,7 @@ DEFAULT_DATA_DIR = Path("figures/static/static/data/stenosis-geometry")
 DEFAULT_OUTPUT_DIR = Path("figures/static/static/rendered")
 MANUSCRIPT_TRAJECTORY_SEVERITIES = [23, 50, 73]
 TRAJECTORY_PARTICLE_COUNT = 5
+RESOLVED_FLOW_CASES = [("77", 23), ("60", 40)]
 
 COLORS = {
     "bloodred": "#B23A3A",
@@ -453,6 +454,142 @@ def render_resolved_envelopes(
     return paths
 
 
+def read_resolved_velocity_nodes(
+    data_dir: Path,
+) -> dict[tuple[str, int], list[dict[str, float | str]]]:
+    cases: dict[tuple[str, int], list[dict[str, float | str]]] = {}
+    for csv_path in sorted(data_dir.glob("resolved_velocity_nodes_case*_sev*.csv")):
+        rows = rows_from_csv(csv_path)
+        if not rows:
+            continue
+        case_label = rows[0]["case_label"]
+        severity = int_severity(rows[0]["severity"])
+        cases[(case_label, severity)] = [
+            {
+                "case_label": row["case_label"],
+                "severity": int_severity(row["severity"]),
+                "node_id": int(row["node_id"]),
+                "z_cm": float_field(row, "z_cm"),
+                "x_cm": float_field(row, "x_cm"),
+                "y_cm": float_field(row, "y_cm"),
+                "ux_cm_s": float_field(row, "ux_cm_s"),
+                "uy_cm_s": float_field(row, "uy_cm_s"),
+                "uz_cm_s": float_field(row, "uz_cm_s"),
+                "speed_cm_s": float_field(row, "speed_cm_s"),
+                "xdmf_time_s": float_field(row, "xdmf_time_s"),
+            }
+            for row in rows
+        ]
+    return cases
+
+
+def resolved_velocity_arrays(rows: list[dict[str, float | str]]) -> dict[str, np.ndarray]:
+    return {
+        "z": np.array([row["z_cm"] for row in rows], dtype=float),
+        "x": np.array([row["x_cm"] for row in rows], dtype=float),
+        "y": np.array([row["y_cm"] for row in rows], dtype=float),
+        "ux": np.array([row["ux_cm_s"] for row in rows], dtype=float),
+        "uy": np.array([row["uy_cm_s"] for row in rows], dtype=float),
+        "uz": np.array([row["uz_cm_s"] for row in rows], dtype=float),
+        "speed": np.array([row["speed_cm_s"] for row in rows], dtype=float),
+    }
+
+
+def plot_envelope_frame(ax, data_dir: Path, case_label: str, severity: int) -> None:
+    envelope_path = data_dir / f"resolved_envelope_case{case_label}_sev{severity}.csv"
+    if not envelope_path.is_file():
+        return
+    z_grid, x_grid, y_grid, _ = surface_grid(envelope_path)
+    ax.plot_surface(
+        z_grid,
+        x_grid,
+        y_grid,
+        color=COLORS["accent_teal_lite"],
+        linewidth=0,
+        antialiased=True,
+        shade=True,
+        alpha=0.08,
+        rasterized=True,
+    )
+
+
+def render_resolved_velocity_field(
+    data_dir: Path, output_dir: Path, formats: list[str]
+) -> list[Path]:
+    cases = read_resolved_velocity_nodes(data_dir)
+    missing = [case for case in RESOLVED_FLOW_CASES if case not in cases]
+    if missing:
+        print(
+            "no complete resolved velocity node CSV set found; skipped resolved flow render: "
+            + ", ".join(f"case {case_label}" for case_label, _ in missing)
+        )
+        return []
+
+    arrays_by_case = {
+        case: resolved_velocity_arrays(cases[case]) for case in RESOLVED_FLOW_CASES
+    }
+    uz_values = np.concatenate([arrays["uz"] for arrays in arrays_by_case.values()])
+    color_norm = plt.Normalize(float(np.min(uz_values)), float(np.max(uz_values)))
+
+    fig = plt.figure(figsize=(7.4, 4.6))
+    axes = []
+    scatter = None
+    for index, (case_label, severity) in enumerate(RESOLVED_FLOW_CASES, start=1):
+        ax = fig.add_subplot(2, 1, index, projection="3d")
+        axes.append(ax)
+        arrays = arrays_by_case[(case_label, severity)]
+        display_mask = arrays["x"] >= -0.002
+        plot_envelope_frame(ax, data_dir, case_label, severity)
+        scatter = ax.scatter(
+            arrays["z"][display_mask],
+            arrays["x"][display_mask],
+            arrays["y"][display_mask],
+            c=arrays["uz"][display_mask],
+            cmap="viridis",
+            norm=color_norm,
+            s=3.0,
+            alpha=0.92,
+            depthshade=False,
+            rasterized=True,
+        )
+
+        visible_indices = np.flatnonzero(display_mask)
+        order = visible_indices[np.argsort(arrays["z"][visible_indices])]
+        step = max(1, len(order) // 130)
+        arrow_index = order[::step]
+        ax.quiver(
+            arrays["z"][arrow_index],
+            arrays["x"][arrow_index],
+            arrays["y"][arrow_index],
+            arrays["uz"][arrow_index],
+            arrays["ux"][arrow_index],
+            arrays["uy"][arrow_index],
+            length=0.13,
+            normalize=True,
+            color=COLORS["mathblue"],
+            linewidth=0.35,
+            alpha=0.28,
+        )
+        setup_3d_axis(
+            ax,
+            f"case {case_label}, {severity}% resolved velocity nodes",
+        )
+
+    fig.subplots_adjust(left=0.01, right=0.99, bottom=0.13, top=0.96, hspace=-0.1)
+    if scatter is not None:
+        cbar = fig.colorbar(
+            scatter,
+            ax=axes,
+            orientation="horizontal",
+            fraction=0.045,
+            pad=0.035,
+            aspect=35,
+        )
+        cbar.set_label("$u_z$ (cm/s)", fontsize=8)
+        cbar.ax.tick_params(labelsize=7)
+    return save_figure(fig, output_dir, "resolved-3d-flow-field", formats)
+
+
 def main() -> None:
     args = parse_args()
     data_dir = args.data_dir
@@ -464,7 +601,7 @@ def main() -> None:
     written.extend(render_particle_trajectories(data_dir, output_dir, formats))
     written.extend(render_slices(data_dir, output_dir, formats))
     written.extend(render_severity_gallery(data_dir, output_dir, formats))
-    written.extend(render_resolved_envelopes(data_dir, output_dir, formats))
+    written.extend(render_resolved_velocity_field(data_dir, output_dir, formats))
 
     print(f"wrote {len(written)} rendered files")
     for path in written:

@@ -416,14 +416,16 @@ independent replacements for the blood-dynamics setting above.
 \begin{figure}[!htb]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \includegraphics[width=0.98\textwidth]{figures/static/static/rendered/stenosis-severity-gallery.pdf}
-    \caption{Analytic three-dimensional renderings of the
-    $C^\infty$ reference geometry in
-    Definition~\ref{def:1d-stenosis-reference-geometry}, shown for
-    $s_{\max}=0\%, 23\%, 40\%, 50\%$. Here $s_{\max}$ is the prescribed
-    anatomical radius-reduction parameter in the idealized geometry. These
-    renderings illustrate the geometry family only; they are not pressure-drop,
-    FFR, or patient-specific clinical calibration measurements.}
+    \includegraphics[width=0.98\textwidth]{figures/static/static/rendered/resolved-3d-flow-field.pdf}
+    \caption{Resolved 3D node-centered axial velocity fields for the two
+    $T=1$ comparison cases used in Section~\ref{sec:resolved-3d-comparison}.
+    The panels show deterministic half-domain cutaway views of the full
+    upstream XDMF/HDF5 velocity fields: case 77 has 22,691 loaded nodes and
+    case 60 has 21,975 loaded nodes. Color denotes $u_z$ in cm/s, sparse
+    arrows indicate local vector direction, and the transparent surface is the
+    node envelope used only to frame the 3D point cloud. These are resolved
+    velocity-data renderings, not the stationary-Stokes pathline proxy or a
+    pressure-drop, FFR, or patient-specific clinical calibration measurement.}
     \label{fig:stenosis-3d-reference-geometry}
 \end{figure}
 

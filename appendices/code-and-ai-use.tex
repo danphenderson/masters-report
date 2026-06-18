@@ -3,10 +3,10 @@
 
 This report is built from the \LaTeX{} sources rooted at
 \texttt{final-report.tex}. The compiled PDF should be treated as the rendered
-form of those sources. The report package used for this build is rooted at
-\path{/Users/doe/hemodynamics/masters-report}. Because no public remote or
-archival release is declared here, this appendix does not claim a public
-repository or archival URL.
+form of those sources. The report package used for this build is the repository
+root containing \path{final-report.tex}. Because no public remote or archival
+release is declared here, this appendix does not claim a public repository or
+archival URL.
 
 The Julia simulation code is packaged as \path{CanicExtended1D} in the root
 Julia project. The tracked source inventory is:
@@ -61,11 +61,39 @@ shape for regenerating the comparison, when the raw 3D inputs are restored, is:
 ./scripts/julia-release -e 'using CanicExtended1D; run_available_resolved3d_comparison(output_dir="simulations/output/3d_comparison/full_t1_native_nx400", overwrite=true)'
 \end{lstlisting}
 
-The raw upstream XDMF/HDF5 inputs under
-\path{simulations/data/3d/canic_case3/} are not archived in this report package.
-Therefore the comparison is not independently reproducible from the tracked
-report package alone. The tracked static data copied into the PDF
-has the following SHA-256 hashes:
+The raw upstream XDMF/HDF5 inputs used for
+Figure~\ref{fig:stenosis-3d-reference-geometry} and
+Section~\ref{sec:resolved-3d-comparison} were restored locally from
+\url{https://github.com/qcutexu/Extended-1D-AQ-system}, commit
+\texttt{056a9da2b36b480691f18025d242d2c00f6e7180}, under
+\path{case3_all_3d_results/}. The local copies under
+\path{simulations/data/3d/canic_case3/} are ignored by git and are not archived
+in this report package. Rerunning the raw XDMF/HDF5 extraction therefore
+requires those local inputs or the upstream repository. The observed local raw
+velocity-input hashes are:
+\begin{center}
+\scriptsize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\ttfamily\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Ignored local input} & \textbf{SHA-256} \\
+\midrule
+\path{simulations/data/3d/canic_case3/77/velocity.xdmf}
+& 8cbb61e8d6a8b9fbfe9662bea7544eb8\newline
+9ef58390cdcc93a5d0f68fbb19c110b7 \\
+\path{simulations/data/3d/canic_case3/77/velocity.h5}
+& 315157b3c9a9a92d1e99b26c3e9c393f\newline
+22303a676b3b24f52287d0b8cd22d168 \\
+\path{simulations/data/3d/canic_case3/60/velocity.xdmf}
+& 765adb3f603b2306144dfb9be6ffec5573\newline
+23686867172ea9cc7b6e3f246284e0 \\
+\path{simulations/data/3d/canic_case3/60/velocity.h5}
+& 1dee423991e35ced10a051e20b0598ee\newline
+0cbea3d59521b0fc3cb490b49bb4fe41 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The tracked static data copied into the PDF has the following SHA-256 hashes:
 \begin{center}
 \scriptsize
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\ttfamily\raggedright\arraybackslash}X@{}}
@@ -81,6 +109,27 @@ has the following SHA-256 hashes:
 \path{figures/static/static/data/stenosis-comparison/radial-case60.dat}
 & e35b4f1e9016e22ba1ee9feb638945273\newline
 2eb81fb0ea7a9d4a686f64d89e1bbbc \\
+\path{figures/static/static/data/stenosis-geometry/resolved_velocity_nodes_manifest.csv}
+& 372796413873c09581ced890f8de657e\newline
+f39e9ff69eabca8ce46b51b0cf758d3f \\
+\path{figures/static/static/data/stenosis-geometry/resolved_velocity_nodes_case77_sev23.csv}
+& 0c0451dcee29216d967cecb11d36f518\newline
+a95c469fbcf18a1b472d7b9f01d211d0 \\
+\path{figures/static/static/data/stenosis-geometry/resolved_velocity_nodes_case60_sev40.csv}
+& eb4b2d5149128740bfbb89ff219e92a47\newline
+d0535f3a7fd45078732b837619f68d1 \\
+\path{figures/static/static/data/stenosis-geometry/resolved_envelope_manifest.csv}
+& d8236b5549851ff97eb9d9628b2bfbc6\newline
+60f0e594738b634509d0538476ef25a7 \\
+\path{figures/static/static/data/stenosis-geometry/resolved_envelope_case77_sev23.csv}
+& 7ffbbdbf52e4cab5c27e7aebc54bc47d\newline
+8aa0e7e2ab2b7058c61da8f06bb40192 \\
+\path{figures/static/static/data/stenosis-geometry/resolved_envelope_case60_sev40.csv}
+& e661114841a0b3f8abccb0dc244e2d4\newline
+b4409291c8f02dcd5a4da2398892a7c1d \\
+\path{figures/static/static/rendered/resolved-3d-flow-field.pdf}
+& bed6431c3b0769c17219c2d766b276d1\newline
+d9807fe9cf2dd1fd1411263775198218 \\
 \bottomrule
 \end{tabularx}
 \end{center}
