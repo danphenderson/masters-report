@@ -3,18 +3,23 @@
 % signatures. Panels placed by hand (no \foreach) so the two regimes
 % can carry slightly different annotations, and the bottom prose was
 % folded into the caption.
-\begin{tikzpicture}[fig, scale=1.12, transform shape,
+\begin{tikzpicture}[fig, scale=1.08, transform shape,
     panel/.style={draw=wallgray!65, rounded corners=3pt, fill=white,
-        line width=0.8pt, minimum width=55mm, minimum height=42mm},
-    ptitle/.style={font=\footnotesize\bfseries, align=center},
-    trace/.style={line width=0.95pt, smooth},
-    plabel/.style={font=\footnotesize, align=center}]
+        line width=0.8pt, minimum width=58mm, minimum height=46mm},
+    paneltag/.style={circle, draw=wallgray!70, fill=wallgraylight!45,
+        inner sep=1.4pt, font=\scriptsize\bfseries},
+    ptitle/.style={font=\footnotesize\bfseries, align=left},
+    trace/.style={line width=1.18pt, smooth, line cap=round},
+    plabel/.style={font=\footnotesize, align=center},
+    traceLabel/.style={font=\scriptsize, fill=white, fill opacity=0.92,
+        text opacity=1, inner sep=1pt}]
 
   % ----- left panel: anatomically narrow, mild pressure loss -----
-  \node[panel] at (-3.2,0) {};
-  \node[ptitle, mathblue!75!black] at (-3.2,1.75)
-    {anatomically narrow\\functionally mild};
-  \begin{scope}[shift={(-4.9,0.75)}, x=1cm, y=1cm]
+  \node[panel] at (-3.35,0) {};
+  \node[paneltag] at (-5.95,1.93) {A};
+  \node[ptitle, mathblue!75!black, anchor=west] at (-5.68,1.93)
+    {same anatomical narrowing\\small functional loss};
+  \begin{scope}[shift={(-5.05,0.72)}, x=1cm, y=1cm]
     \fill[wallgraylight] (0,0.45) -- (1.15,0.45)
       .. controls (1.55,0.22) and (1.85,0.22) .. (2.25,0.45)
       -- (3.4,0.45) -- (3.4,0.66) -- (0,0.66) -- cycle;
@@ -30,24 +35,38 @@
     \draw[flowArrow] (0.25,0) -- (0.95,0);
     \draw[flowArrow] (2.45,0) -- (3.15,0);
   \end{scope}
-  \begin{scope}[shift={(-4.95,-1.0)}, x=1cm, y=1cm]
-    \draw[axisArrow] (0,0) -- (3.55,0) node[right, plabel] {$t$};
-    \draw[axisArrow] (0,0) -- (0,1.15) node[above, plabel] {$p$};
+  \begin{scope}[shift={(-5.07,-1.42)}, x=1cm, y=1cm]
+    \draw[axisArrow] (0,0) -- (3.9,0) node[right, plabel] {$t$};
+    \draw[axisArrow] (0,0) -- (0,1.32) node[above, plabel] {$p$};
+    \fill[mathblue!11]
+      plot[domain=0.25:3.38, samples=80] (\x,{0.84+0.24*sin(112*\x)})
+      -- plot[domain=3.38:0.25, samples=80] (\x,{0.68+0.22*sin(112*\x-8)})
+      -- cycle;
     \draw[trace, bloodred!75!black]
-      plot[domain=0:3.25, samples=80] (\x,{0.74+0.22*sin(110*\x)});
+      plot[domain=0:3.38, samples=80] (\x,{0.84+0.24*sin(112*\x)});
     \draw[trace, mathblue!75!black, dashed]
-      plot[domain=0:3.25, samples=80] (\x,{0.56+0.20*sin(110*\x-8)});
-    \draw[<->, line width=0.65pt, mathblue!85!black]
-      (2.9,{0.56+0.20*sin(110*2.9-8)}) -- (2.9,{0.74+0.22*sin(110*2.9)});
-    \node[plabel, mathblue!85!black, anchor=west] at (3.02,0.65)
-      {small $\Delta p$};
+      plot[domain=0:3.38, samples=80] (\x,{0.68+0.22*sin(112*\x-8)});
+    \node[traceLabel, bloodred!75!black, anchor=west] at (0.22,1.13)
+      {$P_{\mathrm{prox}}$};
+    \node[traceLabel, mathblue!75!black, anchor=west] at (0.22,0.52)
+      {$P_{\mathrm{dist}}$};
+    \draw[<->, line width=0.82pt, mathblue!85!black]
+      (3.45,{0.68+0.22*sin(112*3.45-8)})
+        -- (3.45,{0.84+0.24*sin(112*3.45)});
+    \node[plabel, mathblue!85!black, anchor=east, traceLabel] at (3.86,0.76)
+      {small\\$\Delta p$};
   \end{scope}
 
   % ----- right panel: matched narrowing, functionally severe -----
-  \node[panel] at (3.2,0) {};
-  \node[ptitle, bloodred!75!black] at (3.2,1.75)
-    {matched narrowing\\functionally severe};
-  \begin{scope}[shift={(1.5,0.75)}, x=1cm, y=1cm]
+  \node[panel] at (3.35,0) {};
+  \node[paneltag] at (0.75,1.93) {B};
+  \node[ptitle, bloodred!75!black, anchor=west] at (1.02,1.93)
+    {same anatomical narrowing\\large functional loss};
+  \draw[<->, wallgray!70, line width=0.55pt]
+    (-1.18,1.1) -- (1.18,1.1)
+    node[midway, above=1pt, font=\scriptsize, wallgray!70!black, fill=white,
+      inner sep=1pt] {matched idealized lumen};
+  \begin{scope}[shift={(1.65,0.72)}, x=1cm, y=1cm]
     \fill[wallgraylight] (0,0.45) -- (1.15,0.45)
       .. controls (1.55,0.22) and (1.85,0.22) .. (2.25,0.45)
       -- (3.4,0.45) -- (3.4,0.66) -- (0,0.66) -- cycle;
@@ -63,16 +82,25 @@
     \draw[flowArrow] (0.25,0) -- (0.95,0);
     \draw[flowArrow] (2.45,0) -- (3.15,0);
   \end{scope}
-  \begin{scope}[shift={(1.45,-1.0)}, x=1cm, y=1cm]
-    \draw[axisArrow] (0,0) -- (3.55,0) node[right, plabel] {$t$};
-    \draw[axisArrow] (0,0) -- (0,1.15) node[above, plabel] {$p$};
+  \begin{scope}[shift={(1.63,-1.42)}, x=1cm, y=1cm]
+    \draw[axisArrow] (0,0) -- (3.9,0) node[right, plabel] {$t$};
+    \draw[axisArrow] (0,0) -- (0,1.32) node[above, plabel] {$p$};
+    \fill[bloodred!12]
+      plot[domain=0.25:3.38, samples=80] (\x,{0.86+0.24*sin(112*\x)})
+      -- plot[domain=3.38:0.25, samples=80] (\x,{0.30+0.20*sin(112*\x-8)})
+      -- cycle;
     \draw[trace, bloodred!75!black]
-      plot[domain=0:3.25, samples=80] (\x,{0.78+0.22*sin(110*\x)});
+      plot[domain=0:3.38, samples=80] (\x,{0.86+0.24*sin(112*\x)});
     \draw[trace, mathblue!75!black, dashed]
-      plot[domain=0:3.25, samples=80] (\x,{0.22+0.20*sin(110*\x-8)});
-    \draw[<->, line width=0.65pt, bloodred!85!black]
-      (2.9,{0.22+0.20*sin(110*2.9-8)}) -- (2.9,{0.78+0.22*sin(110*2.9)});
-    \node[plabel, bloodred!85!black, anchor=west] at (3.02,0.55)
-      {large $\Delta p$};
+      plot[domain=0:3.38, samples=80] (\x,{0.30+0.20*sin(112*\x-8)});
+    \node[traceLabel, bloodred!75!black, anchor=west] at (0.22,1.15)
+      {$P_{\mathrm{prox}}$};
+    \node[traceLabel, mathblue!75!black, anchor=west] at (0.22,0.22)
+      {$P_{\mathrm{dist}}$};
+    \draw[<->, line width=0.82pt, bloodred!85!black]
+      (3.45,{0.30+0.20*sin(112*3.45-8)})
+        -- (3.45,{0.86+0.24*sin(112*3.45)});
+    \node[plabel, bloodred!85!black, anchor=east, traceLabel] at (3.86,0.58)
+      {large\\$\Delta p$};
   \end{scope}
 \end{tikzpicture}

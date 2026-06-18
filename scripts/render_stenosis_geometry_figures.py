@@ -402,7 +402,16 @@ def render_mesh_overview(
         raise ValueError("FVM mesh view CSV has no rows")
 
     fig = plt.figure(figsize=(7.4, 2.85))
-    grid = fig.add_gridspec(1, 2, width_ratios=[1.08, 1.0])
+    grid = fig.add_gridspec(
+        1,
+        2,
+        width_ratios=[1.02, 1.0],
+        left=0.025,
+        right=0.985,
+        bottom=0.14,
+        top=0.90,
+        wspace=0.22,
+    )
     ax_fem = fig.add_subplot(grid[0, 0], projection="3d")
     ax_fvm = fig.add_subplot(grid[0, 1])
 
@@ -425,10 +434,10 @@ def render_mesh_overview(
         )
 
     line_styles = {
-        "wall-circumferential": (COLORS["wallgray"], 0.24, 0.30),
-        "wall-axial": (COLORS["mathblue"], 0.25, 0.24),
-        "cut-axial": (COLORS["mathblue"], 0.50, 0.82),
-        "cut-radial": (COLORS["bloodred"], 0.58, 0.90),
+        "wall-circumferential": (COLORS["wallgray"], 0.34, 0.55),
+        "wall-axial": (COLORS["mathblue"], 0.36, 0.52),
+        "cut-axial": (COLORS["mathblue"], 0.64, 0.96),
+        "cut-radial": (COLORS["bloodred"], 0.70, 0.98),
     }
     for group, segments in grouped_segments.items():
         color, linewidth, alpha = line_styles.get(
@@ -442,11 +451,11 @@ def render_mesh_overview(
                 alpha=alpha,
             )
         )
-    setup_3d_axis(ax_fem, "FEM tetrahedral mesh")
+    setup_3d_axis(ax_fem, "(a) FEM tetrahedral mesh")
     for axis in (ax_fem.yaxis, ax_fem.zaxis):
         axis.line.set_alpha(0.0)
     try:
-        ax_fem.set_box_aspect((6.0, 0.7, 0.7), zoom=1.72)
+        ax_fem.set_box_aspect((6.0, 0.7, 0.7), zoom=1.95)
     except TypeError:
         ax_fem.set_box_aspect((6.0, 0.7, 0.7))
 
@@ -500,7 +509,7 @@ def render_mesh_overview(
         linewidth=0.8,
         alpha=0.72,
     )
-    ax_fvm.set_title("FVM cell mesh", color=COLORS["mathblue"], fontsize=10, pad=4)
+    ax_fvm.set_title("(b) FVM cell mesh", color=COLORS["mathblue"], fontsize=10, pad=4)
     ax_fvm.set_xlabel("z (cm)", fontsize=8)
     ax_fvm.set_ylabel("radius (cm)", fontsize=8)
     ax_fvm.set_xlim(0.0, 6.0)
@@ -509,8 +518,7 @@ def render_mesh_overview(
     ax_fvm.set_yticks([-0.2, 0.0, 0.2])
     ax_fvm.tick_params(labelsize=7, colors=COLORS["mathblue"])
     ax_fvm.grid(True, color="#E3E3E3", linewidth=0.45)
-    ax_fvm.set_aspect(6.0)
-    fig.subplots_adjust(left=0.01, right=0.99, bottom=0.10, top=0.90, wspace=0.27)
+    ax_fvm.set_box_aspect(0.42)
 
     return save_figure(fig, output_dir, "stenosis-fem-fvm-meshes", formats)
 
@@ -659,11 +667,22 @@ def render_resolved_velocity_field(
     uz_values = np.concatenate([arrays["uz"] for arrays in arrays_by_case.values()])
     color_norm = plt.Normalize(float(np.min(uz_values)), float(np.max(uz_values)))
 
-    fig = plt.figure(figsize=(7.4, 4.6))
+    fig = plt.figure(figsize=(7.4, 3.0))
+    grid = fig.add_gridspec(
+        2,
+        2,
+        height_ratios=[1.0, 0.08],
+        left=0.025,
+        right=0.985,
+        bottom=0.13,
+        top=0.92,
+        wspace=0.02,
+        hspace=0.02,
+    )
     axes = []
     scatter = None
     for index, (case_label, severity) in enumerate(RESOLVED_FLOW_CASES, start=1):
-        ax = fig.add_subplot(2, 1, index, projection="3d")
+        ax = fig.add_subplot(grid[0, index - 1], projection="3d")
         axes.append(ax)
         arrays = arrays_by_case[(case_label, severity)]
         display_mask = arrays["x"] >= -0.002
@@ -700,18 +719,19 @@ def render_resolved_velocity_field(
         )
         setup_3d_axis(
             ax,
-            f"case {case_label}, {severity}% resolved velocity nodes",
+            f"({chr(96 + index)}) case {case_label}, {severity}% velocity nodes",
         )
+        try:
+            ax.set_box_aspect((6.0, 0.68, 0.68), zoom=1.95)
+        except TypeError:
+            ax.set_box_aspect((6.0, 0.68, 0.68))
 
-    fig.subplots_adjust(left=0.01, right=0.99, bottom=0.13, top=0.96, hspace=-0.1)
     if scatter is not None:
+        cax = fig.add_subplot(grid[1, :])
         cbar = fig.colorbar(
             scatter,
-            ax=axes,
+            cax=cax,
             orientation="horizontal",
-            fraction=0.045,
-            pad=0.035,
-            aspect=35,
         )
         cbar.set_label("$u_z$ (cm/s)", fontsize=8)
         cbar.ax.tick_params(labelsize=7)

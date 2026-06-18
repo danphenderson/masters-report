@@ -144,14 +144,16 @@ still useful as a velocity-localization diagnostic: the mismatch concentrates
 where the reduced velocity closure, idealized 1D boundary state, and node-slab
 output operator are least matched to the resolved 3D field.
 
-\begin{figure}[!htb]
+\begin{figure}[H]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{section-mean-comparison}
-    \caption{Section-mean axial velocity comparison at $T=1$. Solid curves
-    are resolved 3D node-slab means; dashed curves are interpolated 1D
-    $Q/a$, equivalently $Q_{\mathrm{phys}}/A_{\mathrm{phys}}$ under the
-    declared $\pi$-scaling.}
+    \caption{Section-mean axial velocity comparison at $T=1$. The shaded band
+    marks the throat-centered stenosis region near $z_\star$; solid curves are
+    resolved 3D node-slab means, and dashed curves are interpolated 1D $Q/a$,
+    equivalently $Q_{\mathrm{phys}}/A_{\mathrm{phys}}$ under the declared
+    $\pi$-scaling. The mismatch localizes near the stenosis and is larger for
+    the 40\% case.}
     \label{fig:t1-section-mean-comparison}
 \end{figure}
 
@@ -203,13 +205,16 @@ this family; the parabolic profile is $\gamma=2$ and
 $\alpha_{\mathcal P}=4/3$. Flat-profile diagnostics use
 $u_{\mathcal P}(r)=\bar u$ with $\alpha_{\mathcal P}=1$.
 
-\begin{figure}[!htb]
+\begin{figure}[H]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{radial-profile-comparison}
-    \caption{Radial velocity profile comparison at the declared throat-centered
-    slices. Markers are resolved 3D radial-bin means; dashed curves are the 1D
-    closure profile reconstructed from $Q/a$.}
+    \caption{Radial velocity profile comparison at the declared
+    throat-centered slices. Markers are resolved 3D radial-bin means; dashed
+    curves are the 1D closure profile reconstructed from $Q/a$. Colored
+    in-panel labels identify the axial stations, making the downstream
+    case-60 discrepancy visible without repeating a separate legend in each
+    panel.}
     \label{fig:t1-radial-profile-comparison}
 \end{figure}
 
@@ -289,60 +294,72 @@ produce structured skipped rows rather than manuscript claims.
 }{%
     \begin{center}
     \small
-    \emph{Package benchmark table fragment not yet published. Run the benchmark
-    renderer to populate \path{figures/static/static/tables/package-benchmark/}.}
+    \emph{Package benchmark table fragment unavailable in this checkout. Run
+    the benchmark renderer to populate
+    \path{figures/static/static/tables/package-benchmark/}.}
     \end{center}
 }
 
-\begin{figure}[!htb]
+\begin{figure}[H]
     \centering
     \IfFileExists{figures/static/static/rendered/package-benchmark-convergence.pdf}{%
         \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-convergence.pdf}
     }{%
         \fbox{\parbox{0.86\linewidth}{\centering Package benchmark convergence
-        figure not yet published.}}
+        asset unavailable in this checkout.}}
     }
     \caption{Self-convergence observed-order summary emitted by the package
-    benchmark renderer.}
+    benchmark renderer. Bars report median observed order by method and metric;
+    whiskers show the observed min--max range across the benchmarked
+    refinements. This is an internal convergence diagnostic, not external
+    validation evidence.}
     \label{fig:package-benchmark-convergence}
 \end{figure}
 
-\begin{figure}[!htb]
+\begin{figure}[H]
     \centering
     \IfFileExists{figures/static/static/rendered/package-benchmark-backend-parity.pdf}{%
         \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-backend-parity.pdf}
     }{%
         \fbox{\parbox{0.86\linewidth}{\centering Package benchmark backend
-        parity figure not yet published.}}
+        parity asset unavailable in this checkout.}}
     }
     \caption{Native/SciML backend agreement versus runtime for benchmarked
-    compatible methods.}
+    compatible methods. Color identifies the method family, marker shape
+    identifies the SciML algorithm, and lower-left points are both faster and
+    closer to the native final state under the plotted aggregate difference.}
     \label{fig:package-benchmark-backend-parity}
 \end{figure}
 
-\begin{figure}[!htb]
+\begin{figure}[H]
     \centering
     \IfFileExists{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}{%
         \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}
     }{%
         \fbox{\parbox{0.86\linewidth}{\centering Package benchmark
-        rheology/profile figure not yet published.}}
+        rheology/profile asset unavailable in this checkout.}}
     }
     \caption{Rheology/profile sensitivity summary for declared descriptor
-    combinations.}
+    combinations. Facets separate stenosis severity; grouped bars separate the
+    rheology and velocity-profile descriptors. The diagnostic shows how the
+    maximum speed responds to descriptor choices within the emitted benchmark
+    records.}
     \label{fig:package-benchmark-rheology-profile}
 \end{figure}
 
 \begin{figure}[!htb]
     \centering
     \IfFileExists{figures/static/static/rendered/package-benchmark-resolved3d.pdf}{%
-        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-resolved3d.pdf}
+        \includegraphics[width=0.74\linewidth]{figures/static/static/rendered/package-benchmark-resolved3d.pdf}
     }{%
         \fbox{\parbox{0.86\linewidth}{\centering Package benchmark
-        resolved-velocity diagnostic figure not yet published.}}
+        resolved-velocity diagnostic asset unavailable in this checkout.}}
     }
-    \caption{Resolved-velocity output-operator diagnostic summary for available
-    local cases.}
+    \caption{Resolved-velocity output-operator diagnostic summary for the
+    available local cases. The package-benchmark CSVs contain four OK
+    resolved-velocity rows across the parabolic and power-profile closures; the
+    panel remains an output-operator diagnostic rather than a resolved-3D
+    validation claim.}
     \label{fig:package-benchmark-resolved3d}
 \end{figure}
 
@@ -352,9 +369,11 @@ produce structured skipped rows rather than manuscript claims.
         \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-python-mps.pdf}
     }{%
         \fbox{\parbox{0.86\linewidth}{\centering Package benchmark
-        Python/MPS figure not yet published.}}
+        Python/MPS asset unavailable in this checkout.}}
     }
-    \caption{Python native CPU versus Torch-MPS timing/parity summary for the
-    Python CLI surface.}
+    \caption{Python native CPU versus Torch-MPS comparison for the Python CLI
+    surface. The top panel reports elapsed time by method and grid size; the
+    lower panel reports the maximum relative final-state difference across the
+    emitted area and flow summaries.}
     \label{fig:package-benchmark-python-mps}
 \end{figure}

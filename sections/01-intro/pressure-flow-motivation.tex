@@ -44,9 +44,11 @@ reported FFR, CT-FFR, or pressure-measurement comparison.
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{anatomical-vs-functional-stenosis}
-    \caption{Pressure--flow motivation for reduced pressure outputs. The
-    schematic distinguishes an anatomical narrowing from the pressure-loss
-    signature used by reduced-model outputs.}
+    \caption{Pressure--flow motivation for reduced pressure outputs. The same
+    anatomical narrowing can correspond to either a small functional pressure
+    loss in panel (a) or a larger loss in panel (b). The reduced-output target
+    is therefore the declared pressure-loss signature, not stenosis severity
+    alone.}
     \label{fig:anatomical-functional-motivation}
 \end{figure}
 
@@ -87,10 +89,12 @@ shorthand for an idealized 1D stenosis.
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{stenosis-schematic}
     \caption{Schematic tap and output convention for an idealized stenosis,
-    not drawn from a computed case. The taps define $\Delta p(t)$;
-        Convention~\ref{conv:appendix-pressure-reference-ratio} supplies the
-        pressure-ratio observation maps, averaging window, pressure reference,
-        and admissibility rule for $\mathrm{PR}_{1D}(\pi_{\mathrm{PR}})$.}
+    not drawn from a computed case. The blue pressure taps define
+    $\Delta p(t)$, the gray geometry landmarks locate the stenosis region, and
+    the red/orange cue marks the reduced shear-proxy convention.
+    Convention~\ref{conv:appendix-pressure-reference-ratio} supplies the
+    pressure-ratio observation maps, averaging window, pressure reference, and
+    admissibility rule for $\mathrm{PR}_{1D}(\pi_{\mathrm{PR}})$.}
     \label{fig:pressure-tap-convention}
 \end{figure}
 

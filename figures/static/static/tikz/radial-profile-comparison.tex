@@ -1,9 +1,12 @@
-\begin{tikzpicture}
+\begin{tikzpicture}[
+  stationLabel/.style={font=\scriptsize, fill=white, fill opacity=0.88,
+                       text opacity=1, inner sep=1pt}
+]
   \begin{axis}[
     name=case77radial,
     width=0.46\textwidth,
     height=6.25cm,
-    title={case 77, 23\%},
+    title={case 77: 23\% stenosis},
     xlabel={$r/R_0(z)$},
     ylabel={axial velocity (cm/s)},
     xmin=0, xmax=1,
@@ -11,60 +14,71 @@
     unbounded coords=discard,
     filter discard warning=false,
     legend columns=2,
-    legend style={font=\scriptsize, at={(0.5,-0.22)}, anchor=north},
+    legend to name=radialProfileMethodLegend,
+    legend style={font=\scriptsize, draw=mathblue!30, fill=white,
+                  fill opacity=0.92, text opacity=1},
   ]
+    \addlegendimage{black, only marks, mark=*, mark size=1.4pt}
+    \addlegendentry{3D radial-bin means}
+    \addlegendimage{black, mark=none, dashed, line width=1.0pt}
+    \addlegendentry{1D closure profile}
+
     \addplot+[bloodred, only marks, mark=*, mark size=1.4pt]
       table[x=r, y=u3d1p951] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
-    \addlegendentry{$z=1.951$ 3D}
     \addplot+[bloodred, mark=none, dashed, line width=1.0pt]
       table[x=r, y=u1d1p951] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
-    \addlegendentry{$z=1.951$ 1D}
     \addplot+[mathblue, only marks, mark=square*, mark size=1.4pt]
       table[x=r, y=u3d2p451] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
-    \addlegendentry{$z=2.451$ 3D}
     \addplot+[mathblue, mark=none, dashed, line width=1.0pt]
       table[x=r, y=u1d2p451] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
-    \addlegendentry{$z=2.451$ 1D}
     \addplot+[accentTeal, only marks, mark=triangle*, mark size=1.6pt]
       table[x=r, y=u3d2p951] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
-    \addlegendentry{$z=2.951$ 3D}
     \addplot+[accentTeal, mark=none, dashed, line width=1.0pt]
       table[x=r, y=u1d2p951] {figures/static/static/data/stenosis-comparison/radial-case77.dat};
-    \addlegendentry{$z=2.951$ 1D}
+
+    \node[stationLabel, text=mathblue!85!black, anchor=west]
+      at (axis cs:0.38,56) {$z=2.451$};
+    \node[stationLabel, text=accentTeal!75!black, anchor=west]
+      at (axis cs:0.47,42) {$z=2.951$};
+    \node[stationLabel, text=bloodred!80!black, anchor=west]
+      at (axis cs:0.69,27) {$z=1.951$};
   \end{axis}
 
   \begin{axis}[
+    name=case60radial,
     at={(case77radial.east)},
     anchor=west,
     xshift=0.55cm,
     width=0.46\textwidth,
     height=6.25cm,
-    title={case 60, 40\%},
+    title={case 60: 40\% stenosis},
     xlabel={$r/R_0(z)$},
     xmin=0, xmax=1,
     grid=both,
     unbounded coords=discard,
     filter discard warning=false,
-    legend columns=2,
-    legend style={font=\scriptsize, at={(0.5,-0.22)}, anchor=north},
   ]
     \addplot+[bloodred, only marks, mark=*, mark size=1.4pt]
       table[x=r, y=u3d1p951] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
-    \addlegendentry{$z=1.951$ 3D}
     \addplot+[bloodred, mark=none, dashed, line width=1.0pt]
       table[x=r, y=u1d1p951] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
-    \addlegendentry{$z=1.951$ 1D}
     \addplot+[mathblue, only marks, mark=square*, mark size=1.4pt]
       table[x=r, y=u3d2p451] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
-    \addlegendentry{$z=2.451$ 3D}
     \addplot+[mathblue, mark=none, dashed, line width=1.0pt]
       table[x=r, y=u1d2p451] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
-    \addlegendentry{$z=2.451$ 1D}
     \addplot+[accentTeal, only marks, mark=triangle*, mark size=1.6pt]
       table[x=r, y=u3d2p951] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
-    \addlegendentry{$z=2.951$ 3D}
     \addplot+[accentTeal, mark=none, dashed, line width=1.0pt]
       table[x=r, y=u1d2p951] {figures/static/static/data/stenosis-comparison/radial-case60.dat};
-    \addlegendentry{$z=2.951$ 1D}
+
+    \node[stationLabel, text=mathblue!85!black, anchor=west]
+      at (axis cs:0.40,83) {$z=2.451$};
+    \node[stationLabel, text=accentTeal!75!black, anchor=west]
+      at (axis cs:0.36,59) {$z=2.951$};
+    \node[stationLabel, text=bloodred!80!black, anchor=west]
+      at (axis cs:0.69,28) {$z=1.951$};
   \end{axis}
+
+  \node[anchor=north] at ($(case77radial.south)!0.5!(case60radial.south)+(0,-0.42cm)$)
+    {\pgfplotslegendfromname{radialProfileMethodLegend}};
 \end{tikzpicture}

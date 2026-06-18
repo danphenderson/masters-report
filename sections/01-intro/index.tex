@@ -14,12 +14,13 @@ study for an idealized ($C^\infty$) model of stenosed vessels.
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \includegraphics[width=0.98\textwidth]{figures/static/static/rendered/stenosis-fem-fvm-meshes.pdf}
-    \caption{Finite-element and finite-volume meshes for the same smooth
-    idealized stenosis geometry used in this report. Left: cutaway wireframe
-    view of the generated tetrahedral Gridap mesh for the stationary-Stokes
-    initializer. Right: one-dimensional finite-volume grid over the reference
-    radius profile $R_0(z)$. The panels show discretization geometry only, not
-    velocity, pressure-drop, pressure-ratio, or patient-specific clinical
+    \caption{Finite-element and finite-volume views of the same smooth
+    idealized stenosis geometry used in this report. Panel (a) shows the
+    generated tetrahedral Gridap mesh for the stationary-Stokes initializer;
+    panel (b) shows the one-dimensional finite-volume grid sampled along the
+    reference radius profile $R_0(z)$. The takeaway is that one declared
+    geometry can feed distinct discretizations; the panels show geometry only,
+    not velocity, pressure-drop, pressure-ratio, or patient-specific clinical
     data.}
     \label{fig:stenosis-fem-fvm-meshes}
 \end{figure}

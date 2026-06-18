@@ -33,12 +33,12 @@ Sec.~1.1, pp.~380--383]{GaldiEtAl2008HemodynamicalFlows}
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{ns-derivation-map}
     \caption{From the blood-dynamics setting to incompressible
-    Navier--Stokes. The flow map and material-volume assumptions support the
-    conservation statements. Mass conservation reduces to $\Div\vu=0$ under
-    constant density. Momentum balance closes through the Cauchy stress law;
-    the Newtonian limit uses constant dynamic viscosity, while the
-    generalized-Newtonian form keeps $\eta_{\mathrm{eff}}(\dot\gamma)$
-    explicit.}
+    Navier--Stokes. The flow-map and material-volume assumptions support the
+    conservation statements. The mass-conservation/incompressibility lane and
+    the stress-closure lane merge into the generalized-Newtonian
+    incompressible momentum form. The Newtonian box is a constant-viscosity
+    specialization, and the divided-by-density form records the corresponding
+    kinematic-viscosity scaling.}
     \label{fig:ns-derivation-map}
 \end{figure}
 
@@ -225,10 +225,13 @@ independent replacements for the blood-dynamics setting above.
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{compliant-vessel}
-    \caption{Compliant-vessel notation for the 1D reduction. The current configuration
-    $\OmgBt$ is represented by a straightened averaging domain with
-    cross-section $S(z,t)$, area $A(z,t)$, flow $Q(z,t)$, radius
-    $R(z,t)$, and mean gauge pressure $p_{\mathrm g}(z,t)$.}
+    \caption{Compliant-vessel notation for the 1D reduction. The current
+    configuration $\OmgBt$ is represented by a straightened averaging domain:
+    section averages over $S(z,t)$ define $A(z,t)$, $Q(z,t)$, $\bar u(z,t)$,
+    and $p_{\mathrm g}(z,t)$, while $R(z,t)$ records the radius entering the
+    wall and geometry closures. The figure is a bookkeeping reduction from
+    continuum fields to retained 1D variables, not a resolved wall-traction or
+    secondary-flow model.}
     \label{fig:compliant-vessel-reduction}
 \end{figure}
 
@@ -419,13 +422,13 @@ independent replacements for the blood-dynamics setting above.
     \includegraphics[width=0.98\textwidth]{figures/static/static/rendered/resolved-3d-flow-field.pdf}
     \caption{Resolved 3D node-centered axial velocity fields for the two
     $T=1$ comparison cases used in Section~\ref{sec:resolved-3d-comparison}.
-    The panels show deterministic half-domain cutaway views of the full
-    upstream XDMF/HDF5 velocity fields: case 77 has 22,691 loaded nodes and
-    case 60 has 21,975 loaded nodes. Color denotes $u_z$ in cm/s, sparse
-    arrows indicate local vector direction, and the transparent surface is the
-    node envelope used only to frame the 3D point cloud. These are resolved
-    velocity-data renderings, not the stationary-Stokes pathline proxy or a
-    pressure-drop, FFR, or patient-specific clinical calibration measurement.}
+    Panel (a) shows case 77 with 22,691 loaded nodes; panel (b) shows case 60
+    with 21,975 loaded nodes. The shared color scale makes the stronger
+    axial-velocity concentration in the 40\% case visible. Sparse arrows
+    indicate local vector direction, and the transparent surface frames the 3D
+    point cloud. These are resolved velocity-data renderings, not the
+    stationary-Stokes pathline proxy or a pressure-drop, FFR, or
+    patient-specific clinical calibration measurement.}
     \label{fig:stenosis-3d-reference-geometry}
 \end{figure}
 

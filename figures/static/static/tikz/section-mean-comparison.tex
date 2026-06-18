@@ -9,6 +9,17 @@
     legend columns=4,
     legend style={font=\scriptsize, at={(0.5,-0.20)}, anchor=north},
   ]
+    \path[fill=wallgraylight, fill opacity=0.36, text opacity=1, draw=none]
+      (axis cs:2.4,15) rectangle (axis cs:2.8,68);
+    \draw[wallgray!65!black, densely dashed, line width=0.45pt]
+      (axis cs:2.451,15) -- (axis cs:2.451,68)
+      node[pos=0.94, right=1pt, font=\scriptsize, fill=white,
+           fill opacity=0.9, text opacity=1, inner sep=1pt]
+        {$z_\star$};
+    \node[font=\scriptsize, wallgray!60!black, fill=white,
+          fill opacity=0.9, text opacity=1, inner sep=1pt]
+      at (axis cs:2.6,64) {throat zone};
+
     \addplot+[bloodred, mark=none, line width=1.15pt]
       table[x=z, y=u3d77] {figures/static/static/data/stenosis-comparison/section-mean.dat};
     \addlegendentry{case 77 3D}

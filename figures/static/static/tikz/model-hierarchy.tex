@@ -4,7 +4,7 @@
 % closure treated separately in the caption and main text. Uniform
 % block sizing, monotone mathblue->accentTeal gradient (no abrupt
 % color switches), single side axis indicating spatial detail
-% & cost. No bottom callout note (caption covers scope).
+% & cost while explicitly warning that this is not a validation ranking.
 % ---------------------------------------------------------------
 \begin{tikzpicture}[fig, scale=0.96, transform shape,
     node distance=4mm,
@@ -32,10 +32,12 @@
   \draw[arr] (d1) -- (d2);
   \draw[arr] (d2) -- (d3);
 
-  % Single side-axis: increasing spatial detail & computational cost.
+  % Single side-axis: increasing spatial detail and cost, not validation rank.
   \coordinate (axL) at ($(d0.south west)+(-1mm,-5mm)$);
   \coordinate (axR) at ($(d3.south east)+( 1mm,-5mm)$);
   \draw[measureArrow, line width=0.7pt] (axL) -- (axR)
-    node[midway, below=1pt, font=\scriptsize, mathblue!75!black]
-      {increasing spatial detail \;\&\; computational cost};
+    node[midway, below=1pt, font=\scriptsize, align=center,
+         mathblue!75!black]
+      {increasing spatial detail \& computational cost\\
+       not a validation rank};
 \end{tikzpicture}

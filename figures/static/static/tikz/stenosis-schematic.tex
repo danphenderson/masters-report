@@ -6,10 +6,12 @@
 % p_{\mathrm{g},prox}(t), p_{\mathrm{g},dist}(t), Delta p(t).
 % ---------------------------------------------------------------
 \begin{tikzpicture}[fig, scale=1.0,
-    geomLabel/.style={font=\footnotesize, fill=white, fill opacity=0.88,
-                      text opacity=1, inner sep=1.2pt},
-    tapLabel/.style={font=\footnotesize, text=mathblue, fill=white,
-                     fill opacity=0.92, text opacity=1, inner sep=1.2pt},
+    geomLabel/.style={font=\footnotesize, text=wallgray!72!black,
+                      fill=white, fill opacity=0.9, text opacity=1,
+                      inner sep=1.2pt},
+    tapLabel/.style={font=\footnotesize\bfseries, text=mathblue,
+                     fill=white, fill opacity=0.94, text opacity=1,
+                     inner sep=1.3pt},
     shearLabel/.style={font=\footnotesize, text=stenosisOrange, fill=white,
                        fill opacity=0.9, text opacity=1, inner sep=1.4pt,
                        align=left}]
@@ -49,37 +51,37 @@
   % centerline
   \draw[centerline] (-0.2,0) -- (\L+0.2,0);
   % R_base measure
-  \draw[<->, mathblue, line width=0.6pt] (0.7,0) -- (0.7,\R)
-    node[midway, right=1pt, geomLabel, text=mathblue] {$R_{\mathrm{base}}$};
+  \draw[<->, wallgray!72!black, line width=0.6pt] (0.7,0) -- (0.7,\R)
+    node[midway, right=1pt, geomLabel] {$R_{\mathrm{base}}$};
   % R_min measure (at z_star)
   \pgfmathsetmacro{\Rmin}{\R*(1-\smax*\stenosisKernel{\zstar})}
-  \draw[<->, stenosisOrange, line width=0.7pt] (\zstar,0) -- (\zstar,\Rmin)
-    node[midway, right=1pt, geomLabel, text=stenosisOrange]
+  \draw[<->, wallgray!72!black, line width=0.7pt] (\zstar,0) -- (\zstar,\Rmin)
+    node[midway, right=1pt, geomLabel]
       {$R_{\min}$};
-  \node[geomLabel, text=stenosisOrange, anchor=north west]
-    at (\zstar+0.18,-\Rmin-0.12)
-    {$R_0(z_\star)=R_{\min}=R_{\mathrm{base}}(1-s_{\max})$};
-  \draw[stenosisOrange!60, dotted, line width=0.4pt] (\zstar,\R+0.4) -- (\zstar,-\R-0.55);
-  \node[font=\scriptsize, stenosisOrange!85!black, fill=white,
+  \draw[wallgray!65!black, dotted, line width=0.45pt]
+    (\zstar,\R+0.4) -- (\zstar,-\R-0.58);
+  \node[font=\scriptsize, wallgray!75!black, fill=white,
         fill opacity=0.88, text opacity=1, inner sep=1pt]
-    at (\zstar,-\R-0.68) {$z_\star$};
+    at (\zstar,-\R-0.69) {$z_\star$};
+  \node[geomLabel, anchor=north west]
+    at (0.12,-\R-0.43) {geometry: $R_{\mathrm{base}}, R_{\min}, z_\star$};
   % Keep the upper annotation band reserved for pressure taps and pressure drop.
   % proximal / distal pressure taps
   \pgfmathsetmacro{\zp}{\zstar-0.85}
   \pgfmathsetmacro{\zd}{\zstar+1.25}
-  \draw[mathblue, line width=0.6pt] (\zp,\R+0.36) -- (\zp,\R+1.08);
+  \draw[mathblue, line width=0.9pt] (\zp,\R+0.36) -- (\zp,\R+1.12);
   \node[tapLabel, anchor=south east]
-    at (\zp-0.06,\R+1.08) {$p_{\mathrm{g},\mathrm{prox}}(t)$};
-  \fill[mathblue] (\zp,\R+0.36) circle (1.2pt);
-  \draw[mathblue, line width=0.6pt] (\zd,\R+0.36) -- (\zd,\R+1.08);
+    at (\zp-0.06,\R+1.12) {$p_{\mathrm{g},\mathrm{prox}}(t)$};
+  \fill[mathblue] (\zp,\R+0.36) circle (1.8pt);
+  \draw[mathblue, line width=0.9pt] (\zd,\R+0.36) -- (\zd,\R+1.12);
   \node[tapLabel, anchor=south west]
-    at (\zd+0.06,\R+1.08) {$p_{\mathrm{g},\mathrm{dist}}(t)$};
-  \fill[mathblue] (\zd,\R+0.36) circle (1.2pt);
+    at (\zd+0.06,\R+1.12) {$p_{\mathrm{g},\mathrm{dist}}(t)$};
+  \fill[mathblue] (\zd,\R+0.36) circle (1.8pt);
   % Delta p arrow
-  \draw[<->, mathblue, line width=0.7pt]
-    (\zp,\R+1.62) -- (\zd,\R+1.62)
+  \draw[<->, mathblue, line width=1.0pt]
+    (\zp,\R+1.66) -- (\zd,\R+1.66)
     node[midway, above=1pt, tapLabel]
-      {$\Delta p(t)$};
+      {pressure: $\Delta p(t)$};
   % flow Q(t) inlet
   \draw[flowArrow, line width=1.4pt] (-1.1,0) -- (-0.1,0)
     node[midway, above, labelB] {$Q(t)$};
@@ -89,7 +91,7 @@
   \draw[->, stenosisOrange, line width=0.55pt]
     (\zstar+1.72,0.55) -- (\zstar+0.18,\Rmin+0.05);
   \node[shearLabel, anchor=west]
-    at (\zstar+1.75,0.55) {signed $\tau_{w,z}^{1D}$\\proxy};
+    at (\zstar+1.75,0.55) {shear: signed\\$\tau_{w,z}^{1D}$ proxy};
   % axes
   \draw[axisArrow] (-1.2,-\R-1.05) -- (\L+1.2,-\R-1.05)
     node[right, labelM] {$z$};
@@ -101,4 +103,6 @@
     {$z_{\mathrm{prox}}$};
   \node[font=\scriptsize, mathblue!80!black] at (\zd,-\R-0.85)
     {$z_{\mathrm{dist}}$};
+  \node[font=\scriptsize, wallgray!70!black, anchor=east]
+    at (\L+1.1,-\R-1.35) {idealized, not computed};
 \end{tikzpicture}
