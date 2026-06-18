@@ -34,12 +34,23 @@ are included to fix the output vocabulary for subsequent reduced-order studies.
 
 \addcontentsline{toc}{subsection}{Report Roadmap}
 
-\begin{enumerate}
-    \item \red{TODO: Complete at the end}
-\end{enumerate}
+Section~\ref{subsec:continuum-constitutive-assumptions} fixes the continuum,
+kinematic, balance-law, and constitutive assumptions used throughout the report.
+Section~\ref{subsec:governing-equations-model-hierarchy} states the governing
+incompressible Navier--Stokes and generalized-Newtonian setting and then records
+the selected one-dimensional area--flow reduction.
+Section~\ref{subsec:model-hierarchy-comparison-boundary} places 0D, 1D, 2D,
+3D, and multiscale models into a comparison hierarchy and clarifies what each
+tier can and cannot support. Section~\ref{subsec:pressure-flow-motivation}
+motivates pressure-drop, pressure-ratio, and shear-output conventions from the
+clinical anatomy--function distinction. Section~\ref{sec:resolved-3d-comparison}
+reports the preliminary resolved-velocity diagnostic at $T=1$.
+Section~\ref{sec:conclusions-limitations} summarizes the limitations and
+identifies the next evidence needed for stronger pressure--flow claims.
 
 \input{sections/01-intro/blood-continuum}
 \input{sections/01-intro/governing-equations}
+\input{sections/01-intro/model-hierarchy/index}
 The pressure--flow motivation is stated after the continuum and model-hierarchy
 setup so that pressure-drop, pressure-ratio, and shear quantities are introduced
 as model outputs with declared conventions, not as clinical measurements or

@@ -15,37 +15,37 @@ The SI convention above governs continuum notation and unqualified analytical
 parameters. The active Julia solver records and the
 Section~\ref{sec:resolved-3d-comparison} tables instead use the
 centimeter--gram--second numerical convention inherited from the implementation:
-lengths are in \(\mathrm{cm}\), time in \(\mathrm{s}\), density in
-\(\mathrm{g}/\mathrm{cm}^3\), velocity in \(\mathrm{cm}/\mathrm{s}\), pressure
-and stress in \(\mathrm{dyn}/\mathrm{cm}^2\), dynamic viscosity in
-\(\mathrm{g}/(\mathrm{cm}\,\mathrm{s})=\mathrm{dyn}\,\mathrm{s}/\mathrm{cm}^2\),
-and kinematic viscosity in \(\mathrm{cm}^2/\mathrm{s}\). Thus the default
-solver geometry parameters \(L\), \(R_{\max}\), \(z_a\), \(z_s\),
-\(\sigma_a\), and \(\kappa\) are centimeter quantities, while the stenosis
-localization \(\lambda\) in \(\exp(-\lambda g^4)\) has units
-\(\mathrm{cm}^{-4}\). The active solver state coordinate \(a=R^2\) has units
-\(\mathrm{cm}^2\); when a physical circular area is meant it is
-\(A_{\mathrm{phys}}=\pi a\), also reported in square centimeters.
+lengths are in $\mathrm{cm}$, time in $\mathrm{s}$, density in
+$\mathrm{g}/\mathrm{cm}^3$, velocity in $\mathrm{cm}/\mathrm{s}$, pressure
+and stress in $\mathrm{dyn}/\mathrm{cm}^2$, dynamic viscosity in
+$\mathrm{g}/(\mathrm{cm}\,\mathrm{s})=\mathrm{dyn}\,\mathrm{s}/\mathrm{cm}^2$,
+and kinematic viscosity in $\mathrm{cm}^2/\mathrm{s}$. Thus the default
+solver geometry parameters $L$, $R_{\max}$, $z_a$, $z_s$,
+$\sigma_a$, and $\kappa$ are centimeter quantities, while the stenosis
+localization $\lambda$ in $\exp(-\lambda g^4)$ has units
+$\mathrm{cm}^{-4}$. The active solver state coordinate $a=R^2$ has units
+$\mathrm{cm}^2$; when a physical circular area is meant it is
+$A_{\mathrm{phys}}=\pi a$, also reported in square centimeters.
 
 Output fields carry their display units in their names. In particular,
 \texttt{z\_cm} and \texttt{R0\_cm} are geometry fields, \texttt{A\_cm2} is the
-recorded area-coordinate field in \(\mathrm{cm}^2\), and \texttt{Q\_cm3\_s} is
-the flow-coordinate field paired with \(a\) in nominal \(\mathrm{cm}^3/\mathrm{s}\).
+recorded area-coordinate field in $\mathrm{cm}^2$, and \texttt{Q\_cm3\_s} is
+the flow-coordinate field paired with $a$ in nominal $\mathrm{cm}^3/\mathrm{s}$.
 For the active radius-squared solver convention, the corresponding physical
-circular-area flow is \(Q_{\mathrm{phys}}=\pi Q\), while
+circular-area flow is $Q_{\mathrm{phys}}=\pi Q$, while
 \texttt{uavg\_cm\_s} records
-\(Q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}\). The
+$Q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$. The
 Section~\ref{sec:resolved-3d-comparison} velocity/error columns are in
-\(\mathrm{cm}/\mathrm{s}\), \texttt{pressure\_dyn\_cm2} and initial-condition
-pressure-drop fields are in \(\mathrm{dyn}/\mathrm{cm}^2\), and
-\texttt{nu\_eff\_cm2\_s} is in \(\mathrm{cm}^2/\mathrm{s}\). A pressure supplied
+$\mathrm{cm}/\mathrm{s}$, \texttt{pressure\_dyn\_cm2} and initial-condition
+pressure-drop fields are in $\mathrm{dyn}/\mathrm{cm}^2$, and
+\texttt{nu\_eff\_cm2\_s} is in $\mathrm{cm}^2/\mathrm{s}$. A pressure supplied
 through a Pa-valued command-line option is converted before storage using
-\(1\,\mathrm{Pa}=10\,\mathrm{dyn}/\mathrm{cm}^2\). Any value from a numerical
+$1\,\mathrm{Pa}=10\,\mathrm{dyn}/\mathrm{cm}^2$. Any value from a numerical
 record used in an SI formula must first be converted; for example
-\(1\,\mathrm{cm}=10^{-2}\,\mathrm{m}\),
-\(1\,\mathrm{cm}^2/\mathrm{s}=10^{-4}\,\mathrm{m}^2/\mathrm{s}\),
-\(1\,\mathrm{g}/(\mathrm{cm}\,\mathrm{s})=10^{-1}\,\mathrm{Pa}\cdot\mathrm{s}\),
-and \(1\,\mathrm{dyn}/\mathrm{cm}^2=10^{-1}\,\mathrm{Pa}\).
+$1\,\mathrm{cm}=10^{-2}\,\mathrm{m}$,
+$1\,\mathrm{cm}^2/\mathrm{s}=10^{-4}\,\mathrm{m}^2/\mathrm{s}$,
+$1\,\mathrm{g}/(\mathrm{cm}\,\mathrm{s})=10^{-1}\,\mathrm{Pa}\cdot\mathrm{s}$,
+and $1\,\mathrm{dyn}/\mathrm{cm}^2=10^{-1}\,\mathrm{Pa}$.
 \end{convention}
 
 \begin{convention}[Pressure-reference and ratio convention]
@@ -239,18 +239,18 @@ resolved traction-based WSS unless a separate comparison map is declared.
 
         $\alpha_{\mathcal P}$
             & momentum-flux correction induced by the recorded profile
-            \(\mathcal P\); the parabolic default uses
-            \(\alpha_{\mathcal P}=4/3\)
+            $\mathcal P$; the parabolic default uses
+            $\alpha_{\mathcal P}=4/3$
             & $-$ \\
 
         $\gamma$
             & power-profile exponent in
-            \(u(r)=((\gamma+2)/\gamma)\bar u(1-(r/R)^\gamma)\)
+            $u(r)=((\gamma+2)/\gamma)\bar u(1-(r/R)^\gamma)$
             & $-$ \\
 
         $g_{\mathcal P}$
             & profile shear-rate factor used by the 1D rheology proxy; for
-            power profiles \(g_{\mathcal P}=\gamma+2\), while flat profiles
+            power profiles $g_{\mathcal P}=\gamma+2$, while flat profiles
             record this value explicitly
             & $-$ \\
 
@@ -271,7 +271,7 @@ resolved traction-based WSS unless a separate comparison map is declared.
 
         $\mathcal W$
             & wall or FSI closure descriptor; the selected 1D report model uses
-            \(\mathcal W_{\mathrm{elastic1D}}\), while fixed-wall,
+            $\mathcal W_{\mathrm{elastic1D}}$, while fixed-wall,
             multiscale-coupled, and resolved-FSI models require separate
             declarations
             & mixed \\
@@ -303,7 +303,7 @@ resolved traction-based WSS unless a separate comparison map is declared.
         $p_{\mathrm{g}}=p_{\mathrm{ext}}+\beta A_0^{-1}(\sqrt A-\sqrt{A_0})$ & $\mathrm{Pa}\cdot\mathrm{m}$ \\
 
         $p_{\mathrm{ext}}(z,t)$
-            & external-pressure datum in the wall-law gauge convention;
+            & external-pressure value in the wall-law gauge convention;
             baseline value $p_{\mathrm{ext}}\equiv0$ unless declared otherwise
             & $\mathrm{Pa}$ \\
 
@@ -321,12 +321,12 @@ resolved traction-based WSS unless a separate comparison map is declared.
 
         $S_{\mathrm{geom}}^{\mathcal W}$
             & fixed-area wall/geometry source associated with the selected
-            reduced wall closure \(\mathcal W\)
+            reduced wall closure $\mathcal W$
             & $\mathrm{m}^3/\mathrm{s}^2$ \\
 
         $S_f^{\mathcal R}$
             & wall-friction source associated with the selected rheology or
-            effective-viscosity closure \(\mathcal R\)
+            effective-viscosity closure $\mathcal R$
             & $\mathrm{m}^3/\mathrm{s}^2$ \\
 
         $\widehat{\mathbf F}_{i+1/2}^n$
@@ -343,7 +343,7 @@ resolved traction-based WSS unless a separate comparison map is declared.
 
         $\dot\gamma_{1D}$
             & implementation shear-rate proxy
-            \(g_{\mathcal P} |Q|/(a\sqrt a)\), where \(a=R^2\)
+            $g_{\mathcal P} |Q|/(a\sqrt a)$, where $a=R^2$
             & $\mathrm{s}^{-1}$ \\
 
         $\nu_{\mathrm{eff}}^{\mathcal R}$
@@ -352,14 +352,14 @@ resolved traction-based WSS unless a separate comparison map is declared.
             & $\mathrm{m}^2/\mathrm{s}$ \\
 
         $C_f$ or $C_f(z,A)$ & wall-friction coefficient in the 1D source
-        $-C_fQ/A$; constant-viscosity value \(C_f=8\pi\eta/\rho\) & $\mathrm{m}^2/\mathrm{s}$ \\
+        $-C_fQ/A$; constant-viscosity value $C_f=8\pi\eta/\rho$ & $\mathrm{m}^2/\mathrm{s}$ \\
 
         $\eta_{\mathrm{fric}}(z,t)$
             & dynamic viscosity used by the reduced wall-friction and
-            signed-shear-proxy formula; \(\eta_{\mathrm{fric}}=\eta\) for
+            signed-shear-proxy formula; $\eta_{\mathrm{fric}}=\eta$ for
             constant-viscosity records and
-            \(\eta_{\mathrm{fric}}=\eta_{\mathrm{eff}}^{\mathcal R}
-            (\dot\gamma_{1D})\) for admitted non-Newtonian descriptor
+            $\eta_{\mathrm{fric}}=\eta_{\mathrm{eff}}^{\mathcal R}
+            (\dot\gamma_{1D})$ for admitted non-Newtonian descriptor
             records
             & $\mathrm{Pa}\cdot\mathrm{s}$ \\
 
@@ -368,12 +368,12 @@ resolved traction-based WSS unless a separate comparison map is declared.
 
         $e\in\mathcal E$
             & expert/closure record for a closure-indexed 1D forward-map
-            family; suppress \(e\) only for single-expert baseline records
+            family; suppress $e$ only for single-expert baseline records
             & mixed \\
 
         $\mathcal G_{1D,h}^{r_h,e}$
-            & computed fixed-grid 1D map indexed by numerical record \(r_h\)
-            and expert record \(e\)
+            & computed fixed-grid 1D map indexed by numerical record $r_h$
+            and expert record $e$
             & mixed \\
         \bottomrule
 \end{longtable}
@@ -475,7 +475,7 @@ resolved traction-based WSS unless a separate comparison map is declared.
 
         \texttt{shear\_rate\_1\_s}
             & CSV output field for the implementation shear-rate proxy
-            \(\dot\gamma_{1D}\)
+            $\dot\gamma_{1D}$
             & $\mathrm{s}^{-1}$ \\
 
         \texttt{nu\_eff\_cm2\_s}

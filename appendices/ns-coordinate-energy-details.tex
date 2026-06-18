@@ -5,9 +5,9 @@ Navier--Stokes model. It is background for the continuum hierarchy; it is not
 evidence for the 1D study specification or any downstream validation claim.
 All formulas are read under the standing regularity and differential-operator
 conventions in Appendix~\ref{app:mathematical-foundations}. In particular,
-\(\Divbf\) is row-divergence for tensor fields, \(\del\vu\) is the
+$\Divbf$ is row-divergence for tensor fields, $\del\vu$ is the
 componentwise vector Laplacian, tensor norms are Frobenius norms when written,
-and \(\eta\) is dynamic viscosity while \(\nu=\eta/\rho\) is kinematic
+and $\eta$ is dynamic viscosity while $\nu=\eta/\rho$ is kinematic
 viscosity as in Remark~\ref{rmk:viscosity-notation}.
 
 \subsection{Viscous-Term Simplification and Energy Context}
@@ -44,7 +44,7 @@ $(\vct{e}_r,\vct{e}_\theta,\vct{e}_z)$,
     \vu=u_r\vct{e}_r+u_\theta\vct{e}_\theta+u_z\vct{e}_z. &&
 \end{flalign*}
 The component formulas are local cylindrical-coordinate formulas on patches
-where \(r>0\). Axis regularity, wall traces, and boundary conditions require
+where $r>0$. Axis regularity, wall traces, and boundary conditions require
 separate hypotheses and are not supplied by the coordinate notation alone.
 The differential operators used in cylindrical divided-by-density
 Navier--Stokes forms are
@@ -64,11 +64,11 @@ The rate-of-deformation components in the cylindrical orthonormal basis are
     \frac{1}{2}\left(\frac{1}{r} \pd_\theta u_z+\pd_z u_\theta\right). &&
 \end{flalign*}
 Use the scalar shear-rate convention
-\(\dot\gamma=\sqrt{2\vct{D}(\vu):\vct{D}(\vu)}\). Then
+$\dot\gamma=\sqrt{2\vct{D}(\vu):\vct{D}(\vu)}$. Then
 \begin{flalign*}
     \quad \tau_{ij}=2\eta_{\mathrm{eff}}(\dot\gamma)D_{ij}, \qquad i,j\in\{r,\theta,z\}. &&
 \end{flalign*}
-When a source writes the law as a function of \(D:D\) or \(|D|_{\mathrm F}^2\),
+When a source writes the law as a function of $D:D$ or $|D|_{\mathrm F}^2$,
 this report translates it through this convention, consistent with
 Remark~\ref{rmk:viscosity-notation}.
 Writing $\vf=f_r\vct{e}_r+f_\theta\vct{e}_\theta+f_z\vct{e}_z$, the momentum

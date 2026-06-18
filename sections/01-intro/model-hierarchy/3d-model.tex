@@ -1,0 +1,36 @@
+\subsubsection{3D Fixed-Wall and Resolved-FSI Models}
+\label{subsubsec:3d-models}
+
+A fixed-wall 3D hemodynamic model solves for the velocity field
+$\vu(t,\vx)$, pressure field $p(t,\vx)$, and stress-derived outputs on a
+three-dimensional lumen with fixed or prescribed wall geometry
+\cite{QuarteroniFormaggia2004CardiovascularModeling}. It can supply resolved
+velocity, pressure, and wall traction. A WSS output additionally requires the
+stress tensor, wall normal, wall location, tangent convention, and output
+operator to be declared
+\cite{JohnEtAl2017WallShearStressVectorForm}. These quantities are fields on
+the resolved lumen; they are not the same objects as the 1D state variables
+$A$, $Q$, and $p_{\mathrm g}$.
+
+Resolved FSI changes the wall descriptor. A fixed-wall model belongs to the
+$\mathcal W_{\mathrm{rigid}}$ or prescribed-wall reading in
+Definition~\ref{def:wall-fsi-closure-catalog}; a resolved-FSI model uses
+$\mathcal W_{\mathrm{resolvedFSI}}$ and adds wall displacement, wall velocity,
+structural stress, and fluid--structure interface conditions. The elastic 1D
+wall law $\mathcal W_{\mathrm{elastic1D}}$ is a reduced wall closure, not a
+structural FSI solve
+\cite{FormaggiaEtAl2007FSICoupling}.
+
+The 3D/FSI tier can represent eccentricity, curvature, branches, secondary
+flow, separation, and recirculation more directly than a 1D area--flow model.
+That role does not make it assumption-free. A valid comparison requires matched
+geometry, rheology descriptor $\mathcal R$, wall closure $\mathcal W$, boundary
+data, mesh and time resolution, output operators, and discrepancy metrics. A
+velocity-slab diagnostic, a traction-based WSS comparison, and a pressure-ratio
+comparison are different observation problems.
+
+The 3D/FSI tier supplies the reference vocabulary for resolved velocity,
+pressure, traction, and wall motion, but it does not automatically validate a
+reduced model without matched comparison data. It is not the selected broad
+parametric generator in this report because the setup and computational burden
+are high, not because resolved 3D or FSI models are unimportant.

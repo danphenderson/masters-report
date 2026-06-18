@@ -4,7 +4,7 @@
 This appendix supplements the continuum mechanics details that support the main-body
 assumptions without interrupting the reduced-order forward-model
 narrative within this report. It is appendix background for notation and
-model hierarchy, not additional evidence for the first controlled 1D study.
+model hierarchy, not additional evidence for the numerical study.
 All identities below are classical identities under the regularity needed for
 the displayed derivatives, traces, and changes of variables. The standing
 regularity convention, boundary notation, and differential-operator convention
@@ -12,7 +12,7 @@ are those of
 Convention~\ref{conv:foundation-standing-regularity},
 Definition~\ref{def:foundation-domain-boundary-notation}, and
 Definition~\ref{def:foundation-differential-operator-conventions}. In
-particular, \(\Divbf\) is the row-divergence of a tensor field, and boundary
+particular, $\Divbf$ is the row-divergence of a tensor field, and boundary
 forms assume the stated trace and normal hypotheses; no weak formulation is
 being asserted in this appendix.
 
@@ -20,7 +20,7 @@ being asserted in this appendix.
 \label{subsec:material-derivative-trajectory-details}
 
 For a scalar field $\phi\in C^1(\mathcal{Q}_T)$ and a sufficiently regular flow
-map \(\La_t\), define the Lagrangian pullback
+map $\La_t$, define the Lagrangian pullback
 $\phihat(t,\vxi):=\phi(t,\La_t(\vxi))$. Differentiating with respect to time
 along a trajectory and using
 $\pd_t \La_t(\vxi)=\vu(t,\La_t(\vxi))$ gives
@@ -39,10 +39,10 @@ also gives
 \subsection{Jacobian Evolution and Reynolds Transport}
 \label{subsec:jacobian-evolution-reynolds-transport}
 
-Let $\vFhat_t=\nabla_{\vxi}\La_t$ and $\Jhatdet_t=\det\vFhat_t$. Here \(\La_t\)
-is assumed to be an orientation-preserving \(C^1\) change of variables on the
+Let $\vFhat_t=\nabla_{\vxi}\La_t$ and $\Jhatdet_t=\det\vFhat_t$. Here $\La_t$
+is assumed to be an orientation-preserving $C^1$ change of variables on the
 material volume being considered, with the additional time regularity needed to
-differentiate \(\vFhat_t\) and \(\Jhatdet_t\). The standard Jacobi identity
+differentiate $\vFhat_t$ and $\Jhatdet_t$. The standard Jacobi identity
 gives
 \begin{flalign*}
     \quad
@@ -73,8 +73,8 @@ identity gives
     \int_{V(t)}
     \left(\pd_t \phi+\Div(\phi\vu)\right)\dx. &&
 \end{flalign*}
-If $V(t)$ has Lipschitz boundary and the trace of \(\phi\vu\) is integrable on
-\(\partial V(t)\), the divergence theorem gives the boundary form
+If $V(t)$ has Lipschitz boundary and the trace of $\phi\vu$ is integrable on
+$\partial V(t)$, the divergence theorem gives the boundary form
 \begin{flalign*}
     \quad
     I'(t)=\int_{V(t)} \pd_t \phi\,\dx
@@ -117,8 +117,8 @@ The surface traction term satisfies
 \end{flalign*}
 This is the tensor row-divergence convention from
 Definition~\ref{def:foundation-differential-operator-conventions}, applied
-under the regularity needed for the stress trace \(\vT\nhat\) and the volume
-integral of \(\Divbf\vT\). Since $V(t)$ is arbitrary within the localization
+under the regularity needed for the stress trace $\vT\nhat$ and the volume
+integral of $\Divbf\vT$. Since $V(t)$ is arbitrary within the localization
 class, the differential form is
 \begin{flalign*}
     \quad
