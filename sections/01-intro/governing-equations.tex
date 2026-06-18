@@ -154,20 +154,6 @@ volumes support Reynolds transport, Reynolds transport gives mass and momentum
 balance, the Cauchy stress law closes momentum, and incompressibility selects
 the Navier--Stokes systems above.
 
-\begin{definition}[Navier--Stokes residual notation]
-    \label{def:standard-form-ns}
-    The density-scaled generalized system can be summarized by a momentum
-    residual operator:
-    \begin{flalign*}
-        \quad & \begin{cases*}
-            \mathcal{R}_{\mathrm{NS}}
-            (\pd_t \vu,\nabla\vu,\nabla p,\vu,p;\rho,\nu_{\mathrm{eff}})
-            =\vfb, \\
-            \Div\vu=0.
-        \end{cases*} &&
-    \end{flalign*}
-\end{definition}
-
 \begin{remark}[Navier--Stokes system classification]
     \label{rmk:ns-system-classification}
     Navier--Stokes is a nonlinear coupled PDE system. The unknowns are the
@@ -209,7 +195,7 @@ compatibility assumptions, and the solution class.
 Well-posedness results for a three-dimensional Navier--Stokes
 initial-boundary value problem are problem-specific: the statement must fix the
 domain class, boundary conditions, forcing, compatibility assumptions,
-initial-data space, solution class, and time horizon. The present report uses
+initial-data space, solution class, and time horizon. This report uses
 that vocabulary only as PDE background for the model hierarchy. It does not use
 the Clay global-regularity problem as support for a local theorem, and it does
 not prove a well-posedness result for the moving arterial domain or for the
@@ -248,7 +234,7 @@ independent replacements for the blood-dynamics setting above.
 
 \begin{assumption}[Straight single-vessel geometry]
     \label{ass:1d-straight-vessel-geometry}
-    The selected 1D lane assumes a vessel of length \(L\) aligned with the
+    The selected 1D model assumes a vessel of length \(L\) aligned with the
     \(z\)-axis and a circular cross-section with radius \(R(z,t)\). For
     \(0<z<L\), \(S(z,t)\) is the interior cross-section used for averaging, not
     a boundary component of the open lumen.
@@ -315,7 +301,7 @@ independent replacements for the blood-dynamics setting above.
             & Fluid velocity and pressure plus wall displacement, wall velocity,
             structural stress, and interface conditions
             & A full moving-wall FSI PDE system. It is a comparison tier for this
-            report, not the active model in the first \(T=1\) study. \\
+            report, not the selected reduced model. \\
         \bottomrule
     \end{tabularx}
     \end{center}
@@ -337,7 +323,7 @@ independent replacements for the blood-dynamics setting above.
         =
         \pd_A p_{\mathrm g}(A,z,t) \pd_z A
         +
-        \left.\pd_z p_{\mathrm g}(A,z,t)\right|_A . &&
+        \left.\pd_z p_{\mathrm g}(A,z,t)\right|_A. &&
     \end{flalign*}
     The reduced balance law is
     \begin{flalign*}
@@ -364,52 +350,14 @@ independent replacements for the blood-dynamics setting above.
 
 \begin{assumption}[Velocity-profile and rheology closure]
     \label{ass:1d-first-run-alpha-friction}
-    The reduced numerical lane records a velocity-profile descriptor
-    \(\mathcal P\). The default is the parabolic Poiseuille profile, for which
-    \(\alpha_{\mathcal P}=4/3\). A flat profile uses
-    \(\alpha_{\mathcal P}=1\) for momentum transport together with a separately
-    recorded finite shear factor. More generally, the implemented power-family
-    profile is
-    \begin{flalign*}
-        \quad
-        u_{\mathcal P}(r)
-        =
-        \frac{\gamma+2}{\gamma}\,\bar u
-        \left(1-\left(\frac{r}{R}\right)^\gamma\right),
-        \qquad
-        \alpha_{\mathcal P}
-        =
-        \frac{\gamma+2}{\gamma+1},
-        \qquad
-        g_{\mathcal P}=\gamma+2. &&
-    \end{flalign*}
-    Thus \(\gamma=2\) gives the parabolic case and the former
-    \(\alpha=1.1\) record corresponds to \(\gamma=9\). The scalar
-    constant-viscosity specialization may be read through the compact
-    Poiseuille-calibrated wall-friction coefficient
-    \begin{flalign*}
-        \quad C_f \defined \frac{8\pi\eta}{\rho}. &&
-    \end{flalign*}
-    For non-Newtonian descriptor \(\mathcal R\), the current implementation
-    keeps the same finite-volume equation structure and evaluates a local
-    effective kinematic viscosity
-    \begin{flalign*}
-        \quad
-        \dot\gamma_{1D}
-        &\defined
-        g_{\mathcal P}\frac{|Q|}{a\sqrt a}, &&\\
-        \quad
-        \nu_{\mathrm{eff}}^{\mathcal R}
-        &\defined
-        \frac{\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma_{1D})}{\rho},
-        &&
-    \end{flalign*}
-    using the implementation coordinate \(a=R^2\). This is a numerical contract
-    for controlled comparison records: \(\nu_{\mathrm{eff}}^{\mathcal R}\)
-    replaces the former scalar \(\nu\) in the existing reduced viscous/source
-    and pressure-correction terms only. It should not be read as a claim that
-    the flux convention, friction law, rheology hook, and derived shear proxy
-    form a complete resolved velocity-profile model.
+    A closed 1D area-flow model must declare the momentum-flux correction
+    factor \(\alpha\), the wall-friction closure \(C_f\), any rheology descriptor
+    \(\mathcal R\), and the pressure--area wall closure \(\mathcal W\). These
+    choices determine how cross-sectional profile effects, wall friction,
+    viscosity or effective viscosity, and wall compliance enter the reduced
+    equations. Numerical-record details such as solver coordinates,
+    shear-rate proxies, and discrete source terms are deferred to
+    Appendix~\ref{app:numerical-methods-details}.
 \end{assumption}
 
 \begin{definition}[Elastic pressure--area wall law]
@@ -431,66 +379,6 @@ independent replacements for the blood-dynamics setting above.
     pressure--area closure with structural unknowns and fluid--structure
     interface conditions.
 \end{definition}
-
-\begin{definition}[Stenosis reference geometry]
-    \label{def:1d-stenosis-reference-geometry}
-    A stenosis is encoded through the reference radius or reference area. Let
-    \(R_{\mathrm{base}}(z)\) be the nominal healthy radius and \(s(z)\in[0,1)\)
-    a fractional radius-reduction profile. Then
-    \begin{flalign*}
-        \quad
-        R_0(z) &= R_{\mathrm{base}}(z)\big(1-s(z)\big),
-        &
-        A_0(z) &= \pi R_0(z)^2 .
-        \numberthis\label{eq:1d-stenosis-area} &&
-    \end{flalign*}
-    The baseline idealized stenotic-vessel profile is the smooth asymmetric
-    kernel
-    \begin{flalign*}
-        \quad
-        g(z) &= z-z_s+\kappa
-        \exp\left(-\frac{(z-z_a)^2}{2\sigma_a^2}\right),
-        &
-        \psi(z) &= \exp\left(-\lambda g(z)^4\right),
-        \numberthis\label{eq:1d-stenosis-kernel} && \\
-        \quad
-        s(z) &= s_{\max}\psi(z), \qquad 0\leq s_{\max}<1 .
-        \numberthis\label{eq:1d-stenosis-profile} &&
-    \end{flalign*}
-    In the default centimeter-scale simulation record, \(z_a=2.5\,\mathrm{cm}\),
-    \(z_s=3.4\,\mathrm{cm}\), \(\sigma_a=1\,\mathrm{cm}\),
-    \(\kappa=0.95\,\mathrm{cm}\), and
-    \(\lambda=50\,\mathrm{cm}^{-4}\).
-    The geometry is an idealized numerical design choice, not a
-    patient-specific plaque morphology or clinical calibration.
-\end{definition}
-
-\begin{figure}[!htb]
-    \centering
-    \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \includegraphics[width=0.98\textwidth]{figures/static/static/rendered/stenosis-severity-gallery.pdf}
-    \caption{Analytic three-dimensional renderings of the
-    \(C^\infty\) reference geometry in
-    Definition~\ref{def:1d-stenosis-reference-geometry}, shown for
-    \(s_{\max}=0\%,23\%,40\%,50\%\). Here \(s_{\max}\) is the prescribed
-    anatomical radius-reduction parameter in the idealized geometry. These
-    renderings illustrate the geometry family only; they are not pressure-drop,
-    FFR, or patient-specific clinical calibration measurements.}
-    \label{fig:stenosis-3d-reference-geometry}
-\end{figure}
-
-\begin{remark}[Stenosis-profile and variable-radius boundary]
-    \label{rmk:1d-stenosis-profile-scope}
-    The profile in Eq.~\ref{eq:1d-stenosis-profile} is \(C^\infty\) and
-    rapidly localized rather than compactly supported. This smooth idealized
-    geometry is the baseline for the reduced simulations in this report. Canic
-    et al. show that standard 1D variable-geometry models may miss stenotic
-    pressure and velocity trends unless additional variable-radius terms are
-    included \cite[Abstract; Secs.~1--2]{CanicEtAl2024Extended1DStenosis}.
-    Those corrections motivate later comparison questions, but they are not
-    active in the baseline model unless a separate closure identifier and
-    numerical contract are declared.
-\end{remark}
 
 \begin{definition}[Conservative flux/source notation for the reduced wall law]
     \label{def:1d-conservative-flux-source-notation}
@@ -576,9 +464,17 @@ independent replacements for the blood-dynamics setting above.
         p_{\mathrm g}(L,t) = p_{\mathrm{WK,g}}(Q(L,\cdot),t). &&
     \end{flalign*}
     The second outlet option denotes a terminal Windkessel-style relation. The
-    first controlled study uses prescribed \(Q_{\mathrm{in}}(t)\) and
+    numerical study uses prescribed \(Q_{\mathrm{in}}(t)\) and
     \(p_{\mathrm{out},\mathrm g}(t)\) because they give an unambiguous reduced
     single-vessel contract.
+\end{definition}
+
+\begin{definition}[Characteristic speeds for the reduced elastic subsystem]
+    \label{def:1d-characteristic-speeds}
+    Let \(\lambda_\pm\) denote the two characteristic speeds of the
+    positive-area elastic 1D subsystem obtained from the homogeneous
+    \((A,Q)\) balance law. Their formula and assumptions are given in
+    Appendix~\ref{app:num-elastic-potential-form}.
 \end{definition}
 
 \begin{assumption}[Subcritical boundary regime]
@@ -607,8 +503,8 @@ discrepancy metrics are matched.
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{model-hierarchy}
-    \caption{Model hierarchy for reading comparison claims. The present
-    manuscript selects a 1D reduced forward model; 3D fixed-wall, resolved FSI,
+    \caption{Model hierarchy for reading comparison claims. This report
+    selects a 1D reduced forward model; 3D fixed-wall, resolved FSI,
     clinical, and independent-solver comparisons require separately matched
     evidence.}
     \label{fig:model-hierarchy-overview}
@@ -656,11 +552,11 @@ discrepancy metrics are matched.
             geometry, rheology, wall, boundary data, and outputs are compared
             directly \\
         Numerical reference problems for 1D solvers
-            & Scheme comparison, reproducibility expectations, and implementation
+            & Scheme comparison, reproducibility expectations, and reproducibility
             context
             & Grid, timestep, flux and source choices, boundary states, field and
             scalar discrepancies
-            & Evidence standard; does not grant solver parity to the present code
+            & Evidence standard; does not grant solver parity to this report's code
             without a matched comparison \\
         \bottomrule
     \end{tabularx}

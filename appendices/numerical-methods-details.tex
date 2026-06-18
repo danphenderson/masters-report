@@ -3,7 +3,8 @@
 This appendix supplies the numerical-method detail behind
 Sec.~\ref{subsubsec:cross-sectional-reduction-selected-1d-model} and the
 comparison boundary in Sec.~\ref{subsubsec:model-hierarchy}. It is supporting
-method detail, not a claim that the current solver has external-solver parity.
+method detail, not a claim that the active solver record has external-solver
+parity.
 The continuous identities are read under
 Convention~\ref{conv:foundation-standing-regularity}; computed quantities are
 read through the following numerical-record convention.
@@ -68,32 +69,39 @@ For the baseline wall law, assuming $p_{\mathrm{ext}}$ is independent of $A$,
     =
     \frac{\beta(z)\sqrt A}{2\rho A_0(z)}. &&
 \end{flalign*}
-The strictly hyperbolic positive-area region for this classical model has wave
-speeds
+Freeze \(z\), the wall-closure data, and the source terms, and consider the
+homogeneous \((A,Q)\) flux Jacobian associated with
+\((Q,\alpha Q^2/A+\Psi(A,z,t))^\top\). On a positive-area state \(A>0\), with
+flow rate \(Q\), mean velocity \(Q/A\), prescribed momentum-flux correction
+\(\alpha\), and
+\(c^2(A,z)\defined(A/\rho)\pd_A p_{\mathrm g}(A,z,t)\), its eigenvalues are
 \begin{flalign*}
     \quad
     \lambda_\pm(A,Q;z)
     =
     \alpha\frac{Q}{A}
     \pm
-    \sqrt{
-        c^2(A,z)+\alpha(\alpha-1)\left(\frac{Q}{A}\right)^2
-    }. &&
+    \sqrt{c^2(A,z)+\alpha(\alpha-1)\left(\frac{Q}{A}\right)^2}. &&
 \end{flalign*}
-These reduce to \(Q/A\pm c(A,z)\) in the special \(\alpha=1\) reference case.
-The boundary-state construction is intended for the subcritical case
-$\lambda_-<0<\lambda_+$, so one datum enters at each end of the vessel.
+For the displayed elastic wall law, \(c^2>0\) when \(\beta>0\), \(A>0\),
+\(A_0>0\), and \(\rho>0\). Thus the positive-area region is strictly
+hyperbolic under the stated wall-law assumptions. These speeds reduce to
+\(Q/A\pm c(A,z)\) in the special \(\alpha=1\) reference case. The subcritical
+case used in Assumption~\ref{ass:1d-subcritical-boundary-regime} is
+\(\lambda_-<0<\lambda_+\), so one characteristic enters through the inlet, one
+characteristic enters through the outlet, and one scalar boundary datum is
+imposed at each end of the vessel.
 The displayed derivatives of \(A_0\), \(\beta\), \(p_{\mathrm g}\), and
 \(\Psi\) are continuum notation for the model contract. A computed record may
 realize them through explicitly recorded finite-difference or source-split
 operators; changing that realization changes the computed map.
 
-\subsection{Current semi-discrete solver operator}
+\subsection{Recorded semi-discrete solver operator}
 \label{app:num-current-solver-operator}
 
-The current Canic extended implementation uses the code variable \(A\) for a
-radius-squared area coordinate. In this subsection write that coordinate as
-\(a=R^2\). The physical circular cross-sectional area is
+The active solver record uses the code variable \(A\) for a radius-squared area
+coordinate. In this subsection write that coordinate as \(a=R^2\). The
+physical circular cross-sectional area is
 \(A_{\mathrm{phys}}=\pi a\). This is a local convention for the active solver
 record; the continuum and classical 1D model sections keep \(A\) for physical
 cross-sectional area.
@@ -126,12 +134,12 @@ parameters. Componentwise,
     \frac{\widehat F^Q_{i+1/2}-\widehat F^Q_{i-1/2}}{\Delta z}
     +\widehat S_i. &&
 \end{flalign*}
-All divisions by \(a\) in the implementation use the recorded positive-area
+All divisions by \(a\) in the active solver record use the recorded positive-area
 floor.
 
 With \(K=Eh/(1-\sigma^2)\), velocity-profile momentum factor
 \(\alpha_{\mathcal P}\), and
-\(\alpha_c(R_0')=-2(R_0')^2/35\), the current full-state flux is
+\(\alpha_c(R_0')=-2(R_0')^2/35\), the recorded full-state flux is
 \begin{flalign*}
     \quad
     \mathbf F(a,Q,z)
@@ -156,7 +164,7 @@ At each interface,
     \frac{1}{2}s_{i+1/2}
     \left(\mathbf U^+_{i+1/2}-\mathbf U^-_{i+1/2}\right), &&
 \end{flalign*}
-where \(\mathbf U=(a,Q)^\top\) and the present implementation uses neighboring
+where \(\mathbf U=(a,Q)^\top\) and the active solver record uses neighboring
 first-order states plus ghost boundary states. The recorded local speed is
 \begin{flalign*}
     \quad
@@ -287,7 +295,7 @@ operator.
 \subsection{Boundary-state realization}
 \label{app:num-boundary-state-realization}
 
-The current finite-volume record imposes one incoming datum at each boundary in
+The active finite-volume record imposes one incoming datum at each boundary in
 the subcritical regime using the code's Riemann-invariant construction. Let
 \begin{flalign*}
     \quad
@@ -308,7 +316,7 @@ and the ghost coordinate \(a_{\mathrm{in}}\) solves
     \frac{Q_{\mathrm{in}}}{a_{\mathrm{in}}}
     -4c_0a_{\mathrm{in}}^{1/4}
     =
-    w_- . &&
+    w_-. &&
 \end{flalign*}
 At the outlet, the radius-squared coordinate is fixed to
 \(a_{\mathrm{out}}=R_0(L)^2\). The outgoing invariant from the last interior
