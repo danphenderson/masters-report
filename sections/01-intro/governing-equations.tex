@@ -177,11 +177,12 @@ For a single-vessel three-dimensional domain, write the boundary decomposition
 Here $\Gamma_{\mathrm{in}}(t)$ denotes an inlet portion where a velocity,
 flow-rate, or profile condition may be prescribed. The outlet portion
 $\Gamma_{\mathrm{out}}(t)$ carries pressure, traction, or reduced downstream
-network data. The wall portion $\Gamma_w(t)$ carries either a no-slip or
-no-penetration condition for a fixed-wall continuum model, or a wall-law or
-structure closure when wall motion is retained. A complete initial-boundary
-value problem also states $\vu(0,\cdot)=\vu_0$, the domain, forcing,
-compatibility assumptions, and the solution class.
+network data. For a fixed-wall no-slip continuum model, the wall portion
+$\Gamma_w(t)\subset\pOmgBt$ carries $\vu=0$; this condition is not imposed on
+the inlet or outlet portions of $\pOmgBt$. Other continuum or FSI tiers may use
+no-penetration, wall-law, or structure-coupling data instead. A complete
+initial-boundary value problem also states $\vu(0,\cdot)=\vu_0$, the domain,
+forcing, compatibility assumptions, and the solution class.
 
 \begin{remark}[Global regularity context]
     \label{rmk:global-regularity}
@@ -313,6 +314,21 @@ independent replacements for the blood-dynamics setting above.
     \cite[Sec.~2, pp.~253--257]{FormaggiaEtAl2003OneDimensionalBloodFlow}
     \cite{QuarteroniVeneziani2003GeometricalMultiscale}
     \cite{FormaggiaEtAl2007FSICoupling}.
+\end{definition}
+
+\begin{definition}[Classical no-slip 1D baseline]
+    \label{def:classical-no-slip-1d-baseline}
+    The classical no-slip 1D baseline used as a model-family member starts from
+    the fixed-wall continuum trace $\vu=0$ on the wall boundary
+    $\Gamma_w\subset\pOmgB$, together with separate inlet and outlet data on
+    $\Gamma_{\mathrm{in}}$ and $\Gamma_{\mathrm{out}}$. After cross-sectional
+    averaging, the no-slip antecedent is represented by the parabolic
+    profile/friction convention $\alpha_{\mathcal P}=4/3$ and
+    $g_{\mathcal P}=4$. In the implementation manifests this member is recorded
+    as \texttt{classical-1d-no-slip}; it keeps the same reduced state variables
+    and wall-law axis as the selected 1D framework, but omits the Canic
+    effective-alpha variable-radius correction. The descriptor
+    \texttt{canic-extended-1d} records the current extended-model member.
 \end{definition}
 
 \begin{definition}[Closed 1D area-flow model]

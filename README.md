@@ -123,9 +123,14 @@ pipenv run research-hemodynamics run --space dg-p2 --out tmp/python-dg-p2
 pipenv run research-hemodynamics run --space fem-stationary-stokes --ic stationary-stokes --ic-pressure-drop-pa 100 --out tmp/python-fem-stokes
 ```
 
-`descriptors --json` exposes Python maturity tiers. The publication-tier Python
-surface is `fv-first-order`, `fv-muscl`, `fv-lax-wendroff`, and
-`fem-stationary-stokes`. `fv-lax-wendroff` uses a true Richtmyer/Lax-Wendroff
+`descriptors --json` exposes Python maturity tiers and forward-model
+descriptors. The default `--model canic-extended-1d` keeps the Canic
+effective-alpha variable-radius correction. `--model classical-1d-no-slip`
+selects the classical parabolic-profile 1D baseline, records the wall no-slip
+antecedent as `no-slip-on-wall-Gamma_w-not-inlet-or-outlet`, and disables the
+Canic effective-alpha correction. The publication-tier Python spatial surface is
+`fv-first-order`, `fv-muscl`, `fv-lax-wendroff`, and `fem-stationary-stokes`.
+`fv-lax-wendroff` uses a true Richtmyer/Lax-Wendroff
 finite-volume interface predictor, with only a local positivity fallback for
 invalid half-step interface states. `dg-p0`, `dg-p1`, and `dg-p2` are
 `experimental-smoke` descriptors that run through a cell-average FV update; they
@@ -138,6 +143,7 @@ Boundary descriptor parameters are validated and recorded:
 
 ```bash
 pipenv run research-hemodynamics run \
+  --model classical-1d-no-slip \
   --inlet flow-waveform \
   --flow-waveform tmp/waveform.txt \
   --outlet reflection-coefficient \
@@ -172,6 +178,37 @@ SciPy is not a required dependency. The SciML adapter shells out through this
 repo's `./scripts/julia-release` and `simulations/run_canic_extended_1d.jl`
 when `--julia-project /Users/doe/hemodynamics/masters-report` is supplied.
 
-`run --out PATH` writes `summary.json`, `series.csv`, and `solution.npz`.
+`run --out PATH` writes `summary.json`, `series.csv`, `solution.npz`, and
+`manifest.json`. Use `--dtype auto|float32|float64` to make precision explicit;
+`auto` resolves to float64 for native/Torch CPU and float32 for Torch MPS. Use
+`--sample-times 0,0.001,0.002` when exact output records are needed instead of
+save-interval output.
+
+Manifest reruns use the recorded solver options without CLI overrides:
+
+```bash
+pipenv run research-hemodynamics run-manifest \
+  tmp/python-fv-muscl/manifest.json \
+  --out tmp/python-fv-muscl-rerun
+```
+
+Backend-parity experiment records are orchestrated through a scratch-only
+experiment command:
+
+```bash
+pipenv run research-hemodynamics experiment \
+  --experiment backend-parity-v1 \
+  --profile smoke \
+  --out tmp/experiments/backend-parity-v1-smoke \
+  --overwrite
+```
+
+The `smoke` profile is the acceptance-scale matrix. The `full` profile expands
+to both forward models (`canic-extended-1d` and `classical-1d-no-slip`),
+severities 0, 23, 40, and 50 percent, larger grids, and `T=1.0 s`; expect that
+profile to be substantially slower. Experiment output includes per-run manifests
+under `manifests/`, raw runs under `runs/`, and CSV summaries under `summaries/`
+for run diagnostics, field parity, performance, and total-variation diagnostics.
+
 Use ignored scratch locations such as `tmp/**` for CLI output; do not write
 Python runs into report PDFs, references, figures, or Julia manifest files.

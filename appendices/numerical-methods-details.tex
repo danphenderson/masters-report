@@ -139,14 +139,17 @@ radius-squared area coordinate.
 
 With $K=Eh/(1-\sigma^2)$, velocity-profile momentum factor
 $\alpha_{\mathcal P}$, and
-$\alpha_c(R_0')=-2(R_0')^2/35$, the semi-discrete full-state flux is
+$\alpha_c(R_0')=-2(R_0')^2/35$, define
+$\iota_{\mathcal M}=1$ for the \texttt{canic-extended-1d} forward-model
+descriptor and $\iota_{\mathcal M}=0$ for
+\texttt{classical-1d-no-slip}. The semi-discrete full-state flux is
 \begin{flalign*}
     \quad
     \mathbf F(a,Q,z)
     =
     \left(
         Q,\,
-        \left(\alpha_{\mathcal P}+\alpha_c(R_0'(z))\right)\frac{Q^2}{a}
+        \left(\alpha_{\mathcal P}+\iota_{\mathcal M}\alpha_c(R_0'(z))\right)\frac{Q^2}{a}
         +\frac{K}{3\rho R_{\max}^2}a^{3/2}
     \right)^\top. &&
 \end{flalign*}
@@ -187,7 +190,7 @@ with
     \quad
     \alpha_{\mathrm{eff}}
     &=
-        \alpha_{\mathcal P}+\alpha_c(R_0'(z)),\qquad
+        \alpha_{\mathcal P}+\iota_{\mathcal M}\alpha_c(R_0'(z)),\qquad
     u=\frac{Q}{a}, &&\\
     \quad
     \chi^2
@@ -221,7 +224,7 @@ $\alpha_c'(z)=-4R_0'(z)R_0''(z)/35$. The implemented source is
     -
     a_i\,\widehat{\pd_z p_2}_i
     +
-    \frac{Q_i^2}{a_i}\alpha_c'(z_i), &&\\
+    \iota_{\mathcal M}\frac{Q_i^2}{a_i}\alpha_c'(z_i), &&\\
     \quad
     \widehat{\pd_z p_2}_i
     &=

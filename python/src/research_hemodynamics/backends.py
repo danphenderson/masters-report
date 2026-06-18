@@ -21,9 +21,11 @@ from .numerics import (
     RunRequest,
     SimulationResult,
     compare_metrics,
+    dt_stats,
     grid,
     initial_state,
     pressure,
+    resolve_dtype_name,
     rhs,
     run_native,
     save_times,
@@ -53,7 +55,14 @@ def detect_devices() -> list[DeviceInfo]:
         devices.append(DeviceInfo("cuda", False, "torch", "torch unavailable"))
         _LOG.debug(
             "device probe completed",
-            extra=event_fields(event="device_probe", stage="detect_devices", backend="torch", status="partial", rows=len(devices), reason=str(exc)),
+            extra=event_fields(
+                event="device_probe",
+                stage="detect_devices",
+                backend="torch",
+                status="partial",
+                rows=len(devices),
+                reason=str(exc),
+            ),
         )
         return devices
     mps = getattr(getattr(torch, "backends", None), "mps", None)
@@ -76,7 +85,9 @@ def detect_devices() -> list[DeviceInfo]:
             )
     _LOG.debug(
         "device probe completed",
-        extra=event_fields(event="device_probe", stage="detect_devices", backend="torch", status="ok", rows=len(devices)),
+        extra=event_fields(
+            event="device_probe", stage="detect_devices", backend="torch", status="ok", rows=len(devices)
+        ),
     )
     return devices
 
@@ -148,7 +159,8 @@ def _torch_effective_nu(torch, area, flow, z, request: RunRequest):
 def _torch_flux(torch, area, flow, z, request: RunRequest):
     a_safe = torch.clamp(area, min=AREA_FLOOR)
     _, r0z, _ = _torch_geometry(torch, z, request)
-    alpha_eff = request.velocity_profile.momentum_alpha - 2.0 / 35.0 * r0z**2
+    alpha_c = -2.0 / 35.0 * r0z**2 if request.model.variable_radius_terms else torch.zeros_like(r0z)
+    alpha_eff = request.velocity_profile.momentum_alpha + alpha_c
     elastic = request.wall_stiffness / (3.0 * request.rho * request.rmax**2) * a_safe**1.5
     return flow, alpha_eff * flow**2 / a_safe + elastic
 
@@ -156,7 +168,8 @@ def _torch_flux(torch, area, flow, z, request: RunRequest):
 def _torch_wave_speed(torch, area, flow, z, request: RunRequest):
     a_safe = torch.clamp(area, min=AREA_FLOOR)
     _, r0z, _ = _torch_geometry(torch, z, request)
-    alpha_eff = request.velocity_profile.momentum_alpha - 2.0 / 35.0 * r0z**2
+    alpha_c = -2.0 / 35.0 * r0z**2 if request.model.variable_radius_terms else torch.zeros_like(r0z)
+    alpha_eff = request.velocity_profile.momentum_alpha + alpha_c
     u = flow / a_safe
     elastic = request.wall_stiffness / (2.0 * request.rho * request.rmax**2) * torch.sqrt(a_safe)
     rad = torch.clamp((alpha_eff * u) ** 2 - alpha_eff * u**2 + elastic, min=0.0)
@@ -322,6 +335,7 @@ def _torch_step(torch, area, flow, z, dx: float, time: float, dt: float, request
 def run_torch(
     request: RunRequest, device: str = "cpu", allow_cpu_fallback: bool = False
 ) -> tuple[SimulationResult, str]:
+    started = perf_counter()
     if request.spatial.family == "fem":
         raise BackendUnavailable("fem-stationary-stokes is a CPU native projection path")
     selected = resolve_torch_device(device, allow_cpu_fallback)
@@ -330,7 +344,10 @@ def run_torch(
     except Exception as exc:
         raise BackendUnavailable(f"torch unavailable: {exc}") from exc
     torch_device = torch.device(selected)
-    dtype = torch.float32 if selected == "mps" else torch.float64
+    dtype_name = resolve_dtype_name(request, "torch", selected)
+    if selected == "mps" and dtype_name == "float64":
+        raise BackendUnavailable("Torch MPS float64 is not supported; use --dtype auto or --dtype float32")
+    dtype = torch.float32 if dtype_name == "float32" else torch.float64
     z_np, dx = grid(request)
     times = save_times(request)
     area_np, flow_np = initial_state(z_np, request)
@@ -343,6 +360,7 @@ def run_torch(
     flow_hist[:, 0] = flow_np
     t = 0.0
     steps = 0
+    dts: list[float] = []
 
     for out_idx in range(1, times.size):
         target = float(times[out_idx])
@@ -351,10 +369,14 @@ def run_torch(
             dt = min(target - t, request.dt, request.cfl * dx / max(float(speed.detach().cpu()), 1.0e-12))
             area, flow = _torch_step(torch, area, flow, z, dx, t, dt, request, dtype, torch_device)
             area = torch.clamp(area, min=AREA_LIMITER_FLOOR)
+            if not bool(torch.isfinite(area).all()) or not bool(torch.isfinite(flow).all()):
+                raise FloatingPointError("nonfinite state")
             t += dt
             steps += 1
+            dts.append(float(dt))
         area_hist[:, out_idx] = area.detach().cpu().numpy().astype(float)
         flow_hist[:, out_idx] = flow.detach().cpu().numpy().astype(float)
+    elapsed_s = round(perf_counter() - started, 6)
     result = SimulationResult(
         z_np,
         times,
@@ -362,12 +384,19 @@ def run_torch(
         flow_hist,
         pressure(area_hist, flow_hist, z_np, request),
         steps,
-        {"mode": "torch-tensor-update", "rhs": "torch-native"},
+        {
+            "mode": "torch-tensor-update",
+            "rhs": "torch-native",
+            "dtype": dtype_name,
+            "runtime_seconds": elapsed_s,
+            **dt_stats(dts),
+        },
     )
     return result, selected
 
 
 def run_scipy(request: RunRequest) -> SimulationResult:
+    started = perf_counter()
     if request.spatial.family == "fem":
         raise BackendUnavailable("SciPy adapter is for time-dependent FV/DG smoke runs")
     try:
@@ -392,8 +421,15 @@ def run_scipy(request: RunRequest) -> SimulationResult:
         raise FloatingPointError(solution.message)
     area = np.maximum(solution.y[: request.nx, :], 1.0e-10)
     flow = solution.y[request.nx :, :]
+    elapsed_s = round(perf_counter() - started, 6)
     return SimulationResult(
-        z, times, area, flow, pressure(area, flow, z, request), int(solution.nfev), {"mode": "scipy-solve-ivp"}
+        z,
+        times,
+        area,
+        flow,
+        pressure(area, flow, z, request),
+        int(solution.nfev),
+        {"mode": "scipy-solve-ivp", "dtype": "float64", "runtime_seconds": elapsed_s, **dt_stats([])},
     )
 
 
@@ -492,7 +528,15 @@ def run_sciml_reference(request: RunRequest) -> SimulationResult:
         times = save_times(request)
         area = np.repeat(area_last[:, None], times.size, axis=1)
         flow = np.repeat(flow_last[:, None], times.size, axis=1)
-        return SimulationResult(z, times, area, flow, pressure(area, flow, z, request), 0, {"mode": "sciml-reference"})
+        return SimulationResult(
+            z,
+            times,
+            area,
+            flow,
+            pressure(area, flow, z, request),
+            0,
+            {"mode": "sciml-reference", "dtype": "float64", "runtime_seconds": elapsed_s, **dt_stats([])},
+        )
 
 
 def run_backend(

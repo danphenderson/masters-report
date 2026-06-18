@@ -28,6 +28,10 @@ geometry $R_0(z)$, $A_0(z)$, and $s(z)$, but resolved throat flow does not
 appear automatically; variable-radius corrections such as the Canic-style terms
 are additional closure choices
 \cite{CanicEtAl2024Extended1DStenosis}.
+The current implementation records this axis explicitly through the
+\texttt{canic-extended-1d} and \texttt{classical-1d-no-slip} forward-model
+descriptors, the latter corresponding to the wall no-slip baseline in
+Definition~\ref{def:classical-no-slip-1d-baseline}.
 
 The 1D model is the selected reduced forward map because it retains distributed
 pressure--flow structure at low computational cost, while its outputs remain

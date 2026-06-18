@@ -16,6 +16,46 @@ Rhs = Callable[[np.ndarray, np.ndarray, float, float], ArrayPair]
 
 
 @dataclass(frozen=True)
+class ForwardModelStrategy:
+    descriptor: str
+    wall: str
+    wall_boundary_condition: str
+    variable_radius_terms: bool
+    requires_parabolic_profile: bool = False
+    tier: str = PUBLICATION_TIER
+
+    def metadata(self) -> dict[str, object]:
+        return {
+            "descriptor": self.descriptor,
+            "wall": self.wall,
+            "wall_boundary_condition": self.wall_boundary_condition,
+            "variable_radius_terms": self.variable_radius_terms,
+            "requires_parabolic_profile": self.requires_parabolic_profile,
+            "tier": self.tier,
+        }
+
+
+def forward_model_strategy(name: str) -> ForwardModelStrategy:
+    normalized = normalize_name(name)
+    if normalized == "canic-extended-1d":
+        return ForwardModelStrategy(
+            normalized,
+            "elastic1d",
+            "reduced-elastic-wall-law",
+            variable_radius_terms=True,
+        )
+    if normalized == "classical-1d-no-slip":
+        return ForwardModelStrategy(
+            normalized,
+            "elastic1d",
+            "no-slip-on-wall-Gamma_w-not-inlet-or-outlet",
+            variable_radius_terms=False,
+            requires_parabolic_profile=True,
+        )
+    raise ValueError(f"unknown model descriptor {name!r}")
+
+
+@dataclass(frozen=True)
 class SpatialStrategy:
     descriptor: str
     family: str

@@ -6,6 +6,7 @@ import csv
 import hashlib
 import json
 import math
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
@@ -15,6 +16,8 @@ import numpy as np
 
 from .logging import event_fields, get_logger
 from .strategies import (
+    ArrayPair,
+    ForwardModelStrategy,
     InletBoundaryStrategy,
     OutletBoundaryStrategy,
     RheologyStrategy,
@@ -26,10 +29,12 @@ from .strategies import (
 AREA_FLOOR = 1.0e-12
 AREA_LIMITER_FLOOR = 1.0e-10
 _LOG = get_logger(__name__)
+VALID_DTYPES = {"auto", "float32", "float64"}
 
 
 @dataclass(frozen=True)
 class RunRequest:
+    model: ForwardModelStrategy
     spatial: SpatialStrategy
     time_stepper: TimeStepperStrategy
     rheology: RheologyStrategy
@@ -55,6 +60,12 @@ class RunRequest:
     scipy_method: str = "RK45"
     sciml_label: str = "auto"
     julia_project: Path | None = None
+    dtype: str = "auto"
+    sample_times: tuple[float, ...] | None = None
+
+    def __post_init__(self) -> None:
+        if self.model.requires_parabolic_profile and self.velocity_profile.descriptor != "parabolic":
+            raise ValueError("classical-1d-no-slip requires the parabolic velocity profile")
 
     @property
     def wall_stiffness(self) -> float:
@@ -77,11 +88,49 @@ class SimulationResult:
             "steps": self.steps,
             "completed_time": float(self.t[-1]),
             "area_min": float(np.min(self.area)),
+            "finite_state": bool(np.isfinite(self.area).all() and np.isfinite(self.flow).all()),
+            "positivity_pass": bool(np.all(self.area > 0.0)),
             "area_mean_final": float(np.mean(self.area[:, -1])),
             "flow_mean_final": float(np.mean(self.flow[:, -1])),
             "pressure_mean_final": float(np.mean(self.pressure[:, -1])),
             "velocity_max": float(np.max(np.abs(velocity))),
         }
+
+
+def validate_dtype_name(dtype: str) -> str:
+    normalized = dtype.strip().lower()
+    if normalized not in VALID_DTYPES:
+        raise ValueError("--dtype must be one of: auto, float32, float64")
+    return normalized
+
+
+def resolve_dtype_name(request: RunRequest, backend: str, device: str = "cpu") -> str:
+    requested = validate_dtype_name(request.dtype)
+    if requested != "auto":
+        return requested
+    normalized_backend = backend.strip().lower().replace("_", "-")
+    normalized_device = device.strip().lower()
+    if normalized_backend == "torch" and normalized_device == "mps":
+        return "float32"
+    return "float64"
+
+
+def numpy_dtype(dtype_name: str) -> np.dtype:
+    normalized = validate_dtype_name(dtype_name)
+    if normalized == "auto":
+        raise ValueError("resolve dtype before requesting a concrete NumPy dtype")
+    return np.dtype(np.float32 if normalized == "float32" else np.float64)
+
+
+def dt_stats(dts: list[float]) -> dict[str, float]:
+    if not dts:
+        return {"dt_min": 0.0, "dt_max": 0.0, "dt_mean": 0.0}
+    values = np.asarray(dts, dtype=float)
+    return {
+        "dt_min": float(np.min(values)),
+        "dt_max": float(np.max(values)),
+        "dt_mean": float(np.mean(values)),
+    }
 
 
 def asymmetric_geometry_terms(z: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -101,6 +150,12 @@ def stenosis(z: np.ndarray | float, request: RunRequest) -> tuple[np.ndarray, np
     r0z = 200.0 * amplitude * kernel * g**3 * gp
     r0zz = 200.0 * amplitude * kernel * (3.0 * g**2 * gp**2 + g**3 * gpp - 200.0 * g**6 * gp**2)
     return r0, r0z, r0zz
+
+
+def variable_radius_alpha_c(r0z: np.ndarray, request: RunRequest) -> np.ndarray:
+    if not request.model.variable_radius_terms:
+        return np.zeros_like(r0z)
+    return -2.0 / 35.0 * r0z**2
 
 
 def grid(request: RunRequest) -> tuple[np.ndarray, float]:
@@ -135,7 +190,7 @@ def effective_nu(area: np.ndarray, flow: np.ndarray, z: np.ndarray, request: Run
 def flux(area: np.ndarray, flow: np.ndarray, z: np.ndarray, request: RunRequest) -> tuple[np.ndarray, np.ndarray]:
     a_safe = np.maximum(area, AREA_FLOOR)
     _, r0z, _ = stenosis(z, request)
-    alpha_eff = request.velocity_profile.momentum_alpha - 2.0 / 35.0 * r0z**2
+    alpha_eff = request.velocity_profile.momentum_alpha + variable_radius_alpha_c(r0z, request)
     elastic = request.wall_stiffness / (3.0 * request.rho * request.rmax**2) * a_safe**1.5
     return flow, alpha_eff * flow**2 / a_safe + elastic
 
@@ -143,7 +198,7 @@ def flux(area: np.ndarray, flow: np.ndarray, z: np.ndarray, request: RunRequest)
 def max_wave_speed(area: np.ndarray, flow: np.ndarray, z: np.ndarray, request: RunRequest) -> np.ndarray:
     a_safe = np.maximum(area, AREA_FLOOR)
     _, r0z, _ = stenosis(z, request)
-    alpha_eff = request.velocity_profile.momentum_alpha - 2.0 / 35.0 * r0z**2
+    alpha_eff = request.velocity_profile.momentum_alpha + variable_radius_alpha_c(r0z, request)
     u = flow / a_safe
     elastic = request.wall_stiffness / (2.0 * request.rho * request.rmax**2) * np.sqrt(a_safe)
     rad = np.maximum((alpha_eff * u) ** 2 - alpha_eff * u**2 + elastic, 0.0)
@@ -386,6 +441,21 @@ def initial_state(z: np.ndarray, request: RunRequest) -> ArrayPair:
 
 
 def save_times(request: RunRequest) -> np.ndarray:
+    if request.sample_times is not None:
+        times = np.asarray(request.sample_times, dtype=float)
+        if times.ndim != 1 or times.size < 2:
+            raise ValueError("--sample-times must contain at least 0 and tfinal")
+        if not np.all(np.isfinite(times)):
+            raise ValueError("--sample-times must be finite")
+        if abs(float(times[0])) > 1.0e-12:
+            raise ValueError("--sample-times must start at 0")
+        if not np.all(np.diff(times) > 0.0):
+            raise ValueError("--sample-times must be strictly increasing")
+        if np.any(times < -1.0e-12) or np.any(times > request.tfinal + 1.0e-12):
+            raise ValueError("--sample-times must lie in [0, tfinal]")
+        if abs(float(times[-1]) - request.tfinal) > 1.0e-12:
+            raise ValueError("--sample-times must end at tfinal")
+        return times
     times = [0.0]
     t = 0.0
     while t + request.saveat < request.tfinal - 10.0 * np.finfo(float).eps:
@@ -398,6 +468,8 @@ def save_times(request: RunRequest) -> np.ndarray:
 
 def run_native(request: RunRequest) -> SimulationResult:
     started = perf_counter()
+    dtype_name = resolve_dtype_name(request, "native", "cpu")
+    dtype = numpy_dtype(dtype_name)
     status_fields = dict(
         stage="run_native",
         backend="native",
@@ -407,16 +479,20 @@ def run_native(request: RunRequest) -> SimulationResult:
     )
     try:
         z, dx = grid(request)
+        z = z.astype(dtype, copy=False)
         times = save_times(request)
         area, flow = initial_state(z, request)
-        area_hist = np.empty((request.nx, times.size))
-        flow_hist = np.empty((request.nx, times.size))
+        area = area.astype(dtype, copy=False)
+        flow = flow.astype(dtype, copy=False)
+        area_hist = np.empty((request.nx, times.size), dtype=dtype)
+        flow_hist = np.empty((request.nx, times.size), dtype=dtype)
         area_hist[:, 0] = area
         flow_hist[:, 0] = flow
         if request.spatial.family == "fem":
             projection_hash = hashlib.sha256(
                 np.ascontiguousarray(np.vstack([z, area, flow]), dtype=np.float64).tobytes()
             ).hexdigest()
+            elapsed_s = round(perf_counter() - started, 6)
             for idx in range(1, times.size):
                 area_hist[:, idx] = area
                 flow_hist[:, idx] = flow
@@ -427,7 +503,13 @@ def run_native(request: RunRequest) -> SimulationResult:
                 flow_hist,
                 pressure(area_hist, flow_hist, z, request),
                 0,
-                {"mode": "stationary-stokes-projection", "projection_hash": projection_hash},
+                {
+                    "mode": "stationary-stokes-projection",
+                    "projection_hash": projection_hash,
+                    "dtype": dtype_name,
+                    "runtime_seconds": elapsed_s,
+                    **dt_stats([]),
+                },
             )
             _LOG.info(
                 "native solver completed",
@@ -435,7 +517,7 @@ def run_native(request: RunRequest) -> SimulationResult:
                     event="native_completed",
                     **status_fields,
                     status="ok",
-                    elapsed_s=round(perf_counter() - started, 6),
+                    elapsed_s=elapsed_s,
                     rows=result.area.shape[0],
                 ),
             )
@@ -443,6 +525,7 @@ def run_native(request: RunRequest) -> SimulationResult:
 
         steps = 0
         t = 0.0
+        dts: list[float] = []
 
         def rhs_for_step(a: np.ndarray, q: np.ndarray, time: float, step_dt: float) -> ArrayPair:
             return rhs(a, q, z, dx, time, step_dt, request)
@@ -458,8 +541,10 @@ def run_native(request: RunRequest) -> SimulationResult:
                     raise FloatingPointError("nonfinite state")
                 t += dt
                 steps += 1
+                dts.append(float(dt))
             area_hist[:, out_idx] = area
             flow_hist[:, out_idx] = flow
+        elapsed_s = round(perf_counter() - started, 6)
         result = SimulationResult(
             z,
             times,
@@ -467,7 +552,12 @@ def run_native(request: RunRequest) -> SimulationResult:
             flow_hist,
             pressure(area_hist, flow_hist, z, request),
             steps,
-            {"mode": "finite-volume"},
+            {
+                "mode": "finite-volume",
+                "dtype": dtype_name,
+                "runtime_seconds": elapsed_s,
+                **dt_stats(dts),
+            },
         )
         _LOG.info(
             "native solver completed",
@@ -475,7 +565,7 @@ def run_native(request: RunRequest) -> SimulationResult:
                 event="native_completed",
                 **status_fields,
                 status="ok",
-                elapsed_s=round(perf_counter() - started, 6),
+                elapsed_s=elapsed_s,
                 rows=result.area.shape[0],
             ),
         )
@@ -495,9 +585,24 @@ def run_native(request: RunRequest) -> SimulationResult:
 
 
 def write_outputs(
-    result: SimulationResult, request: RunRequest, out: Path, backend: str, device: str = "cpu"
+    result: SimulationResult,
+    request: RunRequest,
+    out: Path,
+    backend: str,
+    device: str = "cpu",
+    *,
+    experiment_id: str = "manual",
+    case_id: str | None = None,
 ) -> dict[str, str]:
     started = perf_counter()
+    dtype_name = str(result.metadata.get("dtype") or resolve_dtype_name(request, backend, device))
+    run_case_id = case_id or out.name
+    manifest = request_manifest(request, backend, device, dtype_name, experiment_id=experiment_id, case_id=run_case_id)
+    manifest_hash = canonical_hash(manifest)
+    manifest["manifest_hash"] = manifest_hash
+    output_hash = stable_result_hash(result)
+    diagnostics = result_diagnostics(result, request)
+    derived = result_derived_fields(result, request)
     status_fields = dict(
         stage="write_outputs",
         backend=backend,
@@ -512,12 +617,18 @@ def write_outputs(
         summary_path = out / "summary.json"
         series_path = out / "series.csv"
         npz_path = out / "solution.npz"
+        manifest_path = out / "manifest.json"
         payload = {
             "summary": result.summary(),
             "backend": backend,
             "device": device,
+            "dtype": dtype_name,
+            "manifest_hash": manifest_hash,
+            "output_hash": output_hash,
+            "diagnostics": diagnostics,
             "metadata": {
                 **result.metadata,
+                "model": request.model.metadata(),
                 "spatial": request.spatial.metadata(),
                 "time_stepper": request.time_stepper.descriptor,
                 "rheology": request.rheology.metadata(),
@@ -527,15 +638,58 @@ def write_outputs(
                 "outlet_boundary": request.outlet_boundary.metadata(),
             },
         }
+        manifest_path.write_text(canonical_json(manifest, pretty=True) + "\n")
         summary_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
         with series_path.open("w", newline="") as handle:
             writer = csv.writer(handle)
-            writer.writerow(["t_s", "z_cm", "A_cm2", "Q_cm3_s", "pressure_dyn_cm2"])
+            writer.writerow(
+                [
+                    "t_s",
+                    "z_cm",
+                    "A_cm2",
+                    "Q_cm3_s",
+                    "pressure_dyn_cm2",
+                    "u_cm_s",
+                    "A_phys_cm2",
+                    "shear_proxy_s_inv",
+                    "nu_eff_cm2_s",
+                ]
+            )
             for j, t in enumerate(result.t):
                 for i, z_i in enumerate(result.z):
-                    writer.writerow([t, z_i, result.area[i, j], result.flow[i, j], result.pressure[i, j]])
-        np.savez_compressed(npz_path, t_s=result.t, z_cm=result.z, area_cm2=result.area, flow_cm3_s=result.flow)
-        outputs = {"summary_json": str(summary_path), "series_csv": str(series_path), "solution_npz": str(npz_path)}
+                    writer.writerow(
+                        [
+                            t,
+                            z_i,
+                            result.area[i, j],
+                            result.flow[i, j],
+                            result.pressure[i, j],
+                            derived["velocity_cm_s"][i, j],
+                            derived["area_phys_cm2"][i, j],
+                            derived["shear_proxy_s_inv"][i, j],
+                            derived["nu_eff_cm2_s"][i, j],
+                        ]
+                    )
+        np.savez_compressed(
+            npz_path,
+            t_s=result.t,
+            z_cm=result.z,
+            area_cm2=result.area,
+            area_phys_cm2=derived["area_phys_cm2"],
+            flow_cm3_s=result.flow,
+            velocity_cm_s=derived["velocity_cm_s"],
+            pressure_dyn_cm2=result.pressure,
+            shear_proxy_s_inv=derived["shear_proxy_s_inv"],
+            nu_eff_cm2_s=derived["nu_eff_cm2_s"],
+        )
+        outputs = {
+            "summary_json": str(summary_path),
+            "series_csv": str(series_path),
+            "solution_npz": str(npz_path),
+            "manifest_json": str(manifest_path),
+            "manifest_hash": manifest_hash,
+            "output_hash": output_hash,
+        }
         _LOG.info(
             "outputs written",
             extra=event_fields(
@@ -561,10 +715,283 @@ def write_outputs(
         raise
 
 
+def result_derived_fields(result: SimulationResult, request: RunRequest) -> dict[str, np.ndarray]:
+    velocity = result.flow / np.maximum(result.area, AREA_FLOOR)
+    r0, _, _ = stenosis(result.z[:, None], request)
+    shear_proxy = characteristic_shear_rate(result.area, result.flow, r0, request)
+    return {
+        "velocity_cm_s": velocity,
+        "area_phys_cm2": math.pi * result.area,
+        "shear_proxy_s_inv": shear_proxy,
+        "nu_eff_cm2_s": effective_nu(result.area, result.flow, result.z[:, None], request),
+    }
+
+
+def total_variation_series(result: SimulationResult) -> np.ndarray:
+    velocity = result.flow / np.maximum(result.area, AREA_FLOOR)
+    if velocity.shape[0] < 2:
+        return np.zeros(velocity.shape[1], dtype=float)
+    return np.sum(np.abs(np.diff(velocity, axis=0)), axis=0)
+
+
+def result_diagnostics(result: SimulationResult, request: RunRequest) -> dict[str, Any]:
+    velocity = result.flow / np.maximum(result.area, AREA_FLOOR)
+    speed_values = [
+        float(np.max(max_wave_speed(result.area[:, j], result.flow[:, j], result.z, request)))
+        for j in range(result.t.size)
+    ]
+    final_velocity = velocity[:, -1]
+    tv = total_variation_series(result)
+    return {
+        "finite_state": bool(np.isfinite(result.area).all() and np.isfinite(result.flow).all()),
+        "positivity_pass": bool(np.all(result.area > 0.0)),
+        "min_a": float(np.min(result.area)),
+        "max_speed": float(max(speed_values) if speed_values else 0.0),
+        "num_steps": int(result.steps),
+        "dt_min": float(result.metadata.get("dt_min", 0.0)),
+        "dt_max": float(result.metadata.get("dt_max", 0.0)),
+        "dt_mean": float(result.metadata.get("dt_mean", 0.0)),
+        "runtime_seconds": float(result.metadata.get("runtime_seconds", 0.0)),
+        "velocity_max_final": float(np.max(np.abs(final_velocity))),
+        "z_velocity_max_final_cm": float(result.z[int(np.argmax(np.abs(final_velocity)))]),
+        "velocity_inlet_final": float(final_velocity[0]),
+        "velocity_outlet_final": float(final_velocity[-1]),
+        "pressure_drop_final_dyn_cm2": float(result.pressure[0, -1] - result.pressure[-1, -1]),
+        "tv_velocity_initial": float(tv[0]) if tv.size else 0.0,
+        "tv_velocity_final": float(tv[-1]) if tv.size else 0.0,
+        "tv_velocity_max": float(np.max(tv)) if tv.size else 0.0,
+    }
+
+
+def stable_result_hash(result: SimulationResult) -> str:
+    digest = hashlib.sha256()
+    for name, array in (
+        ("t_s", result.t),
+        ("z_cm", result.z),
+        ("area_cm2", result.area),
+        ("flow_cm3_s", result.flow),
+        ("pressure_dyn_cm2", result.pressure),
+    ):
+        values = np.ascontiguousarray(np.asarray(array, dtype="<f8"))
+        digest.update(name.encode("utf-8"))
+        digest.update(str(values.shape).encode("utf-8"))
+        digest.update(values.tobytes())
+    return digest.hexdigest()
+
+
+def canonical_json(value: Any, *, pretty: bool = False) -> str:
+    return json.dumps(value, indent=2 if pretty else None, separators=None if pretty else (",", ":"), sort_keys=True)
+
+
+def canonical_hash(value: Any) -> str:
+    payload = deepcopy(value)
+    if isinstance(payload, dict):
+        payload.pop("manifest_hash", None)
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+
+
+def request_manifest(
+    request: RunRequest,
+    backend: str,
+    device: str,
+    dtype_name: str,
+    *,
+    experiment_id: str,
+    case_id: str,
+) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "experiment_id": experiment_id,
+        "case_id": case_id,
+        "model": {
+            "descriptor": request.model.descriptor,
+            "coordinate": "radius_squared",
+            "wall": request.model.wall,
+            "wall_boundary_condition": request.model.wall_boundary_condition,
+            "variable_radius_terms": request.model.variable_radius_terms,
+            "rheology": request.rheology.descriptor,
+            "profile": request.velocity_profile.descriptor,
+        },
+        "geometry": {
+            "length_cm": request.length_cm,
+            "severity_percent": request.severity,
+            "profile": "smooth_asymmetric_cinf",
+            "rmax_cm": request.rmax,
+        },
+        "grid": {
+            "nx": request.nx,
+            "final_time_s": request.tfinal,
+            "dt_max_s": request.dt,
+            "cfl": request.cfl,
+            "saveat_s": request.saveat,
+            "sample_times_s": list(save_times(request)),
+        },
+        "numerics": {
+            "space": request.spatial.descriptor,
+            "limiter": "minmod" if request.spatial.native_scheme in {"muscl", "lax-wendroff"} else "none",
+            "time_stepper": request.time_stepper.descriptor,
+        },
+        "backend": {"name": backend, "device": device, "dtype": dtype_name},
+        "boundary": {
+            "inlet": request.inlet_boundary.descriptor,
+            "inlet_umax_cm_s": request.inlet_boundary.umax,
+            "flow_waveform": request.inlet_boundary.waveform_path,
+            "outlet": request.outlet_boundary.descriptor,
+            "reflection_coefficient": request.outlet_boundary.reflection_coefficient,
+            "reference_flow_cm3_s": request.outlet_boundary.reference_flow,
+        },
+        "initial_condition": {
+            "name": request.initial_condition,
+            "pressure_drop_pa": request.ic_pressure_drop_dyn_cm2 / 10.0,
+            "mesh_nz": request.ic_mesh_nz,
+        },
+        "request": {
+            "model": request.model.descriptor,
+            "space": request.spatial.descriptor,
+            "time_stepper": request.time_stepper.descriptor,
+            "rheology": request.rheology.descriptor,
+            "velocity_profile": request.velocity_profile.descriptor,
+            "profile_exponent": request.velocity_profile.exponent,
+            "alpha": request.velocity_profile.source_alpha,
+            "profile_shear_factor": request.velocity_profile.shear_rate_factor,
+            "inlet": request.inlet_boundary.descriptor,
+            "inlet_umax": request.inlet_boundary.umax,
+            "flow_waveform": request.inlet_boundary.waveform_path,
+            "outlet": request.outlet_boundary.descriptor,
+            "reflection_coefficient": request.outlet_boundary.reflection_coefficient,
+            "reference_flow": request.outlet_boundary.reference_flow,
+            "ic": request.initial_condition,
+            "nx": request.nx,
+            "length_cm": request.length_cm,
+            "tfinal": request.tfinal,
+            "dt": request.dt,
+            "cfl": request.cfl,
+            "saveat": request.saveat,
+            "sample_times": list(request.sample_times) if request.sample_times is not None else None,
+            "severity": request.severity,
+            "rmax": request.rmax,
+            "rho": request.rho,
+            "nu": request.nu,
+            "young": request.young,
+            "wall_h": request.wall_h,
+            "sigma": request.sigma,
+            "ic_pressure_drop_pa": request.ic_pressure_drop_dyn_cm2 / 10.0,
+            "ic_mesh_nz": request.ic_mesh_nz,
+            "scipy_method": request.scipy_method,
+            "sciml_label": request.sciml_label,
+            "julia_project": str(request.julia_project) if request.julia_project is not None else None,
+            "dtype": request.dtype,
+        },
+    }
+
+
+def request_from_manifest(manifest: dict[str, Any]) -> tuple[RunRequest, str, str]:
+    from .descriptors import DescriptorFactory, registry
+
+    data = manifest["request"]
+    factory = DescriptorFactory(registry)
+    sample_times_raw = data.get("sample_times")
+    sample_times = tuple(float(value) for value in sample_times_raw) if sample_times_raw is not None else None
+    julia_project = data.get("julia_project")
+    request = RunRequest(
+        model=factory.forward_model(
+            data.get("model", manifest.get("model", {}).get("descriptor", "canic-extended-1d"))
+        ),
+        spatial=factory.spatial(data["space"]),
+        time_stepper=factory.time_stepper(data["time_stepper"]),
+        rheology=factory.rheology(data["rheology"]),
+        velocity_profile=factory.velocity_profile(
+            data["velocity_profile"],
+            exponent=data.get("profile_exponent"),
+            alpha=data.get("alpha"),
+            shear_rate_factor=float(data.get("profile_shear_factor") or 4.0),
+        ),
+        inlet_boundary=factory.inlet_boundary(
+            data["inlet"], umax=float(data["inlet_umax"]), waveform_path=data.get("flow_waveform")
+        ),
+        outlet_boundary=factory.outlet_boundary(
+            data["outlet"],
+            reflection_coefficient=float(data.get("reflection_coefficient") or 0.0),
+            reference_flow=float(data.get("reference_flow") or 0.0),
+        ),
+        initial_condition=data["ic"],
+        nx=int(data["nx"]),
+        length_cm=float(data.get("length_cm", 6.0)),
+        tfinal=float(data["tfinal"]),
+        dt=float(data["dt"]),
+        cfl=float(data["cfl"]),
+        saveat=float(data["saveat"]),
+        sample_times=sample_times,
+        severity=float(data["severity"]),
+        rmax=float(data.get("rmax", 0.18)),
+        rho=float(data.get("rho", 1.055)),
+        nu=float(data.get("nu", 0.04)),
+        young=float(data.get("young", 5.02e6)),
+        wall_h=float(data.get("wall_h", 0.06)),
+        sigma=float(data.get("sigma", 0.5)),
+        ic_pressure_drop_dyn_cm2=10.0 * float(data.get("ic_pressure_drop_pa", 100.0)),
+        ic_mesh_nz=int(data.get("ic_mesh_nz", 64)),
+        scipy_method=data.get("scipy_method", "RK45"),
+        sciml_label=data.get("sciml_label", "auto"),
+        julia_project=Path(julia_project) if julia_project else None,
+        dtype=data.get("dtype", manifest.get("backend", {}).get("dtype", "auto")),
+    )
+    backend = str(manifest.get("backend", {}).get("name", "native"))
+    device = str(manifest.get("backend", {}).get("device", "cpu"))
+    return request, backend, device
+
+
+def load_manifest(path: Path) -> tuple[dict[str, Any], RunRequest, str, str]:
+    manifest = json.loads(path.read_text())
+    expected = manifest.get("manifest_hash")
+    if expected is not None and canonical_hash(manifest) != expected:
+        raise ValueError(f"manifest hash mismatch: {path}")
+    request, backend, device = request_from_manifest(manifest)
+    return manifest, request, backend, device
+
+
+def field_parity_metrics(left: SimulationResult, right: SimulationResult) -> dict[str, dict[str, float]]:
+    if left.area.shape != right.area.shape or left.flow.shape != right.flow.shape:
+        raise ValueError("field parity requires matching field shapes")
+    if left.z.shape != right.z.shape or left.t.shape != right.t.shape:
+        raise ValueError("field parity requires matching grids and sample times")
+    if not np.allclose(left.z, right.z, rtol=0.0, atol=1.0e-12) or not np.allclose(
+        left.t, right.t, rtol=0.0, atol=1.0e-12
+    ):
+        raise ValueError("field parity requires identical grid and sample-time coordinates")
+    fields = {
+        "a": (left.area, right.area),
+        "Q": (left.flow, right.flow),
+        "u": (
+            left.flow / np.maximum(left.area, AREA_FLOOR),
+            right.flow / np.maximum(right.area, AREA_FLOOR),
+        ),
+        "pressure": (left.pressure, right.pressure),
+    }
+    metrics: dict[str, dict[str, float]] = {}
+    for name, (ref, test) in fields.items():
+        diff = np.asarray(test - ref, dtype=float)
+        ref_values = np.asarray(ref, dtype=float)
+        l2 = float(np.sqrt(np.mean(diff**2)))
+        denom = float(np.sqrt(np.mean(ref_values**2)) + np.finfo(float).tiny)
+        metrics[name] = {
+            "linf": float(np.max(np.abs(diff))),
+            "l2": l2,
+            "rel_l2": l2 / denom,
+        }
+    return metrics
+
+
 def compare_metrics(left: SimulationResult, right: SimulationResult) -> dict[str, Any]:
     lm = left.summary()
     rm = right.summary()
     keys = ["area_mean_final", "flow_mean_final", "pressure_mean_final", "velocity_max"]
     diff = {key: rm[key] - lm[key] for key in keys}
     rel = {key: abs(diff[key]) / max(abs(lm[key]), np.finfo(float).tiny) for key in keys}
-    return {"left": lm, "right": rm, "difference": diff, "relative_difference": rel}
+    return {
+        "left": lm,
+        "right": rm,
+        "difference": diff,
+        "relative_difference": rel,
+        "field_metrics": field_parity_metrics(left, right),
+    }
