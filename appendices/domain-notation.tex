@@ -50,17 +50,65 @@ and \(1\,\mathrm{dyn}/\mathrm{cm}^2=10^{-1}\,\mathrm{Pa}\).
 
 \begin{convention}[Pressure-reference and ratio convention]
 \label{conv:appendix-pressure-reference-ratio}
-Pressure-ratio outputs are reported only with a recorded pressure reference
-$p_{\mathrm{ref}}$ and a gauge pressure $p_{\mathrm{g}}$ in the same reference
-frame. The reference-consistent pressure used in ratios is
+Pressure-ratio outputs are reported only with a ratio-output specification that
+declares proximal and distal scalar pressure observations, a time-averaging
+window, and a pressure reference. The general specification is
 \begin{flalign*}
-    \quad p_{\mathrm{ratio}} \defined p_{\mathrm{ref}} + p_{\mathrm{g}}. &&
+    \quad
+    \pi_{\mathrm{PR}}
+    \defined
+    (\mathcal O_{\mathrm{prox}},
+    \mathcal O_{\mathrm{dist}},
+    \mathcal{T}_{\mathrm{HF}},
+    p_{\mathrm{ref}}). &&
 \end{flalign*}
-The ratio-output specification is
+Here $\mathcal O_{\mathrm{prox}}$ and $\mathcal O_{\mathrm{dist}}$ are the
+declared scalar observation maps applied to the gauge-pressure field
+$p_{\mathrm g}$, and $p_{\mathrm{ref}}$ is recorded in the same reference
+frame as $p_{\mathrm g}$. In the 1D axial-tap or cross-sectional
+pressure-average specialization, this report may use the shorthand
 \begin{flalign*}
-    \quad \pi_{\mathrm{PR}} \defined (z_{\mathrm{prox}},z_{\mathrm{dist}}, \mathcal{T}_{\mathrm{HF}},p_{\mathrm{ref}}). &&
+    \quad
+    \pi_{\mathrm{PR}}
+    =
+    (z_{\mathrm{prox}},
+    z_{\mathrm{dist}},
+    \mathcal{T}_{\mathrm{HF}},
+    p_{\mathrm{ref}}), &&
 \end{flalign*}
-The subscript $\mathrm{HF}$ labels a declared high-flow averaging window in the
+with the pressure observation maps understood from the declared tap or
+cross-sectional averaging convention.
+Given a model gauge-pressure field, the observed pressure traces are
+\begin{flalign*}
+    \quad
+    P_{\mathrm{prox}}(t)
+    &\defined
+    \mathcal O_{\mathrm{prox}}[p_{\mathrm g}(\cdot,t)], &
+    P_{\mathrm{dist}}(t)
+    &\defined
+    \mathcal O_{\mathrm{dist}}[p_{\mathrm g}(\cdot,t)]. &&
+\end{flalign*}
+The corresponding pressure-drop trace is
+\begin{flalign*}
+    \quad
+    \Delta p(t)
+    \defined
+    P_{\mathrm{prox}}(t)-P_{\mathrm{dist}}(t). &&
+\end{flalign*}
+A pressure ratio is not invariant under additive pressure shifts. The
+reference-consistent ratio traces are therefore defined after observation:
+\begin{flalign*}
+    \quad
+    P_{\mathrm{prox}}^{\mathrm{ratio}}(t)
+    &\defined
+    p_{\mathrm{ref}}+P_{\mathrm{prox}}(t), &
+    P_{\mathrm{dist}}^{\mathrm{ratio}}(t)
+    &\defined
+    p_{\mathrm{ref}}+P_{\mathrm{dist}}(t). &&
+\end{flalign*}
+This trace-level convention does not require the observation maps to preserve
+constant shifts. The subscript $\mathrm{HF}$ labels a declared high-flow
+averaging window in the
 study record; it is not a clinical hyperemia model unless an external
 measurement comparison is separately specified
 \cite[Ch.~5, Sec.~5.5, pp.~72--73]{EscanedDavies2017PhysiologicalAssessment}
@@ -68,16 +116,19 @@ measurement comparison is separately specified
 The ratio-output specification is admissible for a computed pressure trace when
 $\mathcal{T}_{\mathrm{HF}}\subset I_T$ is Lebesgue-measurable with
 $0<|\mathcal{T}_{\mathrm{HF}}|<\infty$, the proximal and distal
-$p_{\mathrm{ratio}}$ traces are integrable on that window, and
+ratio-pressure traces are integrable on that window, and
 \begin{flalign*}
-    \quad \langle p_{\mathrm{ratio}}(z_{\mathrm{prox}},t) \rangle_{\mathcal{T}_{\mathrm{HF}}}\ne 0. &&
+    \quad
+    \langle P_{\mathrm{prox}}^{\mathrm{ratio}}(t)
+    \rangle_{\mathcal{T}_{\mathrm{HF}}}
+    \ne 0. &&
 \end{flalign*}
 For an admissible $\pi_{\mathrm{PR}}$, the corresponding nonclinical
 pressure ratio is
 \begin{flalign*}
     \quad \mathrm{PR}_{1D}(\pi_{\mathrm{PR}}) \defined
-    \frac{\langle p_{\mathrm{ratio}}(z_{\mathrm{dist}},t)\rangle_{\mathcal{T}_{\mathrm{HF}}}}
-         {\langle p_{\mathrm{ratio}}(z_{\mathrm{prox}},t)\rangle_{\mathcal{T}_{\mathrm{HF}}}}. &&
+    \frac{\langle P_{\mathrm{dist}}^{\mathrm{ratio}}(t)\rangle_{\mathcal{T}_{\mathrm{HF}}}}
+         {\langle P_{\mathrm{prox}}^{\mathrm{ratio}}(t)\rangle_{\mathcal{T}_{\mathrm{HF}}}}. &&
 \end{flalign*}
 For an integrable scalar trace,
 \begin{flalign*}
@@ -91,6 +142,19 @@ measurement model
 \cite[Ch.~5, Sec.~5.5, pp.~72--73]{EscanedDavies2017PhysiologicalAssessment}
 \cite[p.~1703]{PijlsEtAl1996FFRFunctionalSeverity}. If $\pi_{\mathrm{PR}}$ is
 absent or inadmissible, the pressure ratio is outside the reported output space.
+\end{convention}
+
+\begin{convention}[Shear-diagnostic convention]
+\label{conv:appendix-shear-diagnostic}
+Shear terminology is model-tier dependent. A resolved wall shear stress output
+requires a resolved stress tensor, wall normal, wall location, output operator,
+and, for a signed component, a chosen tangent direction
+\cite[Abstract; Sec.~2, pp.~8--10]{JohnEtAl2017WallShearStressVectorForm}. A
+reduced shear proxy such as $\tau_{w,z}^{1D}$ requires the model tier, wall
+closure, rheology descriptor, velocity-profile or friction closure, evaluation
+location or spatial averaging operator, and sign or time-window convention.
+Reduced shear proxies are closure diagnostics; they are not interchangeable with
+resolved traction-based WSS unless a separate comparison map is declared.
 \end{convention}
 
 
@@ -317,7 +381,7 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
 
 
 \begin{minipage}[t]{\textwidth}
-    \small
+    \footnotesize
     \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}
         >{\raggedright\arraybackslash}p{0.54\linewidth}
         >{\raggedright\arraybackslash}p{0.14\linewidth}@{}}
@@ -334,7 +398,8 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
         $p_{\mathrm{g}}$ & 1D gauge pressure produced by the wall law & $\mathrm{Pa}$ \\
 
         $p_{\mathrm{ratio}}:=p_{\mathrm{ref}}+p_{\mathrm{g}}$
-            & reference-consistent pressure used in ratios by
+            & field-level reference-consistent pressure shorthand; ratio
+            traces are defined after scalar observation by
             Convention~\ref{conv:appendix-pressure-reference-ratio}
             & $\mathrm{Pa}$ \\
 
@@ -343,14 +408,27 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
             specification
             & $\mathrm{Pa}$ \\
 
+        $\mathcal O_{\mathrm{prox}},\mathcal O_{\mathrm{dist}}$
+            & proximal and distal scalar pressure observation maps declared
+            for pressure-drop or pressure-ratio outputs
+            & input/output $\mathrm{Pa}$ \\
+
+        $P_{\mathrm{prox}}^{\mathrm{ratio}},
+        P_{\mathrm{dist}}^{\mathrm{ratio}}$
+            & observed proximal and distal pressure traces after adding
+            $p_{\mathrm{ref}}$
+            & $\mathrm{Pa}$ \\
+
         $\pi_{\Delta p}=(z_{\mathrm{prox}},z_{\mathrm{dist}})$
-            & pressure-drop tap specification for the base 1D output map
+            & 1D shorthand pressure-drop tap specification; the observation
+            maps define the actual scalar traces
             & $\mathrm{m},\mathrm{m}$ \\
 
         $\pi_{\mathrm{PR}}$
             & ratio-output specification
-            $(z_{\mathrm{prox}},z_{\mathrm{dist}},
-            \mathcal{T}_{\mathrm{HF}},p_{\mathrm{ref}})$
+            $(\mathcal O_{\mathrm{prox}},
+            \mathcal O_{\mathrm{dist}},\mathcal{T}_{\mathrm{HF}},
+            p_{\mathrm{ref}})$; axial taps may be recorded by shorthand
             & mixed \\
 
         $\langle f\rangle_{\mathcal{T}_{\mathrm{HF}}}$
@@ -364,7 +442,10 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
             $p_{\mathrm{g}}$
             & $\mathrm{Pa}$ \\
 
-        $\Delta p(t)$ & proximal-minus-distal pressure drop computed from $p_{\mathrm{g}}$ & $\mathrm{Pa}$ \\
+        $\Delta p(t)$
+            & proximal-minus-distal scalar pressure trace after the declared
+            observations
+            & $\mathrm{Pa}$ \\
 
         $\overline{\Delta p}_{\mathcal{T}_{\mathrm{HF}}}$
             & scalar pressure-drop output averaged over recorded high-flow
@@ -378,15 +459,18 @@ absent or inadmissible, the pressure ratio is outside the reported output space.
             & $-$ \\
 
         $\mathrm{PR}_{1D}(\pi_{\mathrm{PR}})$
-            & schematic nonclinical pressure-ratio quantity under the same
-            convention
+            & nonclinical pressure-ratio output under the declared observation
+            maps, pressure reference, and averaging window
             & $-$ \\
 
-        $\tau_w$ or $|\tau_w|$ & resolved traction-based WSS magnitude in 3D contexts & $\mathrm{Pa}$ \\
+        $\tau_w$ or $|\tau_w|$
+            & resolved traction-based WSS output after declaring the stress
+            tensor, wall normal, location, and output operator
+            & $\mathrm{Pa}$ \\
 
         $\tau_{w,z}^{1D}$
-            & signed 1D axial shear proxy from $Q$, $A$, and the recorded
-            wall-friction/rheology closure
+            & signed 1D axial shear proxy after declaring the model tier,
+            closures, location, and sign or window convention
             & $\mathrm{Pa}$ \\
 
         \texttt{shear\_rate\_1\_s}
