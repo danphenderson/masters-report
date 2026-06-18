@@ -31,7 +31,9 @@ export AbstractTimeBackend,
        AbstractNativeTimeStepper,
        AbstractSpatialMethod,
        AbstractVelocityProfile,
+       AbstractWallLaw,
        AutoPolicy,
+       CanicKoiterWallLaw,
        CarreauRheology,
        CarreauYasudaRheology,
        CassonRheology,
@@ -160,6 +162,7 @@ export AbstractTimeBackend,
        time_stepper_name,
        unpack_state,
        velocity,
+       wall_law_name,
        write_comparison_csvs,
        write_csv,
        write_refinement_latex_tables,
@@ -174,6 +177,7 @@ include("CanicExtended1D/methods.jl")
 include("CanicExtended1D/rheology.jl")
 include("CanicExtended1D/initial_conditions.jl")
 include("CanicExtended1D/profiles.jl")
+include("CanicExtended1D/wall_laws.jl")
 include("CanicExtended1D/boundaries.jl")
 include("CanicExtended1D/types.jl")
 include("CanicExtended1D/parallel.jl")

@@ -1,7 +1,15 @@
 momentum_alpha(p::Params) = momentum_alpha(p.velocity_profile)
 profile_shear_rate_factor(p::Params) = shear_rate_factor(p.velocity_profile)
 gamma_plus_two(p::Params) = profile_shear_rate_factor(p)
+wall_law_name(p::Params) = wall_law_name(p.wall_law)
 wall_stiffness(p::Params) = p.young * p.wall_h / (1.0 - p.sigma^2)
+wall_reference_radius(::CanicKoiterWallLaw, p::Params) = p.rmax
+wall_reference_radius(p::Params) = wall_reference_radius(p.wall_law, p)
+wall_elastic_coefficient(::CanicKoiterWallLaw, p::Params, radius::Float64) = wall_stiffness(p) / radius^2
+wall_elastic_coefficient(p::Params, radius::Float64) = wall_elastic_coefficient(p.wall_law, p, radius)
+wall_invariant_speed_factor(::CanicKoiterWallLaw, p::Params) =
+    sqrt(wall_stiffness(p) / (2.0 * p.rho * wall_reference_radius(p)^2))
+wall_invariant_speed_factor(p::Params) = wall_invariant_speed_factor(p.wall_law, p)
 inlet_uavg(p::Params) = mean_to_max_velocity_ratio(p.velocity_profile) * p.inlet_umax
 stenosis_amplitude(p::Params) = p.rmax * p.severity / 100.0
 

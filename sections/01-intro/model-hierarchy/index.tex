@@ -2,36 +2,40 @@
 \label{subsec:model-hierarchy-comparison-boundary}
 
 Reduced hemodynamic models form a hierarchy of modeling roles rather than a
-scalar accuracy ranking. Dimension, wall treatment, rheology, boundary data,
-output operators, and numerical realization are separate modeling choices. This
-report selects the 1D area--flow model as the reduced forward map;
-0D, 2D, 3D, and multiscale models supply boundary-condition, diagnostic,
-comparison, and validation vocabulary.
+scalar accuracy ranking. The governing equations above start from a
+three-dimensional continuum problem and then introduce reduced descriptions, so
+this subsection reads the hierarchy in descending spatial dimension. Dimension,
+wall treatment, rheology, boundary data, coupling laws, output operators, and
+numerical realization remain separate modeling choices. This report selects the
+1D area--flow model as the reduced forward map; 3D, multiscale, 2D, and 0D
+models supply comparison, coupling, diagnostic, and boundary-condition
+vocabulary.
 
 \begin{figure}[!htb]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{model-hierarchy}
-    \caption{Model hierarchy for reading comparison claims. The horizontal
-    direction is a resolution and computational-cost axis, not a validation
-    ranking. This report selects a 1D reduced forward model; 3D fixed-wall,
-    resolved FSI, clinical, and independent-solver comparisons require
-    separately matched assumptions, inputs, output operators, and discrepancy
-    metrics before they can support evidence claims.}
+    \caption{Model hierarchy for reading comparison claims, ordered from the
+    three-dimensional continuum tier toward reduced and lumped closures. The
+    horizontal direction is a dimensional-reduction and closure-abstraction
+    axis, not a validation ranking. This report selects a 1D reduced forward
+    model; 3D fixed-wall, resolved FSI, clinical, and independent-solver
+    comparisons require separately matched assumptions, inputs, output
+    operators, and discrepancy metrics before they can support evidence claims.}
     \label{fig:model-hierarchy-overview}
 \end{figure}
 
-\input{sections/01-intro/model-hierarchy/0d-model}
-\input{sections/01-intro/model-hierarchy/1d-model}
-\input{sections/01-intro/model-hierarchy/2d-model}
 \input{sections/01-intro/model-hierarchy/3d-model}
 \input{sections/01-intro/model-hierarchy/multiscale-model}
+\input{sections/01-intro/model-hierarchy/2d-model}
+\input{sections/01-intro/model-hierarchy/1d-model}
+\input{sections/01-intro/model-hierarchy/0d-model}
 
 A comparison claim requires matched assumptions and declared output operators:
 the continuum setting, geometry, rheology descriptor $\mathcal R$, wall
 descriptor $\mathcal W$, coupling descriptor $\mathcal C$, boundary data,
 numerical settings, observation maps, and discrepancy metrics must all be part
 of the comparison record. This report treats the selected 1D area--flow model
-as the forward map for the numerical study. Resolved-3D/FSI agreement, clinical calibration, and
-independent-solver parity are later evidence standards, not assumptions built
-into the model hierarchy.
+as the forward map for the numerical study. Resolved-3D/FSI agreement, clinical
+calibration, and independent-solver parity are later evidence standards, not
+assumptions built into the model hierarchy.

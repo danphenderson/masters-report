@@ -70,8 +70,9 @@ registry = DescriptorRegistry(
         d(
             "model",
             "canic-extended-1d",
-            "Canic extended 1D stenosis model with variable-radius correction terms.",
+            "Canic extended 1D stenosis model with Koiter elastic wall law and variable-radius correction terms.",
             wall="elastic1d",
+            wall_law="canic-koiter-thin-membrane",
             wall_boundary_condition="reduced-elastic-wall-law",
             variable_radius_terms=True,
             tier=PUBLICATION_TIER,
@@ -79,8 +80,9 @@ registry = DescriptorRegistry(
         d(
             "model",
             "classical-1d-no-slip",
-            "Classical parabolic-profile 1D baseline with wall no-slip antecedent and no Canic variable-radius correction.",
+            "Classical parabolic-profile 1D baseline with the same Koiter elastic wall law and no Canic variable-radius correction.",
             wall="elastic1d",
+            wall_law="canic-koiter-thin-membrane",
             wall_boundary_condition="no-slip-on-wall-Gamma_w-not-inlet-or-outlet",
             variable_radius_terms=False,
             requires_parabolic_profile=True,

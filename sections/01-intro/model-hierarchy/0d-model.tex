@@ -6,16 +6,16 @@ loads. It retains compartment pressures, branch flows, resistances,
 compliances, and, when the circuit includes inertial effects, inertances. The
 model preserves a time-dependent pressure--flow relation for parts of the
 circulation that are not spatially resolved. Windkessel and RCR models are the
-canonical terminal examples: they supply an outlet impedance or downstream load
-for a local 1D or 3D vessel solve
+canonical terminal examples: they supply an outlet impedance, downstream load,
+or network closure for a local 1D, multiscale, or 3D vessel solve
 \cite{ShiEtAl2011BloodFlowModelReview,KopplHelmig2023DimensionReducedModeling}.
 
 A 0D model closes the circulation seen by the local vessel model; it does not
 resolve the local stenosis. The spatial coordinate has been integrated out, so
 the model has no local stenosis geometry, no axial pressure-drop field, no
-throat acceleration profile, and no recirculation region. It also has no
-resolved wall-shear stress or wall traction, because it does not carry a lumen
-surface, a stress tensor on that surface, or a wall-normal output operator.
+velocity profile, no throat acceleration, and no recirculation region. It also
+has no resolved wall-shear stress or wall traction, because it does not carry a
+lumen surface, a stress tensor on that surface, or a wall-normal output operator.
 
 The 0D tier is therefore useful boundary and network context for this report. It
 can prescribe an outlet load, organize distal-bed assumptions, or provide a

@@ -294,7 +294,8 @@ independent replacements for the blood-dynamics setting above.
             & Dynamic area $A(z,t)$, gauge pressure $p_{\mathrm g}(A,z,t)$,
             reference area $A_0(z)$, wall stiffness $\beta(z)$, and external
             pressure
-            & The selected single-vessel model; no separate structural PDE is
+            & A pressure--area wall-law family. The selected implementation
+            uses its Canic--Koiter member; no separate structural PDE is
             solved. \\
         Wall
             & $\mathcal W_{\mathrm{resolvedFSI}}$
@@ -331,9 +332,10 @@ independent replacements for the blood-dynamics setting above.
     profile/friction convention $\alpha_{\mathcal P}=4/3$ and
     $g_{\mathcal P}=4$. In the implementation manifests this member is recorded
     as \texttt{classical-1d-no-slip}; it keeps the same reduced state variables
-    and wall-law axis as the selected 1D framework, but omits the Canic
-    effective-alpha variable-radius correction. The descriptor
-    \texttt{canic-extended-1d} records the current extended-model member.
+    and selected Canic--Koiter pressure--area wall law as the extended 1D
+    framework, but omits the Canic effective-alpha variable-radius correction.
+    The descriptor \texttt{canic-extended-1d} records the current
+    extended-model member.
 \end{definition}
 
 \begin{definition}[Closed 1D area-flow model]
@@ -384,9 +386,10 @@ independent replacements for the blood-dynamics setting above.
     Appendix~\ref{app:numerical-methods-details}.
 \end{assumption}
 
-\begin{definition}[Elastic pressure--area wall law]
+\begin{definition}[Selected Canic--Koiter pressure--area wall law]
     \label{def:1d-elastic-wall-law}
-    The baseline pressure closure is the elastic wall law
+    The selected elastic wall closure is the Canic--Koiter thin-wall
+    pressure--area law. In conventional area notation it may be written
     \begin{flalign*}
         \quad p_{\mathrm g}(A,z,t)
         =
@@ -399,9 +402,31 @@ independent replacements for the blood-dynamics setting above.
     pressure, and $\beta(z)$ is a wall-stiffness parameter. Some
     implementations absorb $A_0^{-1}$ into $\beta$; the essential closure
     is that $p_{\mathrm g}$ is known once $A_0$, $\beta$, and
-    $p_{\mathrm{ext}}$ are supplied. Resolved FSI would replace this algebraic
-    pressure--area closure with structural unknowns and fluid--structure
-    interface conditions.
+    $p_{\mathrm{ext}}$ are supplied. In the radius-squared coordinate
+    $a=R^2$ used by the implemented solver, the selected member is
+    \begin{flalign*}
+        \quad
+        p_{1,\mathrm g}(a,z,t)
+        =
+        p_{\mathrm{ext}}(z,t)
+        +
+        \frac{K}{R_0(z)^2}
+        \left(\sqrt a-R_0(z)\right),
+        \qquad
+        K=\frac{Eh}{1-\sigma^2}. &&
+    \end{flalign*}
+    The diagnostic extended pressure then adds the Canic variable-radius
+    correction
+    \begin{flalign*}
+        \quad
+        p_{2,\mathrm g}(a,Q,z,t)
+        =
+        g_{\mathcal P}\rho\nu_{\mathrm{eff}}^{\mathcal R}
+        \frac{Q}{a}\frac{R_0'(z)}{R_0(z)}. &&
+    \end{flalign*}
+    This $p_2$ term is a variable-radius viscous correction, not a replacement
+    wall law. Resolved FSI would replace the algebraic pressure--area closure
+    with structural unknowns and fluid--structure interface conditions.
 \end{definition}
 
 \begin{definition}[Physical-to-solver map for the implemented 1D state]
@@ -422,8 +447,9 @@ independent replacements for the blood-dynamics setting above.
         \bar u=\frac{Q_{\mathrm{phys}}}{A_{\mathrm{phys}}}=\frac{q}{a}.
         &&
     \end{flalign*}
-    With $K=Eh/(1-\sigma^2)$, the solver elastic flux contribution recorded
-    in Appendix~\ref{app:num-current-solver-operator} is
+    With $K=Eh/(1-\sigma^2)$ and the Canic conservative-form convention
+    $R_0^*=R_{\max}$, the selected wall law gives the solver elastic flux
+    contribution recorded in Appendix~\ref{app:num-current-solver-operator}:
     \begin{flalign*}
         \quad
         \Psi_h(a)=\frac{K}{3\rho R_{\max}^2}a^{3/2},
@@ -496,9 +522,9 @@ independent replacements for the blood-dynamics setting above.
     variable-geometry models may miss stenotic pressure and velocity trends
     unless additional variable-radius terms are included
     \cite[Abstract; Secs.~1--2]{CanicEtAl2024Extended1DStenosis}. Those
-    corrections motivate later comparison questions, but they are not included
-    in the baseline model unless a separate closure identifier and numerical
-    contract are declared.
+    corrections are included only by the \texttt{canic-extended-1d}
+    forward-model descriptor; \texttt{classical-1d-no-slip} retains the same
+    selected wall law but omits the Canic variable-radius corrections.
 \end{remark}
 
 \begin{definition}[Conservative flux/source notation for the reduced wall law]

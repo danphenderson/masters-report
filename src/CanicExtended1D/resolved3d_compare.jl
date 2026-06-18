@@ -578,14 +578,13 @@ function characteristic_diagnostics(result::SimulationResult, params::Params)
     alpha_min = Inf
     alpha_max = -Inf
     radicand_min = Inf
-    stiffness = wall_stiffness(params)
 
     for (A, Q, z) in zip(result.area, result.flow, result.z)
         Apos = positive_area(A)
         _, r0z, _ = stenosis(z, params)
         alpha_eff = momentum_alpha(params) + alpha_c(r0z)
         u = Q / Apos
-        radicand = (alpha_eff * u)^2 - alpha_eff * u^2 + stiffness / (2.0 * params.rho * params.rmax^2) * sqrt(Apos)
+        radicand = (alpha_eff * u)^2 - alpha_eff * u^2 + wall_wave_speed_squared(Apos, z, params)
         alpha_min = min(alpha_min, alpha_eff)
         alpha_max = max(alpha_max, alpha_eff)
         radicand_min = min(radicand_min, radicand)

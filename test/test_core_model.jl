@@ -70,6 +70,32 @@ end
     @test_throws ArgumentError PowerVelocityProfile(alpha=1.0)
 end
 
+@testset "CanicExtended1D Canic-Koiter wall law" begin
+    params = Params(initial_condition=GeometryRestIC(), severity=30.0)
+    z = 2.75
+    A = 0.035
+    Q = 0.012
+    r0, r0z, _ = CanicExtended1D.stenosis(z, params)
+    K = CanicExtended1D.wall_stiffness(params)
+    gamma_plus_two = CanicExtended1D.gamma_plus_two(params)
+    nu_eff = CanicExtended1D.effective_kinematic_viscosity(A, Q, r0, params)
+
+    @test params.wall_law isa CanicKoiterWallLaw
+    @test wall_law_name(params) == "canic-koiter-thin-membrane"
+    @test CanicExtended1D.wall_reference_radius(params) ≈ params.rmax
+    @test CanicExtended1D.wall_elastic_pressure(A, z, params) ≈ K / r0^2 * (sqrt(A) - r0)
+    @test CanicExtended1D.variable_radius_pressure_correction(A, Q, r0, r0z, nu_eff, gamma_plus_two, params) ≈
+          gamma_plus_two * params.rho * nu_eff * Q / A * r0z / r0
+    @test CanicExtended1D.pressure([A], [Q], [z], params)[1] ≈
+          CanicExtended1D.wall_elastic_pressure(A, z, params) +
+          CanicExtended1D.variable_radius_pressure_correction(A, Q, r0, r0z, nu_eff, gamma_plus_two, params)
+    @test CanicExtended1D.wall_elastic_potential(A, z, params) ≈ K / (3.0 * params.rho * params.rmax^2) * A^1.5
+    @test CanicExtended1D.wall_wave_speed_squared(A, z, params) ≈ K / (2.0 * params.rho * params.rmax^2) * sqrt(A)
+    @test CanicExtended1D.wall_geometry_source(A, z, r0, r0z, params) ≈ K / (params.rho * params.rmax^2) * A * r0z
+    @test CanicExtended1D.invariant_speed_factor(params) ≈ CanicExtended1D.wall_invariant_speed_factor(params)
+    @test CanicExtended1D.params_with(params; wall_law=CanicKoiterWallLaw()).wall_law isa CanicKoiterWallLaw
+end
+
 @testset "CanicExtended1D inlet and outlet boundaries" begin
     waveform = FlowWaveformInlet([0.0, 1.0], [0.0, 10.0])
     waveform_params = Params(initial_condition=GeometryRestIC(), inlet_boundary=waveform)

@@ -152,6 +152,60 @@ def stenosis(z: np.ndarray | float, request: RunRequest) -> tuple[np.ndarray, np
     return r0, r0z, r0zz
 
 
+def wall_reference_radius(request: RunRequest) -> float:
+    if request.model.wall_law != "canic-koiter-thin-membrane":
+        raise ValueError(f"unsupported wall law {request.model.wall_law!r}")
+    return request.rmax
+
+
+def wall_elastic_coefficient(radius: np.ndarray | float, request: RunRequest) -> np.ndarray:
+    return request.wall_stiffness / np.maximum(radius, math.sqrt(AREA_LIMITER_FLOOR)) ** 2
+
+
+def wall_elastic_pressure(area: np.ndarray, z: np.ndarray, request: RunRequest) -> np.ndarray:
+    r0, _, _ = stenosis(z, request)
+    r0_safe = np.maximum(r0, math.sqrt(AREA_LIMITER_FLOOR))
+    a_safe = np.maximum(area, AREA_FLOOR)
+    return wall_elastic_coefficient(r0_safe, request) * (np.sqrt(a_safe) - r0_safe)
+
+
+def variable_radius_pressure_correction(
+    area: np.ndarray,
+    flow: np.ndarray,
+    r0: np.ndarray,
+    r0z: np.ndarray,
+    nu_eff: np.ndarray | float,
+    gamma_plus_two: float,
+    request: RunRequest,
+) -> np.ndarray:
+    a_safe = np.maximum(area, AREA_FLOOR)
+    r0_safe = np.maximum(r0, math.sqrt(AREA_LIMITER_FLOOR))
+    return gamma_plus_two * request.rho * nu_eff * flow / a_safe * (r0z / r0_safe)
+
+
+def wall_elastic_potential(area: np.ndarray, z: np.ndarray, request: RunRequest) -> np.ndarray:
+    _ = z
+    a_safe = np.maximum(area, AREA_FLOOR)
+    return request.wall_stiffness / (3.0 * request.rho * wall_reference_radius(request) ** 2) * a_safe**1.5
+
+
+def wall_wave_speed_squared(area: np.ndarray, z: np.ndarray, request: RunRequest) -> np.ndarray:
+    _ = z
+    a_safe = np.maximum(area, AREA_FLOOR)
+    return request.wall_stiffness / (2.0 * request.rho * wall_reference_radius(request) ** 2) * np.sqrt(a_safe)
+
+
+def wall_geometry_source(area: np.ndarray, z: np.ndarray, r0z: np.ndarray, request: RunRequest) -> np.ndarray:
+    _ = z
+    a_safe = np.maximum(area, AREA_FLOOR)
+    return request.wall_stiffness / (request.rho * wall_reference_radius(request) ** 2) * a_safe * r0z
+
+
+def area_from_elastic_pressure(pressure_value: float, radius: float, request: RunRequest) -> float:
+    radius_safe = max(radius, math.sqrt(AREA_LIMITER_FLOOR))
+    return max((radius_safe + pressure_value / wall_elastic_coefficient(radius_safe, request)) ** 2, AREA_LIMITER_FLOOR)
+
+
 def variable_radius_alpha_c(r0z: np.ndarray, request: RunRequest) -> np.ndarray:
     if not request.model.variable_radius_terms:
         return np.zeros_like(r0z)
@@ -167,12 +221,17 @@ def grid(request: RunRequest) -> tuple[np.ndarray, float]:
 
 def pressure(area: np.ndarray, flow: np.ndarray, z: np.ndarray, request: RunRequest) -> np.ndarray:
     r0, r0z, _ = stenosis(z[:, None] if area.ndim == 2 else z, request)
-    r0_safe = np.maximum(r0, math.sqrt(AREA_LIMITER_FLOOR))
-    a_safe = np.maximum(area, AREA_FLOOR)
-    radius = np.sqrt(a_safe)
-    elastic = request.wall_stiffness / (r0_safe**2) * (radius - r0_safe)
-    viscous = request.velocity_profile.gamma_plus_two * request.rho * request.nu * flow / a_safe * (r0z / r0_safe)
-    return elastic + viscous
+    return wall_elastic_pressure(
+        area, z[:, None] if area.ndim == 2 else z, request
+    ) + variable_radius_pressure_correction(
+        area,
+        flow,
+        r0,
+        r0z,
+        request.nu,
+        request.velocity_profile.gamma_plus_two,
+        request,
+    )
 
 
 def characteristic_shear_rate(area: np.ndarray, flow: np.ndarray, r0: np.ndarray, request: RunRequest) -> np.ndarray:
@@ -191,7 +250,7 @@ def flux(area: np.ndarray, flow: np.ndarray, z: np.ndarray, request: RunRequest)
     a_safe = np.maximum(area, AREA_FLOOR)
     _, r0z, _ = stenosis(z, request)
     alpha_eff = request.velocity_profile.momentum_alpha + variable_radius_alpha_c(r0z, request)
-    elastic = request.wall_stiffness / (3.0 * request.rho * request.rmax**2) * a_safe**1.5
+    elastic = wall_elastic_potential(a_safe, z, request)
     return flow, alpha_eff * flow**2 / a_safe + elastic
 
 
@@ -200,7 +259,7 @@ def max_wave_speed(area: np.ndarray, flow: np.ndarray, z: np.ndarray, request: R
     _, r0z, _ = stenosis(z, request)
     alpha_eff = request.velocity_profile.momentum_alpha + variable_radius_alpha_c(r0z, request)
     u = flow / a_safe
-    elastic = request.wall_stiffness / (2.0 * request.rho * request.rmax**2) * np.sqrt(a_safe)
+    elastic = wall_wave_speed_squared(a_safe, z, request)
     rad = np.maximum((alpha_eff * u) ** 2 - alpha_eff * u**2 + elastic, 0.0)
     c = np.sqrt(rad)
     return np.maximum(np.abs(alpha_eff * u - c), np.abs(alpha_eff * u + c))
@@ -229,7 +288,7 @@ def inlet_flow(t: float, request: RunRequest) -> float:
 
 
 def invariant_speed_factor(request: RunRequest) -> float:
-    return math.sqrt(request.wall_stiffness / (2.0 * request.rho * request.rmax**2))
+    return math.sqrt(request.wall_stiffness / (2.0 * request.rho * wall_reference_radius(request) ** 2))
 
 
 def invariant_plus(area: float, flow: float, request: RunRequest) -> float:
@@ -390,7 +449,7 @@ def source(area: np.ndarray, flow: np.ndarray, z: np.ndarray, dx: float, request
     a_safe = np.maximum(area, AREA_FLOOR)
     r0, r0z, _ = stenosis(z, request)
     nu_eff = effective_nu(a_safe, flow, z, request)
-    stiffness_source = request.wall_stiffness / (request.rho * request.rmax**2) * a_safe * r0z
+    stiffness_source = wall_geometry_source(a_safe, z, r0z, request)
     friction = -2.0 * nu_eff * request.velocity_profile.gamma_plus_two * flow / a_safe
     return stiffness_source + friction
 
@@ -428,7 +487,7 @@ def stationary_stokes_state(z: np.ndarray, request: RunRequest) -> ArrayPair:
         local_z = np.linspace(float(zi), request.length_cm, samples + 1)
         local_r0, _, _ = stenosis(local_z, request)
         pressure_i = request.ic_pressure_drop_dyn_cm2 * float(np.trapezoid(1.0 / local_r0**4, local_z)) / resistance
-        area_i = max((radius + pressure_i * radius**2 / request.wall_stiffness) ** 2, AREA_LIMITER_FLOOR)
+        area_i = area_from_elastic_pressure(pressure_i, radius, request)
         area[i] = area_i
         flow[i] = area_i * uavg
     return area, flow
@@ -807,6 +866,7 @@ def request_manifest(
             "descriptor": request.model.descriptor,
             "coordinate": "radius_squared",
             "wall": request.model.wall,
+            "wall_law": request.model.wall_law,
             "wall_boundary_condition": request.model.wall_boundary_condition,
             "variable_radius_terms": request.model.variable_radius_terms,
             "rheology": request.rheology.descriptor,

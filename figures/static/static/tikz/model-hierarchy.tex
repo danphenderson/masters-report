@@ -1,43 +1,48 @@
 % ---------------------------------------------------------------
 % figures/static/static/tikz/model-hierarchy.tex
-% Advisor-grade tier ladder: 0D -> 1D -> 2D -> 3D, with wall/FSI
-% closure treated separately in the caption and main text. Uniform
-% block sizing, monotone mathblue->accentTeal gradient (no abrupt
-% color switches), single side axis indicating spatial detail
-% & cost while explicitly warning that this is not a validation ranking.
+% Advisor-grade tier ladder: 3D -> multiscale -> 2D -> 1D -> 0D, with
+% wall/FSI closure treated separately in the caption and main text.
+% Uniform block sizing, monotone accentTeal->mathblue gradient, single
+% side axis indicating dimensional reduction and closure abstraction
+% while explicitly warning that this is not a validation ranking.
 % ---------------------------------------------------------------
-\begin{tikzpicture}[fig, scale=0.96, transform shape,
-    node distance=4mm,
-    tier/.style={schemBlock, text width=28mm, minimum height=24mm,
-                 align=center, inner sep=4pt},
+\begin{tikzpicture}[fig, scale=0.86, transform shape,
+    node distance=3mm,
+    tier/.style={schemBlock, text width=25mm, minimum height=25mm,
+                 align=center, inner sep=3.5pt},
     arr/.style={schemEdge, line width=0.95pt}]
 
-  % Four tiers, monotone mathblue->accentTeal gradient (no random hue jumps).
-  \node[tier, fill=mathblueLite!55, draw=mathblue!65!black] (d0)
-    {\textbf{0D}\\lumped\\pressure--flow\\[1pt]$R,C,L$ states};
-  \node[tier, right=of d0,
-        fill=mathblueLite!35!accentTealLite!35,
-        draw=mathblue!50!accentTeal!70!black] (d1)
-    {\textbf{1D}\\distributed\\vessel\\[1pt]$\mathbf U=(A,Q)^\top$\\[-1pt]$p_{\mathrm{g}}$};
-  \node[tier, right=of d1,
+  % Five tiers, descending from resolved continuum to lumped closure.
+  \node[tier, fill=accentTealLite!90!bloodredlight!50,
+        draw=accentTeal!55!bloodred!65!black] (d3)
+    {\textbf{3D}\\fixed wall\\or FSI\\[1pt]$\vu,p,\mathrm{WSS}$};
+  \node[tier, right=of d3,
+        fill=accentTealLite!65!mathblueLite!20,
+        draw=accentTeal!70!mathblue!45!black] (ms)
+    {\textbf{coupled}\\3D--1D--0D\\[1pt]interface\\laws};
+  \node[tier, right=of ms,
         fill=accentTealLite!55,
         draw=accentTeal!70!black] (d2)
     {\textbf{2D}\\axisymmetric or\\boundary-layer\\[1pt]reduction};
   \node[tier, right=of d2,
-        fill=accentTealLite!90!bloodredlight!50,
-        draw=accentTeal!55!bloodred!65!black] (d3)
-    {\textbf{3D}\\fixed wall or FSI\\[1pt]$\vu,p,\mathrm{WSS}$};
+        fill=mathblueLite!35!accentTealLite!35,
+        draw=mathblue!50!accentTeal!70!black] (d1)
+    {\textbf{1D}\\area--flow\\[1pt]$\mathbf U=(A,Q)^\top$\\[-1pt]$p_{\mathrm{g}}$};
+  \node[tier, right=of d1, fill=mathblueLite!55,
+        draw=mathblue!65!black] (d0)
+    {\textbf{0D}\\lumped\\pressure--flow\\[1pt]$R,C,L$ states};
 
-  \draw[arr] (d0) -- (d1);
-  \draw[arr] (d1) -- (d2);
-  \draw[arr] (d2) -- (d3);
+  \draw[arr] (d3) -- (ms);
+  \draw[arr] (ms) -- (d2);
+  \draw[arr] (d2) -- (d1);
+  \draw[arr] (d1) -- (d0);
 
-  % Single side-axis: increasing spatial detail and cost, not validation rank.
-  \coordinate (axL) at ($(d0.south west)+(-1mm,-5mm)$);
-  \coordinate (axR) at ($(d3.south east)+( 1mm,-5mm)$);
+  % Single side-axis: decreasing resolved dimension, not validation rank.
+  \coordinate (axL) at ($(d3.south west)+(-1mm,-5mm)$);
+  \coordinate (axR) at ($(d0.south east)+( 1mm,-5mm)$);
   \draw[measureArrow, line width=0.7pt] (axL) -- (axR)
     node[midway, below=1pt, font=\scriptsize, align=center,
          mathblue!75!black]
-      {increasing spatial detail \& computational cost\\
+      {decreasing spatial resolution / increasing closure abstraction\\
        not a validation rank};
 \end{tikzpicture}

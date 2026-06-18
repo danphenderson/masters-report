@@ -1,21 +1,25 @@
-\subsubsection{Multiscale 3D--1D--0D Coupling}
+\subsubsection{Multiscale Coupling}
 \label{subsubsec:multiscale-models}
 
 A multiscale model is a coupled forward problem that combines tiers of the
-hierarchy. A common arrangement resolves a local 3D stenosis region, connects it
-to a surrounding 1D distributed vessel network, and closes terminal beds with
-0D Windkessel or related outlet models. The purpose is to keep local resolved
-physics where it matters while representing wave propagation and distal
-impedance without making the entire circulation a 3D domain
+hierarchy. A concrete 3D--1D--0D example is a resolved local 3D stenosis segment
+embedded between upstream and downstream 1D arterial vessels, with terminal
+0D RCR or Windkessel beds closing the distal circulation. The purpose is to keep
+local resolved physics where it matters while representing pulse-wave
+propagation and distal impedance without making the entire circulation a 3D
+domain
 \cite{QuarteroniVeneziani2003GeometricalMultiscale}.
 
-The interface laws are part of the model. A 3D--1D interface may impose
-conservation of flow together with pressure, mean-pressure, normal-traction, or
-characteristic compatibility. A 1D--0D interface passes terminal flow into an
-ODE load and returns a pressure or impedance relation to the 1D boundary.
-Resolved-FSI coupling additionally requires compatible wall kinematics,
-structural stresses, and interface work. These choices affect stability and
-interpretation, and they must be recorded with the numerical coupling convention
+The interface laws are part of the model. At a 3D--1D interface, the record must
+state which 3D cross-section is coupled, how 3D velocity and traction are reduced
+to 1D flow or mean pressure, and whether compatibility is imposed through
+pressure, normal traction, total flow, characteristic variables, or a stabilized
+coupling variant. At a 1D--0D interface, terminal 1D flow enters the ODE load
+and the 0D circuit returns a pressure, impedance, or characteristic boundary
+relation. Resolved-FSI coupling additionally requires compatible wall
+kinematics, structural stresses, and interface work. These choices affect
+stability and interpretation, and they must be recorded with the numerical
+coupling convention
 \cite{FormaggiaEtAl2007FSICoupling}.
 
 A multiscale model is not a new fidelity tier; it is a coupled forward problem

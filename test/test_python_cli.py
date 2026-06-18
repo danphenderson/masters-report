@@ -15,11 +15,21 @@ from research_hemodynamics.numerics import (
     canonical_hash,
     field_parity_metrics,
     flux,
+    invariant_speed_factor,
     lax_wendroff_flux,
     lax_wendroff_interface_state,
+    pressure,
     request_manifest,
     resolve_dtype_name,
     save_times,
+    source,
+    stenosis,
+    variable_radius_pressure_correction,
+    wall_elastic_potential,
+    wall_elastic_pressure,
+    wall_geometry_source,
+    wall_reference_radius,
+    wall_wave_speed_squared,
     write_outputs,
 )
 from typer.testing import CliRunner
@@ -94,8 +104,10 @@ def test_descriptor_json_exposes_python_maturity_tiers() -> None:
     payload = json.loads(result.output)
     models = {item["name"]: item["metadata"] for item in payload["model"]}
     assert models["canic-extended-1d"]["variable_radius_terms"] is True
+    assert models["canic-extended-1d"]["wall_law"] == "canic-koiter-thin-membrane"
     assert models["classical-1d-no-slip"]["variable_radius_terms"] is False
     assert models["classical-1d-no-slip"]["requires_parabolic_profile"] is True
+    assert models["classical-1d-no-slip"]["wall_law"] == "canic-koiter-thin-membrane"
     spatial = {item["name"]: item["metadata"] for item in payload["spatial"]}
     for name in ["fv-first-order", "fv-muscl", "fv-lax-wendroff", "fem-stationary-stokes"]:
         assert spatial[name]["tier"] == "publication"
@@ -233,13 +245,55 @@ def test_classical_no_slip_model_is_explicit_and_disables_canic_alpha_correction
     _, canic_q_flux = flux(area, flow, z, canic)
     _, classical_q_flux = flux(area, flow, z, classical)
     assert classical.model.metadata()["wall_boundary_condition"] == "no-slip-on-wall-Gamma_w-not-inlet-or-outlet"
+    assert classical.model.metadata()["wall_law"] == "canic-koiter-thin-membrane"
     assert canic.model.metadata()["variable_radius_terms"] is True
     assert classical.model.metadata()["variable_radius_terms"] is False
     assert abs(float(classical_q_flux[0] - canic_q_flux[0])) > 1.0e-9
     manifest = request_manifest(classical, "native", "cpu", "float64", experiment_id="test", case_id="classical")
     assert manifest["model"]["descriptor"] == "classical-1d-no-slip"
+    assert manifest["model"]["wall_law"] == "canic-koiter-thin-membrane"
     assert manifest["model"]["wall_boundary_condition"] == "no-slip-on-wall-Gamma_w-not-inlet-or-outlet"
     assert manifest["model"]["variable_radius_terms"] is False
+
+
+def test_canic_koiter_wall_law_helpers_match_manifest_choice() -> None:
+    req = request("fv-first-order")
+    z = np.asarray([2.75])
+    area = np.asarray([0.035])
+    flow = np.asarray([0.012])
+    r0, r0z, _ = stenosis(z, req)
+    elastic_expected = req.wall_stiffness / r0[0] ** 2 * (np.sqrt(area[0]) - r0[0])
+    viscous_expected = req.velocity_profile.gamma_plus_two * req.rho * req.nu * flow[0] / area[0] * r0z[0] / r0[0]
+
+    assert req.model.metadata()["wall_law"] == "canic-koiter-thin-membrane"
+    assert wall_reference_radius(req) == pytest.approx(req.rmax)
+    assert wall_elastic_pressure(area, z, req)[0] == pytest.approx(elastic_expected)
+    assert variable_radius_pressure_correction(
+        area,
+        flow,
+        r0,
+        r0z,
+        req.nu,
+        req.velocity_profile.gamma_plus_two,
+        req,
+    )[
+        0
+    ] == pytest.approx(viscous_expected)
+    assert pressure(area, flow, z, req)[0] == pytest.approx(elastic_expected + viscous_expected)
+    assert wall_elastic_potential(area, z, req)[0] == pytest.approx(
+        req.wall_stiffness / (3.0 * req.rho * req.rmax**2) * area[0] ** 1.5
+    )
+    assert wall_wave_speed_squared(area, z, req)[0] == pytest.approx(
+        req.wall_stiffness / (2.0 * req.rho * req.rmax**2) * np.sqrt(area[0])
+    )
+    assert wall_geometry_source(area, z, r0z, req)[0] == pytest.approx(
+        req.wall_stiffness / (req.rho * req.rmax**2) * area[0] * r0z[0]
+    )
+    assert source(area, flow, z, 0.25, req)[0] == pytest.approx(
+        wall_geometry_source(area, z, r0z, req)[0]
+        - 2.0 * req.nu * req.velocity_profile.gamma_plus_two * flow[0] / area[0]
+    )
+    assert invariant_speed_factor(req) == pytest.approx(np.sqrt(req.wall_stiffness / (2.0 * req.rho * req.rmax**2)))
 
 
 def test_classical_no_slip_model_requires_parabolic_profile() -> None:

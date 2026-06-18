@@ -15,23 +15,30 @@ This subsection uses that machinery only to identify the hierarchy role of the
 In the hierarchy, the key point is that the 1D state is distributed but reduced.
 It retains axial area, flow, mean velocity, and gauge pressure; it does not
 retain the full three-dimensional velocity field, pressure field, secondary
-flow, separation, recirculation, or wall traction. Reduced shear quantities
-therefore inherit the declared velocity-profile, wall-friction, and rheology
-closures. They are not traction-based WSS unless a separate observation map
-declares how a reduced output is compared with a resolved wall-stress quantity.
+flow, separation, recirculation, or wall traction. Reduced shear and viscosity
+quantities therefore inherit the declared velocity-profile, wall-friction, and
+rheology closures. Tube-flow and hemorheology data caution that diameter,
+hematocrit, and shear-rate dependence cannot be promoted to resolved local
+physics without a declared closure map
+\cite{PriesEtAl1992BloodViscosityTubeFlow,GaldiEtAl2008HemodynamicalFlows}.
+Reduced shear proxies are not traction-based WSS unless a separate observation
+map declares how a reduced output is compared with a resolved wall-stress
+quantity.
 
 The closure contract remains part of the model definition. A 1D case must
 declare the momentum-flux/profile convention, friction law, rheology descriptor
-$\mathcal R$, wall descriptor $\mathcal W$, boundary data, numerical
-realization, and output operators. Stenosis enters through the reference
-geometry $R_0(z)$, $A_0(z)$, and $s(z)$, but resolved throat flow does not
-appear automatically; variable-radius corrections such as the Canic-style terms
-are additional closure choices
+$\mathcal R$, wall descriptor $\mathcal W$, coupling descriptor $\mathcal C$,
+boundary data, numerical realization, and output operators. Stenosis enters
+through the reference geometry $R_0(z)$, $A_0(z)$, and $s(z)$, but resolved
+throat flow does not appear automatically; variable-radius corrections such as
+the Canic-style terms are additional closure choices
 \cite{CanicEtAl2024Extended1DStenosis}.
 The current implementation records this axis explicitly through the
 \texttt{canic-extended-1d} and \texttt{classical-1d-no-slip} forward-model
-descriptors, the latter corresponding to the wall no-slip baseline in
-Definition~\ref{def:classical-no-slip-1d-baseline}.
+descriptors. Both use the selected
+\texttt{canic-koiter-thin-membrane} pressure--area wall law; the former adds
+the Canic variable-radius corrections, while the latter corresponds to the
+wall no-slip baseline in Definition~\ref{def:classical-no-slip-1d-baseline}.
 
 The 1D model is the selected reduced forward map because it retains distributed
 pressure--flow structure at low computational cost, while its outputs remain

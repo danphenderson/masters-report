@@ -156,12 +156,42 @@ def _torch_effective_nu(torch, area, flow, z, request: RunRequest):
     return eta / request.rho
 
 
+def _torch_wall_reference_radius(request: RunRequest) -> float:
+    if request.model.wall_law != "canic-koiter-thin-membrane":
+        raise ValueError(f"unsupported wall law {request.model.wall_law!r}")
+    return request.rmax
+
+
+def _torch_wall_elastic_potential(torch, area, z, request: RunRequest):
+    _ = torch, z
+    a_safe = area.clamp(min=AREA_FLOOR)
+    return request.wall_stiffness / (3.0 * request.rho * _torch_wall_reference_radius(request) ** 2) * a_safe**1.5
+
+
+def _torch_wall_wave_speed_squared(torch, area, z, request: RunRequest):
+    _ = z
+    a_safe = area.clamp(min=AREA_FLOOR)
+    return (
+        request.wall_stiffness / (2.0 * request.rho * _torch_wall_reference_radius(request) ** 2) * torch.sqrt(a_safe)
+    )
+
+
+def _torch_wall_geometry_source(torch, area, z, r0z, request: RunRequest):
+    _ = torch, z
+    a_safe = area.clamp(min=AREA_FLOOR)
+    return request.wall_stiffness / (request.rho * _torch_wall_reference_radius(request) ** 2) * a_safe * r0z
+
+
+def _torch_invariant_speed_factor(request: RunRequest) -> float:
+    return math.sqrt(request.wall_stiffness / (2.0 * request.rho * _torch_wall_reference_radius(request) ** 2))
+
+
 def _torch_flux(torch, area, flow, z, request: RunRequest):
     a_safe = torch.clamp(area, min=AREA_FLOOR)
     _, r0z, _ = _torch_geometry(torch, z, request)
     alpha_c = -2.0 / 35.0 * r0z**2 if request.model.variable_radius_terms else torch.zeros_like(r0z)
     alpha_eff = request.velocity_profile.momentum_alpha + alpha_c
-    elastic = request.wall_stiffness / (3.0 * request.rho * request.rmax**2) * a_safe**1.5
+    elastic = _torch_wall_elastic_potential(torch, a_safe, z, request)
     return flow, alpha_eff * flow**2 / a_safe + elastic
 
 
@@ -171,7 +201,7 @@ def _torch_wave_speed(torch, area, flow, z, request: RunRequest):
     alpha_c = -2.0 / 35.0 * r0z**2 if request.model.variable_radius_terms else torch.zeros_like(r0z)
     alpha_eff = request.velocity_profile.momentum_alpha + alpha_c
     u = flow / a_safe
-    elastic = request.wall_stiffness / (2.0 * request.rho * request.rmax**2) * torch.sqrt(a_safe)
+    elastic = _torch_wall_wave_speed_squared(torch, a_safe, z, request)
     rad = torch.clamp((alpha_eff * u) ** 2 - alpha_eff * u**2 + elastic, min=0.0)
     c = torch.sqrt(rad)
     return torch.maximum(torch.abs(alpha_eff * u - c), torch.abs(alpha_eff * u + c))
@@ -212,7 +242,7 @@ def _torch_inlet_flow(torch, time: float, request: RunRequest, dtype, device):
 
 def _torch_invariants(torch, area, flow, request: RunRequest):
     a = torch.clamp(area, min=AREA_FLOOR)
-    c0 = math.sqrt(request.wall_stiffness / (2.0 * request.rho * request.rmax**2))
+    c0 = _torch_invariant_speed_factor(request)
     wplus = flow / a + 4.0 * c0 * a**0.25
     wminus = flow / a - 4.0 * c0 * a**0.25
     return wminus, wplus
@@ -234,7 +264,7 @@ def _torch_boundary_states(torch, area, flow, time: float, request: RunRequest, 
         _, wplus = _torch_invariants(torch, area[-1], flow[-1], request)
         wminus_ref, wplus_ref = _torch_invariants(torch, aref, qref, request)
         wminus = wminus_ref - request.outlet_boundary.reflection_coefficient * (wplus - wplus_ref)
-        c0 = math.sqrt(request.wall_stiffness / (2.0 * request.rho * request.rmax**2))
+        c0 = _torch_invariant_speed_factor(request)
         speed_term = torch.clamp((wplus - wminus) / (8.0 * c0), min=AREA_LIMITER_FLOOR**0.25)
         aout = torch.clamp(speed_term**4, min=AREA_LIMITER_FLOOR)
         qout = aout * (0.5 * (wminus + wplus))
@@ -303,7 +333,7 @@ def _torch_source(torch, area, flow, z, dx: float, request: RunRequest):
     a_safe = torch.clamp(area, min=AREA_FLOOR)
     _, r0z, _ = _torch_geometry(torch, z, request)
     nu_eff = _torch_effective_nu(torch, a_safe, flow, z, request)
-    stiffness_source = request.wall_stiffness / (request.rho * request.rmax**2) * a_safe * r0z
+    stiffness_source = _torch_wall_geometry_source(torch, a_safe, z, r0z, request)
     friction = -2.0 * nu_eff * request.velocity_profile.gamma_plus_two * flow / a_safe
     return stiffness_source + friction
 

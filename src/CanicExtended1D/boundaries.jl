@@ -130,7 +130,7 @@ end
 inlet_flow(p, t::Real) = inlet_flow(p.inlet_boundary, p, t)
 
 function invariant_speed_factor(p)
-    return sqrt(wall_stiffness(p) / (2.0 * p.rho * p.rmax^2))
+    return wall_invariant_speed_factor(p)
 end
 
 function characteristic_speed_from_area(A::Float64, p)

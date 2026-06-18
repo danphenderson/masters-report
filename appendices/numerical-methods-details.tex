@@ -64,7 +64,7 @@ velocity, structural stress, or resolved FSI interface-work outputs.
 \subsection{Elastic-potential balance-law form}
 \label{app:num-elastic-potential-form}
 
-The reduced state is $\mathbf U=(A,Q)^\top$. For the
+The reduced state is $\mathbf U=(A,Q)^\top$. For a member of the
 $\mathcal W_{\mathrm{elastic1D}}$ balance-law contract with prescribed
 momentum-flux correction $\alpha$, the reference elastic-potential form is
 \begin{flalign*}
@@ -96,7 +96,8 @@ and the geometry source is
     \frac{A}{\rho}
     \left.\pd_z p_{\mathrm g}(A,z,t)\right|_A. &&
 \end{flalign*}
-For the baseline wall law, assuming $p_{\mathrm{ext}}$ is independent of $A$,
+For the selected Canic--Koiter wall-law member, assuming
+$p_{\mathrm{ext}}$ is independent of $A$,
 \begin{flalign*}
     \quad
     c^2(A,z)
@@ -178,7 +179,8 @@ parameters. Componentwise,
 All divisions by $a$ use the positivity-regularized value of the
 radius-squared area coordinate.
 
-With $K=Eh/(1-\sigma^2)$, velocity-profile momentum factor
+With $K=Eh/(1-\sigma^2)$, Canic conservative-form reference radius
+$R_0^*=R_{\max}$, velocity-profile momentum factor
 $\alpha_{\mathcal P}$, and
 $\alpha_c(R_0')=-2(R_0')^2/35$, define
 $\iota_{\mathcal M}=1$ for the \texttt{canic-extended-1d} forward-model
@@ -282,6 +284,10 @@ $\alpha_c'(z)=-4R_0'(z)R_0''(z)/35$. The implemented source is
         \frac{Q_i(D_z^h a)_iR_0'(z_i)}{a_i^2R_0(z_i)}
     \right]. &&
 \end{flalign*}
+The $\widehat{\pd_z p_2}_i$ term is the discrete derivative of the Canic
+variable-radius viscous pressure correction. It is tied to the
+\texttt{canic-extended-1d} realization, while the elastic stiffness terms above
+come from the selected Canic--Koiter wall law.
 For the \texttt{newtonian} descriptor, this reduces to the constant value
 $\nu_{\mathrm{eff},i}^{\mathcal R}=\nu$. For the non-Newtonian closures,
 the effective viscosity is evaluated with the shear-rate regularization and any
@@ -348,7 +354,9 @@ the variable-$\alpha_{\mathrm{eff}}$ solver, not an exact invariant derivation
 for the full variable-radius balance law. Let
 \begin{flalign*}
     \quad
-    c_0=\left(\frac{K}{2\rho R_{\max}^2}\right)^{1/2}. &&
+    c_0=\left(\frac{K}{2\rho (R_0^*)^2}\right)^{1/2}
+    =
+    \left(\frac{K}{2\rho R_{\max}^2}\right)^{1/2}. &&
 \end{flalign*}
 At the inlet, the incoming flow is
 $Q_{\mathrm{in}}=R_0(0)^2\bar u_{\mathrm{in}}$. The outgoing invariant from

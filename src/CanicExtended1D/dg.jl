@@ -101,7 +101,6 @@ function dg_rhs(
 
     xis, weights = dg_quadrature()
     gp2 = gamma_plus_two(p)
-    stiffness = wall_stiffness(p)
 
     for i in 1:nx
         for m in 0:degree
@@ -121,7 +120,7 @@ function dg_rhs(
                 fA, fQ = flux(Aq, Qq, zq, p)
                 volume_A += w * fA * legendre_derivative(m, xi)
                 volume_Q += w * fQ * legendre_derivative(m, xi)
-                source_Q += w * source_point(Aq, Qq, zq, dA_dz, dQ_dz, r0, r0z, r0zz, gp2, stiffness, p) *
+                source_Q += w * source_point(Aq, Qq, zq, dA_dz, dQ_dz, r0, r0z, r0zz, gp2, p) *
                             legendre_value(m, xi)
             end
 

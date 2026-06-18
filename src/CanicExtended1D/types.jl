@@ -23,6 +23,7 @@ struct Params{
     P<:AbstractVelocityProfile,
     B<:AbstractInletBoundary,
     O<:AbstractOutletBoundary,
+    W<:AbstractWallLaw,
 }
     nx::Int
     length_cm::Float64
@@ -40,6 +41,7 @@ struct Params{
     velocity_profile::P
     inlet_boundary::B
     outlet_boundary::O
+    wall_law::W
     young::Float64
     wall_h::Float64
     sigma::Float64
@@ -78,6 +80,7 @@ function Params(;
     velocity_profile::Union{Nothing,AbstractVelocityProfile} = nothing,
     inlet_boundary::Union{Nothing,AbstractInletBoundary} = nothing,
     outlet_boundary::AbstractOutletBoundary = FixedAreaCharacteristicOutlet(),
+    wall_law::AbstractWallLaw = CanicKoiterWallLaw(),
     young = 5.02e6,
     wall_h = 0.06,
     sigma = 0.5,
@@ -94,6 +97,7 @@ function Params(;
     initial_condition isa AbstractInitialConditionSpec || throw(ArgumentError("initial_condition must be an AbstractInitialConditionSpec"))
     resolved_inlet isa AbstractInletBoundary || throw(ArgumentError("inlet_boundary must be an AbstractInletBoundary"))
     outlet_boundary isa AbstractOutletBoundary || throw(ArgumentError("outlet_boundary must be an AbstractOutletBoundary"))
+    wall_law isa AbstractWallLaw || throw(ArgumentError("wall_law must be an AbstractWallLaw"))
     return Params{
         typeof(rheology),
         typeof(space),
@@ -102,6 +106,7 @@ function Params(;
         typeof(profile),
         typeof(resolved_inlet),
         typeof(outlet_boundary),
+        typeof(wall_law),
     }(
         Int(nx),
         Float64(length_cm),
@@ -119,6 +124,7 @@ function Params(;
         profile,
         resolved_inlet,
         outlet_boundary,
+        wall_law,
         Float64(young),
         Float64(wall_h),
         Float64(sigma),
@@ -146,6 +152,7 @@ function Params(
     sigma,
     alpha,
     inlet_umax,
+    wall_law = CanicKoiterWallLaw(),
 ) where {R<:AbstractRheology,S<:AbstractSpatialMethod,T<:AbstractNativeTimeStepper,I<:AbstractInitialConditionSpec}
     return Params(
         nx=nx,
@@ -161,6 +168,7 @@ function Params(
         space=space,
         time_stepper=time_stepper,
         initial_condition=initial_condition,
+        wall_law=wall_law,
         young=young,
         wall_h=wall_h,
         sigma=sigma,
@@ -218,6 +226,7 @@ function default_output_stub(p::Params)
     !(p.time_stepper isa SSPRK3Stepper) && push!(tokens, replace(time_stepper_name(p.time_stepper), "-" => "_"))
     !(p.rheology isa NewtonianRheology) && push!(tokens, replace(rheology_name(p.rheology), "-" => "_"))
     !(p.initial_condition isa StationaryStokesIC) && push!(tokens, replace(initial_condition_name(p.initial_condition), "-" => "_"))
+    !(p.wall_law isa CanicKoiterWallLaw) && push!(tokens, wall_law_path_token(p.wall_law))
     isempty(tokens) && return base
     return base * "_" * join(tokens, "_")
 end
@@ -239,6 +248,7 @@ function validate(p::Params)
     validate(p.velocity_profile)
     validate(p.inlet_boundary)
     validate(p.outlet_boundary)
+    validate(p.wall_law)
     p.young > 0.0 || throw(ArgumentError("young must be positive"))
     p.wall_h > 0.0 || throw(ArgumentError("wall_h must be positive"))
     abs(p.sigma) < 1.0 || throw(ArgumentError("abs(sigma) must be less than 1"))
