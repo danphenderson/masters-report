@@ -28,6 +28,41 @@ The exporter also checks for optional resolved 3D data under
 `simulations/data/3d/canic_case3/` and writes node-envelope CSVs only when the
 local XDMF/HDF5 files are present.
 
+## Package Benchmark Pipeline
+
+Run the reproducible Julia/Python package benchmark through the Julia package
+wrapper. The smoke profile is a deterministic wiring check; the overnight
+profile expands the same output schemas to the full benchmark matrix.
+
+```bash
+./scripts/julia-release simulations/run_package_benchmark.jl \
+  --profile smoke \
+  --output-dir simulations/output/package_benchmark/smoke \
+  --overwrite \
+  --include-python
+```
+
+Publish benchmark CSVs into the report asset tree and render report figures:
+
+```bash
+./scripts/julia-release simulations/run_package_benchmark.jl \
+  --profile overnight \
+  --output-dir simulations/output/package_benchmark/overnight-YYYYMMDD \
+  --overwrite \
+  --include-python \
+  --include-resolved3d \
+  --publish-report-assets
+
+pipenv run python scripts/render_package_benchmark_figures.py \
+  --benchmark-dir simulations/output/package_benchmark/overnight-YYYYMMDD
+```
+
+The benchmark writes `manifest.json`, `case_results.csv`, `refinement.csv`,
+`backend_parity.csv`, `stokes_ic.csv`, `rheology_profile.csv`,
+`boundary_openbf.csv`, `resolved3d.csv`, and `python_mps.csv`. Optional inputs
+such as local resolved-3D data or SciPy support produce skipped rows when absent
+rather than crashing the run.
+
 ## Environments
 
 This repository has separate Julia and Python environments.

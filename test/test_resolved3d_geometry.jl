@@ -106,6 +106,44 @@ end
         sev73 = only(row for row in summary_rows if parse(Float64, row["severity"]) == 73.0)
         @test parse(Float64, sev73["rmin_over_rbase"]) ≈ 0.27 atol=5.0e-4
 
+        mesh_paths = CanicExtended1D.export_mesh_view_data(opts)
+        @test length(mesh_paths) == 3
+        @test all(isfile, mesh_paths)
+        mesh_manifest = only(row for row in read_simple_csv(mesh_paths[1]) if row["status"] == "written")
+        @test parse(Float64, mesh_manifest["severity"]) == 50.0
+        @test parse(Int, mesh_manifest["fem_mesh_nz"]) == 64
+        @test parse(Int, mesh_manifest["fem_mesh_nr"]) == 6
+        @test parse(Int, mesh_manifest["fem_mesh_ntheta"]) == 32
+        @test parse(Int, mesh_manifest["fem_nodes"]) == 65 * (1 + 6 * 32)
+        @test parse(Int, mesh_manifest["fem_cells"]) == 64 * 32 * (1 + 2 * (6 - 1)) * 3
+        @test mesh_manifest["fvm_method"] == "fv-muscl-minmod"
+        @test parse(Int, mesh_manifest["fvm_nx"]) == 400
+
+        fem_rows = read_simple_csv(mesh_paths[2])
+        fvm_rows = read_simple_csv(mesh_paths[3])
+        @test !isempty(fem_rows)
+        @test length(fvm_rows) == 400
+        @test Set(row["line_group"] for row in fem_rows) ==
+              Set(["wall-circumferential", "wall-axial", "cut-axial", "cut-radial"])
+        for row in fem_rows[1:min(length(fem_rows), 20)]
+            @test all(
+                isfinite,
+                (
+                    parse(Float64, row["z1_cm"]),
+                    parse(Float64, row["x1_cm"]),
+                    parse(Float64, row["y1_cm"]),
+                    parse(Float64, row["z2_cm"]),
+                    parse(Float64, row["x2_cm"]),
+                    parse(Float64, row["y2_cm"]),
+                ),
+            )
+        end
+        @test parse(Int, fvm_rows[1]["cell_index"]) == 1
+        @test parse(Float64, fvm_rows[1]["z_left_cm"]) ≈ 0.0
+        @test parse(Int, fvm_rows[end]["cell_index"]) == 400
+        @test parse(Float64, fvm_rows[end]["z_right_cm"]) ≈ 6.0
+        @test all(parse(Float64, row["r_center_cm"]) > 0.0 for row in fvm_rows)
+
         resolved_root = joinpath(dir, "resolved")
         _, coords, velocity_values = write_synthetic_xdmf_hdf5_case(joinpath(resolved_root, "77"); time=1.0)
         resolved_opts = GeometryExportOptions(

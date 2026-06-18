@@ -253,3 +253,108 @@ output operator and boundary realization. The next defensible study step is
 therefore a matched comparison dataset that restores the raw 3D inputs, archives
 the source hashes or upstream release identifiers, and reruns the same output
 operators while varying only one declared closure or boundary choice at a time.
+
+\subsection{Package Benchmark Suite}
+\label{subsec:package-benchmark-suite}
+
+The report package now includes a reproducible package-benchmark pipeline for
+the Julia solver package and Python CLI. The suite is intended to support
+self-convergence, backend agreement, descriptor smoke/health, runtime
+comparison, and resolved-velocity output-operator diagnostic claims only. It
+does not support clinical validation, pressure or FFR accuracy, full transient
+FEM validation, or Julia--Python scientific equivalence beyond the metrics
+actually compared in the emitted CSVs.
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+./scripts/julia-release simulations/run_package_benchmark.jl \
+  --profile smoke \
+  --output-dir simulations/output/package_benchmark/<run_id> \
+  --overwrite \
+  --include-python \
+  --publish-report-assets
+
+pipenv run python scripts/render_package_benchmark_figures.py \
+  --benchmark-dir simulations/output/package_benchmark/<run_id>
+\end{lstlisting}
+
+The smoke profile is a deterministic wiring check. The overnight profile expands
+the same schemas to the descriptor-health, refinement, native/SciML parity,
+stationary-Stokes projection, rheology/profile, OpenBF-style boundary,
+resolved-velocity, and Python CPU/Torch-MPS comparison stages. Optional SciPy
+and resolved-3D inputs are treated as availability boundaries: absent inputs
+produce structured skipped rows rather than manuscript claims.
+
+\IfFileExists{figures/static/static/tables/package-benchmark/package-benchmark-summary.tex}{%
+    \input{figures/static/static/tables/package-benchmark/package-benchmark-summary.tex}
+}{%
+    \begin{center}
+    \small
+    \emph{Package benchmark table fragment not yet published. Run the benchmark
+    renderer to populate \path{figures/static/static/tables/package-benchmark/}.}
+    \end{center}
+}
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{figures/static/static/rendered/package-benchmark-convergence.pdf}{%
+        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-convergence.pdf}
+    }{%
+        \fbox{\parbox{0.86\linewidth}{\centering Package benchmark convergence
+        figure not yet published.}}
+    }
+    \caption{Self-convergence observed-order summary emitted by the package
+    benchmark renderer.}
+    \label{fig:package-benchmark-convergence}
+\end{figure}
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{figures/static/static/rendered/package-benchmark-backend-parity.pdf}{%
+        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-backend-parity.pdf}
+    }{%
+        \fbox{\parbox{0.86\linewidth}{\centering Package benchmark backend
+        parity figure not yet published.}}
+    }
+    \caption{Native/SciML backend agreement versus runtime for benchmarked
+    compatible methods.}
+    \label{fig:package-benchmark-backend-parity}
+\end{figure}
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}{%
+        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}
+    }{%
+        \fbox{\parbox{0.86\linewidth}{\centering Package benchmark
+        rheology/profile figure not yet published.}}
+    }
+    \caption{Rheology/profile sensitivity summary for declared descriptor
+    combinations.}
+    \label{fig:package-benchmark-rheology-profile}
+\end{figure}
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{figures/static/static/rendered/package-benchmark-resolved3d.pdf}{%
+        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-resolved3d.pdf}
+    }{%
+        \fbox{\parbox{0.86\linewidth}{\centering Package benchmark
+        resolved-velocity diagnostic figure not yet published.}}
+    }
+    \caption{Resolved-velocity output-operator diagnostic summary for available
+    local cases.}
+    \label{fig:package-benchmark-resolved3d}
+\end{figure}
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{figures/static/static/rendered/package-benchmark-python-mps.pdf}{%
+        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-python-mps.pdf}
+    }{%
+        \fbox{\parbox{0.86\linewidth}{\centering Package benchmark
+        Python/MPS figure not yet published.}}
+    }
+    \caption{Python native CPU versus Torch-MPS timing/parity summary for the
+    Python CLI surface.}
+    \label{fig:package-benchmark-python-mps}
+\end{figure}

@@ -26,16 +26,27 @@ resolved-3D comparison, and report figure export helpers. \\
 & Solver components: model descriptors, geometry, state layout, finite-volume
 and DG operators, native and SciML backends, Stokes initial condition,
 OpenBF-style adapter, studies, refinement, resolved-3D diagnostics, output
-writers, and geometry-export helpers. \\
+writers, package benchmarks, and geometry-export helpers. \\
 \path{simulations/run_canic_extended_1d.jl},
 \path{simulations/canic_extended_1d_stenosis.jl}
 & Thin command-line wrappers around \path{CanicExtended1D.run_cli}. \\
+\path{simulations/run_package_benchmark.jl}
+& Thin command-line wrapper around
+\path{CanicExtended1D.run_package_benchmark}; writes the benchmark manifest and
+CSV schemas used in Section~\ref{subsec:package-benchmark-suite}. \\
 \path{simulations/export_stenosis_geometry_figures.jl}
 & Thin wrapper around
 \path{CanicExtended1D.export_stenosis_geometry_figures}. \\
+\path{python/src/research_hemodynamics/*.py}
+& Python Typer CLI and native/Torch/SciPy/SciML adapter surface used for
+descriptor smoke runs and CPU/Torch-MPS comparison rows. \\
+\path{scripts/render_package_benchmark_figures.py}
+& Python renderer for package-benchmark CSVs, report figures, and compact
+\LaTeX{} table fragments. \\
 \path{test/runtests.jl}, \path{test/test_*.jl}
 & Julia test orchestrator and feature-specific regression tests for model
-closures, backends, comparison diagnostics, CLI parsing, studies, and exports. \\
+closures, backends, comparison diagnostics, CLI parsing, studies, benchmarks,
+and exports. \\
 \path{scripts/julia-release}
 & Repository launcher that selects Julia 1.12 or newer and binds the root
 project environment. \\
@@ -51,6 +62,21 @@ run_available_resolved3d_comparison(
     output_dir="simulations/output/3d_comparison/full_t1_native_nx400",
     overwrite=true,
 )
+\end{lstlisting}
+
+The package-benchmark suite is regenerated separately from the tracked PDF. A
+smoke run writes deterministic schema checks; an overnight run expands the same
+schemas to the full benchmark matrix:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+./scripts/julia-release simulations/run_package_benchmark.jl \
+  --profile smoke \
+  --output-dir simulations/output/package_benchmark/<run_id> \
+  --overwrite \
+  --include-python \
+  --publish-report-assets
+
+pipenv run python scripts/render_package_benchmark_figures.py \
+  --benchmark-dir simulations/output/package_benchmark/<run_id>
 \end{lstlisting}
 
 The Section~\ref{sec:resolved-3d-comparison} comparison artifact is the

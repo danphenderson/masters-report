@@ -15,6 +15,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 - registers 3D projection
+from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
 
 DEFAULT_DATA_DIR = Path("figures/static/static/data/stenosis-geometry")
@@ -387,6 +388,133 @@ def render_slices(data_dir: Path, output_dir: Path, formats: list[str]) -> list[
     return save_figure(fig, output_dir, "stenosis-geometry-slices", formats)
 
 
+def render_mesh_overview(
+    data_dir: Path, output_dir: Path, formats: list[str]
+) -> list[Path]:
+    fem_rows = rows_from_csv(data_dir / "fem_mesh_view_sev50.csv")
+    fvm_rows = sorted(
+        rows_from_csv(data_dir / "fvm_mesh_view_sev50.csv"),
+        key=lambda row: int(row["cell_index"]),
+    )
+    if not fem_rows:
+        raise ValueError("FEM mesh view CSV has no rows")
+    if not fvm_rows:
+        raise ValueError("FVM mesh view CSV has no rows")
+
+    fig = plt.figure(figsize=(7.4, 2.85))
+    grid = fig.add_gridspec(1, 2, width_ratios=[1.08, 1.0])
+    ax_fem = fig.add_subplot(grid[0, 0], projection="3d")
+    ax_fvm = fig.add_subplot(grid[0, 1])
+
+    grouped_segments: dict[str, list[list[tuple[float, float, float]]]] = defaultdict(list)
+    for row in fem_rows:
+        group = row["line_group"]
+        grouped_segments[group].append(
+            [
+                (
+                    float_field(row, "z1_cm"),
+                    float_field(row, "x1_cm"),
+                    float_field(row, "y1_cm"),
+                ),
+                (
+                    float_field(row, "z2_cm"),
+                    float_field(row, "x2_cm"),
+                    float_field(row, "y2_cm"),
+                ),
+            ]
+        )
+
+    line_styles = {
+        "wall-circumferential": (COLORS["wallgray"], 0.24, 0.30),
+        "wall-axial": (COLORS["mathblue"], 0.25, 0.24),
+        "cut-axial": (COLORS["mathblue"], 0.50, 0.82),
+        "cut-radial": (COLORS["bloodred"], 0.58, 0.90),
+    }
+    for group, segments in grouped_segments.items():
+        color, linewidth, alpha = line_styles.get(
+            group, (COLORS["wallgray"], 0.25, 0.35)
+        )
+        ax_fem.add_collection3d(
+            Line3DCollection(
+                segments,
+                colors=color,
+                linewidths=linewidth,
+                alpha=alpha,
+            )
+        )
+    setup_3d_axis(ax_fem, "FEM tetrahedral mesh")
+    for axis in (ax_fem.yaxis, ax_fem.zaxis):
+        axis.line.set_alpha(0.0)
+    try:
+        ax_fem.set_box_aspect((6.0, 0.7, 0.7), zoom=1.72)
+    except TypeError:
+        ax_fem.set_box_aspect((6.0, 0.7, 0.7))
+
+    z_left = np.array([float_field(row, "z_left_cm") for row in fvm_rows])
+    z_center = np.array([float_field(row, "z_center_cm") for row in fvm_rows])
+    z_right = np.array([float_field(row, "z_right_cm") for row in fvm_rows])
+    r_center = np.array([float_field(row, "r_center_cm") for row in fvm_rows])
+    z_profile = np.concatenate([z_left[:1], z_center, z_right[-1:]])
+    r_profile = np.concatenate(
+        [
+            np.array([float_field(fvm_rows[0], "r_left_cm")]),
+            r_center,
+            np.array([float_field(fvm_rows[-1], "r_right_cm")]),
+        ]
+    )
+
+    ax_fvm.fill_between(
+        z_profile,
+        -r_profile,
+        r_profile,
+        color=COLORS["bloodredlight"],
+        alpha=0.50,
+        linewidth=0,
+    )
+    ax_fvm.plot(z_profile, r_profile, color=COLORS["bloodred"], linewidth=1.3)
+    ax_fvm.plot(z_profile, -r_profile, color=COLORS["bloodred"], linewidth=1.3)
+
+    interfaces = np.concatenate([z_left, z_right[-1:]])
+    radii = np.interp(interfaces, z_profile, r_profile)
+    ax_fvm.vlines(
+        interfaces,
+        -radii,
+        radii,
+        color=COLORS["mathblue"],
+        linewidth=0.18,
+        alpha=0.28,
+    )
+    emphasis_stride = max(1, len(interfaces) // 20)
+    ax_fvm.vlines(
+        interfaces[::emphasis_stride],
+        -radii[::emphasis_stride],
+        radii[::emphasis_stride],
+        color=COLORS["mathblue"],
+        linewidth=0.42,
+        alpha=0.75,
+    )
+    throat_index = int(np.argmin(r_profile))
+    ax_fvm.axvline(
+        z_profile[throat_index],
+        color=COLORS["bloodred"],
+        linewidth=0.8,
+        alpha=0.72,
+    )
+    ax_fvm.set_title("FVM cell mesh", color=COLORS["mathblue"], fontsize=10, pad=4)
+    ax_fvm.set_xlabel("z (cm)", fontsize=8)
+    ax_fvm.set_ylabel("radius (cm)", fontsize=8)
+    ax_fvm.set_xlim(0.0, 6.0)
+    ax_fvm.set_ylim(-0.215, 0.215)
+    ax_fvm.set_xticks([0, 2, 4, 6])
+    ax_fvm.set_yticks([-0.2, 0.0, 0.2])
+    ax_fvm.tick_params(labelsize=7, colors=COLORS["mathblue"])
+    ax_fvm.grid(True, color="#E3E3E3", linewidth=0.45)
+    ax_fvm.set_aspect(6.0)
+    fig.subplots_adjust(left=0.01, right=0.99, bottom=0.10, top=0.90, wspace=0.27)
+
+    return save_figure(fig, output_dir, "stenosis-fem-fvm-meshes", formats)
+
+
 def render_severity_gallery(data_dir: Path, output_dir: Path, formats: list[str]) -> list[Path]:
     fig = plt.figure(figsize=(7.4, 4.4))
     for index, severity in enumerate([0, 23, 40, 50], start=1):
@@ -598,6 +726,7 @@ def main() -> None:
 
     written: list[Path] = []
     written.extend(render_overview(data_dir, output_dir, formats))
+    written.extend(render_mesh_overview(data_dir, output_dir, formats))
     written.extend(render_particle_trajectories(data_dir, output_dir, formats))
     written.extend(render_slices(data_dir, output_dir, formats))
     written.extend(render_severity_gallery(data_dir, output_dir, formats))

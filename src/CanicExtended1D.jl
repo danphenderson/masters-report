@@ -19,6 +19,8 @@ do not depend directly on SciML packages.
 """
 module CanicExtended1D
 
+using SHA
+
 export AbstractTimeBackend,
        AbstractAlgorithmPolicy,
        AbstractInletBoundary,
@@ -57,6 +59,8 @@ export AbstractTimeBackend,
        Params,
        OutputSpec,
        OpenBFRunSpec,
+       PackageBenchmarkResult,
+       PackageBenchmarkSpec,
        PackedStateLayout,
        ParabolicVelocityProfile,
        PowerLawRheology,
@@ -130,6 +134,7 @@ export AbstractTimeBackend,
        radial_profile_velocity,
        run_refinement_study,
        run_available_resolved3d_comparison,
+       run_package_benchmark,
        run_cli,
        run_comparison,
        run_simulation,
@@ -180,6 +185,7 @@ include("CanicExtended1D/resolved3d_io.jl")
 include("CanicExtended1D/resolved3d_compare.jl")
 include("CanicExtended1D/resolved3d_outputs.jl")
 include("CanicExtended1D/geometry_exports.jl")
+include("CanicExtended1D/benchmarks.jl")
 include("CanicExtended1D/cli.jl")
 
 end

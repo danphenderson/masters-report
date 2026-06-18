@@ -291,25 +291,33 @@ viscosity; dividing by density gives the corresponding kinematic viscosity.
 The Newtonian incompressible model is recovered from this generalized
 Newtonian form when $\eta_{\mathrm{eff}}$ is constant.
 
-\begin{definition}[Computed rheology closures]
+\begin{definition}[Implemented effective-viscosity closure catalog]
     \label{def:rheology-closure-catalog}
     A computed 1D realization uses the rheology descriptor $\mathcal R$ to choose
-    the scalar effective dynamic viscosity law
-    $\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma)$. Its admitted values are
-    \texttt{newtonian}, \texttt{carreau}, \texttt{carreau-yasuda},
-    \texttt{casson}, and \texttt{power-law}. This catalog states pointwise
-    scalar dynamic-viscosity laws only; Assumption~\ref{ass:1d-first-run-alpha-friction}
-    states how the reduced 1D model evaluates them as a closure-indexed
-    effective kinematic viscosity. For computed realizations, all
-    non-Newtonian laws are evaluated at the positive regularized shear rate
+    an implemented scalar effective dynamic-viscosity law
+    $\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma)$. The admitted descriptor
+    values are \texttt{newtonian}, \texttt{carreau}, \texttt{carreau-yasuda},
+    \texttt{casson}, and \texttt{power-law}. The displayed superscripts
+    abbreviate these descriptors, with $\mathrm{newt}$, $\mathrm{CY}$, and
+    $\mathrm{power}$ denoting \texttt{newtonian}, \texttt{carreau-yasuda}, and
+    \texttt{power-law}. This catalog defines the scalar dynamic-viscosity laws.
+    A computed 1D realization evaluates the selected law on the shear-rate proxy
+    in Appendix~\ref{app:numerical-methods-details} and forms the
+    closure-indexed kinematic viscosity
+    $\nu_{\mathrm{eff}}^{\mathcal R}
+    =\eta_{\mathrm{eff}}^{\mathcal R}/\rho$.
+    Assumption~\ref{ass:1d-first-run-alpha-friction} records that the velocity
+    profile, friction law, rheology descriptor, and wall closure are part of the
+    closed model specification. For computed non-Newtonian realizations, the
+    laws are evaluated at the positive regularized shear rate
     \begin{flalign*}
         \quad
         \dot\gamma_\epsilon\defined\max\{|\dot\gamma|,\epsilon_\gamma\},
         \qquad \epsilon_\gamma>0,\qquad [\epsilon_\gamma]=\mathrm{s}^{-1}. &&
     \end{flalign*}
     This positive regularization is required for the Casson and power-law
-    families when their zero-shear limits are singular or degenerate. If
-    dynamic-viscosity bounds are declared, they satisfy
+    families when their zero-shear limits are singular or degenerate. For
+    descriptors that declare dynamic-viscosity bounds, the bounds satisfy
     $0\leq\eta_{\min}\leq\eta_{\max}\leq\infty$ with $\eta_{\max}>0$ and define
     the interval projection
     \begin{flalign*}
@@ -340,6 +348,9 @@ Newtonian form when $\eta_{\mathrm{eff}}$ is constant.
         &=
         K_{\mathrm{pl}}\dot\gamma_\epsilon^{n_{\mathrm{pl}}-1}. &&
     \end{flalign*}
+    In the computed Newtonian path, the constant dynamic viscosity is
+    $\eta=\rho\nu$, so the closure-indexed kinematic viscosity reduces to
+    $\nu$.
     The parameter domains are
     \begin{flalign*}
         \quad
@@ -370,8 +381,8 @@ Newtonian form when $\eta_{\mathrm{eff}}$ is constant.
     The Yasuda transition exponent is denoted $a_{\mathrm Y}$ here so that it
     is not confused with the solver coordinate $a=R^2$ used in the reduced
     numerical realization.
-    The listed families are included as implemented generalized-Newtonian
-    viscosity options for the computed-rheology
+    The listed families are the implemented generalized-Newtonian viscosity
+    options used by this report's closure
     catalog~\cite[Part~I, Ch.~1, Secs.~2.7--3.1, pp.~16--19]{GaldiEtAl2008HemodynamicalFlows}~\cite{KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}.
 \end{definition}
 
