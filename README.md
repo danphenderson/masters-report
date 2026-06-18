@@ -46,3 +46,82 @@ This repository has separate Julia and Python environments.
 
 The Julia and Python environments are intentionally independent; installing one
 does not prepare the other.
+
+## Python Hemodynamics CLI
+
+This repository also includes a self-contained Python package under
+`python/src/research_hemodynamics`. It exposes the Julia-compatible
+hemodynamics descriptor surface as a Typer CLI named `research-hemodynamics`.
+No FNO or operator-learning modules are part of this Python CLI.
+
+Install the package editable into the repo Pipenv environment:
+
+```bash
+pipenv install --dev
+pipenv run python -m pip install -e .
+pipenv run research-hemodynamics --help
+```
+
+Core commands:
+
+```bash
+pipenv run research-hemodynamics devices
+pipenv run research-hemodynamics descriptors --json
+pipenv run research-hemodynamics verify --device mps --run-smoke
+pipenv run research-hemodynamics compare --left-backend native --right-backend native
+```
+
+`devices` and `verify --device mps --run-smoke` use
+`torch.backends.mps.is_available()` when Torch is installed. If MPS is not
+available, the CLI reports that cleanly; CPU fallback is only used when
+`--allow-cpu-fallback` is passed.
+
+Examples:
+
+```bash
+pipenv run research-hemodynamics run --space fv-first-order --time-stepper euler --out tmp/python-fv-first-order
+pipenv run research-hemodynamics run --space fv-muscl --time-stepper ssprk3 --out tmp/python-fv-muscl
+pipenv run research-hemodynamics run --space fv-lax-wendroff --out tmp/python-fv-lax-wendroff
+pipenv run research-hemodynamics run --space dg-p0 --out tmp/python-dg-p0
+pipenv run research-hemodynamics run --space dg-p1 --out tmp/python-dg-p1
+pipenv run research-hemodynamics run --space dg-p2 --out tmp/python-dg-p2
+pipenv run research-hemodynamics run --space fem-stationary-stokes --ic stationary-stokes --ic-pressure-drop-pa 100 --out tmp/python-fem-stokes
+```
+
+`fv-lax-wendroff` is exposed as the Julia descriptor but uses the stable
+MUSCL/minmod finite-volume fallback in this v1 Python implementation. `dg-p1`
+and `dg-p2` smoke-run through the cell-average FV update with descriptor-specific
+metadata; they are not finished high-order DG solvers. `fem-stationary-stokes`
+is a deterministic CPU stationary-Stokes resistance/projection path based on
+the Julia projection contract, without adding a heavy Python FEM dependency.
+
+Boundary descriptor parameters are validated and recorded:
+
+```bash
+pipenv run research-hemodynamics run \
+  --inlet flow-waveform \
+  --flow-waveform tmp/waveform.txt \
+  --outlet reflection-coefficient \
+  --reflection-coefficient 0.25 \
+  --reference-flow 0.0 \
+  --out tmp/python-boundary-metadata
+```
+
+SciPy and SciML comparison surfaces:
+
+```bash
+pipenv run research-hemodynamics compare --left-backend native --right-backend scipy
+pipenv run research-hemodynamics compare \
+  --left-backend native \
+  --right-backend sciml-reference \
+  --julia-project /Users/doe/hemodynamics/masters-report
+```
+
+The SciPy adapter uses `scipy.integrate.solve_ivp` only when SciPy is installed;
+SciPy is not a required dependency. The SciML adapter shells out through this
+repo's `./scripts/julia-release` and `simulations/run_canic_extended_1d.jl`
+when `--julia-project /Users/doe/hemodynamics/masters-report` is supplied.
+
+`run --out PATH` writes `summary.json`, `series.csv`, and `solution.npz`.
+Use ignored scratch locations such as `tmp/**` for CLI output; do not write
+Python runs into report PDFs, references, figures, or Julia manifest files.
