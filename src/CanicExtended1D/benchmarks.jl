@@ -646,7 +646,10 @@ function resolved3d_rows(profile::String, spec::PackageBenchmarkSpec)
         elapsed = 0.0
         try
             output_dir = joinpath(spec.output_dir, "resolved3d", profile_slug(velocity_profile))
-            base_params = Params(; velocity_profile=velocity_profile)
+            base_params = Params(;
+                velocity_profile=velocity_profile,
+                initial_condition=GeometryRestIC(),
+            )
             elapsed = @elapsed result = run_available_resolved3d_comparison(;
                 output_dir=output_dir,
                 overwrite=true,
@@ -665,8 +668,8 @@ function resolved3d_rows(profile::String, spec::PackageBenchmarkSpec)
                         row.section_count,
                         row.mean_abs_error_cm_s,
                         row.max_abs_error_cm_s,
-                        row.mean_relative_error,
-                        row.max_relative_error,
+                        row.mean_rel_error,
+                        row.max_rel_error,
                         "ok",
                         elapsed,
                         "",
