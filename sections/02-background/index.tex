@@ -150,6 +150,78 @@ declared wall, terminal, and closure assumptions
     \end{tabularx}
 \end{table}
 
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Representative reduced-model and comparison references used to
+    position the present implementation. The table is comparative rather than
+    exhaustive; it records why each class is relevant and what it does not
+    settle for this report.}
+    \label{tab:stenosis-model-literature-comparison}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}p{0.17\textwidth}p{0.12\textwidth}p{0.13\textwidth}p{0.18\textwidth}p{0.15\textwidth}p{0.16\textwidth}p{0.18\textwidth}@{}}
+        \toprule
+        \textbf{Source / class}
+            & \textbf{State variables}
+            & \textbf{Wall law}
+            & \textbf{Stenosis treatment}
+            & \textbf{Numerical method}
+            & \textbf{Target}
+            & \textbf{Limitation for this report} \\
+        \midrule
+        Classical stenosis-loss formulas
+        \cite{YoungTsai1973SteadyStenosis,YoungTsai1973UnsteadyStenosis}
+            & Flow and pressure-loss variables.
+            & Usually prescribed geometry.
+            & Empirical steady or unsteady loss terms.
+            & Reduced algebraic/dynamic closure.
+            & Pressure-drop prediction.
+            & Not a distributed area--flow solver or velocity-profile comparison. \\
+        Formaggia / Quarteroni 1D area--flow models
+        \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,QuarteroniFormaggia2004CardiovascularModeling}
+            & Section area, flow, and pressure.
+            & Pressure--area relation or coupled wall model.
+            & Geometry enters through reference area and sources.
+            & 1D hyperbolic finite-element/finite-volume formulations.
+            & Arterial wave and network dynamics.
+            & Provides the modeling framework, not this stenosis-specific implementation. \\
+        Boileau benchmark solvers
+        \cite{BoileauEtAl2015Benchmark}
+            & 1D pressure, area, and flow.
+            & Benchmark-specific arterial wall laws.
+            & Network and vessel benchmark cases.
+            & Cross-code numerical benchmark.
+            & Solver agreement on prescribed cases.
+            & Benchmark completion does not verify the selected C23/C40 stenosis realization. \\
+        Canic extended 1D stenosis model
+        \cite{CanicEtAl2024Extended1DStenosis}
+            & Radius-squared area coordinate and flow.
+            & Elastic Canic--Koiter-type pressure law.
+            & Variable-radius distributed terms.
+            & Reduced distributed 1D model.
+            & Stenotic reduced-model dynamics.
+            & The present solver is an $R_{\max}$-normalized Canic-derived variant, not a literal reproduction. \\
+        OpenBF-style arterial workflow
+        \cite{BenemeritoEtAl2024OpenBF}
+            & 1D network pressure/flow states.
+            & Declared vessel and terminal closures.
+            & Network/vessel benchmark realization.
+            & Open implementation and benchmark tooling.
+            & Reproducible arterial simulations.
+            & Useful for workflow comparison, not a matched resolved 3D stenosis reference. \\
+        1D--3D pressure-ratio comparisons
+        \cite{Blanco2018FFR1D3D,LuccaEtAl2025FFRPrediction,ShaikhEtAl2025CTFFR}
+            & Pressure/flow observables and reduced indices.
+            & Study-specific wall and boundary assumptions.
+            & Coronary stenosis or CT-derived geometry.
+            & Cross-dimensional or surrogate comparison.
+            & FFR or CT-FFR-style quantities.
+            & Shows the need for matched observables; this report compares velocity only. \\
+        \bottomrule
+    \end{tabular}%
+    }
+\end{table}
+
 \subsection{Numerical Verification of 1D Arterial Solvers}
 \label{subsec:verification-literature}
 

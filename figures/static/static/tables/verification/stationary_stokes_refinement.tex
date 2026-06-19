@@ -1,15 +1,17 @@
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Stationary-Stokes projection and mesh-refinement diagnostics.}
+    \caption{Stationary-Stokes projection and mesh-refinement diagnostics. The finest-mesh relative discrepancy is zero on the finest row by construction; it is included to show the refinement reference used.}
+    \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}lrrrrrr@{}}
         \toprule
-        Case & Nodes & Cells & $\langle Q\rangle$ & FE--proj. $u$ & Finest $u$ & WSS max \\
+        Case & Nodes & Cells & $\langle Q\rangle_{\mathrm{FE}}$ & $\mathrm{rel.\ diff.}(u_{\mathrm{FE}},u_{\mathrm{proj}})$ & $\mathrm{rel.\ diff.}(u_{\mathrm{FE}},u_{\mathrm{finest}})$ & $\max |\tau_w|$ \\
         \midrule
 stokes-s23-8x2x8 & 153 & 576 & 0.1743 & 0.2012 & 0.3643 & 5.644 \\
 stokes-s23-16x4x16 & 1105 & 5376 & 0.1743 & 0.1928 & 0.000e+00 & 8.446 \\
 stokes-s40-8x2x8 & 153 & 576 & 0.1286 & 0.378 & 0.5212 & 6.034 \\
 stokes-s40-16x4x16 & 1105 & 5376 & 0.1286 & 0.2201 & 0.000e+00 & 11.06 \\
         \bottomrule
-    \end{tabular}
+    \end{tabular}%
+    }
 \end{table}

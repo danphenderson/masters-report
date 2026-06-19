@@ -26,7 +26,7 @@
     end
 
     @testset "native spatial method smoke runs" begin
-        for method in (FVMUSCLMethod(), FVLaxWendroffMethod(), DGMethod(0), DGMethod(1), DGMethod(2))
+        for method in (FVMUSCLMethod(), FVWENO3Method(), FVLaxWendroffMethod(), DGMethod(0), DGMethod(1), DGMethod(2))
             params = Params(nx=8, tfinal=1.0e-5, severity=30.0, space=method, initial_condition=GeometryRestIC())
             result = simulate(params, NativeRK3Backend(); progress_every=0)
             assert_finite_positive_state(result, params)
@@ -34,11 +34,24 @@
     end
 
     @testset "native time stepper smoke runs" begin
-        for stepper in (ForwardEulerStepper(), SSPRK2Stepper(), SSPRK3Stepper())
+        for stepper in (ForwardEulerStepper(), SSPRK2Stepper(), SSPRK3Stepper(), SSPRK54Stepper())
             params = Params(nx=8, tfinal=1.0e-5, severity=30.0, time_stepper=stepper, initial_condition=GeometryRestIC())
             result = simulate(params, NativeRK3Backend(); progress_every=0)
             assert_finite_positive_state(result, params)
         end
+    end
+
+    @testset "WENO3 SSPRK54 smoke run" begin
+        params = Params(
+            nx=8,
+            tfinal=1.0e-5,
+            severity=30.0,
+            space=FVWENO3Method(),
+            time_stepper=SSPRK54Stepper(),
+            initial_condition=GeometryRestIC(),
+        )
+        result = simulate(params, NativeRK3Backend(); progress_every=0)
+        assert_finite_positive_state(result, params)
     end
 
     @testset "native velocity profile smoke runs" begin
@@ -58,16 +71,18 @@
         @test maximum(abs.(fv.flow .- dg.flow)) <= 1.0e-12
     end
 
-    @testset "SciML short run" begin
-        backend = SciMLTimeBackend(
-            solve=SolveSpec(
-                algorithm=Tsit5Policy(),
-                abstol=1.0e-9,
-                reltol=1.0e-9,
-            ),
-        )
-        result = simulate(native_params, backend; progress_every=0)
-        assert_finite_positive_state(result, native_params)
+    @testset "SciML short runs" begin
+        for policy in (Tsit5Policy(), Vern7Policy(), Vern9Policy())
+            backend = SciMLTimeBackend(
+                solve=SolveSpec(
+                    algorithm=policy,
+                    abstol=1.0e-9,
+                    reltol=1.0e-9,
+                ),
+            )
+            result = simulate(native_params, backend; progress_every=0)
+            assert_finite_positive_state(result, native_params)
+        end
     end
 
     @testset "native and SciML tiny-run agreement" begin

@@ -16,13 +16,15 @@ numerical record auditable rather than anecdotal.
 The same evidence should not be read as a stronger theorem or validation claim.
 The benchmark rows do not prove convergence of every model component, do not
 establish pressure accuracy, and do not show agreement with clinical or
-experimental measurements. For the comparison cases, the archived rows still
-lack several quantities that would make the verification record more
-discriminating: positivity-activation counts, total projection correction,
-realized CFL extrema, mass-balance defect, and backend tolerances for the
-specific C23/C40 runs. The present result is therefore best described as a
-verified report workflow with documented limitations, not as complete numerical
-verification of every possible output.
+experimental measurements. For the current comparison cases, the generated
+summaries now persist CFL, characteristic-speed, mass, and positivity
+diagnostics. The remaining limitations are that these diagnostics are
+summarized rather than exposed as time histories, the zero-forcing rest-state
+test reveals a material non-well-balanced start-up artifact, and
+backend-tolerance metadata is still not available for the C23/C40 comparison
+runs. The present result is therefore best described as a verified report
+workflow with documented limitations, not as complete numerical verification of
+every possible output.
 
 \subsection{Interpretation of the Cross-Model Discrepancies}
 \label{subsec:discussion-cross-model-discrepancies}
@@ -129,9 +131,10 @@ for the selected solver and emitted artifacts. Descriptor checks,
 self-convergence rows, cross-integrator discrepancies, stationary-Stokes
 projection rows, boundary diagnostics, rheology/profile sensitivity,
 and resolved-velocity output diagnostics support the
-reported finite-volume/time-integration data contracts. They do not yet supply
-every diagnostic needed for a stronger verification claim, especially for the
-specific C23/C40 comparison runs.
+reported finite-volume/time-integration data contracts. They remain summary
+diagnostics rather than full time histories, and the corrected rest-state test
+shows that the selected discretization is not well balanced for the stenotic
+geometry-rest state.
 
 The 1D--3D velocity comparison shows localized and stenosis-dependent
 discrepancy under the declared

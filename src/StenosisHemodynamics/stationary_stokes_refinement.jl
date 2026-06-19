@@ -432,17 +432,19 @@ function write_stationary_stokes_refinement_tex(
         println(io, "\\begin{table}[!htb]")
         println(io, "    \\centering")
         println(io, "    \\scriptsize")
-        println(io, "    \\caption{Stationary-Stokes projection and mesh-refinement diagnostics.}")
+        println(io, "    \\caption{Stationary-Stokes projection and mesh-refinement diagnostics. The finest-mesh relative discrepancy is zero on the finest row by construction; it is included to show the refinement reference used.}")
+        println(io, "    \\resizebox{\\textwidth}{!}{%")
         println(io, "    \\begin{tabular}{@{}lrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        Case & Nodes & Cells & \$\\langle Q\\rangle\$ & FE--proj. \$u\$ & Finest \$u\$ & WSS max \\\\")
+        println(io, "        Case & Nodes & Cells & \$\\langle Q\\rangle_{\\mathrm{FE}}\$ & \$\\mathrm{rel.\\ diff.}(u_{\\mathrm{FE}},u_{\\mathrm{proj}})\$ & \$\\mathrm{rel.\\ diff.}(u_{\\mathrm{FE}},u_{\\mathrm{finest}})\$ & \$\\max |\\tau_w|\$ \\\\")
         println(io, "        \\midrule")
         for row in rows
             row.status == "ok" || continue
             println(io, stationary_stokes_refinement_latex_row(row))
         end
         println(io, "        \\bottomrule")
-        println(io, "    \\end{tabular}")
+        println(io, "    \\end{tabular}%")
+        println(io, "    }")
         println(io, "\\end{table}")
     end
     return path

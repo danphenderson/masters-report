@@ -261,6 +261,61 @@ function dg_step(
     return limit_dg_coefficients!(Anew, Qnew, method)
 end
 
+function dg_step(
+    Acoef::Matrix{Float64},
+    Qcoef::Matrix{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    ::SSPRK54Stepper,
+    p::Params,
+    method::DGMethod,
+)
+    dA1, dQ1 = dg_rhs(Acoef, Qcoef, z, dx, p, method, t)
+    A1 = Acoef .+ 0.391752226571890 .* dt .* dA1
+    Q1 = Qcoef .+ 0.391752226571890 .* dt .* dQ1
+    limit_dg_coefficients!(A1, Q1, method)
+
+    dA2, dQ2 = dg_rhs(A1, Q1, z, dx, p, method, t + 0.391752226571890 * dt)
+    A2 = 0.444370493651235 .* Acoef .+
+         0.555629506348765 .* A1 .+
+         0.368410593050371 .* dt .* dA2
+    Q2 = 0.444370493651235 .* Qcoef .+
+         0.555629506348765 .* Q1 .+
+         0.368410593050371 .* dt .* dQ2
+    limit_dg_coefficients!(A2, Q2, method)
+
+    dA3, dQ3 = dg_rhs(A2, Q2, z, dx, p, method, t + 0.586079688967798 * dt)
+    A3 = 0.620101851488403 .* Acoef .+
+         0.379898148511597 .* A2 .+
+         0.251891774271694 .* dt .* dA3
+    Q3 = 0.620101851488403 .* Qcoef .+
+         0.379898148511597 .* Q2 .+
+         0.251891774271694 .* dt .* dQ3
+    limit_dg_coefficients!(A3, Q3, method)
+
+    dA4, dQ4 = dg_rhs(A3, Q3, z, dx, p, method, t + 0.474542363026872 * dt)
+    A4 = 0.178079954393132 .* Acoef .+
+         0.821920045606868 .* A3 .+
+         0.544974750228521 .* dt .* dA4
+    Q4 = 0.178079954393132 .* Qcoef .+
+         0.821920045606868 .* Q3 .+
+         0.544974750228521 .* dt .* dQ4
+    limit_dg_coefficients!(A4, Q4, method)
+
+    dA5, dQ5 = dg_rhs(A4, Q4, z, dx, p, method, t + 0.935010630967653 * dt)
+    Anew = 0.517231671970585 .* A2 .+
+           0.096059710526147 .* A3 .+
+           0.386708617503269 .* A4 .+
+           0.063692468666290 .* dt .* dA5
+    Qnew = 0.517231671970585 .* Q2 .+
+           0.096059710526147 .* Q3 .+
+           0.386708617503269 .* Q4 .+
+           0.063692468666290 .* dt .* dQ5
+    return limit_dg_coefficients!(Anew, Qnew, method)
+end
+
 function choose_dt_dg(Acoef::Matrix{Float64}, Qcoef::Matrix{Float64}, z::Vector{Float64}, dx::Float64, p::Params, method::DGMethod)
     smax = 0.0
     for i in axes(Acoef, 1)

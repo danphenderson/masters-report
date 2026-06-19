@@ -54,6 +54,7 @@ Base.@kwdef struct RestStateDriftSpec <: AbstractStudySpec
         dt=1.0e-5,
         initial_condition=GeometryRestIC(),
         forcing=NoForcing(),
+        inlet_umax=0.0,
         space=FVMUSCLMethod(),
         time_stepper=SSPRK3Stepper(),
     )
@@ -289,6 +290,7 @@ function run_rest_state_drift(spec::RestStateDriftSpec = RestStateDriftSpec())
     tex_path = rest_state_drift_tex_path(spec)
     write_rest_state_drift_csv(csv_path, rows; overwrite=spec.overwrite)
     write_rest_state_drift_tex(tex_path, rows; overwrite=spec.overwrite)
+    write_rest_state_drift_full_tex(rest_state_drift_full_tex_path(tex_path), rows; overwrite=spec.overwrite)
     return RestStateDriftResult(spec, rows, csv_path, tex_path)
 end
 
@@ -483,7 +485,27 @@ function write_rest_state_drift_tex(path::String, rows::Vector{RestStateDriftRow
         println(io, "\\begin{table}[!htb]")
         println(io, "    \\centering")
         println(io, "    \\scriptsize")
-        println(io, "    \\caption{Zero-forcing geometry-rest drift diagnostics.}")
+        println(io, "    \\caption{Zero-forcing, zero-inlet geometry-rest drift summary. Values are maxima over the reported positive elapsed times for the two finest grids. The normalization uses the comparison-run flow scale \$q_{\\mathrm{comp}}=2.288/\\pi=0.7283\\,\\mathrm{cm^2/s}\$.}")
+        println(io, "    \\begin{tabular}{@{}rrrrrrrr@{}}")
+        println(io, "        \\toprule")
+        println(io, "        Severity & \$N\$ & \$t_{\\max q}\$ & \$\\max |q_i|\$ & \$\\max |q_i|/q_{\\mathrm{comp}}\$ & \$\\max |a_i-R_{0,i}^2|\$ & \$\\max |\\Delta M|\$ & Subcrit. min \\\\")
+        println(io, "        \\midrule")
+        for row in rest_state_drift_summary_rows(rows)
+            println(io, rest_state_drift_summary_latex_row(row))
+        end
+        println(io, "        \\bottomrule")
+        println(io, "    \\end{tabular}")
+        println(io, "\\end{table}")
+    end
+    return path
+end
+
+function write_rest_state_drift_full_tex(path::String, rows::Vector{RestStateDriftRow}; overwrite::Bool = false)
+    guarded_open_write(path, overwrite) do io
+        println(io, "\\begin{table}[!htb]")
+        println(io, "    \\centering")
+        println(io, "    \\scriptsize")
+        println(io, "    \\caption{Full zero-forcing, zero-inlet geometry-rest drift diagnostics.}")
         println(io, "    \\begin{tabular}{@{}rrrrrrrr@{}}")
         println(io, "        \\toprule")
         println(io, "        Severity & \$N\$ & \$t\$ & \$\\max |q_i|\$ & \$\\max |a_i-R_{0,i}^2|\$ & Mass defect & CFL max & Subcrit. margin \\\\")
@@ -497,6 +519,48 @@ function write_rest_state_drift_tex(path::String, rows::Vector{RestStateDriftRow
         println(io, "\\end{table}")
     end
     return path
+end
+
+function rest_state_drift_full_tex_path(path::String)
+    return endswith(path, ".tex") ? replace(path, r"\.tex$" => "_full.tex") : path * "_full.tex"
+end
+
+function rest_state_drift_summary_rows(rows::Vector{RestStateDriftRow})
+    ok_rows = [row for row in rows if row.status == "ok" && row.elapsed_time_s > 0.0]
+    nxs = sort(unique(row.nx for row in ok_rows))
+    selected_nxs = Set(nxs[max(1, length(nxs) - 1):end])
+    output = NamedTuple[]
+    for severity in sort(unique(row.severity for row in ok_rows)), nx in sort(collect(selected_nxs))
+        group = [row for row in ok_rows if row.severity == severity && row.nx == nx]
+        isempty(group) && continue
+        max_q_row = group[argmax([row.max_abs_q for row in group])]
+        push!(output, (
+            severity=severity,
+            nx=nx,
+            elapsed_time_s=max_q_row.elapsed_time_s,
+            max_abs_q=max_q_row.max_abs_q,
+            normalized_q=max_q_row.max_abs_q / rest_state_comparison_flow_scale(),
+            max_abs_area_drift=maximum(row.max_abs_area_drift for row in group),
+            max_abs_mass_defect=maximum(abs(row.mass_defect) for row in group),
+            subcritical_margin_min=minimum(row.subcritical_margin_min for row in group if isfinite(row.subcritical_margin_min)),
+        ))
+    end
+    return output
+end
+
+rest_state_comparison_flow_scale() = 2.288 / pi
+
+function rest_state_drift_summary_latex_row(row)
+    return join((
+        string(round(Int, row.severity)),
+        string(row.nx),
+        latex_number(row.elapsed_time_s),
+        latex_number(row.max_abs_q),
+        latex_number(row.normalized_q),
+        latex_number(row.max_abs_area_drift),
+        latex_number(row.max_abs_mass_defect),
+        latex_number(row.subcritical_margin_min),
+    ), " & ") * " \\\\"
 end
 
 function rest_state_drift_latex_row(row::RestStateDriftRow)

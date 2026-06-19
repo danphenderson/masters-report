@@ -76,6 +76,20 @@
         @test params.space.degree == 2
         @test params.time_stepper isa SSPRK2Stepper
         @test backend isa NativeRK3Backend
+
+        weno_params, _, weno_backend = parse_args([
+            "--space", "fv-weno3",
+            "--time-stepper", "ssprk54",
+            "--tfinal", "5e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--ic", "geometry-rest",
+        ])
+
+        @test weno_params.space isa FVWENO3Method
+        @test weno_params.time_stepper isa SSPRK54Stepper
+        @test weno_backend isa NativeRK3Backend
     end
 
     @testset "velocity profile flags" begin
@@ -157,6 +171,32 @@
         @test backend.solve.reltol == 1.0e-7
         @test backend.solve.save_everystep == true
         @test backend.solve.maxiters == 123
+
+        vern7_params, _, vern7_backend = parse_args([
+            "--backend", "sciml",
+            "--alg", "vern7",
+            "--tfinal", "5e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--ic", "geometry-rest",
+        ])
+        @test vern7_params.tfinal == 5.0e-5
+        @test vern7_backend isa SciMLTimeBackend
+        @test vern7_backend.solve.algorithm isa Vern7Policy
+
+        vern9_params, _, vern9_backend = parse_args([
+            "--backend", "sciml",
+            "--alg", "vern9",
+            "--tfinal", "5e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--ic", "geometry-rest",
+        ])
+        @test vern9_params.tfinal == 5.0e-5
+        @test vern9_backend isa SciMLTimeBackend
+        @test vern9_backend.solve.algorithm isa Vern9Policy
     end
 
     @testset "invalid combinations" begin

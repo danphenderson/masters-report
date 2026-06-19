@@ -537,3 +537,22 @@ numbers support the dataset contract and local consistency reading; they do not
 establish a convergence theorem or external parity. Any residual norm or error
 norm reported from these arrays is a sampled norm tied to the numerical record,
 rather than an unqualified continuum $L^p(K)$ norm.
+
+\subsection{Full rest-state drift grid}
+\label{app:num-full-rest-state-drift-grid}
+
+Chapter~\ref{sec:numerical-verification} reports a compressed summary of the
+zero-forcing, zero-inlet geometry-rest drift test. The full generated grid and
+elapsed-time table is retained here so that the main-text interpretation can be
+checked against the underlying rows.
+
+\IfFileExists{figures/static/static/tables/verification/rest_state_drift_full.tex}{%
+    \input{figures/static/static/tables/verification/rest_state_drift_full.tex}
+}{%
+    \begin{center}
+    \small
+    \emph{Full rest-state drift table unavailable in this checkout. Run
+    \texttt{verify rest} to populate
+    \path{figures/static/static/tables/verification/}.}
+    \end{center}
+}

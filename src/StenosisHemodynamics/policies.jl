@@ -6,6 +6,12 @@ struct AutoPolicy <: AbstractAlgorithmPolicy end
 """SciML Tsitouras 5/4 explicit Runge-Kutta policy."""
 struct Tsit5Policy <: AbstractAlgorithmPolicy end
 
+"""SciML Verner seventh-order explicit Runge-Kutta policy."""
+struct Vern7Policy <: AbstractAlgorithmPolicy end
+
+"""SciML Verner ninth-order explicit Runge-Kutta policy."""
+struct Vern9Policy <: AbstractAlgorithmPolicy end
+
 """SciML Rodas5P stiff policy with finite-difference Jacobians."""
 struct Rodas5PPolicy <: AbstractAlgorithmPolicy end
 
@@ -34,6 +40,8 @@ end
 
 algorithm_name(::AutoPolicy) = "auto"
 algorithm_name(::Tsit5Policy) = "tsit5"
+algorithm_name(::Vern7Policy) = "vern7"
+algorithm_name(::Vern9Policy) = "vern9"
 algorithm_name(::Rodas5PPolicy) = "rodas5p"
 algorithm_name(::NativeSSPRKPolicy) = "ssprk"
 
@@ -43,13 +51,17 @@ function algorithm_policy(name::AbstractString)
         return AutoPolicy()
     elseif normalized == "tsit5"
         return Tsit5Policy()
+    elseif normalized == "vern7"
+        return Vern7Policy()
+    elseif normalized == "vern9"
+        return Vern9Policy()
     elseif normalized == "rodas5p"
         return Rodas5PPolicy()
     elseif normalized in ("ssprk", "rk3", "native-rk3", "native_ssprk")
         return NativeSSPRKPolicy()
     end
 
-    throw(ArgumentError("unknown algorithm '$name'; expected auto, tsit5, rodas5p, or ssprk"))
+    throw(ArgumentError("unknown algorithm '$name'; expected auto, tsit5, vern7, vern9, rodas5p, or ssprk"))
 end
 
 function validate(spec::SolveSpec)

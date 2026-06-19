@@ -86,6 +86,10 @@ case.
     \path{figures/static/static/tables/verification/}.}
     \end{center}
 }
+The spatial rows support convergence of the implemented forced operator, but
+the observed rates are below the formal smooth-region MUSCL/SSPRK3 expectation.
+That is consistent with limiter activation, source discretization, boundary
+treatment, or an unresolved spatial/temporal error balance.
 
 \subsection{Zero-Forcing Geometry-Rest Drift}
 \label{subsec:rest-state-drift}
@@ -94,7 +98,8 @@ The continuous model has a geometry-rest equilibrium at
 $a_i=R_0(z_i)^2$, $q_i=0$ under zero forcing. The discrete Rusanov/MUSCL
 operator is not exactly well balanced for spatially varying $R_0$ because the
 mass flux includes numerical viscosity. The verification runner therefore
-starts the selected C23 and C40 geometries from the rest state and reports
+starts the selected C23 and C40 geometries from the rest state with a
+zero-velocity inlet and reports
 \[
     \max_i |q_i|,\qquad
     \max_i |a_i-R_0(z_i)^2|,\qquad
@@ -122,6 +127,22 @@ any comparison run initialized from the same geometry-rest state.
     \path{figures/static/static/tables/verification/}.}
     \end{center}
 }
+
+\paragraph{Interpretation of rest-state drift.}
+The corrected rest-state run has zero body forcing and zero inlet flow, so the
+reported motion is not an imposed boundary through-flow. The comparison-flow
+scale is $q_{\mathrm{comp}}\approx2.288/\pi=0.7283\,\mathrm{cm^2/s}$, close to
+the production through-flow scale in Table~\ref{tab:t1-3d-comparison-summary}.
+The largest corrected rest-state values on the two finest grids are about
+$2.14$--$2.28\,q_{\mathrm{comp}}$ by $t=0.01$ s. This is a material
+non-well-balanced artifact of the present Rusanov/MUSCL flux--source
+realization, possibly amplified by the characteristic boundary response; it is
+not small relative to the C23/C40 comparison flow scale. The C23/C40
+comparison runs are initialized from the same geometry-rest state and use the
+same operator, so their start-up transient may include artificial rest-state
+motion before and during the imposed through-flow. The contribution claimed
+here is therefore an auditable, diagnostically exposed implementation, not a
+well-balanced stenosis discretization.
 
 \subsection{Boundary and Conservation Diagnostics}
 \label{subsec:boundary-diagnostics}
@@ -194,6 +215,16 @@ solver.
     \end{center}
 }
 
+\subsection{Resolved-Velocity Benchmark Diagnostic}
+\label{subsec:resolved-velocity-benchmark-diagnostic}
+
+The package benchmark also keeps a resolved-velocity output-operator stage.
+Its role in this chapter is limited: it checks that the
+\texttt{CrossSectionQuadratureOperator} report path remains executable and
+emits the same kind of mean absolute velocity discrepancy used in
+Section~\ref{sec:resolved-3d-comparison}. The detailed interpretation of the
+resolved comparison belongs to Chapter~\ref{sec:resolved-3d-comparison}.
+
 \begin{figure}[!htb]
     \centering
     \IfFileExists{figures/static/static/rendered/package-benchmark-resolved3d.pdf}{%
@@ -210,7 +241,7 @@ solver.
 \end{figure}
 
 \subsection{Sensitivity Checks}
-\label{subsec:verification-sensitivity-qa}
+\label{subsec:verification-sensitivity-checks}
 
 \begin{figure}[!htb]
     \centering

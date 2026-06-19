@@ -137,6 +137,46 @@ end
     @test StenosisHemodynamics.reconstructed_area(0.02, -0.01, 1.0) > 0.0
     @test StenosisHemodynamics.reconstructed_area(1.0e-14, -1.0, 1.0) >= StenosisHemodynamics.AREA_LIMITER_FLOOR
 
+    weno_params = Params(nx=6, tfinal=1.0e-5, severity=0.0, initial_condition=GeometryRestIC())
+    z_weno = [(i - 0.5) * (weno_params.length_cm / weno_params.nx) for i in 1:weno_params.nx]
+    A_constant = fill(0.04, weno_params.nx)
+    Q_constant = fill(0.02, weno_params.nx)
+    AL, QL, AR, QR = StenosisHemodynamics.weno3_interface_states(
+        A_constant,
+        Q_constant,
+        z_weno,
+        3,
+        FVWENO3Method().epsilon,
+        weno_params,
+    )
+    @test AL ≈ 0.04
+    @test QL ≈ 0.02
+    @test AR ≈ 0.04
+    @test QR ≈ 0.02
+
+    A_monotone = [0.02, 0.025, 0.03, 0.035, 0.04, 0.045]
+    Q_monotone = [0.00, 0.01, 0.02, 0.03, 0.04, 0.05]
+    ALm, QLm, ARm, QRm = StenosisHemodynamics.weno3_interface_states(
+        A_monotone,
+        Q_monotone,
+        z_weno,
+        3,
+        FVWENO3Method().epsilon,
+        weno_params,
+    )
+    @test isfinite(ALm)
+    @test isfinite(QLm)
+    @test isfinite(ARm)
+    @test isfinite(QRm)
+    @test ALm >= StenosisHemodynamics.AREA_LIMITER_FLOOR
+    @test ARm >= StenosisHemodynamics.AREA_LIMITER_FLOOR
+
+    lambda_minus, lambda_plus = StenosisHemodynamics.characteristic_basis(0.04, 0.02, z_weno[3], weno_params)
+    wminus, wplus = StenosisHemodynamics.conservative_to_characteristic(0.04, 0.02, lambda_minus, lambda_plus)
+    Around, Qround = StenosisHemodynamics.characteristic_to_conservative(wminus, wplus, lambda_minus, lambda_plus)
+    @test Around ≈ 0.04
+    @test Qround ≈ 0.02
+
     xis, weights = dg_quadrature()
     @test sum(weights) ≈ 2.0
     @test sum(w * legendre_value(1, xi) for (xi, w) in zip(xis, weights)) ≈ 0.0 atol=1.0e-14

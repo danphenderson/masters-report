@@ -34,10 +34,10 @@ function print_simulate_usage(io::IO = stdout)
           --tfinal VALUE          Final time in seconds, default 1.0
           --dt VALUE              Maximum time step, default 1e-5
           --cfl VALUE             CFL limit, default 0.45
-          --space VALUE           fv-first-order, fv-muscl, fv-lax-wendroff, or dg
+          --space VALUE           fv-first-order, fv-muscl, fv-weno3, fv-lax-wendroff, or dg
           --degree VALUE          DG polynomial degree 0, 1, or 2
           --limiter VALUE         TVD limiter, default minmod
-          --time-stepper VALUE    euler, ssprk2, or ssprk3
+          --time-stepper VALUE    euler, ssprk2, ssprk3, or ssprk54
           --ic VALUE              stationary-stokes or geometry-rest, default stationary-stokes
           --ic-pressure-drop-pa VALUE Pressure drop for stationary Stokes IC in Pa
           --ic-pressure-drop-dyn-cm2 VALUE Pressure drop for stationary Stokes IC in dyn/cm^2
@@ -180,6 +180,9 @@ function spatial_method_from_cli(values::Dict{String,String})
     elseif name in ("fv-muscl", "muscl")
         degree_was_set && throw(ArgumentError("--degree is only valid with --space dg"))
         return FVMUSCLMethod(limiter)
+    elseif name in ("fv-weno3", "weno3")
+        degree_was_set && throw(ArgumentError("--degree is only valid with --space dg"))
+        return FVWENO3Method()
     elseif name in ("fv-lax-wendroff", "lax-wendroff", "laxwendroff")
         degree_was_set && throw(ArgumentError("--degree is only valid with --space dg"))
         return FVLaxWendroffMethod(limiter)
@@ -187,7 +190,7 @@ function spatial_method_from_cli(values::Dict{String,String})
         return DGMethod(degree)
     end
 
-    throw(ArgumentError("unknown spatial method '$name'; expected fv-first-order, fv-muscl, fv-lax-wendroff, or dg"))
+    throw(ArgumentError("unknown spatial method '$name'; expected fv-first-order, fv-muscl, fv-weno3, fv-lax-wendroff, or dg"))
 end
 
 function time_stepper_from_cli(values::Dict{String,String})
@@ -195,7 +198,8 @@ function time_stepper_from_cli(values::Dict{String,String})
     name in ("euler", "forward-euler", "forwardeuler") && return ForwardEulerStepper()
     name in ("ssprk2", "rk2") && return SSPRK2Stepper()
     name in ("ssprk3", "rk3") && return SSPRK3Stepper()
-    throw(ArgumentError("unknown native time stepper '$name'; expected euler, ssprk2, or ssprk3"))
+    name in ("ssprk54", "ssprk5-4", "ssprk-5-4", "rk54") && return SSPRK54Stepper()
+    throw(ArgumentError("unknown native time stepper '$name'; expected euler, ssprk2, ssprk3, or ssprk54"))
 end
 
 function initial_condition_from_cli(values::Dict{String,String})

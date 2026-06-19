@@ -52,6 +52,16 @@ function sciml_algorithm(policy::Tsit5Policy)
     return Base.invokelatest(OrdinaryDiffEq.Tsit5)
 end
 
+function sciml_algorithm(policy::Vern7Policy)
+    OrdinaryDiffEq = require_ordinarydiffeq()
+    return Base.invokelatest(OrdinaryDiffEq.Vern7)
+end
+
+function sciml_algorithm(policy::Vern9Policy)
+    OrdinaryDiffEq = require_ordinarydiffeq()
+    return Base.invokelatest(OrdinaryDiffEq.Vern9)
+end
+
 function sciml_algorithm(policy::Rodas5PPolicy)
     OrdinaryDiffEq = require_ordinarydiffeq()
     return rodas5p_algorithm(OrdinaryDiffEq)

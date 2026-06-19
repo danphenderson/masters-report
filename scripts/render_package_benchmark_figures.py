@@ -482,7 +482,7 @@ def resolved3d_figure(rows: list[dict[str, str]]) -> plt.Figure:
     values = [value for _, _, value in points]
     fig, ax = plt.subplots(figsize=(max(6.5, 0.6 * len(values)), 3.8))
     ax.bar(range(len(values)), values, color="#217A7A")
-    ax.set_ylabel("Velocity $L_1$ average discrepancy, cm/s")
+    ax.set_ylabel("Mean absolute velocity discrepancy, cm/s")
     ax.set_title("Resolved-velocity CrossSectionQuadratureOperator diagnostic")
     ax.set_xticks(range(len(labels)))
     ax.set_xticklabels(labels, rotation=25, ha="right", fontsize=8)

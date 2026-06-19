@@ -6,6 +6,7 @@ Base.@kwdef struct RefinementStudySpec
     degrees::Vector{Int} = [0, 1, 2]
     h_methods::Vector{AbstractSpatialMethod} = AbstractSpatialMethod[
         FVMUSCLMethod(),
+        FVWENO3Method(),
         FVLaxWendroffMethod(),
     ]
     backend::AbstractTimeBackend = NativeRK3Backend()
@@ -163,6 +164,7 @@ end
 function expected_refinement_order(method::AbstractSpatialMethod)
     method isa FVFirstOrderMethod && return 1.0
     method isa FVMUSCLMethod && return 2.0
+    method isa FVWENO3Method && return 3.0
     method isa FVLaxWendroffMethod && return 2.0
     method isa DGMethod && return Float64(method.degree + 1)
     return NaN

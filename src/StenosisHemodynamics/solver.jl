@@ -222,6 +222,25 @@ function fill_method_fluxes!(
     dx::Float64,
     dt::Float64,
     t::Float64,
+    method::FVWENO3Method,
+    p::Params,
+    cache::RHSCache,
+)
+    _ = dx
+    _ = dt
+    fill_weno3_rusanov_fluxes!(FA, FQ, A, Q, z, t, method.epsilon, p, cache)
+    return FA, FQ
+end
+
+function fill_method_fluxes!(
+    FA::AbstractVector{Float64},
+    FQ::AbstractVector{Float64},
+    A::AbstractVector{Float64},
+    Q::AbstractVector{Float64},
+    z::AbstractVector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
     method::FVLaxWendroffMethod,
     p::Params,
     cache::RHSCache,
@@ -278,6 +297,134 @@ end
 
 reconstructed_flow(value::Float64, slope::Float64, side::Float64) = value + side * 0.5 * slope
 
+function weno3_left_scalar(vm::Float64, v0::Float64, vp::Float64, epsilon::Float64)
+    beta0 = (v0 - vm)^2
+    beta1 = (vp - v0)^2
+    alpha0 = (1.0 / 3.0) / (epsilon + beta0)^2
+    alpha1 = (2.0 / 3.0) / (epsilon + beta1)^2
+    denom = alpha0 + alpha1
+    omega0 = alpha0 / denom
+    omega1 = alpha1 / denom
+    p0 = -0.5 * vm + 1.5 * v0
+    p1 = 0.5 * v0 + 0.5 * vp
+    return omega0 * p0 + omega1 * p1
+end
+
+function weno3_right_scalar(vm::Float64, v0::Float64, vp::Float64, epsilon::Float64)
+    beta0 = (vp - v0)^2
+    beta1 = (v0 - vm)^2
+    alpha0 = (1.0 / 3.0) / (epsilon + beta0)^2
+    alpha1 = (2.0 / 3.0) / (epsilon + beta1)^2
+    denom = alpha0 + alpha1
+    omega0 = alpha0 / denom
+    omega1 = alpha1 / denom
+    p0 = 1.5 * v0 - 0.5 * vp
+    p1 = 0.5 * vm + 0.5 * v0
+    return omega0 * p0 + omega1 * p1
+end
+
+function characteristic_basis(A::Float64, Q::Float64, z::Float64, p::Params)
+    Apos = positive_area(A)
+    _, r0z, _ = stenosis(z, p)
+    alpha_eff = momentum_alpha(p) + effective_alpha_c(p, r0z)
+    u = Q / Apos
+    radicand = (alpha_eff * u)^2 - alpha_eff * u^2 + wall_wave_speed_squared(Apos, z, p)
+    c = sqrt(max(radicand, 0.0))
+    return alpha_eff * u - c, alpha_eff * u + c
+end
+
+function conservative_to_characteristic(A::Float64, Q::Float64, lambda_minus::Float64, lambda_plus::Float64)
+    denom = lambda_plus - lambda_minus
+    abs(denom) > sqrt(eps(Float64)) || throw(ArgumentError("characteristic basis is degenerate"))
+    wminus = (lambda_plus * A - Q) / denom
+    wplus = (-lambda_minus * A + Q) / denom
+    return wminus, wplus
+end
+
+function characteristic_to_conservative(wminus::Float64, wplus::Float64, lambda_minus::Float64, lambda_plus::Float64)
+    return wminus + wplus, lambda_minus * wminus + lambda_plus * wplus
+end
+
+function componentwise_weno3_states(
+    A0::Float64,
+    Q0::Float64,
+    A1::Float64,
+    Q1::Float64,
+    A2::Float64,
+    Q2::Float64,
+    A3::Float64,
+    Q3::Float64,
+    epsilon::Float64,
+)
+    AL = weno3_left_scalar(A0, A1, A2, epsilon)
+    QL = weno3_left_scalar(Q0, Q1, Q2, epsilon)
+    AR = weno3_right_scalar(A1, A2, A3, epsilon)
+    QR = weno3_right_scalar(Q1, Q2, Q3, epsilon)
+    return AL, QL, AR, QR
+end
+
+function characteristic_weno3_states(
+    A0::Float64,
+    Q0::Float64,
+    A1::Float64,
+    Q1::Float64,
+    A2::Float64,
+    Q2::Float64,
+    A3::Float64,
+    Q3::Float64,
+    z::Float64,
+    epsilon::Float64,
+    p::Params,
+)
+    Aref = positive_area(0.5 * (A1 + A2))
+    Qref = 0.5 * (Q1 + Q2)
+    lambda_minus, lambda_plus = characteristic_basis(Aref, Qref, z, p)
+    if abs(lambda_plus - lambda_minus) <= sqrt(eps(Float64))
+        return componentwise_weno3_states(A0, Q0, A1, Q1, A2, Q2, A3, Q3, epsilon)
+    end
+
+    w0m, w0p = conservative_to_characteristic(A0, Q0, lambda_minus, lambda_plus)
+    w1m, w1p = conservative_to_characteristic(A1, Q1, lambda_minus, lambda_plus)
+    w2m, w2p = conservative_to_characteristic(A2, Q2, lambda_minus, lambda_plus)
+    w3m, w3p = conservative_to_characteristic(A3, Q3, lambda_minus, lambda_plus)
+
+    wLm = weno3_left_scalar(w0m, w1m, w2m, epsilon)
+    wLp = weno3_left_scalar(w0p, w1p, w2p, epsilon)
+    wRm = weno3_right_scalar(w1m, w2m, w3m, epsilon)
+    wRp = weno3_right_scalar(w1p, w2p, w3p, epsilon)
+
+    AL, QL = characteristic_to_conservative(wLm, wLp, lambda_minus, lambda_plus)
+    AR, QR = characteristic_to_conservative(wRm, wRp, lambda_minus, lambda_plus)
+    return AL, QL, AR, QR
+end
+
+function weno3_interface_states(
+    A::AbstractVector{Float64},
+    Q::AbstractVector{Float64},
+    z::AbstractVector{Float64},
+    iface::Int,
+    epsilon::Float64,
+    p::Params,
+)
+    nx = length(A)
+    3 <= iface <= nx - 1 || throw(ArgumentError("WENO3 interface $iface does not have a four-cell stencil"))
+    zi = 0.5 * (z[iface - 1] + z[iface])
+    AL, QL, AR, QR = characteristic_weno3_states(
+        A[iface - 2],
+        Q[iface - 2],
+        A[iface - 1],
+        Q[iface - 1],
+        A[iface],
+        Q[iface],
+        A[iface + 1],
+        Q[iface + 1],
+        zi,
+        epsilon,
+        p,
+    )
+    return reconstructed_area(AL, 0.0, 0.0), QL, reconstructed_area(AR, 0.0, 0.0), QR
+end
+
 function fill_muscl_rusanov_fluxes!(
     FA::AbstractVector{Float64},
     FQ::AbstractVector{Float64},
@@ -318,6 +465,52 @@ function fill_muscl_rusanov_fluxes!(
             QL = reconstructed_flow(Q[end], slope_Q[end], 1.0)
             AR, QR = Aout, Qout
             zi = p.length_cm
+        else
+            left = iface - 1
+            right = iface
+            AL = reconstructed_area(A[left], slope_A[left], 1.0)
+            QL = reconstructed_flow(Q[left], slope_Q[left], 1.0)
+            AR = reconstructed_area(A[right], slope_A[right], -1.0)
+            QR = reconstructed_flow(Q[right], slope_Q[right], -1.0)
+            zi = 0.5 * (z[left] + z[right])
+        end
+
+        FA[iface], FQ[iface] = rusanov_flux(AL, QL, AR, QR, zi, p)
+    end
+
+    return FA, FQ
+end
+
+function fill_weno3_rusanov_fluxes!(
+    FA::AbstractVector{Float64},
+    FQ::AbstractVector{Float64},
+    A::AbstractVector{Float64},
+    Q::AbstractVector{Float64},
+    z::AbstractVector{Float64},
+    t::Float64,
+    epsilon::Float64,
+    p::Params,
+    cache::RHSCache,
+)
+    slope_A = cell_slopes!(cache.area_slope, A, MinmodLimiter())
+    slope_Q = cell_slopes!(cache.flow_slope, Q, MinmodLimiter())
+    Ain, Qin, Aout, Qout = boundary_states(A, Q, p, t)
+    nx = length(A)
+
+    for iface in 1:(nx + 1)
+        if iface == 1
+            AL, QL = Ain, Qin
+            AR = reconstructed_area(A[begin], slope_A[begin], -1.0)
+            QR = reconstructed_flow(Q[begin], slope_Q[begin], -1.0)
+            zi = 0.0
+        elseif iface == nx + 1
+            AL = reconstructed_area(A[end], slope_A[end], 1.0)
+            QL = reconstructed_flow(Q[end], slope_Q[end], 1.0)
+            AR, QR = Aout, Qout
+            zi = p.length_cm
+        elseif 3 <= iface <= nx - 1
+            AL, QL, AR, QR = weno3_interface_states(A, Q, z, iface, epsilon, p)
+            zi = 0.5 * (z[iface - 1] + z[iface])
         else
             left = iface - 1
             right = iface
@@ -509,6 +702,22 @@ function native_step(
     return native_step!(Anew, Qnew, z, dx, dt, t, SSPRK3Stepper(), p, cache)
 end
 
+function native_step(
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    ::SSPRK54Stepper,
+    p::Params,
+)
+    Anew = copy(A)
+    Qnew = copy(Q)
+    cache = NativeStepCache(length(A))
+    return native_step!(Anew, Qnew, z, dx, dt, t, SSPRK54Stepper(), p, cache)
+end
+
 function native_step!(
     A::Vector{Float64},
     Q::Vector{Float64},
@@ -600,6 +809,90 @@ function native_step!(
     for i in eachindex(A)
         A[i] = limited_area((A[i] + 2.0 * (cache.A2[i] + dt * cache.dA3[i])) / 3.0, diagnostics)
         Q[i] = (Q[i] + 2.0 * (cache.Q2[i] + dt * cache.dQ3[i])) / 3.0
+    end
+
+    return A, Q
+end
+
+function native_step!(
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    ::SSPRK54Stepper,
+    p::Params,
+    cache::NativeStepCache,
+    diagnostics = nothing,
+)
+    c1 = 0.391752226571890
+    c2 = 0.586079688967798
+    c3 = 0.474542363026872
+    c4 = 0.935010630967653
+
+    fill_rhs_dt!(cache.dA1, cache.dQ1, A, Q, z, dx, dt, t, p, cache.rhs)
+    for i in eachindex(A)
+        cache.A1[i] = limited_area(A[i] + 0.391752226571890 * dt * cache.dA1[i], diagnostics)
+        cache.Q1[i] = Q[i] + 0.391752226571890 * dt * cache.dQ1[i]
+    end
+
+    fill_rhs_dt!(cache.dA1, cache.dQ1, cache.A1, cache.Q1, z, dx, dt, t + c1 * dt, p, cache.rhs)
+    for i in eachindex(A)
+        cache.A1[i] = limited_area(
+            0.444370493651235 * A[i] +
+            0.555629506348765 * cache.A1[i] +
+            0.368410593050371 * dt * cache.dA1[i],
+            diagnostics,
+        )
+        cache.Q1[i] =
+            0.444370493651235 * Q[i] +
+            0.555629506348765 * cache.Q1[i] +
+            0.368410593050371 * dt * cache.dQ1[i]
+    end
+
+    fill_rhs_dt!(cache.dA1, cache.dQ1, cache.A1, cache.Q1, z, dx, dt, t + c2 * dt, p, cache.rhs)
+    for i in eachindex(A)
+        cache.A2[i] = limited_area(
+            0.620101851488403 * A[i] +
+            0.379898148511597 * cache.A1[i] +
+            0.251891774271694 * dt * cache.dA1[i],
+            diagnostics,
+        )
+        cache.Q2[i] =
+            0.620101851488403 * Q[i] +
+            0.379898148511597 * cache.Q1[i] +
+            0.251891774271694 * dt * cache.dQ1[i]
+    end
+
+    fill_rhs_dt!(cache.dA1, cache.dQ1, cache.A2, cache.Q2, z, dx, dt, t + c3 * dt, p, cache.rhs)
+    for i in eachindex(A)
+        cache.A3[i] = limited_area(
+            0.178079954393132 * A[i] +
+            0.821920045606868 * cache.A2[i] +
+            0.544974750228521 * dt * cache.dA1[i],
+            diagnostics,
+        )
+        cache.Q3[i] =
+            0.178079954393132 * Q[i] +
+            0.821920045606868 * cache.Q2[i] +
+            0.544974750228521 * dt * cache.dQ1[i]
+    end
+
+    fill_rhs_dt!(cache.dA1, cache.dQ1, cache.A3, cache.Q3, z, dx, dt, t + c4 * dt, p, cache.rhs)
+    for i in eachindex(A)
+        A[i] = limited_area(
+            0.517231671970585 * cache.A1[i] +
+            0.096059710526147 * cache.A2[i] +
+            0.386708617503269 * cache.A3[i] +
+            0.063692468666290 * dt * cache.dA1[i],
+            diagnostics,
+        )
+        Q[i] =
+            0.517231671970585 * cache.Q1[i] +
+            0.096059710526147 * cache.Q2[i] +
+            0.386708617503269 * cache.Q3[i] +
+            0.063692468666290 * dt * cache.dQ1[i]
     end
 
     return A, Q

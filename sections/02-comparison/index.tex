@@ -62,8 +62,9 @@ The exact algebraic split needed for a future attribution study is
     Q_{3D}\left(\frac{1}{A_{1D}}-\frac{1}{A_{3D}}\right),
     \qquad A_{1D}=\pi a. &&
 \end{flalign*}
-The present artifact reports $Q$ and velocity summaries, but not the plotted
-flow-versus-area contribution split.
+The report asset stores enough section-wise values to reconstruct this split:
+$A_{1D}=Q_{1D}/\bar u_{1D}$ and $A_{3D}=Q_{3D}/\bar u_{3D}$. Table~\ref{tab:t1-flow-area-decomposition}
+summarizes the resulting contribution magnitudes.
 
 \subsection{Section-Averaged Velocity Results}
 \label{subsec:section-averaged-velocity-results}
@@ -89,6 +90,30 @@ flow-versus-area contribution split.
         C40 & 200 & 0.005 & 0.291 & 0.397 & 4.46 \\
         \bottomrule
     \end{tabular}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Section-wise decomposition of the mean-velocity discrepancy into
+    physical-flow and area-denominator contributions. Values are in cm/s and
+    are reconstructed from the tracked section-quadrature report asset.}
+    \label{tab:t1-flow-area-decomposition}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lrrrrl@{}}
+        \toprule
+        \textbf{Case}
+            & $\boldsymbol{\langle |(Q_{1D}-Q_{3D})/A_{1D}|\rangle}$
+            & $\boldsymbol{\langle |Q_{3D}(A_{1D}^{-1}-A_{3D}^{-1})|\rangle}$
+            & $\boldsymbol{z_{\max |d_u|}}$
+            & $\boldsymbol{|d_u|_{\max}}$
+            & \textbf{Dominant term at max} \\
+        \midrule
+        C23 & 0.529 & 0.112 & 2.291 & 2.35 & Flow contribution \\
+        C40 & 1.012 & 0.133 & 2.261 & 9.92 & Flow contribution \\
+        \bottomrule
+    \end{tabular}%
+    }
 \end{table}
 
 \begin{table}[!htb]
@@ -266,7 +291,7 @@ area-weighted radial means, area mismatch, and within-bin azimuthal variance.
             & $\boldsymbol{z}$ \textbf{(cm)}
             & $\boldsymbol{\mathrm{MAE}(u_r)}$
             & $\boldsymbol{\mathrm{RMSE}(u_r)}$
-            & $\boldsymbol{\max |e_{u_r}|}$
+            & $\boldsymbol{\max |d_{u_r}|}$
             & $\boldsymbol{\mathrm{MAE}(Q_r)}$
             & $\boldsymbol{\mathrm{RMSE}(Q_r)}$ \\
         \midrule

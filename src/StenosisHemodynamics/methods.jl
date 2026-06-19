@@ -15,6 +15,16 @@ end
 
 FVMUSCLMethod() = FVMUSCLMethod(MinmodLimiter())
 
+"""Characteristic-wise third-order WENO finite-volume method with Rusanov flux."""
+struct FVWENO3Method <: AbstractSpatialMethod
+    epsilon::Float64
+
+    function FVWENO3Method(epsilon::Real = 1.0e-6)
+        epsilon > 0.0 || throw(ArgumentError("WENO epsilon must be positive"))
+        return new(Float64(epsilon))
+    end
+end
+
 """Richtmyer/Lax-Wendroff finite-volume method with limited interface states."""
 struct FVLaxWendroffMethod{L<:AbstractLimiter} <: AbstractSpatialMethod
     limiter::L
@@ -37,26 +47,31 @@ DGMethod() = DGMethod(1)
 struct ForwardEulerStepper <: AbstractNativeTimeStepper end
 struct SSPRK2Stepper <: AbstractNativeTimeStepper end
 struct SSPRK3Stepper <: AbstractNativeTimeStepper end
+struct SSPRK54Stepper <: AbstractNativeTimeStepper end
 
 limiter_name(::MinmodLimiter) = "minmod"
 
 spatial_method_name(::FVFirstOrderMethod) = "fv-first-order"
 spatial_method_name(method::FVMUSCLMethod) = "fv-muscl-$(limiter_name(method.limiter))"
+spatial_method_name(::FVWENO3Method) = "fv-weno3"
 spatial_method_name(method::FVLaxWendroffMethod) = "fv-lax-wendroff-$(limiter_name(method.limiter))"
 spatial_method_name(method::DGMethod) = "dg-p$(method.degree)"
 
 time_stepper_name(::ForwardEulerStepper) = "euler"
 time_stepper_name(::SSPRK2Stepper) = "ssprk2"
 time_stepper_name(::SSPRK3Stepper) = "ssprk3"
+time_stepper_name(::SSPRK54Stepper) = "ssprk54"
 
 validate(::MinmodLimiter) = MinmodLimiter()
 validate(::FVFirstOrderMethod) = FVFirstOrderMethod()
 validate(method::FVMUSCLMethod) = (validate(method.limiter); method)
+validate(method::FVWENO3Method) = (method.epsilon > 0.0 || throw(ArgumentError("WENO epsilon must be positive")); method)
 validate(method::FVLaxWendroffMethod) = (validate(method.limiter); method)
 validate(method::DGMethod) = (0 <= method.degree <= 2 || throw(ArgumentError("DG degree must be 0, 1, or 2")); method)
 validate(::ForwardEulerStepper) = ForwardEulerStepper()
 validate(::SSPRK2Stepper) = SSPRK2Stepper()
 validate(::SSPRK3Stepper) = SSPRK3Stepper()
+validate(::SSPRK54Stepper) = SSPRK54Stepper()
 
 function minmod(a::Float64, b::Float64)
     sign(a) == sign(b) || return 0.0

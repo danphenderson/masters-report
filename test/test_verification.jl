@@ -56,6 +56,7 @@ end
         @test length(drift.rows) == 4
         @test isfile(drift.summary_csv)
         @test isfile(drift.summary_tex)
+        @test isfile(replace(drift.summary_tex, r"\.tex$" => "_full.tex"))
         @test all(row.status == "ok" for row in drift.rows)
         @test all(row.max_abs_q >= 0.0 for row in drift.rows)
         @test all(row.max_abs_area_drift >= 0.0 for row in drift.rows)

@@ -81,12 +81,16 @@ struct NativeStepCache
     Q1::Vector{Float64}
     A2::Vector{Float64}
     Q2::Vector{Float64}
+    A3::Vector{Float64}
+    Q3::Vector{Float64}
 end
 
 function NativeStepCache(nx::Int)
     nx > 0 || throw(ArgumentError("nx must be positive"))
     return NativeStepCache(
         RHSCache(nx),
+        zeros(Float64, nx),
+        zeros(Float64, nx),
         zeros(Float64, nx),
         zeros(Float64, nx),
         zeros(Float64, nx),

@@ -259,10 +259,10 @@ end
 function descriptor_health_rows(profile::String, spec::PackageBenchmarkSpec)
     rows = Vector{Vector{Any}}()
     methods = profile == "smoke" ?
-        Any[FVFirstOrderMethod(), FVMUSCLMethod(), FVLaxWendroffMethod(), DGMethod(0), DGMethod(1), DGMethod(2)] :
-        Any[FVFirstOrderMethod(), FVMUSCLMethod(), FVLaxWendroffMethod(), DGMethod(0), DGMethod(1), DGMethod(2)]
+        Any[FVFirstOrderMethod(), FVMUSCLMethod(), FVWENO3Method(), FVLaxWendroffMethod(), DGMethod(0), DGMethod(1), DGMethod(2)] :
+        Any[FVFirstOrderMethod(), FVMUSCLMethod(), FVWENO3Method(), FVLaxWendroffMethod(), DGMethod(0), DGMethod(1), DGMethod(2)]
     steppers = profile == "smoke" ? Any[SSPRK3Stepper()] :
-        Any[ForwardEulerStepper(), SSPRK2Stepper(), SSPRK3Stepper()]
+        Any[ForwardEulerStepper(), SSPRK2Stepper(), SSPRK3Stepper(), SSPRK54Stepper()]
     nx = profile == "smoke" ? 12 : 120
     tfinal = profile == "smoke" ? 1.0e-4 : 1.0e-2
     severity = 40
@@ -287,8 +287,8 @@ function refinement_rows(profile::String, spec::PackageBenchmarkSpec)
     nxs = profile == "smoke" ? [10, 20] : [50, 100, 200, 400]
     degrees = profile == "smoke" ? [0, 1] : [0, 1, 2]
     h_methods = profile == "smoke" ?
-        [FVFirstOrderMethod(), FVMUSCLMethod(), DGMethod(0)] :
-        [FVFirstOrderMethod(), FVMUSCLMethod(), DGMethod(0), DGMethod(1), DGMethod(2)]
+        [FVFirstOrderMethod(), FVMUSCLMethod(), FVWENO3Method(), DGMethod(0)] :
+        [FVFirstOrderMethod(), FVMUSCLMethod(), FVWENO3Method(), DGMethod(0), DGMethod(1), DGMethod(2)]
     base_params = Params(;
         severity=40,
         nx=first(nxs),
@@ -436,9 +436,9 @@ function backend_parity_rows(profile::String, spec::PackageBenchmarkSpec)
     rows = Vector{Vector{Any}}()
     methods = profile == "smoke" ?
         Any[FVMUSCLMethod()] :
-        Any[FVFirstOrderMethod(), FVMUSCLMethod(), DGMethod(0)]
+        Any[FVFirstOrderMethod(), FVMUSCLMethod(), FVWENO3Method(), DGMethod(0)]
     nxs = profile == "smoke" ? [12] : [80, 160]
-    algorithms = profile == "smoke" ? ["tsit5"] : ["auto", "tsit5", "rodas5p"]
+    algorithms = profile == "smoke" ? ["tsit5"] : ["auto", "tsit5", "vern7", "vern9", "rodas5p"]
     tfinal = profile == "smoke" ? 1.0e-4 : 1.0e-2
     for method in methods, nx in nxs, algorithm in algorithms
         case_id = "backend-$(method_slug(method))-nx$(nx)-$(algorithm)"
@@ -1034,12 +1034,15 @@ function sciml_policy(name::String)
     lower = lowercase(name)
     lower == "auto" && return AutoPolicy()
     lower == "tsit5" && return Tsit5Policy()
+    lower == "vern7" && return Vern7Policy()
+    lower == "vern9" && return Vern9Policy()
     lower == "rodas5p" && return Rodas5PPolicy()
     throw(ArgumentError("unsupported SciML algorithm: $name"))
 end
 
 method_name(method::FVFirstOrderMethod) = "fv-first-order"
 method_name(method::FVMUSCLMethod) = "fv-muscl"
+method_name(method::FVWENO3Method) = "fv-weno3"
 method_name(method::FVLaxWendroffMethod) = "fv-lax-wendroff"
 method_name(method::DGMethod) = "dg-p$(method.degree)"
 method_name(method) = string(typeof(method))
@@ -1051,6 +1054,7 @@ method_degree(method) = ""
 stepper_name(stepper::ForwardEulerStepper) = "forward-euler"
 stepper_name(stepper::SSPRK2Stepper) = "ssprk2"
 stepper_name(stepper::SSPRK3Stepper) = "ssprk3"
+stepper_name(stepper::SSPRK54Stepper) = "ssprk54"
 stepper_name(stepper) = string(typeof(stepper))
 stepper_slug(stepper) = stepper_name(stepper)
 
