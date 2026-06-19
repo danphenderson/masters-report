@@ -1,0 +1,320 @@
+--- a/sections/03-conclusions/index.tex
++++ b/sections/03-conclusions/index.tex
+@@ -1,172 +1,167 @@
+ \section{Discussion}
+ \label{sec:discussion}
+ 
+-\subsection{Interpretation of the Verification Evidence}
++\subsection{Implemented Model and Auditability}
++\label{subsec:discussion-implemented-model-auditability}
++
++The first research question asks what continuous model, coordinate map, closure
++choices, boundary approximation, and discrete operator define the implemented
++solver. The answer is the implementation contract in
++Section~\ref{sec:methodology}. The reported solver is an
++$R_{\max}$-normalized Canic-derived one-dimensional area-flow model in solver
++coordinates $a=R^2$ and $q=Q_{\mathrm{phys}}/\pi$, with
++$A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and mean velocity $q/a$.
++The selected comparison realization uses the parabolic-profile baseline,
++Newtonian rheology, the fixed-area characteristic boundary approximation, MUSCL
++finite volumes, minmod-limited states, Rusanov flux, source splitting, and native
++SSPRK3 time integration.
++
++This specification is a contribution because it makes the numerical record
++audit-ready. The wall evolution law uses the $R_{\max}$ normalization stated in
++the implemented balance law, and the legacy pressure helper is not the evolution
++wall law. The boundary invariant is an $\alpha=1$ fixed-area characteristic
++approximation applied to the variable-$\alpha_{\mathrm{eff}}$ system under the
++persisted subcritical-regime diagnostics. The principal C23/C40 comparison runs
++use $N=400$ cells on $0\le z\le6$ cm, a timestep cap of $10^{-5}$ s, and a CFL
++cap of 0.45. Other finite-volume, modal-DG, native time-stepper, and SciML
++surfaces remain secondary implementation-health context rather than the method
++that defines the main comparison.
++
++The point of this contract is not to summarize every solver surface. It is to
++state which model, closure, boundary approximation, and discrete operator produce
++the reported verification and comparison artifacts. That restriction keeps the
++later claims traceable to the actual generated records.
++
++\subsection{What the Verification Supports}
+ \label{subsec:discussion-verification-evidence}
+ 
+-The verification evidence supports a bounded implementation claim: the reported
+-solver configuration, benchmark records, and output summaries reproduce the
+-finite-volume and comparison records used in this report. The implementation
+-checks exercise descriptor health, sampled self-convergence, native/SciML
+-cross-integrator discrepancies, stationary-Stokes projection rows, boundary
+-handling, rheology/profile sensitivity, and resolved-velocity output
+-diagnostics. These checks make the numerical record traceable rather than
+-anecdotal.
++The second research question first asks whether the implementation converges on a
++smooth manufactured solution. The answer is positive but bounded. The
++manufactured-solution rows compare the implemented forced operator with a
++declared smooth exact state, and they support bounded implementation-verification
++evidence for that forced operator. The spatial rows show decreasing MMS norms in
++the recorded refinement study, while the requested-timestep rows are read as
++time-step insensitivity at the displayed spatial resolution rather than as a
++clean temporal-order study.
+ 
+-The same evidence should not be read as a stronger theorem or validation claim.
+-The benchmark rows do not prove convergence of every model component, do not
+-establish pressure accuracy, and do not show agreement with clinical or
+-experimental measurements. For the current comparison cases, the generated
+-summaries persist characteristic-speed diagnostics; CFL, mass, and positivity
+-diagnostics are exposed by the solver and verification records rather than as
+-tracked C23/C40 comparison time histories. The remaining limitations are that
+-the zero-forcing rest-state test reveals a material non-well-balanced start-up
+-artifact, and production grid, timestep, start-up, and stationarity sensitivity
+-remain incomplete for the C23/C40 comparison runs. The present result is
+-therefore best described as a checked implementation record with documented
+-limitations, not as complete numerical verification of every possible output.
++The verification chapter also records boundary, CFL, positivity, conservation,
++and secondary implementation-health diagnostics. These records are useful because
++they make accepted runs inspectable: subcritical characteristic-speed signs,
++realized CFL, positivity projection counts, mass defects, and backend or
++sensitivity checks can be audited from the generated artifacts. They do not
++enlarge the MMS result into a formal order theorem for every model variant or a
++complete production-sensitivity record for the C23/C40 comparison.
+ 
+-\subsection{Interpretation of the Cross-Model Discrepancies}
++\subsection{Consequences of the Rest-Equilibrium Failure}
++\label{subsec:discussion-rest-equilibrium-failure}
++
++The same research question also asks whether the implementation preserves the
++geometry-rest equilibrium. It does not. The selected continuous balance law admits
++$a=R_0^2$, $q=0$ under compatible zero-flow boundary data, but continuous
++compatibility does not imply discrete preservation. The current MUSCL/Rusanov
++realization exhibits non-well-balanced geometry-rest drift.
++
++The size of that drift is decisive for the rest of the report. The production
++comparison-flow scale is
++$q_{\mathrm{comp}}\approx2.288/\pi=0.7283\,\mathrm{cm}^3/\mathrm{s}$ in solver
++coordinates. On the finest rest-state grid, the zero-forcing $t=1$ s rest-flow
++values are 0.7313 and 0.7324 cm$^3$/s in solver $q$ for C23 and C40, with
++physical flows $\pi q=2.297$ and $2.301\,\mathrm{cm}^3/\mathrm{s}$. The peak
++zero-forcing rest drift occurs earlier, at $t=0.01$ s, with 1.566 and
++1.658 cm$^3$/s in solver $q$. Thus the artificial rest flow at $t=1$ s is the
++same order as the production comparison-flow scale.
++
++This is a material limitation, not a side diagnostic. The C23/C40 comparison runs
++start from the same geometry-rest state and use the same principal operator.
++Consequently, the later velocity comparison can be read only after the
++non-well-balanced startup motion has been exposed. The next numerical change must
++therefore be an equilibrium-preserving discretization or reconstruction, followed
++by a repeated rest-state audit before any stronger production-comparison claim is
++attempted.
++
++\subsection{What the Diagnostic Comparison Shows}
+ \label{subsec:discussion-cross-model-discrepancies}
+ 
+-The largest section-mean resolved-velocity discrepancy in this pair occurs in
+-C40, the stronger stenosis case. The section-mean comparison in
+-Table~\ref{tab:t1-3d-comparison-summary} records the descriptive widening: the
+-signed mean velocity bias changes from 0.480 cm/s in C23 to 0.909 cm/s in C40,
+-the mean absolute velocity discrepancy changes from 0.505 to 0.966 cm/s, the
+-RMS velocity discrepancy changes from 0.664 to 1.87 cm/s, and the relative RMS
+-velocity discrepancy changes from 0.0277 to 0.0688. The largest section
+-discrepancy increases from 2.35 cm/s to 9.92 cm/s.
+-Table~\ref{tab:t1-largest-section-discrepancies} localizes the largest section
+-discrepancies just upstream of the displayed throat band, in the C40
+-acceleration/shoulder region. Because the numerical and data-matching gates
+-remain unresolved, this two-case pattern should not be read as a causal
+-stenosis-severity result.
++The third research question asks what velocity discrepancies are measured against
++the available resolved 3D data under the declared plane--tetrahedron operator.
++The answer is descriptive and operator-specific. The operator defines section
++area, physical flow, and area-mean axial velocity on the available C23 and C40
++resolved velocity fields; the 1D output is compared through
++$Q_{1D}=\pi q$ and $\bar u_{1D}=q/a$.
+ 
+-The radial-profile figure gives a more limited reading. It is retained as a
+-qualitative secondary visual diagnostic of how the 1D parabolic reconstruction
+-compares with resolved radial-bin means. The radial-summary table is withheld
+-from the main evidence path pending reconciliation of the radial-summary
+-recomputation conflict, so the discussion does not use radial-bin numeric
+-values for localization or mechanism claims. The plots can motivate follow-up
+-inspection, but they do not identify secondary flow, skewness, separation, or
+-any one omitted 3D mechanism.
++For the 200 retained section targets, the signed mean velocity biases are
++0.480 cm/s in C23 and 0.909 cm/s in C40. The mean absolute velocity discrepancies
++are 0.505 and 0.966 cm/s, the RMS velocity discrepancies are 0.664 and
++1.87 cm/s, and the relative RMS velocity discrepancies are 0.0277 and 0.0688.
++The largest listed section discrepancies are 2.35 cm/s at $z=2.291$ cm for C23
++and 9.92 cm/s at $z=2.261$ cm for C40. In the physical-flow observable, the
++signed mean biases are 0.0472 and 0.0684 cm$^3$/s, the mean absolute
++discrepancies are 0.0482 and 0.0709 cm$^3$/s, and the RMS discrepancies are
++0.0509 and 0.0893 cm$^3$/s.
+ 
+-\subsection{Effects of Unmatched Wall Models, Boundary Conditions, and Histories}
++These numbers localize a two-case discrepancy pattern, especially the upstream
++C40 shoulder, but they do not identify a mechanism. The flow/area decomposition
++is bookkeeping for the displayed samples, not causal attribution. The radial
++plots are retained only as qualitative secondary diagnostics; the radial-summary
++numeric table is withheld from the main evidence path pending reconciliation of
++the radial-summary recomputation conflict. No radial-bin numerical localization
++claim is part of the principal result.
++
++\subsection{Unmatched Conditions and Required Next Work}
+ \label{subsec:discussion-unmatched-modeling-effects}
+-
+-The present comparison changes more than spatial dimension. The 1D computation
+-uses a compliant reduced Canic--Koiter wall law and a fixed-area characteristic
+-boundary approximation, while the local resolved files expose velocity,
+-pressure, and displacement as single final-time snapshots rather than a matched
+-wall-history record. These differences matter because velocity
+-discrepancy is not solely a profile-closure discrepancy. Area mismatch can change
+-$\bar u=Q/A$ even when physical flow is close; flow mismatch can arise from
+-different inlet, outlet, wall, or start-up histories; and the final-time
+-difference between $1.0$ s and $0.9995$ s does not establish matched phases or
+-matched histories.
+-
+-The cut-area audit in Table~\ref{tab:t1-area-audit} is therefore an operator
+-check, not an attribution result. It shows typical sub-percent agreement
+-between the tetrahedral cuts and the static reference areas, with localized
+-multi-percent outliers. Table~\ref{tab:t1-flow-area-decomposition} adds a
+-section-wise split between physical-flow and area-denominator contributions for
+-the reported samples; that algebraic split is useful bookkeeping, but it does
+-not by itself establish whether the flow mismatch is physical, numerical, or
+-data-history driven. The comparison should therefore be read as a coupled
+-velocity, flow, geometry, and modeling diagnostic rather than as a pure test of
+-the cross-sectional profile closure.
+-
+-\subsection{Methodological Limitations}
+ \label{subsec:discussion-methodological-limitations}
+-
+-The most important limitation is evidential scope. The report compares a
+-selected 1D realization with two resolved computational velocity datasets under
+-a declared plane--tetrahedron output operator. It does not compare pressures,
+-pressure drops, clinical FFR, CT-FFR, wall shear stress, structural deformation,
+-or experimental measurements. The pressure-ratio notation in the report
+-therefore remains an output convention for later studies, not a completed
+-pressure-ratio result.
+-
+-A second limitation is that the comparison is not a fully matched 1D--3D
+-validation study. Matching would require, at minimum, a declared common
+-geometry, wall model, rheology, material parameters, inlet and outlet histories,
+-initialization, time alignment, numerical-resolution study, and output
+-operator. Some of those ingredients are available here, especially the analytic
+-reference geometry and the velocity output operator. Others are absent or only
+-partially persisted, so the current comparison can localize discrepancies but
+-cannot uniquely attribute them. The section-flow audit is another unresolved
+-gate: the available 3D cuts vary by about 7.7\% of the C23 mean section flow
+-and 20.2\% of the C40 mean section flow, and the comparison files do not by
+-themselves establish whether this is a fixed-wall numerical/operator
+-discrepancy, single-snapshot moving-wall geometry, or a moving-wall effect
+-requiring area-rate and wall-history data.
+-
+-\subsection{Implications and Future Work}
+ \label{subsec:discussion-implications-future-work}
+ 
+-The immediate implication is practical: the next useful step is a more
+-controlled comparison record. That record should persist matched inlet and
+-outlet histories, wall and material parameters, positivity/CFL/mass diagnostics,
+-subcritical characteristic-speed signs, grid and operator sensitivity for the
+-actual C23/C40 outputs, high-area-discrepancy section sensitivity, and an
+-explicit classical-versus-extended ablation. It should also preserve the
+-existing physical-flow and area-denominator decomposition as a standard output
+-rather than as an after-the-fact table.
++The unmatched conditions must remain in front of the interpretation. The 3D wall
++model, wall motion, boundary histories, material parameters, prior transient
++history, and current/deformed geometry status are not fully persisted in the
++tracked comparison record. The 3D sample is at 0.9995 s while the 1D sample is at
++1.0 s, leaving a reported 0.0005 s time offset. The extracted 3D physical flow
++also varies axially by 7.7\% of the C23 mean section flow and 20.2\% of the C40
++mean section flow. The available files do not determine whether that variation is
++an operator effect, a geometry-state effect, a boundary/history effect, or a
++property of the resolved run.
+ 
+-A pressure-focused extension would require a separate design. It would need
+-proximal and distal pressure observation maps, reference-pressure and averaging
+-conventions, pressure data from the comparison model, and a clear statement of
+-whether the target is a reduced pressure diagnostic, a pressure-drop comparison,
+-or a clinical pressure-ratio comparison. Until such a study is added, the
+-defensible contribution remains the audited extended-1D model specification,
+-the reproducible numerical workflow, and the declared operator for comparing 1D
+-and resolved-3D velocity outputs.
++The required next work follows from those gates. First, the principal numerical
++operator needs an equilibrium-preserving discretization and a repeated MMS and
++geometry-rest verification record. Second, the comparison record needs matched 3D
++metadata for wall, boundary, material, geometry state, displacement handling, and
++sample time, or an explicit exact-time resampling protocol. Third, production
++sensitivity needs to be recorded for the actual comparison outputs: grid,
++timestep, startup, area-cut sensitivity, and operator choices. Only after those
++steps would a broader output claim have the required evidence chain.
+ 
+-\section{Conclusions and Limitations}
++\section{Conclusion}
+ \label{sec:conclusions-limitations}
+ 
+-This report has separated three claims that are often blurred in reduced-order
+-hemodynamics work: model specification, numerical verification, and cross-model
+-comparison. The selected model is now stated in both physical variables
+-$(A_{\mathrm{phys}},Q_{\mathrm{phys}})$ and solver variables
+-$(a,q)=(A_{\mathrm{phys}}/\pi,Q_{\mathrm{phys}}/\pi)$. It is an
+-$R_{\max}$-normalized Canic-derived, radius-squared finite-volume model with
+-$R_0^*=R_{\max}$ in the continuous source-balanced elastic wall law, a
+-parabolic-profile baseline closure, optional Canic variable-radius terms, and a
+-fixed-area characteristic boundary approximation.
++First, the implemented-model contribution is an authoritative specification of
++the solver that produced the recorded artifacts. The report fixes the physical
++and solver variables, the $R_{\max}$-normalized wall evolution law, the source-to-
++implementation differences, the fixed-area characteristic boundary approximation,
++the principal MUSCL/Rusanov/SSPRK3 realization, and the plane--tetrahedron
++observation operator.
+ 
+-The verification record documents an internally reproducible numerical record
+-for the selected solver and recorded artifacts. Descriptor checks,
+-self-convergence rows, cross-integrator discrepancies, stationary-Stokes
+-projection rows, boundary diagnostics, rheology/profile sensitivity,
+-and resolved-velocity output diagnostics support the
+-reported finite-volume/time-integration data contracts. They remain summary
+-diagnostics rather than full time histories, and the corrected rest-state test
+-shows that the selected discretization is not well balanced for the stenotic
+-geometry-rest state. At the finest checked grid, the zero-input artificial flow
+-at $t=1.0$ s is still of the same order as the comparison-flow scale, so the
+-later C23/C40 velocity comparison cannot be interpreted as a production-accuracy
+-study.
++Second, the MMS evidence is positive but bounded. It supports the declared forced
++operator and is reinforced by inspectable boundary, CFL, positivity, conservation,
++and secondary implementation-health records. It does not establish a formal order
++result for every variant or a complete production-sensitivity record.
+ 
+-The 1D--3D velocity comparison reports localized discrepancies under the
+-declared cross-section quadrature operator. For C23 and C40 at $t=1.0$ s, the
+-signed section-mean velocity biases are 0.480 and 0.909 cm/s, the mean absolute
+-velocity discrepancies are 0.505 and 0.966 cm/s, the RMS velocity discrepancies
+-are 0.664 and 1.87 cm/s, and the relative RMS velocity discrepancies are 0.0277
+-and 0.0688. The largest listed section discrepancies are 2.35 and 9.92 cm/s,
+-with the larger section discrepancy in the upstream C40 shoulder in this
+-two-case pair. The radial-profile plots remain qualitative secondary diagnostics
+-because the radial-summary table is withheld pending reconciliation of the
+-radial-summary recomputation conflict. These outputs are single-realization
+-descriptive comparison outputs, not evidence of stenosis dependence or model
+-accuracy.
++Third, the decisive geometry-rest limitation is that the current principal
++MUSCL/Rusanov realization is not well balanced for the stenotic geometry-rest
++state. At $t=1$ s the finest-grid artificial rest flow is the same order as the
++comparison-flow scale, and the peak earlier rest drift is larger. This limitation
++has to be repaired before the C23/C40 comparison can support a stronger numerical
++claim.
+ 
+-The bounded contribution is therefore precise rather than clinical: a selected
+-extended 1D stenosis model, an auditable finite-volume/time-integration
+-implementation, and a cross-sectional velocity comparison operator that identifies
+-where the current 1D and resolved-3D computational outputs differ. The report
+-does not establish pressure-drop accuracy, pressure-ratio or FFR behavior,
+-clinical validity, full transient 3D parity, structural deformation, or a fully
+-matched 1D--3D validation. Those remain future studies with different evidence
+-requirements.
++Fourth, the 1D--3D comparison result is descriptive. Under the declared operator,
++the C23/C40 section-mean velocity record reports signed bias, mean absolute
++velocity discrepancy, RMS velocity discrepancy, maximum discrepancy and location,
++and relative RMS velocity discrepancy. The largest listed section discrepancy is
++localized in the upstream C40 shoulder in this two-case pair. Radial plots remain
++qualitative secondary diagnostics because the radial-summary numeric table is
++withheld pending reconciliation.
++
++The next required implementation step is an equilibrium-preserving
++discretization, followed by matched 3D metadata and production sensitivity for the
++actual comparison outputs. That sequence is the shortest path from the current
++audited record to a cleaner future comparison.

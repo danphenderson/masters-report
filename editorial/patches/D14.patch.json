@@ -1,0 +1,259 @@
+{
+  "patch_id": "D14",
+  "section": "Chapters 6 and 7: Discussion and Conclusion",
+  "intent": "Rewrite Chapters 6 and 7 around direct answers to the three research questions, with rest-equilibrium failure central and Chapter 5 treated as a diagnostic 1D-3D velocity comparison.",
+  "claim_ids": [
+    "C-MODEL",
+    "C-NUMERICS",
+    "C-MMS",
+    "C-REST",
+    "C-OPERATOR",
+    "C-COMPARISON",
+    "C-LIMITS"
+  ],
+  "evidence_anchors": [
+    "editorial/canonical_rq_answers.md:5-27",
+    "editorial/claim_evidence_ledger.yaml:13-60",
+    "claim_evidence_ledger.yaml byte-equivalent to editorial/claim_evidence_ledger.yaml (cmp exit 0)",
+    "editorial/numerical_ledger.yaml:64-145",
+    "editorial/numerical_ledger.yaml:145-213",
+    "editorial/numerical_ledger.yaml:290-321",
+    "editorial/numerical_ledger.yaml:322-355",
+    "editorial/terminology_ledger.yaml:5-25",
+    "editorial/section_plan.yaml:84-108",
+    "sections/03-methodology/index.tex:69-99",
+    "sections/03-methodology/index.tex:419-447",
+    "sections/03-methodology/index.tex:520-585",
+    "sections/03-methodology/index.tex:587-605",
+    "sections/03-methodology/index.tex:858-864",
+    "sections/04-verification/index.tex:129-199",
+    "sections/04-verification/index.tex:201-233",
+    "sections/02-comparison/index.tex:7-28",
+    "sections/02-comparison/index.tex:151-172",
+    "sections/02-comparison/index.tex:219-225",
+    "sections/02-comparison/index.tex:338-342",
+    "sections/03-conclusions/index.tex:1-172"
+  ],
+  "numbers_touched": [
+    {
+      "value": "N=400, 0<=z<=6 cm, timestep cap 10^{-5} s, CFL cap 0.45",
+      "meaning": "principal C23/C40 comparison realization",
+      "source": "editorial/numerical_ledger.yaml:120-138; sections/03-methodology/index.tex:573-585"
+    },
+    {
+      "value": "q_comp=0.7283 cm^3/s solver q; Q_comp=2.288 cm^3/s physical flow",
+      "meaning": "production comparison-flow scale",
+      "source": "editorial/numerical_ledger.yaml:64-72; sections/04-verification/index.tex:178-184"
+    },
+    {
+      "value": "0.7313, 0.7324 cm^3/s solver q; pi*q=2.297, 2.301 cm^3/s",
+      "meaning": "C23/C40 finest-grid t=1 s zero-forcing rest-flow values",
+      "source": "editorial/numerical_ledger.yaml:91-119; sections/04-verification/index.tex:184-188"
+    },
+    {
+      "value": "1.566, 1.658 cm^3/s solver q at t=0.01 s",
+      "meaning": "C23/C40 peak zero-forcing rest drift",
+      "source": "editorial/numerical_ledger.yaml:82-109; sections/04-verification/index.tex:188-191"
+    },
+    {
+      "value": "0.480, 0.909 cm/s",
+      "meaning": "C23/C40 signed mean velocity bias",
+      "source": "sections/02-comparison/index.tex:219-225"
+    },
+    {
+      "value": "0.505, 0.966 cm/s",
+      "meaning": "C23/C40 mean absolute velocity discrepancy",
+      "source": "editorial/numerical_ledger.yaml:166-197; sections/02-comparison/index.tex:219-225"
+    },
+    {
+      "value": "0.664, 1.87 cm/s",
+      "meaning": "C23/C40 RMS velocity discrepancy",
+      "source": "editorial/numerical_ledger.yaml:168-198; sections/02-comparison/index.tex:219-225"
+    },
+    {
+      "value": "0.0277, 0.0688",
+      "meaning": "C23/C40 relative RMS velocity discrepancy",
+      "source": "editorial/numerical_ledger.yaml:172-203; sections/02-comparison/index.tex:219-225"
+    },
+    {
+      "value": "2.35 cm/s at z=2.291 cm; 9.92 cm/s at z=2.261 cm",
+      "meaning": "C23/C40 maximum section velocity discrepancy and location",
+      "source": "editorial/numerical_ledger.yaml:181-213; sections/02-comparison/index.tex:219-225"
+    },
+    {
+      "value": "0.0472, 0.0684 cm^3/s",
+      "meaning": "C23/C40 signed mean physical-flow bias",
+      "source": "sections/02-comparison/index.tex:163-170"
+    },
+    {
+      "value": "0.0482, 0.0709 cm^3/s",
+      "meaning": "C23/C40 mean absolute physical-flow discrepancy",
+      "source": "editorial/numerical_ledger.yaml:175-206; sections/02-comparison/index.tex:163-170"
+    },
+    {
+      "value": "0.0509, 0.0893 cm^3/s",
+      "meaning": "C23/C40 RMS physical-flow discrepancy",
+      "source": "editorial/numerical_ledger.yaml:177-207; sections/02-comparison/index.tex:163-170"
+    },
+    {
+      "value": "0.9995 s versus 1.0 s; offset 0.0005 s",
+      "meaning": "3D and 1D sample-time mismatch",
+      "source": "editorial/numerical_ledger.yaml:302-321; sections/02-comparison/index.tex:19-28"
+    },
+    {
+      "value": "7.7%, 20.2%",
+      "meaning": "C23/C40 axial variation in extracted 3D physical flow",
+      "source": "editorial/numerical_ledger.yaml:290-301; sections/02-comparison/index.tex:151-161"
+    }
+  ],
+  "equations_touched": [
+    {
+      "status": "referenced_without_change",
+      "anchor": "Definition~\\ref{def:physical-to-solver-map}",
+      "content": "a=R^2, q=Qphys/pi, Aphys=pi*a, Qphys=pi*q, mean velocity q/a"
+    },
+    {
+      "status": "referenced_without_change",
+      "anchor": "Proposition~\\ref{prop:selected-rest-state-compatibility}",
+      "content": "continuous geometry-rest compatibility"
+    },
+    {
+      "status": "referenced_without_change",
+      "anchor": "Section~\\ref{subsec:plane-tetrahedron-comparison-operator}",
+      "content": "plane-tetrahedron observation operator"
+    },
+    {
+      "status": "referenced_without_change",
+      "anchor": "Section~\\ref{subsec:numerical-experiments-metrics-provenance}",
+      "content": "section discrepancy metric definitions"
+    }
+  ],
+  "labels_touched": [
+    {
+      "label": "sec:discussion",
+      "status": "preserved"
+    },
+    {
+      "label": "subsec:discussion-implemented-model-auditability",
+      "status": "added"
+    },
+    {
+      "label": "subsec:discussion-verification-evidence",
+      "status": "preserved"
+    },
+    {
+      "label": "subsec:discussion-rest-equilibrium-failure",
+      "status": "added"
+    },
+    {
+      "label": "subsec:discussion-cross-model-discrepancies",
+      "status": "preserved"
+    },
+    {
+      "label": "subsec:discussion-unmatched-modeling-effects",
+      "status": "preserved"
+    },
+    {
+      "label": "subsec:discussion-methodological-limitations",
+      "status": "preserved on combined required-next-work subsection"
+    },
+    {
+      "label": "subsec:discussion-implications-future-work",
+      "status": "preserved on combined required-next-work subsection"
+    },
+    {
+      "label": "sec:conclusions-limitations",
+      "status": "preserved with heading changed to Conclusion"
+    },
+    {
+      "label": "sec:methodology",
+      "status": "referenced"
+    },
+    {
+      "label": "sec:numerical-verification",
+      "status": "referenced"
+    },
+    {
+      "label": "sec:resolved-3d-comparison",
+      "status": "referenced"
+    }
+  ],
+  "citations_added": [],
+  "citations_removed": [],
+  "replacement_tex": {
+    "sections/03-conclusions/index.tex": "\\section{Discussion}\n\\label{sec:discussion}\n\n\\subsection{Implemented Model and Auditability}\n\\label{subsec:discussion-implemented-model-auditability}\n\nThe first research question asks what continuous model, coordinate map, closure\nchoices, boundary approximation, and discrete operator define the implemented\nsolver. The answer is the implementation contract in\nSection~\\ref{sec:methodology}. The reported solver is an\n$R_{\\max}$-normalized Canic-derived one-dimensional area-flow model in solver\ncoordinates $a=R^2$ and $q=Q_{\\mathrm{phys}}/\\pi$, with\n$A_{\\mathrm{phys}}=\\pi a$, $Q_{\\mathrm{phys}}=\\pi q$, and mean velocity $q/a$.\nThe selected comparison realization uses the parabolic-profile baseline,\nNewtonian rheology, the fixed-area characteristic boundary approximation, MUSCL\nfinite volumes, minmod-limited states, Rusanov flux, source splitting, and native\nSSPRK3 time integration.\n\nThis specification is a contribution because it makes the numerical record\naudit-ready. The wall evolution law uses the $R_{\\max}$ normalization stated in\nthe implemented balance law, and the legacy pressure helper is not the evolution\nwall law. The boundary invariant is an $\\alpha=1$ fixed-area characteristic\napproximation applied to the variable-$\\alpha_{\\mathrm{eff}}$ system under the\npersisted subcritical-regime diagnostics. The principal C23/C40 comparison runs\nuse $N=400$ cells on $0\\le z\\le6$ cm, a timestep cap of $10^{-5}$ s, and a CFL\ncap of 0.45. Other finite-volume, modal-DG, native time-stepper, and SciML\nsurfaces remain secondary implementation-health context rather than the method\nthat defines the main comparison.\n\nThe point of this contract is not to summarize every solver surface. It is to\nstate which model, closure, boundary approximation, and discrete operator produce\nthe reported verification and comparison artifacts. That restriction keeps the\nlater claims traceable to the actual generated records.\n\n\\subsection{What the Verification Supports}\n\\label{subsec:discussion-verification-evidence}\n\nThe second research question first asks whether the implementation converges on a\nsmooth manufactured solution. The answer is positive but bounded. The\nmanufactured-solution rows compare the implemented forced operator with a\ndeclared smooth exact state, and they support bounded implementation-verification\nevidence for that forced operator. The spatial rows show decreasing MMS norms in\nthe recorded refinement study, while the requested-timestep rows are read as\ntime-step insensitivity at the displayed spatial resolution rather than as a\nclean temporal-order study.\n\nThe verification chapter also records boundary, CFL, positivity, conservation,\nand secondary implementation-health diagnostics. These records are useful because\nthey make accepted runs inspectable: subcritical characteristic-speed signs,\nrealized CFL, positivity projection counts, mass defects, and backend or\nsensitivity checks can be audited from the generated artifacts. They do not\nenlarge the MMS result into a formal order theorem for every model variant or a\ncomplete production-sensitivity record for the C23/C40 comparison.\n\n\\subsection{Consequences of the Rest-Equilibrium Failure}\n\\label{subsec:discussion-rest-equilibrium-failure}\n\nThe same research question also asks whether the implementation preserves the\ngeometry-rest equilibrium. It does not. The selected continuous balance law admits\n$a=R_0^2$, $q=0$ under compatible zero-flow boundary data, but continuous\ncompatibility does not imply discrete preservation. The current MUSCL/Rusanov\nrealization exhibits non-well-balanced geometry-rest drift.\n\nThe size of that drift is decisive for the rest of the report. The production\ncomparison-flow scale is\n$q_{\\mathrm{comp}}\\approx2.288/\\pi=0.7283\\,\\mathrm{cm}^3/\\mathrm{s}$ in solver\ncoordinates. On the finest rest-state grid, the zero-forcing $t=1$ s rest-flow\nvalues are 0.7313 and 0.7324 cm$^3$/s in solver $q$ for C23 and C40, with\nphysical flows $\\pi q=2.297$ and $2.301\\,\\mathrm{cm}^3/\\mathrm{s}$. The peak\nzero-forcing rest drift occurs earlier, at $t=0.01$ s, with 1.566 and\n1.658 cm$^3$/s in solver $q$. Thus the artificial rest flow at $t=1$ s is the\nsame order as the production comparison-flow scale.\n\nThis is a material limitation, not a side diagnostic. The C23/C40 comparison runs\nstart from the same geometry-rest state and use the same principal operator.\nConsequently, the later velocity comparison can be read only after the\nnon-well-balanced startup motion has been exposed. The next numerical change must\ntherefore be an equilibrium-preserving discretization or reconstruction, followed\nby a repeated rest-state audit before any stronger production-comparison claim is\nattempted.\n\n\\subsection{What the Diagnostic Comparison Shows}\n\\label{subsec:discussion-cross-model-discrepancies}\n\nThe third research question asks what velocity discrepancies are measured against\nthe available resolved 3D data under the declared plane--tetrahedron operator.\nThe answer is descriptive and operator-specific. The operator defines section\narea, physical flow, and area-mean axial velocity on the available C23 and C40\nresolved velocity fields; the 1D output is compared through\n$Q_{1D}=\\pi q$ and $\\bar u_{1D}=q/a$.\n\nFor the 200 retained section targets, the signed mean velocity biases are\n0.480 cm/s in C23 and 0.909 cm/s in C40. The mean absolute velocity discrepancies\nare 0.505 and 0.966 cm/s, the RMS velocity discrepancies are 0.664 and\n1.87 cm/s, and the relative RMS velocity discrepancies are 0.0277 and 0.0688.\nThe largest listed section discrepancies are 2.35 cm/s at $z=2.291$ cm for C23\nand 9.92 cm/s at $z=2.261$ cm for C40. In the physical-flow observable, the\nsigned mean biases are 0.0472 and 0.0684 cm$^3$/s, the mean absolute\ndiscrepancies are 0.0482 and 0.0709 cm$^3$/s, and the RMS discrepancies are\n0.0509 and 0.0893 cm$^3$/s.\n\nThese numbers localize a two-case discrepancy pattern, especially the upstream\nC40 shoulder, but they do not identify a mechanism. The flow/area decomposition\nis bookkeeping for the displayed samples, not causal attribution. The radial\nplots are retained only as qualitative secondary diagnostics; the radial-summary\nnumeric table is withheld from the main evidence path pending reconciliation of\nthe radial-summary recomputation conflict. No radial-bin numerical localization\nclaim is part of the principal result.\n\n\\subsection{Unmatched Conditions and Required Next Work}\n\\label{subsec:discussion-unmatched-modeling-effects}\n\\label{subsec:discussion-methodological-limitations}\n\\label{subsec:discussion-implications-future-work}\n\nThe unmatched conditions must remain in front of the interpretation. The 3D wall\nmodel, wall motion, boundary histories, material parameters, prior transient\nhistory, and current/deformed geometry status are not fully persisted in the\ntracked comparison record. The 3D sample is at 0.9995 s while the 1D sample is at\n1.0 s, leaving a reported 0.0005 s time offset. The extracted 3D physical flow\nalso varies axially by 7.7\\% of the C23 mean section flow and 20.2\\% of the C40\nmean section flow. The available files do not determine whether that variation is\nan operator effect, a geometry-state effect, a boundary/history effect, or a\nproperty of the resolved run.\n\nThe required next work follows from those gates. First, the principal numerical\noperator needs an equilibrium-preserving discretization and a repeated MMS and\ngeometry-rest verification record. Second, the comparison record needs matched 3D\nmetadata for wall, boundary, material, geometry state, displacement handling, and\nsample time, or an explicit exact-time resampling protocol. Third, production\nsensitivity needs to be recorded for the actual comparison outputs: grid,\ntimestep, startup, area-cut sensitivity, and operator choices. Only after those\nsteps would a broader output claim have the required evidence chain.\n\n\\section{Conclusion}\n\\label{sec:conclusions-limitations}\n\nFirst, the implemented-model contribution is an authoritative specification of\nthe solver that produced the recorded artifacts. The report fixes the physical\nand solver variables, the $R_{\\max}$-normalized wall evolution law, the source-to-\nimplementation differences, the fixed-area characteristic boundary approximation,\nthe principal MUSCL/Rusanov/SSPRK3 realization, and the plane--tetrahedron\nobservation operator.\n\nSecond, the MMS evidence is positive but bounded. It supports the declared forced\noperator and is reinforced by inspectable boundary, CFL, positivity, conservation,\nand secondary implementation-health records. It does not establish a formal order\nresult for every variant or a complete production-sensitivity record.\n\nThird, the decisive geometry-rest limitation is that the current principal\nMUSCL/Rusanov realization is not well balanced for the stenotic geometry-rest\nstate. At $t=1$ s the finest-grid artificial rest flow is the same order as the\ncomparison-flow scale, and the peak earlier rest drift is larger. This limitation\nhas to be repaired before the C23/C40 comparison can support a stronger numerical\nclaim.\n\nFourth, the 1D--3D comparison result is descriptive. Under the declared operator,\nthe C23/C40 section-mean velocity record reports signed bias, mean absolute\nvelocity discrepancy, RMS velocity discrepancy, maximum discrepancy and location,\nand relative RMS velocity discrepancy. The largest listed section discrepancy is\nlocalized in the upstream C40 shoulder in this two-case pair. Radial plots remain\nqualitative secondary diagnostics because the radial-summary numeric table is\nwithheld pending reconciliation.\n\nThe next required implementation step is an equilibrium-preserving\ndiscretization, followed by matched 3D metadata and production sensitivity for the\nactual comparison outputs. That sequence is the shortest path from the current\naudited record to a cleaner future comparison.\n"
+  },
+  "material_moved_to": [
+    {
+      "source_block": "sections/03-conclusions/index.tex:1-3",
+      "classification": "merge",
+      "destination": "new Discussion heading with sec:discussion label preserved"
+    },
+    {
+      "source_block": "sections/03-conclusions/index.tex:4-27",
+      "classification": "merge",
+      "destination": "6.2 What the Verification Supports and 6.3 Consequences of the Rest-Equilibrium Failure"
+    },
+    {
+      "source_block": "sections/03-conclusions/index.tex:29-53",
+      "classification": "merge",
+      "destination": "6.4 What the Diagnostic Comparison Shows"
+    },
+    {
+      "source_block": "sections/03-conclusions/index.tex:55-78",
+      "classification": "merge",
+      "destination": "6.5 Unmatched Conditions and Required Next Work"
+    },
+    {
+      "source_block": "sections/03-conclusions/index.tex:80-103",
+      "classification": "compress",
+      "destination": "6.5 unmatched conditions paragraph; repeated excluded-claim inventory removed"
+    },
+    {
+      "source_block": "sections/03-conclusions/index.tex:105-115",
+      "classification": "merge",
+      "destination": "6.5 required next-work sequence"
+    },
+    {
+      "source_block": "sections/03-conclusions/index.tex:117-124",
+      "classification": "compress",
+      "destination": "Conclusion final paragraph as broader future-evidence requirement; pressure-focused inventory removed"
+    },
+    {
+      "source_block": "sections/03-conclusions/index.tex:126-172",
+      "classification": "merge",
+      "destination": "new five-part Conclusion"
+    }
+  ],
+  "removed_blocks": [
+    {
+      "source_block": "sections/03-conclusions/index.tex:16-19",
+      "classification": "compress",
+      "reason": "broad validation/pressure/clinical inventory replaced by single bounded-evidence statement"
+    },
+    {
+      "source_block": "sections/03-conclusions/index.tex:83-89",
+      "classification": "compress",
+      "reason": "repeated inventory of excluded output claims removed from main discussion"
+    },
+    {
+      "source_block": "sections/03-conclusions/index.tex:117-121",
+      "classification": "delete",
+      "reason": "pressure-focused future-study paragraph outside D14 conclusion focus"
+    },
+    {
+      "source_block": "sections/03-conclusions/index.tex:165-172",
+      "classification": "compress",
+      "reason": "broad limitation inventory replaced by direct next-step conclusion"
+    }
+  ],
+  "before_word_count": 1366,
+  "after_word_count": 1315,
+  "risk": [
+    "Proposal replaces all Chapter 6 and 7 prose in sections/03-conclusions/index.tex but does not modify manuscript source.",
+    "Subsection organization changes; existing external top-level labels are preserved, and old subsection labels are retained on closest matching required subsections to avoid avoidable cross-reference churn.",
+    "No equations, figures, tables, citation keys, or generated assets are changed by the proposed diff.",
+    "The radial-profile numeric table remains withheld from the main Chapter 5 evidence path; D14 does not introduce radial-bin numeric claims."
+  ],
+  "open_questions": []
+}
