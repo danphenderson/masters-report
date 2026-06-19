@@ -1,0 +1,121 @@
+\section{Background and Literature Review}
+\label{sec:background-literature-review}
+
+The literature background is used here to narrow the modelling problem, not to
+catalog every hemodynamic model class. Stenotic flow creates localized geometry,
+velocity, pressure, and wall-interaction effects. Three-dimensional CFD and FSI
+resolve those effects most directly, but require detailed geometry, material
+data, boundary histories, and substantially higher computational cost. Reduced
+models are therefore useful when the research question concerns distributed
+pressure--flow behavior, repeatable numerical studies, or parameter scans, but
+their predictions depend on declared averaging, closure, wall, geometry, and
+boundary assumptions.
+
+\input{sections/01-intro/blood-continuum}
+\input{sections/01-intro/governing-equations}
+\input{sections/01-intro/model-hierarchy/3d-model}
+\input{sections/01-intro/model-hierarchy/index}
+
+\subsection{One-Dimensional Modelling of Nonuniform and Stenotic Vessels}
+\label{subsec:literature-1d-stenotic-vessels}
+
+The stenotic-vessel setting is the point at which the reduced-model assumptions
+become especially visible. Cross-sectional averaging replaces the resolved
+velocity field by $A(z,t)$, $Q(z,t)$, a mean velocity, and a pressure variable.
+That reduction requires a velocity-profile or momentum-flux closure, a wall law
+or wall descriptor, a friction/rheology convention, and a rule for how variable
+geometry enters the momentum balance. These choices are not interchangeable:
+changing a wall law, changing a profile factor, and adding a variable-radius
+source correction change different parts of the model.
+
+\subsubsection{Cross-Sectional Averaging and Closure Assumptions}
+
+One-dimensional area--flow models retain distributed axial information while
+discarding secondary flow, skewed profiles, separation, and recirculation. The
+lost transverse information re-enters only through closures such as the
+momentum-flux correction factor, profile reconstruction rule, and wall-friction
+term. This is why a comparison with resolved 3D data must state the observation
+operator before interpreting any difference between the two outputs.
+
+\subsubsection{Wall and Constitutive Laws}
+
+The wall descriptor determines whether the model uses a fixed geometry, an
+algebraic pressure--area relation, a coupled network/interface condition, or a
+resolved structural model. The rheology descriptor separately controls the
+viscosity or effective-viscosity law. In the selected study, these axes remain
+separate: the working 1D model uses an elastic pressure--area wall law and a
+declared rheology/profile closure, while resolved FSI remains a different
+model tier rather than a relabelled source term.
+
+\subsubsection{Variable Geometry and Stenosis Corrections}
+
+Stenosis enters a one-dimensional model through the reference radius or
+reference area, but a narrowed geometry by itself does not determine the
+correct reduced momentum equation. Variable-radius terms, wall-source balance,
+and profile corrections must be part of the stated model. This report therefore
+distinguishes the classical parabolic-profile baseline from the
+\texttt{canic-extended-1d} member that includes the Canic-style
+variable-radius corrections.
+
+\subsubsection{Known Limitations of One-Dimensional Stenosis Models}
+
+A 1D model cannot resolve eccentricity, three-dimensional separation,
+recirculation, secondary flow, or traction-based wall shear stress. It can still
+be useful when the output of interest is a declared area--flow or
+section-averaged velocity quantity. The limitation is evidential rather than
+cosmetic: agreement in a section mean would not prove resolved velocity
+agreement, and disagreement in a section mean would not by itself identify a
+single physical mechanism.
+
+\subsection{Numerical Verification and Cross-Dimensional Comparison}
+\label{subsec:verification-comparison-background}
+
+Verification, cross-model comparison, and validation answer different
+questions. Verification asks whether the implemented equations and numerical
+operators behave consistently under declared checks. Cross-model comparison
+asks how two computational outputs differ under a stated observation operator.
+Validation asks whether a model reproduces independent physical, experimental,
+or clinical measurements. This report uses the first two categories only.
+
+\subsubsection{Verification of One-Dimensional Solvers}
+
+For a reduced 1D solver, relevant verification evidence includes descriptor
+checks, boundary diagnostics, self-convergence, cross-integrator discrepancy,
+mass/positivity/CFL diagnostics, and reproducible output schemas. Such evidence
+supports claims about the implementation and numerical record. It does not by
+itself establish physiological pressure accuracy or clinical validity.
+
+\subsubsection{Comparison with Resolved Three-Dimensional Data}
+
+A resolved 3D comparison can be informative only after the observable has been
+defined. The report therefore treats plane--tetrahedron quadrature of axial
+velocity as an output operator from the resolved field to section-averaged
+quantities comparable with the 1D solution. The comparison remains bounded by
+the available metadata: unmatched wall model, boundary histories, material
+parameters, and transient histories limit attribution.
+
+\subsubsection{Distinction Between Comparison, Verification, and Validation}
+
+The terms are kept separate throughout the report. A green software check is
+not a validation experiment. A velocity discrepancy under a declared quadrature
+operator is not a pressure-drop error. A reduced pressure-ratio convention is
+not an FFR or CT-FFR result unless a separate clinical measurement comparison is
+specified.
+
+\subsection{Literature Synthesis and Research Gap}
+\label{subsec:literature-synthesis-gap}
+
+The literature motivates a focused methodological gap. Stenotic flow is
+geometrically local and can produce velocity structures that full-order models
+represent more directly than reduced models. One-dimensional models are much
+cheaper and retain distributed pressure--flow behavior, but their stenosis
+predictions depend on cross-sectional averaging, wall and rheology closures,
+variable-geometry terms, boundary data, and output maps. Existing verification
+and comparison practice also shows that numerical consistency, cross-model
+agreement, and physical validation are separate evidential claims.
+
+The gap addressed by this report is therefore not clinical validation of a
+stenosis model. It is an auditable implementation and report specification for
+a selected extended 1D stenosis model, paired with an explicitly defined
+operator for comparing one-dimensional and resolved three-dimensional velocity
+outputs.

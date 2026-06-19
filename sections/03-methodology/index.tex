@@ -1,0 +1,311 @@
+\section{Mathematical and Computational Methodology}
+\label{sec:methodology}
+
+This section states the actual model and computational protocol used in the
+report. The preceding review explains why a reduced model is useful and where
+its assumptions enter; the present section fixes the selected variables,
+closure choices, solver-coordinate convention, boundary contract, numerical
+realization, comparison operator, metrics, and provenance record before any
+numerical outcomes are interpreted.
+
+\input{sections/01-intro/selected-1d-model}
+
+\subsection{MUSCL Finite-Volume and SSPRK3 Discretization}
+\label{subsec:muscl-ssprk3-discretization}
+
+The reported comparison uses the finite-volume realization specified in
+Appendix~\ref{app:num-current-solver-operator}. In summary, the radius-squared
+state $(a,q)$ is advanced on a one-dimensional grid with a MUSCL reconstruction,
+minmod limiting, source splitting for the wall/geometry and variable-radius
+terms, and native SSPRK3 time integration. The numerical comparison runs use
+$N=400$ cells on $0\le z\le6$ cm, a timestep cap of $10^{-5}$ s, and a CFL cap
+of 0.45. The boundary-state approximation is the fixed-area characteristic
+contract recorded in Appendix~\ref{app:num-boundary-state-realization}.
+
+\subsection{Cross-Sectional Velocity Reconstruction}
+\label{subsec:cross-sectional-velocity-reconstruction}
+
+The 1D state directly supplies a section mean,
+$\bar u_{1D}(z,t)=q(z,t)/a(z,t)$, and physical flow
+$Q_{1D}(z,t)=\pi q(z,t)$. Radial profile plots use the parabolic-profile
+reconstruction
+\[
+    u_{1D}(r;z,t)=2\,\frac{q(z,t)}{a(z,t)}
+    \left(1-\left(\frac{r}{R_0(z)}\right)^2\right)
+\]
+on the static reference-radius coordinate used by the archived radial asset.
+That reconstruction is a profile diagnostic, not a resolved secondary-flow,
+separation, skewness, or wall-traction model.
+
+\subsection{Plane--Tetrahedron Comparison Operator}
+\label{subsec:plane-tetrahedron-comparison-operator}
+
+For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
+\texttt{CrossSectionQuadratureOperator} intersects every tetrahedron with
+$S_j$, linearly interpolates axial velocity on the cut edges, sorts the cut
+polygon vertices in the plane, and triangulates the polygon by a centroid fan.
+Let $\mathcal Q_j$ denote the resulting cut triangles. The reported 3D area,
+flow, and mean velocity are
+\begin{flalign*}
+    \quad
+    A_{3D,j}
+    &=
+    \sum_{\Delta\in\mathcal Q_j}|\Delta|,
+    &
+    Q_{3D,j}
+    &=
+    \sum_{\Delta\in\mathcal Q_j}|\Delta|\,\bar u_{z,\Delta},
+    &
+    \bar u_{3D,j}
+    &=
+    Q_{3D,j}/A_{3D,j}. &&
+\end{flalign*}
+For a cut triangle $\Delta$ whose vertices carry reconstructed axial
+velocities $u_{z,1}$, $u_{z,2}$, and $u_{z,3}$,
+\begin{flalign*}
+    \quad
+    \bar u_{z,\Delta}
+    =
+    \frac{u_{z,1}+u_{z,2}+u_{z,3}}{3}. &&
+\end{flalign*}
+The corresponding 1D quantities use physical flow, not the raw solver flow
+coordinate:
+\begin{flalign*}
+    \quad
+    Q_{1D,j}
+    =
+    \pi q(z_j,t),
+    \qquad
+    \bar u_{1D,j}
+    =
+    q(z_j,t)/a(z_j,t). &&
+\end{flalign*}
+Radial profile rows use the same cut triangles, binned by triangle-centroid
+radius. Empty bins are reported as invalid rows rather than zero-velocity
+observations.
+
+\subsection{Numerical Experiments, Error Metrics, and Provenance}
+\label{subsec:numerical-experiments-metrics-provenance}
+
+The resolved-velocity comparison evaluates the selected 1D solution against two
+available resolved 3D velocity comparison datasets at $t=1.0$ s. The cases are
+labelled C23 and C40 by stenosis severity. They are computational cross-model
+diagnostics, not pressure-flow results and not clinical validation.
+
+\begin{center}
+\fbox{\begin{minipage}{0.90\linewidth}
+\small
+\textbf{Solver-coordinate convention.} In the comparison record, the stored
+solver state \texttt{A} is $a=R^2$, not physical circular area. The physical
+map is Definition~\ref{def:physical-to-solver-map}:
+$A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and
+$\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
+\end{minipage}}
+\end{center}
+
+All comparison numbers come from
+\path{simulations/output/3d_comparison/full_t1_native_nx400/}, interpreted
+under Convention~\ref{conv:computed-realization-record}. The regeneration
+command, source-path convention, and file hashes are listed in
+Appendix~\ref{app:code-and-ai-use}. The raw XDMF/HDF5 inputs remain local
+ignored files under \path{simulations/data/3d/canic_case3/}; the report
+archives the generated CSV and PGFPlots-ready static data.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Case matching for the resolved-velocity comparison. The case
+    labels C23 and C40 are used in the main text and figures; the source ID
+    records the upstream local data directory.}
+    \label{tab:t1-case-matching}
+    \begin{tabularx}{\textwidth}{@{}llXlrr@{}}
+        \toprule
+        \textbf{Label}
+            & \textbf{Source ID}
+            & \textbf{Velocity metadata}
+            & \textbf{Operator}
+            & \textbf{3D time (s)}
+            & \textbf{Time error (s)} \\
+        \midrule
+        C23 & 77 & \path{77/velocity.xdmf}
+            & \texttt{CrossSectionQuadratureOperator}
+            & 0.9994999999999453 & $5.0\times 10^{-4}$ \\
+        C40 & 60 & \path{60/velocity.xdmf}
+            & \texttt{CrossSectionQuadratureOperator}
+            & 0.9994999999999453 & $5.0\times 10^{-4}$ \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{landscape}
+\begin{table}[!htb]
+    \centering
+    \small
+    \caption{Model-matching matrix for the 1D--3D velocity diagnostic. Status
+    labels record what the archived report artifact establishes, not what a
+    future matched study might supply.}
+    \label{tab:t1-model-matching-matrix}
+    \begin{tabularx}{\linewidth}{@{}
+        >{\raggedright\arraybackslash}p{0.13\linewidth}
+        >{\raggedright\arraybackslash}p{0.23\linewidth}
+        >{\raggedright\arraybackslash}p{0.23\linewidth}
+        >{\raggedright\arraybackslash}p{0.11\linewidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Feature}
+            & \textbf{1D model}
+            & \textbf{3D comparison dataset}
+            & \textbf{Status}
+            & \textbf{Implication} \\
+        \midrule
+        Reference-profile geometry
+            & Same analytic stenosis profile and declared severity.
+            & Source mesh metadata is interpreted against the same nominal
+            profile.
+            & approximately matched
+            & The intended stenosis shape is shared. \\
+        Cut-operator area
+            & Static reference area $A_{\mathrm{ref}}=\pi R_0^2$ is available.
+            & Tetrahedral cuts audit against the same static reference area.
+            & approximately matched
+            & Cut areas show typical sub-percent agreement with localized
+            multi-percent outliers. \\
+        Current lumen area
+            & Dynamic 1D area is $A_{1D}=\pi a(z,t)$.
+            & Fixed 3D cut area is $A_{3D}(z)$.
+            & unknown
+            & The area denominator mismatch relevant to $\bar u=Q/A$ is not
+            decomposed in the archived artifact. \\
+        Wall model
+            & Compliant reduced Canic--Koiter wall law.
+            & Velocity field on a fixed geometry; matching wall-law metadata
+            is not persisted here.
+            & unmatched
+            & Wall effects cannot be isolated from velocity mismatch. \\
+        Density
+            & $\rho$ recorded by the 1D parameters.
+            & Not persisted in the tracked comparison tables.
+            & unknown
+            & Density-sensitive pressure or wave-speed claims are out of scope. \\
+        Viscosity/rheology
+            & Newtonian $\nu=0.04$ cm$^2$/s.
+            & Rheology and viscosity metadata are not persisted in the
+            report artifact.
+            & unknown
+            & The velocity comparison is not a material-parameter validation. \\
+        Initial condition
+            & Geometry-rest state, then forced by the inlet.
+            & Prior transient history is not persisted.
+            & unmatched
+            & Final-time differences may include start-up history mismatch. \\
+        Inlet condition
+            & Reference-area flow
+            $q_{\mathrm{in}}=R_0(0)^2\bar u_{\mathrm{in}}$ from nominal
+            $\bar u_{\mathrm{in}}=22.5$ cm/s.
+            & Boundary condition used for the 3D field is not persisted here.
+            & unknown
+            & Flow mismatch cannot be attributed uniquely to closure error. \\
+        Outlet condition
+            & Fixed-area characteristic approximation.
+            & Outlet treatment is not persisted here.
+            & unknown
+            & Reflections and downstream constraints remain unquantified. \\
+        Time / transient history
+            & Evaluated at $T=1.0$ s from a start-up transient.
+            & XDMF time is $0.9995$ s; earlier history is not recorded.
+            & unknown
+            & The final timestamps are close, but phase/history matching is not
+            proved. \\
+        Numerical resolution
+            & $N=400$ finite-volume cells.
+            & Node-centered velocity fields with loaded node counts reported.
+            & unknown
+            & 1D cell count and 3D node count are not comparable resolution
+            measures. \\
+        Velocity observable
+            & Section mean $\bar u=q/a$ and physical flow $\pi q$.
+            & Plane--tetrahedron cross-section quadrature of axial velocity.
+            & matched
+            & The compared observable is well defined. \\
+        Pressure availability
+            & Pressure-output vocabulary exists but is not used here.
+            & No pressure comparison is reported.
+            & unmatched
+            & This is not a pressure-drop, FFR, or CT-FFR study. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+\end{landscape}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Shared 1D realization and output-operator parameters for the
+    $t=1.0$ comparison. Per-step diagnostics such as realized maximum CFL,
+    positivity events, and residual summaries are not persisted in the
+    available comparison artifact.}
+    \label{tab:t1-parameter-matching}
+    \begin{tabularx}{\textwidth}{@{}p{0.22\textwidth}X@{}}
+        \toprule
+        \textbf{Quantity} & \textbf{Recorded value} \\
+        \midrule
+        Forward model & \path{canic-extended-1d}. \\
+        Wall model & $\mathcal W_{\mathrm{elastic1D}}$ with the selected
+        Canic--Koiter pressure--area law
+        \path{canic-koiter-thin-membrane}. \\
+        Rheology & Newtonian rheology with $\nu=0.04$ cm$^2$/s. \\
+        Velocity profile & Parabolic profile with
+        $\alpha_{\mathcal P}=4/3$. \\
+        Variable-radius terms & Canic effective-alpha and geometry-source
+        corrections, including the locally frozen $p_2$ derivative in the
+        extended member. \\
+        Physical parameters & $\rho=1.055$ g/cm$^3$, $E=5.02\times10^6$
+        dyn/cm$^2$, $h=0.06$ cm, $\sigma=0.5$,
+        $K=4.016\times10^5$ dyn/cm, $R_{\max}=0.18$ cm, and
+        $p_{\mathrm{ext}}\equiv0$. \\
+        Discretization & $N=400$, $L=6$ cm, MUSCL finite volume with minmod
+        limiter, native SSPRK3 time integration. \\
+        Time controls & $T=1.0$ s from a start-up transient, timestep cap
+        $10^{-5}$ s, CFL cap 0.45. \\
+        Initial and boundary state & Geometry-rest initial state
+        $a=R_0^2$, $q=0$; inlet $\bar u_{\mathrm{in}}=22.5$ cm/s; outlet
+        $a_{\mathrm{out}}=R_0(L)^2$ with the implemented characteristic
+        approximation in Appendix~\ref{app:num-boundary-state-realization}. \\
+        Section targets & 200 equally spaced axial planes on $0\le z\le 6$
+        cm. \\
+        Radial targets & Slices $z=1.951$, 2.451, and 2.951 cm with 20 bins in
+        $r/R_0(z)$. \\
+        Supplemental sensitivity & Node-slab arithmetic means are emitted only
+        to \path{node-slab-sensitivity.csv} for half-widths 0.0075,
+        0.0150753769, and 0.0301507538 cm. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Velocity and flow differences are reported as empirical sample metrics over
+valid section targets: mean absolute discrepancy (MAE), root-mean-square
+discrepancy (RMSE), and maximum absolute discrepancy. With
+$e_{u,j}=\bar u_{1D,j}-\bar u_{3D,j}$, the velocity sample metrics are
+\begin{flalign*}
+    \quad
+    \mathrm{MAE}_u
+    &=
+    \frac{1}{n}\sum_j |e_{u,j}|,
+    &
+    \mathrm{RMSE}_u
+    &=
+    \left(\frac{1}{n}\sum_j |e_{u,j}|^2\right)^{1/2},
+    &
+    \max |e_u|
+    &=
+    \max_j |e_{u,j}|, &&\\
+    \quad
+    \mathrm{rel}_{\mathrm{MAE}}
+    &=
+    \frac{\sum_j|e_{u,j}|}{\sum_j|\bar u_{3D,j}|},
+    &
+    \mathrm{rel}_{\mathrm{RMSE}}
+    &=
+    \frac{\left(\sum_j|e_{u,j}|^2\right)^{1/2}}
+         {\left(\sum_j|\bar u_{3D,j}|^2\right)^{1/2}}. &&
+\end{flalign*}

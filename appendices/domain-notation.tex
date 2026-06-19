@@ -27,14 +27,18 @@ $\mathrm{cm}^{-4}$. The radius-squared solver state coordinate $a=R^2$ has units
 $\mathrm{cm}^2$; when a physical circular area is meant it is
 $A_{\mathrm{phys}}=\pi a$, also reported in square centimeters.
 
-Output fields carry their display units in their names. In particular,
-\texttt{z\_cm} and \texttt{R0\_cm} are geometry fields, \texttt{A\_cm2} is the
-area-coordinate field in $\mathrm{cm}^2$, and \texttt{Q\_cm3\_s} is
-the flow-coordinate field paired with $a$ in nominal $\mathrm{cm}^3/\mathrm{s}$.
-For the radius-squared solver convention, the corresponding physical
-circular-area flow is $Q_{\mathrm{phys}}=\pi Q$, while
-\texttt{uavg\_cm\_s} denotes
-$Q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$. The
+Output fields carry their display units in their names, but some existing CSV
+headers retain legacy solver names. In particular, \texttt{z\_cm} and
+\texttt{R0\_cm} are geometry fields. The code-level headers
+\texttt{A\_cm2} and \texttt{Q\_cm3\_s} should be read in this manuscript as the
+solver-coordinate fields $a_{\mathrm{cm}^2}$ and
+$q_{\mathrm{cm}^3/\mathrm{s}}$, not as physical circular area and flow. The
+preferred report labels are \texttt{a\_cm2}, \texttt{q\_cm3\_s},
+\texttt{Aphys\_cm2}, \texttt{Qphys\_cm3\_s}, and
+\texttt{uavg\_cm\_s}. For the radius-squared solver convention, the
+corresponding physical circular-area flow is
+$Q_{\mathrm{phys}}=\pi q$, while \texttt{uavg\_cm\_s} denotes
+$q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$. The
 Section~\ref{sec:resolved-3d-comparison} velocity/error columns are in
 $\mathrm{cm}/\mathrm{s}$, \texttt{pressure\_dyn\_cm2} and initial-condition
 pressure-drop fields are in $\mathrm{dyn}/\mathrm{cm}^2$, and
@@ -99,8 +103,15 @@ The corresponding pressure-drop trace is
     \defined
     P_{\mathrm{prox}}(t)-P_{\mathrm{dist}}(t). &&
 \end{flalign*}
-A pressure ratio is not invariant under common additive pressure shifts. The
-reference-consistent ratio traces are therefore defined after observation:
+A pressure ratio is not invariant under common additive pressure shifts. For
+tap and cross-sectional-average observations, admissible observation maps must
+preserve constant shifts,
+\begin{flalign*}
+    \quad
+    \mathcal O[p+c]=\mathcal O[p]+c
+    \qquad \text{for scalar constants } c. &&
+\end{flalign*}
+The reference-consistent ratio traces are therefore defined after observation:
 \begin{flalign*}
     \quad
     P_{\mathrm{prox}}^{\mathrm{ratio}}(t)
@@ -110,9 +121,7 @@ reference-consistent ratio traces are therefore defined after observation:
     &\defined
     p_{\mathrm{ref}}+P_{\mathrm{dist}}(t). &&
 \end{flalign*}
-This trace-level convention does not require the observation maps to preserve
-constant shifts. The subscript $\mathrm{HF}$ labels a declared high-flow
-averaging window in the
+The subscript $\mathrm{HF}$ labels a declared high-flow averaging window in the
 study record; it is not a clinical hyperemia model unless an external
 measurement comparison is separately specified
 \cite[Ch.~5, Sec.~5.5, pp.~72--73]{EscanedDavies2017PhysiologicalAssessment}
@@ -125,8 +134,10 @@ ratio-pressure traces are integrable on that window, and
     \quad
     \langle P_{\mathrm{prox}}^{\mathrm{ratio}}(t)
     \rangle_{\mathcal{T}_{\mathrm{HF}}}
-    \ne 0. &&
+    \ge P_{\min}>0. &&
 \end{flalign*}
+The threshold $P_{\min}$ must be declared with the study record. No such
+pressure-ratio record is reported in the present numerical comparison.
 For an admissible $\pi_{\mathrm{PR}}$, the corresponding reduced
 pressure-ratio output is
 \begin{flalign*}
@@ -260,7 +271,13 @@ declared.
             & current reduced lumen radius derived from the 1D area
             & $\mathrm{m}$ \\
 
-        $R_0(z)$ & reference stenosed radius used by the wall law & $\mathrm{m}$ \\
+        $R_0(z)$ & reference stenosed radius used by the geometry and wall source & $\mathrm{m}$ \\
+
+        $R_{\max}$
+            & healthy reference-radius parameter used by the selected
+            Canic--Koiter solver wall law; equals $\max_zR_0(z)$ for the
+            default stenosis profile
+            & $\mathrm{m}$ \\
 
         $R_{\mathrm{base}}(z)$ & nominal healthy baseline radius before applying $s(z)$ & $\mathrm{m}$ \\
 
@@ -307,7 +324,10 @@ declared.
         $\lambda$ & localization strength in $\psi(z)=\exp(-\lambda g(z)^4)$ & $\mathrm{m}^{-4}$ \\
 
         $\beta(z)$ & wall-stiffness parameter in
-        $p_{\mathrm{g}}=p_{\mathrm{ext}}+\beta A_0^{-1}(\sqrt A-\sqrt{A_0})$ & $\mathrm{Pa}\cdot\mathrm{m}$ \\
+        $p_{\mathrm{g}}=p_{\mathrm{ext}}+\beta A_0^{-1}(\sqrt A-\sqrt{A_0})$;
+        for the selected $R_{\max}$ law,
+        $\beta(z)=\sqrt{\pi}K R_0(z)^2/R_{\max}^2$
+        & $\mathrm{Pa}\cdot\mathrm{m}$ \\
 
         $p_{\mathrm{ext}}(z,t)$
             & external-pressure value in the wall-law gauge convention;
@@ -318,8 +338,9 @@ declared.
             & elastic flux potential satisfying
             $\pd_A \Psi_{\mathcal W}
             =(A/\rho) \pd_A p_{\mathrm{g}}^{\mathcal W}$ and normalized by
-            $\Psi_{\mathcal W}(A_0(z),z,t)=0$ when that normalization is
-            declared
+            $\Psi_{\mathcal W}(A_0(z),z,t)=0$ only when that normalization is
+            declared; the selected solver potential $\Psi_h(a)$ is
+            unnormalized and balanced at the continuous source level
             & $\mathrm{m}^4/\mathrm{s}^2$ \\
 
         $\mathbf F$ & area-flow flux map; not a residual or objective functional & problem-dependent \\
@@ -449,10 +470,15 @@ declared.
             product
             & same as $f$ \\
 
-        $\langle P_{\mathrm{prox}}^{\mathrm{ratio}}\rangle_{\mathcal{T}_{\mathrm{HF}}}\ne0$
+        $\langle P_{\mathrm{prox}}^{\mathrm{ratio}}\rangle_{\mathcal{T}_{\mathrm{HF}}}\ge P_{\min}>0$
             & denominator admissibility condition required before
             $\mathrm{PR}_{1D}$ is reported
-            & $-$ \\
+            & $\mathrm{Pa}$ \\
+
+        $P_{\min}$
+            & declared positive lower bound for the proximal ratio-pressure
+            average
+            & $\mathrm{Pa}$ \\
 
         $p_{\mathrm{out},\mathrm{g}}$
             & prescribed outlet gauge pressure in the same reference frame as

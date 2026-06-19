@@ -1,15 +1,15 @@
-\subsection{Model Hierarchy and Comparison Boundary}
+\subsection{Reduced-Order Blood-Flow Models}
 \label{subsec:model-hierarchy-comparison-boundary}
 
 Reduced hemodynamic models form a hierarchy of modeling roles rather than a
 scalar accuracy ranking. The governing equations above start from a
-three-dimensional continuum problem and then introduce reduced descriptions, so
-this subsection reads the hierarchy in descending spatial dimension. Dimension,
-wall treatment, rheology, boundary data, coupling laws, output operators, and
-numerical realization remain separate modeling choices. This report selects the
-1D area--flow model as the reduced forward map; 3D, multiscale, 2D, and 0D
-models supply comparison, coupling, diagnostic, and boundary-condition
-vocabulary.
+three-dimensional continuum problem; the useful reduced-order sequence is then
+the distributed 1D reduction, the lumped 0D/network closure, and any
+intermediate 2D diagnostic tier. Dimension, wall treatment, rheology, boundary
+data, coupling laws, output operators, and numerical realization remain
+separate modeling choices. This report selects the 1D area--flow model as the
+reduced forward map; 3D, 0D, 2D, and multiscale models supply comparison,
+boundary-condition, diagnostic, and coupling vocabulary.
 
 \begin{figure}[!htb]
     \centering
@@ -84,11 +84,14 @@ vocabulary.
     \cite{FormaggiaEtAl2007FSICoupling}.
 \end{definition}
 
-\input{sections/01-intro/model-hierarchy/3d-model}
-\input{sections/01-intro/model-hierarchy/multiscale-model}
-\input{sections/01-intro/model-hierarchy/2d-model}
 \input{sections/01-intro/model-hierarchy/1d-model}
 \input{sections/01-intro/model-hierarchy/0d-model}
+\input{sections/01-intro/model-hierarchy/2d-model}
+
+\subsection{Geometrical Multiscale Coupling}
+\label{subsec:geometrical-multiscale-coupling}
+
+\input{sections/01-intro/model-hierarchy/multiscale-model}
 
 A comparison claim requires matched assumptions and declared output operators:
 the continuum setting, geometry, rheology descriptor $\mathcal R$, wall

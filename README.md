@@ -15,6 +15,9 @@ Treat `final-report.pdf` as the final synced render. Validate with a scratch
 build first, then refresh the tracked PDF only after checking the rendered
 pages.
 
+Artifact classes and cleanup guardrails are documented in
+[`docs/artifact-policy.md`](docs/artifact-policy.md).
+
 ## Figure Assets
 
 Regenerate the analytic stenosis geometry CSVs and rendered report assets with:

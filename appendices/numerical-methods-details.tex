@@ -106,6 +106,17 @@ $p_{\mathrm{ext}}$ is independent of $A$,
     =
     \frac{\beta(z)\sqrt A}{2\rho A_0(z)}. &&
 \end{flalign*}
+Under the selected solver-coordinate map $A=\pi a$ and
+$A_0=\pi R_0^2$, the implemented member corresponds to
+$\beta(z)=\sqrt{\pi}K R_0(z)^2/R_{\max}^2$. Therefore
+\begin{flalign*}
+    \quad
+    c^2(a,z)
+    =
+    \frac{K}{2\rho R_{\max}^2}\sqrt a
+    &&
+\end{flalign*}
+for the evolution wall law used in the reported finite-volume runs.
 Freeze $z$, the wall-closure data, and the source terms, and consider the
 homogeneous $(A,Q)$ flux Jacobian associated with
 $(Q,\alpha Q^2/A+\Psi(A,z,t))^\top$. On a positive-area state $A>0$, with
@@ -154,7 +165,7 @@ For $N$ finite-volume cells, let
     z_i=\left(i-\frac{1}{2}\right)\Delta z,\qquad
     \Delta z=\frac{L}{N},\qquad
     u_h(t)=
-    \left(a_1(t),\ldots,a_N(t),Q_1(t),\ldots,Q_N(t)\right)^\top. &&
+    \left(a_1(t),\ldots,a_N(t),q_1(t),\ldots,q_N(t)\right)^\top. &&
 \end{flalign*}
 The semi-discrete system exposed by \path{semidiscretize} and \path{rhs!} is
 \begin{flalign*}
@@ -170,10 +181,10 @@ parameters. Componentwise,
     -
     \frac{\widehat F^a_{i+1/2}-\widehat F^a_{i-1/2}}{\Delta z}, &&\\
     \quad
-    \dot Q_i
+    \dot q_i
     &=
     -
-    \frac{\widehat F^Q_{i+1/2}-\widehat F^Q_{i-1/2}}{\Delta z}
+    \frac{\widehat F^q_{i+1/2}-\widehat F^q_{i-1/2}}{\Delta z}
     +\widehat S_i. &&
 \end{flalign*}
 All divisions by $a$ use the positivity-regularized value of the
@@ -185,14 +196,15 @@ $\alpha_{\mathcal P}$, and
 $\alpha_c(R_0')=-2(R_0')^2/35$, define
 $\iota_{\mathcal M}=1$ for the \texttt{canic-extended-1d} forward-model
 descriptor and $\iota_{\mathcal M}=0$ for
-\texttt{classical-1d-no-slip}. The semi-discrete full-state flux is
+\texttt{classical-1d-no-slip}, the manifest token for the classical
+parabolic-profile baseline. The semi-discrete full-state flux is
 \begin{flalign*}
     \quad
-    \mathbf F(a,Q,z)
+    \mathbf F(a,q,z)
     =
     \left(
-        Q,\,
-        \left(\alpha_{\mathcal P}+\iota_{\mathcal M}\alpha_c(R_0'(z))\right)\frac{Q^2}{a}
+        q,\,
+        \left(\alpha_{\mathcal P}+\iota_{\mathcal M}\alpha_c(R_0'(z))\right)\frac{q^2}{a}
         +\frac{K}{3\rho R_{\max}^2}a^{3/2}
     \right)^\top. &&
 \end{flalign*}
@@ -210,8 +222,37 @@ At each interface,
     \frac{1}{2}s_{i+1/2}
     \left(\mathbf U^+_{i+1/2}-\mathbf U^-_{i+1/2}\right), &&
 \end{flalign*}
-where $\mathbf U=(a,Q)^\top$ and the finite-volume realization uses neighboring
-first-order states plus ghost boundary states. The local numerical speed is
+where $\mathbf U=(a,q)^\top$. The MUSCL finite-volume method limits the conservative
+solver variables componentwise. For an interior cell,
+\begin{flalign*}
+    \quad
+    \delta_i^a
+    &=
+    \operatorname{minmod}(a_i-a_{i-1},\,a_{i+1}-a_i),
+    &
+    \delta_i^q
+    &=
+    \operatorname{minmod}(q_i-q_{i-1},\,q_{i+1}-q_i), &&\\
+    \quad
+    \mathbf U^-_{i+1/2}
+    &=
+    (a_i+\tfrac12\delta_i^a,\,
+     q_i+\tfrac12\delta_i^q)^\top,
+    &
+    \mathbf U^+_{i+1/2}
+    &=
+    (a_{i+1}-\tfrac12\delta_{i+1}^a,\,
+     q_{i+1}-\tfrac12\delta_{i+1}^q)^\top. &&
+\end{flalign*}
+The active limiter is the two-argument minmod limiter, equivalent to the
+$\theta=1$ member of the generalized minmod family. Boundary-adjacent cell
+slopes are set to zero and paired with the ghost states described in
+Appendix~\ref{app:num-boundary-state-realization}. Positivity limiting is
+applied to reconstructed $a$ states before flux evaluation. The cell source is
+not MUSCL-reconstructed; it is evaluated at cell centers using the recorded
+$D_z^h$ differences below. The first-order finite-volume method is the separate
+path that passes neighboring cell and ghost states directly to the same
+Rusanov flux. The local numerical speed is
 \begin{flalign*}
     \quad
     s_{i+1/2}
@@ -224,7 +265,7 @@ first-order states plus ghost boundary states. The local numerical speed is
 with
 \begin{flalign*}
     \quad
-    s_h(a,Q,z)
+    s_h(a,q,z)
     &=
     \max\left\{
         \left|\alpha_{\mathrm{eff}}u-\chi\right|,
@@ -234,7 +275,7 @@ with
     \alpha_{\mathrm{eff}}
     &=
         \alpha_{\mathcal P}+\iota_{\mathcal M}\alpha_c(R_0'(z)),\qquad
-    u=\frac{Q}{a}, &&\\
+    u=\frac{q}{a}, &&\\
     \quad
     \chi^2
     &=
@@ -242,13 +283,22 @@ with
     -\alpha_{\mathrm{eff}}u^2
     +\frac{K}{2\rho R_{\max}^2}\sqrt a. &&
 \end{flalign*}
+This standard Rusanov/MUSCL operator is not presented here as an exactly
+well-balanced discretization of the geometry-rest state. In particular, at
+$q_i=0$ with spatially varying $a_i=R_0(z_i)^2$, the numerical viscosity in
+the mass flux generally contributes a nonzero discrete residual unless an
+equilibrium reconstruction or path-conservative flux is added. Thus
+``source-balanced'' in the main text refers to the continuous flux/source pair;
+this report does not claim
+$\mathcal L_h(R_0(z_i)^2,0)=0$ to machine precision for the displayed
+operator.
 
 The source term uses the specified centered interior and one-sided boundary
 difference $D_z^h$ on the cell averages. Let $g_{\mathcal P}$ denote the
 profile shear factor,
 \begin{flalign*}
     \quad
-    \dot\gamma_{1D,i}=g_{\mathcal P}\frac{|Q_i|}{a_i\sqrt{a_i}},
+    \dot\gamma_{1D,i}=g_{\mathcal P}\frac{|q_i|}{a_i\sqrt{a_i}},
     \qquad
     \nu_{\mathrm{eff},i}^{\mathcal R}
     =
@@ -263,35 +313,39 @@ $\alpha_c'(z)=-4R_0'(z)R_0''(z)/35$. The implemented source is
     \quad
     \widehat S_i
     &=
-    -2\nu_{\mathrm{eff},i}^{\mathcal R}g_{\mathcal P}\frac{Q_i}{a_i}
+    -2\nu_{\mathrm{eff},i}^{\mathcal R}g_{\mathcal P}\frac{q_i}{a_i}
     +
     \frac{K}{\rho R_{\max}^2}a_iR_0'(z_i)
     -
-    a_i\,\widehat{\pd_z p_2}_i
+    \iota_{\mathcal M}a_i\,\widehat{\pd_z p_2}_i
     +
-    \iota_{\mathcal M}\frac{Q_i^2}{a_i}\alpha_c'(z_i), &&\\
+    \iota_{\mathcal M}\frac{q_i^2}{a_i}\alpha_c'(z_i), &&\\
     \quad
     \widehat{\pd_z p_2}_i
     &=
     \nu_{\mathrm{eff},i}^{\mathcal R} g_{\mathcal P}
     \left[
-        \frac{Q_iR_0''(z_i)}{a_iR_0(z_i)}
+        \frac{q_iR_0''(z_i)}{a_iR_0(z_i)}
         -
-        \frac{Q_i(R_0'(z_i))^2}{a_iR_0(z_i)^2}
+        \frac{q_i(R_0'(z_i))^2}{a_iR_0(z_i)^2}
         +
-        \frac{(D_z^h Q)_iR_0'(z_i)}{a_iR_0(z_i)}
+        \frac{(D_z^h q)_iR_0'(z_i)}{a_iR_0(z_i)}
         -
-        \frac{Q_i(D_z^h a)_iR_0'(z_i)}{a_i^2R_0(z_i)}
+        \frac{q_i(D_z^h a)_iR_0'(z_i)}{a_i^2R_0(z_i)}
     \right]. &&
 \end{flalign*}
-The $\widehat{\pd_z p_2}_i$ term is the discrete derivative of the Canic
-variable-radius viscous pressure correction. It is tied to the
-\texttt{canic-extended-1d} realization, while the elastic stiffness terms above
-come from the selected Canic--Koiter wall law.
+The $\widehat{\pd_z p_2}_i$ term is the density-scaled discrete derivative of
+the Canic variable-radius viscous pressure correction. It is tied to the
+\texttt{canic-extended-1d} realization and is identically inactive in the
+model-family specification when $\iota_{\mathcal M}=0$, while the elastic
+stiffness terms above come from the selected Canic--Koiter wall law.
 For the \texttt{newtonian} descriptor, this reduces to the constant value
 $\nu_{\mathrm{eff},i}^{\mathcal R}=\nu$. For the non-Newtonian closures,
 the effective viscosity is evaluated with the shear-rate regularization and any
-declared interval projection before division by density.
+declared interval projection before division by density, then held locally
+fixed in the analytic $p_2$ derivative. The realized generalized-Newtonian
+$p_2$ contribution is therefore a computational closure rather than a fully
+rederived variable-viscosity pressure correction.
 For the power-family profile,
 $g_{\mathcal P}=\gamma+2=\alpha_{\mathcal P}/(\alpha_{\mathcal P}-1)$.
 The flat profile is not evaluated through that singular limit; it is assigned
@@ -334,7 +388,7 @@ The native step size is
     =
     \min\left\{
         \Delta t_{\max},
-        \frac{\mathrm{CFL}\,\Delta z}{\max_i s_h(a_i^n,Q_i^n,z_i)},
+        \frac{\mathrm{CFL}\,\Delta z}{\max_i s_h(a_i^n,q_i^n,z_i)},
         T_{\mathrm{final}}-t^n
     \right\}. &&
 \end{flalign*}
@@ -342,7 +396,11 @@ The SciML realization constructs an \texttt{ODEProblem} for the same
 $\dot u_h=\mathcal L_h(u_h,t;\theta)$ and applies the selected
 OrdinaryDiffEq policy recorded in the solve specification. Thus comparisons
 between these realizations change the time integrator, not the semi-discrete
-spatial operator.
+spatial operator. The native fully discrete path applies the stage projection
+$\Pi$, whereas the SciML path integrates the unprojected ODE system. If
+$\Pi$ activates, the compared paths are no longer identical fully discrete
+problems; the archived comparison records do not persist projection-activation
+counts.
 
 \subsection{Boundary-state realization}
 \label{app:num-boundary-state-realization}
@@ -359,18 +417,18 @@ for the full variable-radius balance law. Let
     \left(\frac{K}{2\rho R_{\max}^2}\right)^{1/2}. &&
 \end{flalign*}
 At the inlet, the incoming flow is
-$Q_{\mathrm{in}}=R_0(0)^2\bar u_{\mathrm{in}}$. The outgoing invariant from
+$q_{\mathrm{in}}=R_0(0)^2\bar u_{\mathrm{in}}$. The outgoing invariant from
 the first interior cell is
 \begin{flalign*}
     \quad
     w_-
     =
-    \frac{Q_1}{a_1}-4c_0a_1^{1/4}, &&
+    \frac{q_1}{a_1}-4c_0a_1^{1/4}, &&
 \end{flalign*}
 and the ghost coordinate $a_{\mathrm{in}}$ solves
 \begin{flalign*}
     \quad
-    \frac{Q_{\mathrm{in}}}{a_{\mathrm{in}}}
+    \frac{q_{\mathrm{in}}}{a_{\mathrm{in}}}
     -4c_0a_{\mathrm{in}}^{1/4}
     =
     w_-. &&
@@ -382,12 +440,12 @@ cell is
     \quad
     w_+
     =
-    \frac{Q_N}{a_N}+4c_0a_N^{1/4}, &&
+    \frac{q_N}{a_N}+4c_0a_N^{1/4}, &&
 \end{flalign*}
 and the ghost flow is
 \begin{flalign*}
     \quad
-    Q_{\mathrm{out}}
+    q_{\mathrm{out}}
     =
     a_{\mathrm{out}}w_+
     -4c_0a_{\mathrm{out}}^{5/4}. &&
@@ -417,9 +475,9 @@ Componentwise, this gives
     =
     D_t a_i^n-\mathcal L^a_{h,i}(u_h^n,t^n;\theta),
     \qquad
-    \mathcal E^Q_i(t^n)
+    \mathcal E^q_i(t^n)
     =
-    D_t Q_i^n-\mathcal L^Q_{h,i}(u_h^n,t^n;\theta). &&
+    D_t q_i^n-\mathcal L^q_{h,i}(u_h^n,t^n;\theta). &&
 \end{flalign*}
 The E1 diagnostic summary reports these residuals on reviewed interior cells
 with recorded finite-field, positivity, CFL, and pressure-drop sign checks. The

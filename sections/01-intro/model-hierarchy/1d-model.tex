@@ -1,8 +1,8 @@
 \subsubsection{1D Distributed Area--Flow Models}
 \label{subsubsec:1d-models}
 
-The selected 1D forward model is specified in
-Section~\ref{subsec:selected-1d-forward-model}. There the retained fields
+The selected one-dimensional area--flow model is specified in
+Section~\ref{subsec:methodology-problem-definition}. There the retained fields
 $A(z,t)$, $Q(z,t)$, $\bar u(z,t)=Q/A$, and $p_{\mathrm g}(z,t)$, the
 elastic-wall area--flow balance law, the stenosis reference geometry, the
 conservative flux/source notation, and the single-vessel boundary data are
@@ -34,15 +34,17 @@ throat flow does not appear automatically; variable-radius corrections such as
 the Canic-style terms are additional closure choices
 \cite{CanicEtAl2024Extended1DStenosis}.
 The current implementation records this axis explicitly through the
-\texttt{canic-extended-1d} and \texttt{classical-1d-no-slip} forward-model
-descriptors. Both use the selected
+\texttt{canic-extended-1d} forward-model descriptor and the historical
+\texttt{classical-1d-no-slip} manifest token for the classical
+parabolic-profile baseline. Both use the selected
 \texttt{canic-koiter-thin-membrane} pressure--area wall law; the former adds
 the Canic variable-radius corrections, while the latter corresponds to the
-wall no-slip baseline in Definition~\ref{def:classical-no-slip-1d-baseline}.
+parabolic-profile baseline in
+Definition~\ref{def:classical-no-slip-1d-baseline}.
 
 The 1D model is the selected reduced forward map because it retains distributed
 pressure--flow structure at low computational cost, while its outputs remain
 reduced quantities with declared observation maps. In this report it is the
 selected single-vessel generator for the numerical study, not a
-clinical-validation claim, an independent-solver parity claim, or a
+clinical-validity claim, an independent-solver parity claim, or a
 resolved-3D-accuracy claim.

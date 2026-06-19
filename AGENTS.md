@@ -49,7 +49,8 @@ Write experiment, CLI, and build outputs to ignored scratch paths such as
 `tmp/**` or `/tmp/masters-report-build`. Do not refresh `final-report.pdf` or
 rendered figure assets unless the change explicitly requires those artifacts.
 Keep regenerated data/assets separate from unrelated source edits when
-practical.
+practical. See `docs/artifact-policy.md` for artifact classes and cleanup
+guardrails.
 
 ## Commit & Pull Request Guidelines
 

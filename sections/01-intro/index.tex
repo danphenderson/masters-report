@@ -2,16 +2,14 @@
 \label{sec:intro}
 
 Coronary and arterial stenoses motivate a basic computational question: how do
-geometry, wall properties, rheology, and boundary data determine blood flow
-through a narrowed vessel? Clinical pressure-ratio measurements show why
-anatomical narrowing alone does not determine functional obstruction, but this
-report stays on the mathematical and numerical side of that problem. It studies
-a $C^\infty$ idealized stenosis geometry, an extended one-dimensional
-area--flow realization, and a preliminary comparison with resolved 3D velocity
-data. The smooth geometry is a deliberate numerical device: one analytic radius
-profile supplies controlled derivatives, wall normals, severity parameters, and
-repeatable mesh families for the 1D, fixed-wall 3D Stokes, and later 3D/FSI
-model tiers.
+geometry, wall properties, rheology, and boundary data affect blood flow through
+a narrowed vessel? Anatomical narrowing alone does not determine functional
+obstruction, so a useful computational report must distinguish the physical
+quantity being predicted, the model tier that produces it, and the evidence
+used to check the computation. This report stays on the mathematical and
+numerical side of that problem. It studies a $C^\infty$ idealized stenosis
+geometry, an extended one-dimensional area--flow realization, and a bounded
+comparison with resolved 3D velocity data.
 
 \begin{figure}[H]
     \centering
@@ -29,25 +27,45 @@ model tiers.
     \label{fig:stenosis-fem-fvm-meshes}
 \end{figure}
 
-The report is organized around three answerable questions:
+\input{sections/01-intro/pressure-flow-motivation}
+
+\subsection{Research Problem and Questions}
+\label{subsec:research-problem-questions}
+
+The research problem is to define and check an auditable reduced-order model
+for an idealized stenotic vessel without overstating what the current evidence
+can show. The report is organized around three answerable questions:
 \begin{enumerate}
     \item Which variables, wall law, rheology/profile closures, source terms,
     and boundary-state approximation define the closed stenosis-aware 1D
     balance law?
-    \item Under the recorded finite-volume/DG operators, time integrators, and
-    package-benchmark norms, what implementation properties are verified by the
-    reproducibility and self-convergence evidence?
+    \item Under the recorded finite-volume solver, time integrators, descriptor
+    checks, and benchmark norms, what implementation properties are supported
+    by the reproducibility and self-convergence evidence?
     \item Under the declared \texttt{CrossSectionQuadratureOperator}, what
     section-wise velocity and physical-flow discrepancies separate the 1D
     solution from the available resolved 3D velocity data?
 \end{enumerate}
 
+\subsection{Objectives and Contributions}
+\label{subsec:objectives-contributions}
+
 The contribution is a consistent model-and-output specification for an
-idealized stenotic vessel, a reproducible implementation and benchmark suite for
-the selected extended 1D model, and a preliminary cross-model comparison that
-localizes velocity discrepancies relative to two resolved 3D computational
-datasets. The comparison is diagnostic rather than clinical or experimental
-validation.
+idealized stenotic vessel, an internally reproducible implementation and
+benchmark suite for the selected extended 1D model, and a bounded cross-model
+velocity comparison that localizes discrepancies relative to two resolved 3D
+computational datasets. The comparison is diagnostic rather than clinical or
+experimental validation.
+
+\subsection{Scope and Limits of the Study}
+\label{subsec:scope-limits}
+
+The smooth geometry is a deliberate numerical device: one analytic radius
+profile supplies controlled derivatives, wall normals, severity parameters, and
+repeatable mesh families for the 1D, fixed-wall 3D Stokes, and later 3D/FSI
+model tiers. The completed numerical record is correspondingly bounded:
+pressure-ratio quantities are reduced model-output vocabulary, with no clinical
+FFR or CT-FFR measurement relationship.
 
 \begin{center}
 \footnotesize
@@ -60,7 +78,8 @@ Model formulation & Derivation, closure tables, and implementation map
 Smooth idealized geometry & Analytic $C^\infty$ stenosis profile and shared
 finite-volume / finite-element geometry views
 & Supports controlled numerical studies, not patient-specific morphology. \\
-Code behavior & Tests, self-convergence, backend checks, and manifests
+Code behavior & Tests, self-convergence, descriptor checks, cross-integrator
+discrepancies, and manifests
 & Verifies reported implementation properties. \\
 Resolved velocity comparison & Tetrahedral cross-section quadrature at
 $t=1.0$ s & Reports a diagnostic cross-model comparison. \\
@@ -71,44 +90,28 @@ Clinical validity & No experimental or clinical measurement comparison
 \end{tabularx}
 \end{center}
 
-Pressure-ratio quantities in this report are reduced model-output vocabulary,
-with no clinical FFR or CT-FFR measurement relationship.
 Convention~\ref{conv:appendix-pressure-reference-ratio} records the
 admissibility requirements for any later pressure-ratio output; the completed
 numerical record here reports verification diagnostics and velocity-focused
 cross-model comparison only.
 
-\subsection*{Literature Review Roadmap}
-
-\addcontentsline{toc}{subsection}{Literature Review Roadmap}
+\subsection{Report Organization}
+\label{subsec:report-organization}
 
 \begin{itemize}
-    \item Section~\ref{subsec:continuum-constitutive-assumptions} fixes the continuum,
-kinematic, balance-law, and constitutive assumptions used throughout the report.
-    \item Section~\ref{subsec:governing-equations-model-hierarchy} states the governing
-incompressible Navier--Stokes and generalized-Newtonian setting in three
-dimensions, including boundary-data and well-posedness context.
-    \item Section~\ref{subsec:model-hierarchy-comparison-boundary} places 3D,
-multiscale, 2D, 1D, and 0D models into a descending-dimension comparison
-hierarchy and clarifies what each tier can and cannot support.
-Section~\ref{subsec:selected-1d-forward-model} records the selected
-one-dimensional area--flow forward model. Section~\ref{subsec:pressure-flow-motivation}
-motivates pressure-drop, pressure-ratio, and shear-output conventions from the
-clinical anatomy--function distinction.
-    \item Section~\ref{sec:resolved-3d-comparison} reports implementation
-verification and reproducibility checks, then the quadrature-backed
-resolved-velocity comparison at $T=1$.
-Section~\ref{sec:conclusions-limitations}
-summarizes the limitations and identifies the next evidence needed for stronger
-pressure--flow claims.
+    \item Section~\ref{sec:background-literature-review} reviews the
+    hemodynamic modelling requirements, full-order and reduced-order model
+    classes, stenosis-specific closure issues, and the distinction between
+    verification, cross-model comparison, and validation.
+    \item Section~\ref{sec:methodology} specifies the selected 1D model,
+    solver-coordinate convention, stenosis geometry, boundary contract,
+    finite-volume/time-integration realization, comparison operator, metrics,
+    and provenance record.
+    \item Section~\ref{sec:numerical-verification} reports the implementation
+    and numerical-verification evidence emitted by the benchmark suite.
+    \item Section~\ref{sec:resolved-3d-comparison} reports the resolved-3D
+    velocity comparison and localizes the observed discrepancies.
+    \item Sections~\ref{sec:discussion} and
+    \ref{sec:conclusions-limitations} interpret the evidence, state the
+    limitations, and summarize the bounded contribution.
 \end{itemize}
-
-\input{sections/01-intro/blood-continuum}
-\input{sections/01-intro/governing-equations}
-\input{sections/01-intro/model-hierarchy/index}
-\input{sections/01-intro/selected-1d-model}
-The pressure--flow motivation is stated after the continuum and model-hierarchy
-setup and selected 1D contract so that pressure-drop, pressure-ratio, and shear
-quantities are introduced as model outputs with declared conventions, not as
-clinical measurements or validation targets.
-\input{sections/01-intro/pressure-flow-motivation}

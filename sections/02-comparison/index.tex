@@ -1,141 +1,13 @@
-\section{Verification, Reproducibility, and Cross-Model Velocity Comparison}
+\section{Cross-Model Velocity Comparison}
 \label{sec:resolved-3d-comparison}
 
-This section first records the reproducibility checks for the solver package
-and then reports the final-time resolved-velocity comparison. The comparison is
-velocity-focused: pressure-drop, pressure-ratio, FFR, and clinical validation
-claims remain outside the completed numerical evidence.
-
-\subsection{Verification and Reproducibility}
-\label{subsec:verification-reproducibility}
-\label{subsec:package-benchmark-suite}
-
-The report package includes a reproducible package-benchmark pipeline for the
-Julia solver package and Python CLI. The suite records descriptor health,
-self-convergence, native/SciML agreement, rheology/profile sensitivity,
-OpenBF-style boundary handling, resolved-velocity diagnostics, and Python
-CPU/MPS checks for the emitted CSV records. These are internal implementation
-and reproducibility checks. They do not become clinical validation, pressure or
-FFR accuracy evidence, full transient FEM validation, or scientific equivalence
-beyond the metrics actually compared.
-
-\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-./scripts/julia-release simulations/run_package_benchmark.jl \
-  --profile overnight \
-  --output-dir simulations/output/package_benchmark/<run_id> \
-  --overwrite \
-  --include-python \
-  --include-resolved3d \
-  --publish-report-assets
-
-pipenv run python scripts/render_package_benchmark_figures.py \
-  --benchmark-dir simulations/output/package_benchmark/<run_id>
-\end{lstlisting}
-
-The smoke profile is a deterministic wiring check. The overnight profile
-expands the same schemas to the descriptor-health, refinement, native/SciML
-parity, stationary-Stokes projection, rheology/profile, OpenBF-style boundary,
-resolved-velocity, and Python CPU/Torch-MPS comparison stages. Optional SciPy
-and resolved-3D inputs are treated as availability boundaries: absent inputs
-produce structured skipped rows rather than manuscript claims.
-
-\IfFileExists{figures/static/static/tables/package-benchmark/package-benchmark-summary.tex}{%
-    \input{figures/static/static/tables/package-benchmark/package-benchmark-summary.tex}
-}{%
-    \begin{center}
-    \small
-    \emph{Package benchmark table fragment unavailable in this checkout. Run
-    the benchmark renderer to populate
-    \path{figures/static/static/tables/package-benchmark/}.}
-    \end{center}
-}
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/static/static/rendered/package-benchmark-convergence.pdf}{%
-        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-convergence.pdf}
-    }{%
-        \fbox{\parbox{0.86\linewidth}{\centering Package benchmark convergence
-        asset unavailable in this checkout.}}
-    }
-    \caption{Self-convergence observed-order summary emitted by the package
-    benchmark renderer. Bars report median observed order by method and metric;
-    whiskers show the observed min--max range across the benchmarked
-    refinements. This is an internal convergence diagnostic, not external
-    validation evidence.}
-    \label{fig:package-benchmark-convergence}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/static/static/rendered/package-benchmark-backend-parity.pdf}{%
-        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-backend-parity.pdf}
-    }{%
-        \fbox{\parbox{0.86\linewidth}{\centering Package benchmark backend
-        parity asset unavailable in this checkout.}}
-    }
-    \caption{Native/SciML backend agreement versus runtime for benchmarked
-    compatible methods. Color identifies the method family, marker shape
-    identifies the SciML algorithm, and lower-left points are both faster and
-    closer to the native final state under the plotted aggregate difference.}
-    \label{fig:package-benchmark-backend-parity}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}{%
-        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}
-    }{%
-        \fbox{\parbox{0.86\linewidth}{\centering Package benchmark
-        rheology/profile asset unavailable in this checkout.}}
-    }
-    \caption{Rheology/profile sensitivity summary for declared descriptor
-    combinations. Facets separate stenosis severity; grouped bars separate the
-    rheology and velocity-profile descriptors. The diagnostic shows how the
-    maximum speed responds to descriptor choices within the emitted benchmark
-    records.}
-    \label{fig:package-benchmark-rheology-profile}
-\end{figure}
-
-\begin{figure}[!htb]
-    \centering
-    \IfFileExists{figures/static/static/rendered/package-benchmark-resolved3d.pdf}{%
-        \includegraphics[width=0.74\linewidth]{figures/static/static/rendered/package-benchmark-resolved3d.pdf}
-    }{%
-        \fbox{\parbox{0.86\linewidth}{\centering Package benchmark
-        resolved-velocity diagnostic asset unavailable in this checkout.}}
-    }
-    \caption{Resolved-velocity output-operator diagnostic summary for the
-    available local cases. The rendered value is the section-wise velocity
-    $L_1$ average error for the declared
-    \texttt{CrossSectionQuadratureOperator}.}
-    \label{fig:package-benchmark-resolved3d}
-\end{figure}
-
-\begin{figure}[!htb]
-    \centering
-    \IfFileExists{figures/static/static/rendered/package-benchmark-python-mps.pdf}{%
-        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-python-mps.pdf}
-    }{%
-        \fbox{\parbox{0.86\linewidth}{\centering Package benchmark
-        Python/MPS asset unavailable in this checkout.}}
-    }
-    \caption{Python native CPU versus Torch-MPS comparison for the Python CLI
-    surface. The top panel reports elapsed time by method and grid size; the
-    lower panel reports the maximum relative final-state difference across the
-    emitted area and flow summaries.}
-    \label{fig:package-benchmark-python-mps}
-\end{figure}
-
-\FloatBarrier
-
-\subsection{Preliminary Cross-Model Velocity Comparison}
+\subsection{Three-Dimensional Comparison Datasets}
 \label{subsec:preliminary-cross-model-velocity-comparison}
 
-The resolved-velocity comparison evaluates the selected 1D solution against two
-available resolved 3D velocity datasets at $t=1.0$ s. The cases are labelled
-C23 and C40 by stenosis severity. They are computational cross-model
-diagnostics, not pressure-flow results and not clinical validation.
+This section reports the final-time resolved-velocity comparison whose protocol
+is defined in Section~\ref{subsec:numerical-experiments-metrics-provenance}.
+The comparison is velocity-focused: pressure-drop, pressure-ratio, FFR, and
+clinical validation claims remain outside the completed numerical evidence.
 
 \begin{figure}[!htb]
     \centering
@@ -147,7 +19,7 @@ diagnostics, not pressure-flow results and not clinical validation.
     21,975 loaded nodes. The shared color scale makes the stronger
     axial-velocity concentration in C40 visible. Sparse arrows indicate local
     vector direction, and the transparent surface frames the 3D point cloud.
-    These are resolved velocity-data renderings, not the
+    These are resolved velocity comparison-data renderings, not the
     stationary-Stokes pathline proxy or a pressure-drop, FFR, or
     patient-specific clinical calibration measurement.}
     \label{fig:stenosis-3d-reference-geometry}
@@ -155,161 +27,8 @@ diagnostics, not pressure-flow results and not clinical validation.
 
 \FloatBarrier
 
-\begin{center}
-\fbox{\begin{minipage}{0.90\linewidth}
-\small
-\textbf{Solver-coordinate convention.} In this section, the stored solver
-state \texttt{A} is $a=R^2$, not physical circular area. The physical map is
-Definition~\ref{def:physical-to-solver-map}:
-$A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and
-$\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
-\end{minipage}}
-\end{center}
-
-All comparison numbers come from
-\path{simulations/output/3d_comparison/full_t1_native_nx400/}, interpreted
-under Convention~\ref{conv:computed-realization-record}. The regeneration
-command, source-path convention, and file hashes are listed in
-Appendix~\ref{app:code-and-ai-use}. The raw XDMF/HDF5 inputs remain local
-ignored files under \path{simulations/data/3d/canic_case3/}; the report
-archives the generated CSV and PGFPlots-ready static data.
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Case matching for the resolved-velocity comparison. The case
-    labels C23 and C40 are used in the main text and figures; the source ID
-    records the upstream local data directory.}
-    \label{tab:t1-case-matching}
-    \begin{tabularx}{\textwidth}{@{}llXlrr@{}}
-        \toprule
-        \textbf{Label}
-            & \textbf{Source ID}
-            & \textbf{Velocity metadata}
-            & \textbf{Operator}
-            & \textbf{3D time (s)}
-            & \textbf{Time error (s)} \\
-        \midrule
-        C23 & 77 & \path{77/velocity.xdmf}
-            & \texttt{CrossSectionQuadratureOperator}
-            & 0.9994999999999453 & $5.0\times 10^{-4}$ \\
-        C40 & 60 & \path{60/velocity.xdmf}
-            & \texttt{CrossSectionQuadratureOperator}
-            & 0.9994999999999453 & $5.0\times 10^{-4}$ \\
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Shared 1D realization and output-operator parameters for the
-    $t=1.0$ comparison. Per-step diagnostics such as realized maximum CFL,
-    positivity events, and residual summaries are not persisted in the
-    available comparison artifact.}
-    \label{tab:t1-parameter-matching}
-    \begin{tabularx}{\textwidth}{@{}p{0.22\textwidth}X@{}}
-        \toprule
-        \textbf{Quantity} & \textbf{Recorded value} \\
-        \midrule
-        Forward model & \path{canic-extended-1d}. \\
-        Wall model & $\mathcal W_{\mathrm{elastic1D}}$ with the selected
-        Canic--Koiter pressure--area law
-        \path{canic-koiter-thin-membrane}. \\
-        Rheology & Newtonian rheology with $\nu=0.04$ cm$^2$/s. \\
-        Velocity profile & Parabolic profile with
-        $\alpha_{\mathcal P}=4/3$. \\
-        Variable-radius terms & Canic effective-alpha and geometry-source
-        corrections. \\
-        Discretization & $N=400$, $L=6$ cm, MUSCL finite volume with minmod
-        limiter, native SSPRK3 time integration. \\
-        Time controls & $T=1.0$ s, timestep cap $10^{-5}$ s, CFL cap 0.45. \\
-        Initial and boundary state & Geometry-rest initial state
-        $a=R_0^2$, $q=0$; inlet $\bar u_{\mathrm{in}}=22.5$ cm/s; outlet
-        $a_{\mathrm{out}}=R_0(L)^2$ with the implemented characteristic
-        approximation in Appendix~\ref{app:num-boundary-state-realization}. \\
-        Section targets & 200 equally spaced axial planes on $0\le z\le 6$
-        cm. \\
-        Radial targets & Slices $z=1.951$, 2.451, and 2.951 cm with 20 bins in
-        $r/R_0(z)$. \\
-        Supplemental sensitivity & Node-slab arithmetic means are emitted only
-        to \path{node-slab-sensitivity.csv} for half-widths 0.0075,
-        0.0150753769, and 0.0301507538 cm. \\
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
-\FloatBarrier
-
-For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
-operator listed in Table~\ref{tab:t1-case-matching} intersects every
-tetrahedron with $S_j$, linearly interpolates axial velocity on the cut edges,
-sorts the cut polygon vertices in the plane, and triangulates the polygon by a
-centroid fan. Let $\mathcal Q_j$ denote the resulting cut triangles. The
-reported 3D area, flow, and mean velocity are
-\begin{flalign*}
-    \quad
-    A_{3D,j}
-    &=
-    \sum_{\Delta\in\mathcal Q_j}|\Delta|,
-    &
-    Q_{3D,j}
-    &=
-    \sum_{\Delta\in\mathcal Q_j}|\Delta|\,\bar u_{z,\Delta},
-    &
-    \bar u_{3D,j}
-    &=
-    Q_{3D,j}/A_{3D,j}. &&
-\end{flalign*}
-For a cut triangle $\Delta$ whose vertices carry reconstructed axial
-velocities $u_{z,1}$, $u_{z,2}$, and $u_{z,3}$,
-\begin{flalign*}
-    \quad
-    \bar u_{z,\Delta}
-    =
-    \frac{u_{z,1}+u_{z,2}+u_{z,3}}{3}. &&
-\end{flalign*}
-The corresponding 1D quantities use physical flow, not the raw solver flow
-coordinate:
-\begin{flalign*}
-    \quad
-    Q_{1D,j}
-    =
-    \pi q(z_j,t),
-    \qquad
-    \bar u_{1D,j}
-    =
-    q(z_j,t)/a(z_j,t). &&
-\end{flalign*}
-Velocity and flow differences are reported with $L_1$, $L_2$, and
-$L_\infty$ summaries over valid section targets. With
-$e_{u,j}=\bar u_{1D,j}-\bar u_{3D,j}$, the velocity norms are
-\begin{flalign*}
-    \quad
-    \|e_u\|_{1,\mathrm{avg}}
-    &=
-    \frac{1}{n}\sum_j |e_{u,j}|,
-    &
-    \|e_u\|_{2,\mathrm{avg}}
-    &=
-    \left(\frac{1}{n}\sum_j |e_{u,j}|^2\right)^{1/2},
-    &
-    \|e_u\|_\infty
-    &=
-    \max_j |e_{u,j}|, &&\\
-    \quad
-    \mathrm{rel}\,L_1
-    &=
-    \frac{\sum_j|e_{u,j}|}{\sum_j|\bar u_{3D,j}|},
-    &
-    \mathrm{rel}\,L_2
-    &=
-    \frac{\left(\sum_j|e_{u,j}|^2\right)^{1/2}}
-         {\left(\sum_j|\bar u_{3D,j}|^2\right)^{1/2}}. &&
-\end{flalign*}
-Radial profile rows use the same cut triangles, binned by triangle-centroid
-radius. Empty bins are reported as invalid rows rather than zero-velocity
-observations.
+\subsection{Cross-Sectional Sampling Protocol}
+\label{subsec:cross-sectional-sampling-protocol-results}
 
 The same quadrature record audits whether the cut operator is sampling the
 expected static cross-section. With the reference area
@@ -325,6 +44,29 @@ Table~\ref{tab:t1-area-audit} reports this geometry/operator audit for the
 same 200 section targets. It verifies that the tetrahedral cut areas agree with
 the expected fixed stenosis cross-sections to sub-percent typical discrepancy,
 with the largest differences confined to a few section targets.
+It does not measure the dynamic area discrepancy entering the 1D velocity
+denominator. The relevant unpersisted quantity for velocity attribution is
+\begin{flalign*}
+    \quad
+    \epsilon_A^{\mathrm{model}}(z_j,t)
+    =
+    \frac{|\pi a(z_j,t)-A_{3D}(z_j)|}{A_{3D}(z_j)}. &&
+\end{flalign*}
+The exact algebraic split needed for a future attribution study is
+\begin{flalign*}
+    \quad
+    \frac{Q_{1D}}{A_{1D}}-\frac{Q_{3D}}{A_{3D}}
+    =
+    \frac{Q_{1D}-Q_{3D}}{A_{1D}}
+    +
+    Q_{3D}\left(\frac{1}{A_{1D}}-\frac{1}{A_{3D}}\right),
+    \qquad A_{1D}=\pi a. &&
+\end{flalign*}
+The present artifact reports $Q$ and velocity summaries, but not the plotted
+flow-versus-area contribution split.
+
+\subsection{Section-Averaged Velocity Results}
+\label{subsec:section-averaged-velocity-results}
 
 \begin{table}[!htb]
     \centering
@@ -357,6 +99,7 @@ with the largest differences confined to a few section targets.
     and flow errors are in cm$^3$/s. The 1D physical flow is
     $Q_{1D}=\pi q$.}
     \label{tab:t1-3d-comparison-summary}
+    {\setlength{\tabcolsep}{2.5pt}
     \begin{tabular}{@{}lrrrrrrrrrrr@{}}
         \toprule
         \textbf{Case}
@@ -365,17 +108,18 @@ with the largest differences confined to a few section targets.
             & $\boldsymbol{\langle\bar u_{3D}\rangle}$
             & $\boldsymbol{\langle Q_{1D}\rangle}$
             & $\boldsymbol{\langle Q_{3D}\rangle}$
-            & $\boldsymbol{L_1(u)}$
-            & $\boldsymbol{L_2(u)}$
-            & \textbf{rel.} $\boldsymbol{L_1}$
-            & \textbf{rel.} $\boldsymbol{L_2}$
-            & $\boldsymbol{L_1(Q)}$
-            & $\boldsymbol{L_2(Q)}$ \\
+            & $\boldsymbol{\mathrm{MAE}_u}$
+            & $\boldsymbol{\mathrm{RMSE}_u}$
+            & \textbf{rel.} $\boldsymbol{\mathrm{MAE}}$
+            & \textbf{rel.} $\boldsymbol{\mathrm{RMSE}}$
+            & $\boldsymbol{\mathrm{MAE}_Q}$
+            & $\boldsymbol{\mathrm{RMSE}_Q}$ \\
         \midrule
         C23 & 200 & 24.11 & 23.63 & 2.288 & 2.241 & 0.505 & 0.664 & 0.0214 & 0.0277 & 0.0482 & 0.0509 \\
         C40 & 200 & 26.43 & 25.52 & 2.287 & 2.219 & 0.966 & 1.87 & 0.0379 & 0.0688 & 0.0709 & 0.0893 \\
         \bottomrule
     \end{tabular}
+    }
 \end{table}
 
 \begin{table}[!htb]
@@ -384,7 +128,9 @@ with the largest differences confined to a few section targets.
     \caption{Generated solver diagnostics for the same runs. The positive
     characteristic-radicand values are in solver units of cm$^2$/s$^2$ and
     support the reported characteristic-speed evaluation on the sampled final
-    state.}
+    state. They do not by themselves prove the subcritical sign condition
+    $\lambda_-<0<\lambda_+$ required by
+    Assumption~\ref{ass:1d-subcritical-boundary-regime}.}
     \label{tab:t1-alpha-radicand-diagnostics}
     \begin{tabular}{@{}lrrrr@{}}
         \toprule
@@ -399,6 +145,12 @@ with the largest differences confined to a few section targets.
         \bottomrule
     \end{tabular}
 \end{table}
+
+The final-time mismatch between $1.0$ s and $0.9995$ s is numerically small,
+but it does not establish matched transient histories. The reported
+characteristic-radicand scales correspond to one-way traversal times on the
+order of milliseconds for a 6 cm vessel, so boundary and start-up histories can
+influence the state many times before the sampled final time.
 
 Figure~\ref{fig:t1-section-mean-comparison} shows the area-mean axial velocity
 comparison. The 1D and quadrature-averaged 3D means agree closely away from the
@@ -447,13 +199,25 @@ $z=2.261$ cm; C23 reaches 2.35 cm/s at $z=2.291$ cm.
     \end{tabular}
 \end{table}
 
+\subsection{Reconstructed Radial-Profile Results}
+\label{subsec:reconstructed-radial-profile-results}
+
 The radial-profile reconstruction in
 Figure~\ref{fig:t1-radial-profile-comparison} is a secondary diagnostic. It
 asks whether the 1D velocity-profile closure reconstructed from the section
 mean resembles area-weighted radial bins of the resolved 3D cut. The throat and
-downstream slices show the largest C40 discrepancy, which is consistent with
-the section-mean localization and with the fact that the 1D profile closure
-cannot represent secondary flow, skewness, or separation.
+downstream slices show the largest C40 discrepancy. This is suggestive of
+profile-shape effects omitted by the 1D closure, but it does not uniquely
+diagnose secondary flow, skewness, separation, or any single omitted mechanism.
+The reconstructed parabolic profile used for the dashed 1D curve is
+\[
+    u_{1D}(r;z,t)=2\,\frac{q(z,t)}{a(z,t)}
+    \left(1-\left(\frac{r}{R_0(z)}\right)^2\right)
+\]
+on the static reference-radius coordinate used by the archived radial asset.
+The artifact does not include the stronger sensitivity study with 10, 20, and
+40 bins, annular clipping of cut triangles, current-radius coordinate
+$r/\sqrt{a(z,t)}$, or within-bin azimuthal variance.
 
 \begin{figure}[H]
     \centering
@@ -472,7 +236,7 @@ cannot represent secondary flow, skewness, or separation.
     \scriptsize
     \caption{Radial-profile discrepancy by case and slice. Bin means are
     area-weighted over the quadrature triangles in each bin; the displayed
-    $L_1$ and $L_2$ summaries are unweighted over the valid radial-bin means.
+    MAE and RMSE summaries are unweighted over the valid radial-bin means.
     Velocity errors are in cm/s; radial-bin physical-flow errors are in
     cm$^3$/s and use
     $Q_{1D,\mathrm{bin}}=\bar u_{1D,\mathrm{bin}}A_{\mathrm{bin}}$.
@@ -482,11 +246,11 @@ cannot represent secondary flow, skewness, or separation.
         \toprule
         \textbf{Case}
             & $\boldsymbol{z}$ \textbf{(cm)}
-            & $\boldsymbol{L_1(u_r)}$
-            & $\boldsymbol{L_2(u_r)}$
-            & $\boldsymbol{L_\infty(u_r)}$
-            & $\boldsymbol{L_1(Q_r)}$
-            & $\boldsymbol{L_2(Q_r)}$ \\
+            & $\boldsymbol{\mathrm{MAE}(u_r)}$
+            & $\boldsymbol{\mathrm{RMSE}(u_r)}$
+            & $\boldsymbol{\max |e_{u_r}|}$
+            & $\boldsymbol{\mathrm{MAE}(Q_r)}$
+            & $\boldsymbol{\mathrm{RMSE}(Q_r)}$ \\
         \midrule
         C23 & 1.951 & 0.493 & 0.614 & 1.34 & 0.00290 & 0.00498 \\
         C23 & 2.451 & 7.47 & 9.47 & 16.35 & 0.0130 & 0.0152 \\
@@ -497,6 +261,9 @@ cannot represent secondary flow, skewness, or separation.
         \bottomrule
     \end{tabular}
 \end{table}
+
+\subsection{Spatial Localization of Discrepancies}
+\label{subsec:spatial-localization-discrepancies}
 
 These discrepancies should be read in light of the comparison boundary in
 Section~\ref{subsec:model-hierarchy-comparison-boundary}. The quadrature

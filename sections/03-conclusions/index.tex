@@ -1,49 +1,151 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Interpretation of the Verification Evidence}
+\label{subsec:discussion-verification-evidence}
+
+The verification evidence supports a bounded implementation claim: the reported
+solver, descriptor, benchmark, and output-schema machinery can reproduce the
+finite-volume and comparison records used in this report. The implementation checks
+exercise descriptor health, sampled self-convergence, native/SciML
+cross-integrator discrepancies, stationary-Stokes projection rows, boundary
+handling, rheology/profile sensitivity, resolved-velocity output diagnostics,
+and Python CPU/MPS consistency. These checks are useful because they make the
+numerical record auditable rather than anecdotal.
+
+The same evidence should not be read as a stronger theorem or validation claim.
+The benchmark rows do not prove convergence of every model component, do not
+establish pressure accuracy, and do not show agreement with clinical or
+experimental measurements. For the comparison cases, the archived rows still
+lack several quantities that would make the verification record more
+discriminating: positivity-activation counts, total projection correction,
+realized CFL extrema, mass-balance defect, and backend tolerances for the
+specific C23/C40 runs. The present result is therefore best described as a
+verified report workflow with documented limitations, not as complete numerical
+verification of every possible output.
+
+\subsection{Interpretation of the Cross-Model Discrepancies}
+\label{subsec:discussion-cross-model-discrepancies}
+
+The strongest resolved-velocity disagreement occurs in C40, the stronger
+stenosis case. That pattern is plausible: the narrower throat increases axial
+acceleration, sharpens the section-to-section velocity gradient, and magnifies
+the effect of profile, boundary, and geometry mismatches. The section-mean
+comparison in Table~\ref{tab:t1-3d-comparison-summary} shows this widening
+clearly: the velocity MAE increases from 0.505 cm/s in C23 to 0.966 cm/s in
+C40, while the maximum section error increases from 2.35 cm/s to 9.92 cm/s.
+Table~\ref{tab:t1-largest-section-errors} localizes the largest section errors
+near the throat region.
+
+The radial-profile comparison gives a complementary reading. The throat and
+downstream C40 slices show the largest profile discrepancies, especially in
+Table~\ref{tab:t1-radial-profile-summary}. That is consistent with the
+expectation that a one-dimensional parabolic reconstruction will be most
+strained where the resolved field contains strong transverse structure. It is
+not, by itself, a diagnosis of secondary flow, skewness, separation, or any one
+omitted 3D mechanism. The radial plots show where the 1D profile closure fails
+to reproduce the resolved radial bins; they do not identify a unique physical
+cause.
+
+\subsection{Effects of Unmatched Wall Models, Boundary Conditions, and Histories}
+\label{subsec:discussion-unmatched-modeling-effects}
+
+The present comparison changes more than spatial dimension. The 1D computation
+uses a compliant reduced Canic--Koiter wall law and a fixed-area characteristic
+boundary approximation, while the resolved velocity fields are available as
+fixed-geometry comparison data with incomplete wall, material, boundary, and
+transient-history metadata. These differences matter because velocity error is
+not solely a profile-closure error. Area mismatch can change
+$\bar u=Q/A$ even when physical flow is close; flow mismatch can arise from
+different inlet, outlet, wall, or start-up histories; and the final-time
+difference between $1.0$ s and $0.9995$ s does not establish matched phases or
+matched histories.
+
+The cut-area audit in Table~\ref{tab:t1-area-audit} is therefore an operator
+check, not an attribution result. It shows typical sub-percent agreement
+between the tetrahedral cuts and the static reference areas, with localized
+multi-percent outliers. It does not measure the dynamic 1D area mismatch
+$|\pi a-A_{3D}|/A_{3D}$, nor does it decompose the velocity error into
+physical-flow and current-area contributions. Without that decomposition, the
+comparison should be read as a coupled velocity, flow, geometry, and modelling
+diagnostic rather than as a pure test of the cross-sectional profile closure.
+
+\subsection{Methodological Limitations}
+\label{subsec:discussion-methodological-limitations}
+
+The most important limitation is evidential scope. The report compares a
+selected 1D realization with two resolved computational velocity datasets under
+a declared plane--tetrahedron output operator. It does not compare pressures,
+pressure drops, clinical FFR, CT-FFR, wall shear stress, structural deformation,
+or experimental measurements. The pressure-ratio notation in the report
+therefore remains an output convention for later studies, not a completed
+pressure-ratio result.
+
+A second limitation is that the comparison is not a fully matched 1D--3D
+validation study. Matching would require, at minimum, a declared common
+geometry, wall model, rheology, material parameters, inlet and outlet histories,
+initialization, time alignment, numerical-resolution study, and output
+operator. Some of those ingredients are available here, especially the analytic
+reference geometry and the velocity output operator. Others are absent or only
+partially persisted, so the current comparison can localize discrepancies but
+cannot uniquely attribute them.
+
+\subsection{Implications and Future Work}
+\label{subsec:discussion-implications-future-work}
+
+The immediate implication is practical: the next useful experiment is not a
+broader disclaimer, but a more controlled comparison record. That record should
+persist matched inlet and outlet histories, wall and material parameters,
+positivity/CFL/mass diagnostics, subcritical characteristic-speed signs, grid
+and operator sensitivity for the actual C23/C40 outputs, and an explicit
+classical-versus-extended ablation. It should also store the decomposition of
+velocity discrepancy into physical-flow and current-area contributions.
+
+A pressure-focused extension would require a separate design. It would need
+proximal and distal pressure observation maps, reference-pressure and averaging
+conventions, pressure data from the comparison model, and a clear statement of
+whether the target is a reduced pressure diagnostic, a pressure-drop comparison,
+or a clinical pressure-ratio comparison. Until such a study is added, the
+defensible contribution remains the audited extended-1D model specification,
+the reproducible numerical workflow, and the declared operator for comparing 1D
+and resolved-3D velocity outputs.
+
 \section{Conclusions and Limitations}
 \label{sec:conclusions-limitations}
 
-This report specified a velocity-focused mathematical and numerical study for
-an idealized stenotic vessel. The continuum material-flow setting, balance
-laws, stress closure, Navier--Stokes specialization, and 1D area--flow
-reduction define the modeling vocabulary. The selected implementation is a
-Canic-extended, radius-squared 1D compliant-vessel solver with declared wall,
-rheology, velocity-profile, boundary, and output conventions.
+This report has separated three claims that are often blurred in reduced-order
+hemodynamics work: model specification, numerical verification, and cross-model
+comparison. The selected model is now stated in both physical variables
+$(A_{\mathrm{phys}},Q_{\mathrm{phys}})$ and solver variables
+$(a,q)=(A_{\mathrm{phys}}/\pi,Q_{\mathrm{phys}}/\pi)$. It is the
+Canic-extended, radius-squared finite-volume model with
+$R_0^*=R_{\max}$ in the continuous source-balanced elastic wall law, a
+parabolic-profile baseline closure, optional Canic variable-radius terms, and a
+fixed-area characteristic boundary approximation.
 
-The implementation evidence answers the reproducibility question, not a
-clinical one. The package benchmark suite records descriptor health,
-self-convergence, native/SciML agreement, stationary-Stokes initialization
-checks, boundary diagnostics, rheology/profile sensitivity, resolved-velocity
-diagnostics, and Python CPU/MPS comparisons for the emitted artifacts. The
-$C^\infty$ stenosis profile is useful here because it supplies one analytic
-geometry for the 1D solver, the fixed-wall stationary-Stokes mesh, and future
-3D/FSI mesh-refinement studies. Those records support the reported
-implementation properties and benchmark figures; they do not establish pressure
-accuracy, full transient 3D parity, structural deformation, or clinical
-validity.
+The verification record establishes an internally reproducible report workflow
+for the selected solver and emitted artifacts. Descriptor checks,
+self-convergence rows, cross-integrator discrepancies, stationary-Stokes
+projection rows, boundary diagnostics, rheology/profile sensitivity,
+resolved-velocity output diagnostics, and Python CPU/MPS checks support the
+reported finite-volume/time-integration data contracts. They do not yet supply
+every diagnostic needed for a stronger verification claim, especially for the
+specific C23/C40 comparison runs.
 
-The quadrature-backed cross-model velocity diagnostic answers where the
-selected 1D velocity field differs from the available resolved 3D velocity data
-at $t=1.0$ s. For C23 and C40, the section-wise area-mean velocity errors have
-sample-average $L_1$ errors of 0.505 and 0.966 cm/s, root-mean-square $L_2$
-errors of 0.664 and 1.87 cm/s, and $L_\infty$ maxima of 2.35 and 9.92 cm/s.
-The largest discrepancies localize near the stenosis throat and in the
-reconstructed radial profiles, especially for C40. This supports mismatch
-localization under the declared tetrahedral cross-section quadrature operator,
-not a claim that the 1D model has been validated against resolved flow.
+The 1D--3D velocity comparison shows localized and stenosis-dependent
+discrepancy under the declared
+\texttt{CrossSectionQuadratureOperator}. For C23 and C40 at $t=1.0$ s, the
+section-wise area-mean velocity discrepancies have MAE values of 0.505 and
+0.966 cm/s, RMSE values of 0.664 and 1.87 cm/s, and maximum absolute
+discrepancies of 2.35 and 9.92 cm/s. The largest discrepancies localize near
+the stenosis throat and in the reconstructed radial profiles, especially for
+C40.
 
-Pressure-ratio and shear-proxy notation are retained only as reduced
-model-output vocabulary for later work. The present manuscript does not add a
-pressure-drop result, a pressure-ratio result, a reported FFR or CT-FFR
-comparison, or an external measurement validation. A pressure-focused follow-up
-would need declared proximal and distal pressure observations, reference and
-averaging conventions, archived source identifiers or hashes, and a matched
-comparison record. A stronger velocity follow-up would also preserve per-run
-diagnostics such as timestep counts, CFL extrema, positivity checks, residual
-summaries, and closure/boundary perturbations varied one at a time.
-
-The feasible local three-dimensional extension is a fixed-wall
-stationary-Stokes refinement study on the same smooth stenotic geometry. That
-study can report resolved velocity, pressure, and sampled wall-traction/WSS
-diagnostics. A full stenotic FSI study with wall displacement, wall velocity,
-structural stress, and interface work remains a separate future model tier
-requiring a structural solver and interface contract beyond the present
-implementation.
+The bounded contribution is therefore precise rather than clinical: a selected
+extended 1D stenosis model, an auditable finite-volume/time-integration
+workflow, and a cross-sectional velocity comparison operator that identifies
+where the current 1D and resolved-3D computational outputs differ. The report
+does not establish pressure-drop accuracy, pressure-ratio or FFR behavior,
+clinical validity, full transient 3D parity, structural deformation, or a fully
+matched 1D--3D validation. Those remain future studies with different evidence
+requirements.

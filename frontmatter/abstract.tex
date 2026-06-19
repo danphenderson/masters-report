@@ -1,20 +1,26 @@
 \medskip
 \noindent\textbf{Abstract.}\par\smallskip
-This report develops a mathematical and numerical framework for idealized
-stenotic blood-flow simulation, connecting incompressible Navier--Stokes and
-generalized-Newtonian continuum models to reduced 0D, 1D, 2D, and coupled
-hemodynamic formulations. The selected numerical model is an extended
-one-dimensional compliant area--flow system with variable-radius corrections,
-implemented in a reproducible Julia/Python benchmark package. The implementation
-is assessed through self-convergence, backend agreement, closure-health checks,
-and run-provenance records. A preliminary comparison at $t=1.0$ s evaluates
-the 1D solution against two resolved 3D velocity datasets representing 23\% and
-40\% radius reductions. Under a tetrahedral cross-section quadrature operator,
-the section-wise area-mean velocity discrepancies have sample-average $L_1$
-errors of 0.505 and 0.966 cm/s, root-mean-square $L_2$ errors of 0.664 and
-1.87 cm/s, and $L_\infty$ maxima of 2.35 and 9.92 cm/s. The largest differences
-remain localized near the stronger stenosis and in reconstructed radial
-profiles. Because the comparison is a final-time computational cross-model
-diagnostic with unmatched wall, boundary, and transient histories, it is
-interpreted as mismatch localization rather than clinical validation or
-pressure-ratio evidence.
+This report specifies an extended one-dimensional model for blood flow through
+an idealized stenotic vessel, records numerical-verification evidence for its
+implementation, and compares its velocity outputs with resolved
+three-dimensional data under an explicit cross-sectional operator. The physical
+area and flow variables are mapped to the radius-squared coordinates used in a
+MUSCL finite-volume discretization with SSPRK3 time integration. The
+formulation documents the continuous source-balanced Canic--Koiter wall law,
+the parabolic-profile baseline, variable-radius correction terms, boundary
+approximations, and output conventions so that the model and implementation are
+auditable. The numerical assessment is deliberately restricted to internally
+generated diagnostics: sampled self-convergence tests, cross-integrator
+discrepancies, descriptor and boundary diagnostics, stationary-Stokes
+projection checks, and run-provenance records. At $t=1.0$ s, the resulting
+section-averaged axial velocities are compared with two resolved
+three-dimensional velocity datasets, with plane--tetrahedron quadrature used to
+compute cross-sectional averages. For radius reductions of 23\% and 40\%,
+respectively, the sectionwise area-mean velocity discrepancies have MAEs of
+0.505 and 0.966 cm/s, RMSEs of 0.664 and 1.87 cm/s, and maximum absolute values
+of 2.35 and 9.92 cm/s. The largest discrepancies are concentrated near the more
+severe stenosis and in the reconstructed radial velocity profiles. Because the
+wall models, boundary conditions, and transient histories are not fully matched,
+these comparisons characterize differences between computational outputs; they
+do not constitute physiological validation of the one-dimensional model or
+support pressure-ratio or clinical claims.

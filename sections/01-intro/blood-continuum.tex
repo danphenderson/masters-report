@@ -1,10 +1,11 @@
-\subsection{Continuum and Constitutive Foundations}
+\subsection{Hemodynamics and Modelling Requirements in Stenotic Arteries}
 \label{subsec:continuum-constitutive-assumptions}
 
-This section moves from the macroscopic scale assumption,
-to continuum field variables, to blood-dynamics kinematics,
-to balance-law vocabulary, and finally to Newtonian versus
-generalized-Newtonian stress closures.
+This subsection fixes the macroscopic assumptions needed before the model
+classes are compared. It introduces only the continuum vocabulary that later
+supports the 3D PDE tier, the reduced 1D model, and the rheology/closure
+catalog; proof-level transport details are deferred to
+Appendix~\ref{app:continuum-derivation-details}.
 
 \subsubsection{Physiological scale and continuum idealization}
 \label{subsubsec:physiological-scale-boundary}
@@ -229,7 +230,7 @@ The stress law closes the momentum equation. Let the rate-of-deformation tensor 
     $\vct{D}(\vu)$.
 \end{definition}
 
-\begin{remark}[Blood isotropy justification]
+\begin{remark}[Large-vessel continuum closure]
     \label{rmk:blood-isotropy-justification}
     Blood is often modeled as an isotropic continuum fluid at large-vessel
     scales. This is a closure assumption for averaged behavior, not a microscopic
@@ -242,10 +243,11 @@ The stress law closes the momentum equation. Let the rate-of-deformation tensor 
 
 \begin{remark}[Isotropic constitutive response]
     \label{rmk:isotropy-implication}
-    An isotropic fluid has a constitutive response that is independent of the
-    chosen coordinate system. Consequently, the Cauchy stress depends on
-    coordinate-free invariants of $\vct{D}(\vu)$ rather than on a particular
-    basis.
+    The stress law is first required to be objective, so it is not an artifact
+    of the observer or coordinate frame. Assuming in addition material
+    isotropy and linear dependence on $\vct{D}(\vu)$ gives the Newtonian
+    isotropic form below; isotropy is a material-symmetry assumption, not the
+    same statement as coordinate invariance.
 \end{remark}
 
 \begin{definition}[Newtonian, isotropic constitutive law]
@@ -289,7 +291,12 @@ $|D|_{\mathrm F}^2$, this report translates it through the scalar shear-rate
 convention above. The coefficient $\eta_{\mathrm{eff}}$ is an effective dynamic
 viscosity; dividing by density gives the corresponding kinematic viscosity.
 The Newtonian incompressible model is recovered from this generalized
-Newtonian form when $\eta_{\mathrm{eff}}$ is constant.
+Newtonian form when $\eta_{\mathrm{eff}}$ is constant. Positivity of a
+displayed scalar viscosity law alone is not used here as a standalone
+parabolicity theorem. Any theorem-level classification of the
+generalized-Newtonian PDE would additionally require stated lower-bound,
+growth, and monotonicity hypotheses for
+$2\eta_{\mathrm{eff}}(\sqrt{2D:D})D$.
 
 \begin{definition}[Implemented effective-viscosity closure catalog]
     \label{def:rheology-closure-catalog}
