@@ -1,110 +1,21 @@
-\subsection{Clinical and Computational Motivation}
+\subsection{Numerical Motivation and Anatomy--Function Boundary}
 \label{subsec:pressure-flow-motivation}
 
-\paragraph{Anatomy--function distinction.}
-Coronary stenosis is the motivating lesion class because a visible narrowing
-does not automatically imply a flow-limiting obstruction. Clinical assessment
-therefore distinguishes anatomical stenosis detection from functional
-pressure--flow assessment
+The numerical problem in this report is to specify and audit a reduced stenosis
+solver, not to infer a patient outcome. A narrowed lumen changes the local flow
+field, but the same visible narrowing can have different flow consequences under
+different geometry, wall, rheology, and boundary assumptions. Coronary stenosis
+studies therefore distinguish anatomical descriptors from functional flow
+assessment, and lesion-imaging work likewise records geometry without by itself
+defining the reduced output
 \cite[p.~4401]{DerimayEtAl2021CoronaryStenosisObstruction}
-\cite[Chs.~1--2 and~5]{EscanedDavies2017PhysiologicalAssessment}
-\cite[Sec.~1]{ShaikhEtAl2025CTFFR}. Coronary lesion-imaging studies can
-describe local geometry and lesion length, but those anatomical descriptors do
-not by themselves define a pressure--flow output
-\cite[Abstract; Methods]{VanDenHoogenEtAl2022CoronaryLesionCTA}. This
-anatomy--function split motivates reporting pressure drop and reduced pressure
-ratio under declared observation and reference conventions, rather than treating
-stenosis severity $s_{\max}$ alone as the reported reduced output.
-Section~\ref{sec:resolved-3d-comparison} reports velocity diagnostics only; the
-pressure-drop and pressure-ratio conventions fix reduced-output vocabulary for
-the model framework.
-Figure~\ref{fig:anatomical-functional-motivation} summarizes this motivation
-as a schematic distinction between visible narrowing and pressure--flow loss.
+\cite[Abstract; Methods]{VanDenHoogenEtAl2022CoronaryLesionCTA}.
 
-Clinical fractional flow reserve (FFR) is an invasive pressure-wire index,
-conventionally interpreted in its measurement setting as distal coronary
-pressure divided by aortic pressure during maximal hyperemia
-\cite[Ch.~5, Sec.~5.5]{EscanedDavies2017PhysiologicalAssessment}
-\cite[Abstract]{PijlsEtAl1996FFRFunctionalSeverity}. FAME lesion-level evidence
-documented the discordance between angiographic and functional severity and is
-the clinical source for the familiar $\mathrm{FFR}\le 0.80$ decision context
-\cite[Abstract]{ToninoEtAl2010FAMEAngioFunctional}. Computed tomography-derived
-FFR (CT-FFR) studies supply noninvasive comparison vocabulary by inferring
-pressure--flow quantities from coronary computed tomography angiography
-(CCTA)-derived anatomy and comparing them against invasive FFR or related
-reference measurements
-\cite[Abstract; Methods]{NorgaardEtAl2014NXTFFRCT}
-\cite[Secs.~1.1--1.2]{ShaikhEtAl2025CTFFR}.
-Those clinical settings motivate the output vocabulary but are not reproduced
-by the completed numerical study in this report. The reduced pressure ratio
-$\mathrm{PR}_{1D}$ is therefore a convention-governed model output, not a
-reported FFR, CT-FFR, or pressure-measurement comparison.
-
-\begin{figure}[!htbp]
-    \centering
-    \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \figtikz{anatomical-vs-functional-stenosis}
-    \caption{Pressure--flow motivation for reduced pressure outputs. The same
-    anatomical narrowing can correspond to either a small functional pressure
-    loss in panel (a) or a larger loss in panel (b). The reduced-output target
-    is therefore the declared pressure-loss signature, not stenosis severity
-    alone.}
-    \label{fig:anatomical-functional-motivation}
-\end{figure}
-
-For the selected model gauge-pressure field $p_{\mathrm g}$, define the
-observed proximal and distal pressure traces through declared scalar observation
-maps:
-\begin{flalign*}
-    \quad
-    P_{\mathrm{prox}}(t)
-    \defined
-    \mathcal O_{\mathrm{prox}}[p_{\mathrm g}(\cdot,t)],
-    \qquad
-    P_{\mathrm{dist}}(t)
-    \defined
-    \mathcal O_{\mathrm{dist}}[p_{\mathrm g}(\cdot,t)]. &&
-\end{flalign*}
-The pressure-drop trace is invariant under common additive pressure shifts:
-\begin{flalign*}
-    \quad
-    \Delta p(t)
-    \defined
-    P_{\mathrm{prox}}(t)-P_{\mathrm{dist}}(t). &&
-\end{flalign*}
-Unlike $\Delta p(t)$, a pressure ratio depends on the pressure reference used
-before forming the numerator and denominator. A reduced pressure-ratio output
-must therefore declare its proximal and distal observation maps, pressure
-reference, averaging window, and denominator admissibility.
-Convention~\ref{conv:appendix-pressure-reference-ratio} records those
-requirements and the trace-level definition of
-$\mathrm{PR}_{1D}(\pi_{\mathrm{PR}})$. Its high-flow averaging window is a
-recorded output window, not a clinical hyperemia model unless an external
-measurement comparison is separately specified.
-Figure~\ref{fig:pressure-tap-convention} shows the corresponding axial-tap
-shorthand for an idealized 1D stenosis.
-
-\begin{figure}[!htb]
-    \centering
-    \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \figtikz{stenosis-schematic}
-    \caption{Schematic tap and output convention for an idealized stenosis,
-    not drawn from a computed case. The blue pressure taps define
-    $\Delta p(t)$, the gray geometry landmarks locate the stenosis region, and
-    the red/orange cue marks the reduced shear-proxy convention.
-    Convention~\ref{conv:appendix-pressure-reference-ratio} supplies the
-    pressure-ratio observation maps, averaging window, pressure reference, and
-    admissibility rule for $\mathrm{PR}_{1D}(\pi_{\mathrm{PR}})$.}
-    \label{fig:pressure-tap-convention}
-\end{figure}
-
-\paragraph{Shear diagnostics.}
-Pressure drops and pressure ratios are lesion-scale pressure-output
-conventions. A resolved wall-shear-stress output belongs to a resolved stress
-state and must declare the stress tensor, wall normal, wall location, output
-operator, and signed tangent direction when a signed component is reported
-\cite[Abstract; Sec.~2, pp.~8--10]{JohnEtAl2017WallShearStressVectorForm}.
-Reduced shear proxies are model-tier diagnostics rather than clinical
-anatomy--function outputs; Convention~\ref{conv:appendix-shear-diagnostic}
-records the declaration requirements for comparisons with traction-based wall
-shear stress.
+This anatomy--function distinction motivates the discipline used here: the model
+state, closure choices, boundary approximation, and observation operator must be
+declared before a computed quantity can be interpreted. The completed study keeps
+that motivation at the level of numerical observables. It specifies an
+$R_{\max}$-normalized 1D area--flow solver, tests a manufactured-solution record,
+exposes the non-well-balanced geometry-rest drift, and compares velocity and physical
+flow against the available resolved 3D data through a declared plane-quadrature
+operator.

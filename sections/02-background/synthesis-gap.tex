@@ -1,24 +1,17 @@
 \subsection{Literature Synthesis and Research Gap}
 \label{subsec:literature-synthesis-gap}
 
-The reviewed literature supports a calibrated gap. State-of-the-art stenosis
-modeling spans resolved 3D/FSI simulations, geometrical multiscale coupling,
-distributed 1D reductions, open solver workflows, well-balanced and high-order
-schemes, and emerging surrogate or physics-informed learning methods. These
-families answer different questions. Resolved models expose local velocity,
-pressure, and traction fields at high setup cost. Reduced models support
-repeated studies only after their closure and observation maps are declared.
-Well-balanced and high-order schemes improve numerical evidence only for the
-equilibria and outputs they actually test. Learned surrogates reduce evaluation
-cost only after training data, uncertainty, and admissible operating regimes are
-made part of the evidence record.
+The focused literature supports a practical gap rather than a field-wide novelty
+claim. Stenosis-aware 1D models require explicit closure contracts. Balance-law
+solvers require verification evidence for the implemented flux, source, boundary,
+and time-integration choices. Well-balanced methods show that preserving a rest
+or equilibrium state is a discrete property that must be tested. Cross-dimensional
+comparisons require an observation operator before discrepancies can be reported.
 
-The present work addresses a practical reproducibility and observation-operator
-gap for this implementation of an extended 1D stenosis model. It specifies the
-solver-coordinate map, the Canic-derived model variant, targeted verification
-evidence, and a declared plane--tetrahedron velocity comparison operator. Its
-claim is therefore intentionally narrower than a field-wide state-of-the-art
-claim. A stronger novelty or validation claim would require broader evidence
-that comparable auditable implementations and matched 1D--3D operators do not
-already exist, together with matched pressure, experimental, or clinical data.
-That broader claim is outside this report.
+This report addresses that gap for one implemented $R_{\max}$-normalized
+Canic-derived stenosis solver. It specifies the physical-to-solver coordinate map
+and closure choices, reports bounded MMS-based verification evidence, exposes the
+non-well-balanced geometry-rest drift, declares a plane--tetrahedron velocity
+operator, and reports descriptive C23/C40 discrepancy localization under the
+available matching limits. The result is an auditable numerical and comparison
+record, not a comprehensive review or a broader output claim.

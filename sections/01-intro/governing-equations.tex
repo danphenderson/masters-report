@@ -1,264 +1,52 @@
-\subsection{Full-Order Blood-Flow Models: Three-Dimensional CFD and FSI}
+\subsection{Continuum Balance Laws as Motivation for 1D Models}
 \label{subsec:governing-equations-model-hierarchy}
 
-The continuum assumptions of
-Section~\ref{subsec:continuum-constitutive-assumptions} lead to a layered
-modeling hierarchy. In particular,
-Assumption~\ref{ass:blood-dynamics-kinematic-setting} supplies the flow map,
-material volumes, and continuum fields on which the conservation laws act. The
-high-fidelity starting point is the incompressible Navier--Stokes or
-generalized-Newtonian system on a three-dimensional lumen. This subsection keeps
-that setting in three dimensions: it records the PDE forms, boundary-data
-vocabulary, and well-posedness context needed before the model hierarchy in
-Section~\ref{subsec:model-hierarchy-literature} descends to reduced and
-lumped tiers.
-
-\subsubsection{Conservation Laws and Navier--Stokes Specialization}
-\label{subsubsec:conservation-laws}
-
-The governing equations originate from conservation of mass and linear momentum
-applied to material volumes under
-Assumption~\ref{ass:blood-dynamics-kinematic-setting}, followed by the
-constant-density incompressible specialization. The derivation details and
-row-divergence convention are recorded in
-Appendix~\ref{app:continuum-derivation-details} and
-Definition~\ref{def:foundation-differential-operator-conventions}.
-Figure~\ref{fig:ns-derivation-map} summarizes the route from these balance laws
-to the forms used in the report
-\cite[Part~I, Ch.~1, Secs.~2.2--3.1, pp.~11--19; Part~IV, Ch.~1,
-Sec.~1.1, pp.~380--383]{GaldiEtAl2008HemodynamicalFlows}
+The full-order starting point is a three-dimensional incompressible flow model on
+a lumen with inlet, outlet, and wall boundary portions. A compact reading is
+sufficient for this report: mass balance supplies the incompressibility
+constraint, momentum balance evolves velocity under pressure, stress, and body
+force terms, and boundary data specify how information enters through the domain
+boundary
+\cite[Part~I, Ch.~1, Secs.~2.2--3.1]{GaldiEtAl2008HemodynamicalFlows}
 \cite[Sec.~6]{QuarteroniFormaggia2004CardiovascularModeling}.
 
-\begin{figure}[!htb]
-    \centering
-    \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \figtikz{ns-derivation-map}
-    \caption{From the blood-dynamics setting to incompressible
-    Navier--Stokes. The flow-map and material-volume assumptions support the
-    conservation statements. The mass-conservation/incompressibility lane and
-    the stress-closure lane merge into the generalized-Newtonian
-    incompressible momentum form. The Newtonian box is a constant-viscosity
-    specialization, and the divided-by-density form records the corresponding
-    kinematic-viscosity scaling.}
-    \label{fig:ns-derivation-map}
-\end{figure}
+\subsubsection{Conservation-law vocabulary}
+\label{subsubsec:conservation-laws}
 
-With this kinematic setting fixed, mass conservation for the constant-density
-incompressible model gives
-\begin{flalign*}
-    \quad \Div\vu = 0 \qquad \text{in } \OmgBt. &&
-\end{flalign*}
-Linear momentum conservation balances inertia, pressure, viscous stress, and
-body forces:
+For a constant-density Newtonian lumen model, the familiar continuum tier can be
+read schematically as
 \begin{flalign*}
     \quad
-    \rho \left(\pd_t \vu+(\vu\cdot\nabla)\vu\right)
-    \equals \Divbf(\vT)+\rho\vfb. &&
+    \Div\vu &= 0, &&\\
+    \quad
+    \rho\left(\pd_t\vu+(\vu\cdot\nabla)\vu\right)
+    &= -\nabla p+\eta\Delta\vu+\rho\vfb. &&
 \end{flalign*}
-Throughout the Navier--Stokes statements below, $\vfb$ denotes body force per
-unit mass, so $\rho\vfb$ is the corresponding body force per unit volume.
+Generalized-Newtonian variants replace the constant viscosity by an effective
+viscosity law. Those 3D equations are not solved in the main 1D realization, but
+they explain why reduced models must declare which cross-sectional quantities are
+retained and which transverse effects are closed.
 
-\begin{definition}[Conservative incompressible Navier--Stokes]
-    \label{def:nsconservative}
-    On $\OmgBt$, the constant-density Newtonian system may be written in
-    conservative tensor-divergence form as
-    \begin{flalign*}
-        \quad & \begin{cases*}
-            \pd_t (\rho \vu)
-            + \Divbf(\rho \vu\otimes\vu)
-            =
-            -\nabla p+\Divbf(2\eta\vct{D}(\vu))+\rho\vfb, \\
-            \Div\vu=0,\qquad \rho\equiv\rho_0>0.
-        \end{cases*} &&
-    \end{flalign*}
-\end{definition}
+The reduced model used later keeps an area-flow state. Cross-sectional averaging
+turns local velocity and stress information into section area, flow, and source
+or closure terms. As a result, the selected 1D equations are balance laws with
+geometry, wall, profile, friction, rheology, and boundary choices built into the
+model contract.
 
-For constant density and divergence-free velocity,
-$\Divbf(\rho\vu\otimes\vu)=\rho(\vu\cdot\nabla)\vu$. Thus the same Newtonian
-momentum equation can be read in advective form.
-
-\begin{definition}[Generalized-Newtonian incompressible Navier--Stokes]
-    \label{def:NSEquations}
-    For an incompressible generalized-Newtonian fluid, use the shear-rate
-    convention
-    \begin{flalign*}
-        \quad
-        \dot{\gamma}\defined\sqrt{2\vct{D}(\vu):\vct{D}(\vu)}. &&
-    \end{flalign*}
-    The velocity $\vu$, pressure $p$, body force per unit mass $\vfb$, and constant
-    density $\rho\equiv\rho_0>0$ satisfy
-    \begin{flalign*}
-        \quad & \begin{cases*}
-            \rho\big(\pd_t \vu+(\vu\cdot\nabla)\vu\big)
-            =
-            -\nabla p
-            +\Divbf\!\Big(
-                2\eta_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu)
-            \Big)
-            +\rho\vfb, \\
-            \Div\vu=0.
-        \end{cases*} &&
-    \end{flalign*}
-\end{definition}
-
-\begin{definition}[Density-scaled generalized Navier--Stokes]
-    \label{def:density-scaled-generalized-ns}
-    With
-    $\nu_{\mathrm{eff}}(\dot\gamma)
-    \defined\eta_{\mathrm{eff}}(\dot\gamma)/\rho$, the divided-by-density form
-    is
-    \begin{flalign*}
-        \quad & \begin{cases*}
-            \pd_t \vu+(\vu\cdot\nabla)\vu
-            =
-            -\rho^{-1}\nabla p
-            +\Divbf\!\Big(
-                2\nu_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu)
-            \Big)
-            +\vfb, \\
-            \Div\vu=0.
-        \end{cases*} &&
-    \end{flalign*}
-\end{definition}
-The density-scaled form is particularly useful for numerical simulations,
-because it separates the convective ($(\vu\cdot\nabla)\vu$) and diffusive /
-viscous-stress
-($\Divbf(2\nu_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu))$) contributions in the
-momentum equation, allowing for more straightforward numerical treatment of
-each term independently.
-\begin{definition}[Newtonian incompressible Navier--Stokes]
-    \label{def:newtonian-incompressible-ns}
-    If $\eta_{\mathrm{eff}}\equiv\eta$ is constant, then sufficiently smooth
-    divergence-free velocity fields satisfy
-    $\Divbf(2\eta\vct{D}(\vu))=\eta\del\vu$. The Newtonian equations are
-    \begin{flalign*}
-        \quad & \begin{cases*}
-            \rho\big(\pd_t \vu+(\vu\cdot\nabla)\vu\big)
-            =
-            -\nabla p+\eta\del\vu+\rho\vfb, \\
-            \Div\vu=0,
-        \end{cases*}
-        \qquad
-        \begin{cases*}
-            \pd_t \vu+(\vu\cdot\nabla)\vu
-            =
-            -\rho^{-1}\nabla p+\nu\del\vu+\vfb, \\
-            \Div\vu=0,
-        \end{cases*}
-        &&
-    \end{flalign*}
-    where $\nu\defined\eta/\rho$.
-\end{definition}
-
-Thus the 3D PDE tier is not introduced independently: flow maps and material
-volumes support Reynolds transport, Reynolds transport gives mass and momentum
-balance, the Cauchy stress law closes momentum, and incompressibility selects
-the Navier--Stokes systems above.
-
-\begin{remark}[Navier--Stokes system classification]
-    \label{rmk:ns-system-classification}
-    Each Navier--Stokes form above is a coupled time-dependent PDE system for
-    the three velocity components and the pressure on a three-dimensional
-    domain. The momentum equations evolve velocity, while pressure acts as a
-    Lagrange multiplier enforcing the first-order incompressibility constraint
-    $\Div\vu=0$. Thus the system is not a scalar parabolic equation: it is a
-    mixed incompressible evolution system with parabolic viscous smoothing
-    coupled to an elliptic pressure constraint.
-    \begin{center}
-    \footnotesize
-    \begin{tabularx}{\textwidth}{@{}
-        >{\raggedright\arraybackslash}p{0.23\textwidth}
-        >{\raggedright\arraybackslash}p{0.39\textwidth}
-        >{\raggedright\arraybackslash}X
-        @{}}
-        \toprule
-        \textbf{System}
-            & \textbf{Type and order}
-            & \textbf{Classification detail} \\
-        \midrule
-        Definition~\ref{def:nsconservative}
-            & Conservative incompressible Newtonian form: first order in time;
-            first-order conservative transport and pressure terms; first-order
-            incompressibility constraint; second-order viscous stress operator.
-            & With constant $\rho$ and $\eta$, smooth divergence-free fields
-            convert this form to the advective Newtonian form. It is nonlinear
-            through momentum transport and is a mixed parabolic--elliptic
-            system after the pressure constraint is imposed. \\
-        Definition~\ref{def:NSEquations}
-            & Generalized-Newtonian incompressible form: first order in time;
-            first-order advective and pressure terms; second-order
-            stress-divergence operator with coefficients depending on
-            $\vct{D}(\vu)$ through $\eta_{\mathrm{eff}}(\dot\gamma)$.
-            & The highest-order stress operator is generally quasilinear.
-            Convection and strain-rate-dependent viscosity both contribute
-            nonlinearity. Positive regular viscosity laws give the usual
-            incompressible parabolic--elliptic reading; degenerate or singular
-            laws require separate assumptions. \\
-        Definition~\ref{def:density-scaled-generalized-ns}
-            & Density-scaled generalized form: same differential order and
-            unknowns as Definition~\ref{def:NSEquations}; division by constant
-            density rescales the pressure gradient and viscous coefficient.
-            & This is not a new analytic class. It is the same mixed
-            incompressible quasilinear system written with kinematic effective
-            viscosity $\nu_{\mathrm{eff}}$ and body force per unit mass. \\
-        Definition~\ref{def:newtonian-incompressible-ns}
-            & Newtonian incompressible advective form: first order in time;
-            first-order quadratic convection and pressure terms; first-order
-            divergence constraint; second-order linear Laplacian diffusion.
-            & Constant viscosity removes the quasilinear viscosity dependence,
-            leaving a semilinear incompressible parabolic--elliptic system with
-            nonlinear lower-order transport and an elliptic pressure constraint.
-            \\
-        \bottomrule
-    \end{tabularx}
-    \end{center}
-\end{remark}
-
-\subsubsection{Boundary Data and Well-Posedness Context}
+\subsubsection{Boundary-data vocabulary}
 \label{subsubsec:boundary-initial-data-vocabulary}
 
-For a single-vessel three-dimensional domain, write the boundary decomposition
-\begin{flalign*}
-    \quad
-    \partial\OmgBt
-    =
-    \Gamma_{\mathrm{in}}(t)\cup
-    \Gamma_{\mathrm{out}}(t)\cup
-    \Gamma_w(t). &&
-\end{flalign*}
-Here $\Gamma_{\mathrm{in}}(t)$ denotes an inlet portion where a velocity,
-flow-rate, or profile condition may be prescribed. The outlet portion
-$\Gamma_{\mathrm{out}}(t)$ carries pressure, traction, or reduced downstream
-network data. For a fixed-wall no-slip continuum model, the wall portion
-$\Gamma_w(t)\subset\pOmgBt$ carries $\vu=0$; this condition is not imposed on
-the inlet or outlet portions of $\pOmgBt$. Other continuum or FSI tiers may use
-no-penetration, wall-law, or structure-coupling data instead. A complete
-initial-boundary value problem also states $\vu(0,\cdot)=\vu_0$, the domain,
-forcing, compatibility assumptions, and the solution class.
+For a single-vessel domain, the boundary is decomposed into inlet, outlet, and
+wall portions. A 3D problem may prescribe velocity, flow, traction, pressure, or
+wall-coupling data depending on the tier. A 1D problem inherits the same need for
+a declared boundary rule, but the incoming information is applied to the reduced
+state rather than to the full velocity field. This is why
+Section~\ref{subsec:initial-boundary-conditions} treats the fixed-area
+characteristic boundary rule as part of the implemented solver, and why
+Section~\ref{subsec:boundary-diagnostics} records subcritical characteristic
+signs for the comparison runs.
 
-\begin{remark}[Global regularity context]
-    \label{rmk:global-regularity}
-    For smooth, spatially localized initial data in three dimensions, global
-    existence and smoothness for Navier--Stokes remains an open Clay Millennium
-    Prize problem \cite[Problem statement]{ClayMathematicsInstitute2022NavierStokesEquation}. This is
-    mathematical context for the 3D continuum model, not a direct limitation of
-    the reduced models discussed below.
-\end{remark}
-
-Well-posedness results for a three-dimensional Navier--Stokes
-initial-boundary value problem are problem-specific: the statement must fix the
-domain class, boundary conditions, forcing, compatibility assumptions,
-initial-data space, solution class, and time horizon. This report uses
-that vocabulary only as PDE background for the model hierarchy. It does not use
-the Clay global-regularity problem as support for a local theorem, and it does
-not prove a well-posedness result for the moving arterial domain or for the
-reduced numerical solver. The domain and function-space notation relevant to
-such statements is summarized in Appendix~\ref{app:mathematical-foundations};
-coordinate and energy background is collected in
-Appendix~\ref{app:ns-coordinate-details}.
-
-The result is a three-dimensional continuum problem with declared field
-unknowns, stress closure, boundary partitions, and interpretation limits.
-Section~\ref{subsec:model-hierarchy-literature} now uses this 3D
-setting as the top tier of the model hierarchy before introducing coupled,
-reduced, and lumped descriptions.
+The continuum background stops at this vocabulary. The report does not use a
+full 3D derivation as evidence for the 1D discretization; the relevant evidence
+comes from the implemented balance law, manufactured-solution checks, the
+geometry-rest test, and the declared velocity observation operator.

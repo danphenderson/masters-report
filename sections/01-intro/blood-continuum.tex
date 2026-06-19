@@ -1,412 +1,45 @@
-\subsection{Hemodynamics and Modeling Requirements in Stenotic Arteries}
+\subsection{Continuum Background for Area--Flow Reduction}
 \label{subsec:continuum-constitutive-assumptions}
 
-This subsection fixes the macroscopic assumptions needed before the model
-classes are compared. It introduces only the continuum vocabulary that later
-supports the 3D PDE tier, the reduced 1D model, and the rheology/closure
-catalog; proof-level transport details are deferred to
-Appendix~\ref{app:continuum-derivation-details}.
+Only a small amount of continuum background is needed before introducing the
+reduced model. At the macroscopic arterial scale, blood-flow models treat
+velocity, pressure, density, and stress as continuum fields on a time-dependent
+lumen, rather than resolving individual cells. This is the scale at which 3D CFD,
+FSI, and 1D area--flow models can be compared as different mathematical tiers;
+small-vessel or low-shear regimes require separate rheology caution
+\cite{KopplHelmig2023DimensionReducedModeling,GaldiEtAl2008HemodynamicalFlows,PriesEtAl1992BloodViscosityTubeFlow}.
 
-\subsubsection{Physiological scale and continuum idealization}
-\label{subsubsec:physiological-scale-boundary}
-
-The present work is posed at the macrocirculatory arterial scale.
-At this scale, blood is commonly modeled as a viscous fluid whose bulk behavior
-can be described by continuum mechanics. The point is not to resolve individual
-red blood cells, platelets, or plasma constituents. Instead, the model aims to
-predict macroscopic observables such as flow rate, pressure, pressure drop,
-pressure ratio, and velocity profiles under declared assumptions.
-This scale separation is standard in large-vessel hemodynamic modeling, while the
-small-vessel and low-shear regimes require additional rheological
-caution~\cite{KopplHelmig2023DimensionReducedModeling,GaldiEtAl2008HemodynamicalFlows,PriesEtAl1992BloodViscosityTubeFlow}.
-
-For a final time $T_{\mathrm{final}}>0$, let $I_T\defined(0,T_{\mathrm{final}})$ denote
-the open interior-time interval and $\ITBar\defined[0,T_{\mathrm{final}}]$ denote the
-closed interval used for initial data and flow maps. Define the
-time-dependent blood domain and its spatial-temporal domain as:
-\begin{flalign*}
-    \quad \begin{cases}
-     \OmgBt \defined \{\vx \in \R^3 : \vx \text{ lies inside the vessel at time } t\} \\
-     \mathcal{Q}_T \defined \{(t,\vx):t\in I_T,\ \vx\in\OmgBt\}.
-    \end{cases}&&
-\end{flalign*}
-The reference and current configurations are denoted $\OmgB(0)$ and $\OmgBt$,
-respectively, with $\OmgBt$ depending on time $t \in \ITBar$.
-This domain notation is defined in Appendix~\ref{app:mathematical-notation};
-boundary and function-space conventions are summarized in
-Appendix~\ref{app:mathematical-foundations}. In
-this report, the continuum assumption is a large-vessel idealization: individual
-blood cells, platelets, and plasma constituents are not resolved, and blood
-velocity, pressure, density, and Cauchy stress are represented by sufficiently
-regular fields on $\mathcal{Q}_T$. Cellular-scale effects may enter only
-through later constitutive
-choices~\cite[Part~I, Ch.~1, Secs.~1.1--1.2, pp.~4--5]{GaldiEtAl2008HemodynamicalFlows}
-~\cite[Secs.~1.1.3 and~3.2, pp.~12--14 and~46--47]{KopplHelmig2023DimensionReducedModeling}.
-The definitions below fix the continuum contract used by the later model
-hierarchy.
-
+Let $I_T=(0,T_{\mathrm{final}})$ and
+$\ITBar=[0,T_{\mathrm{final}}]$. The blood domain at time $t$ is denoted
+$\OmgBt$, with space-time cylinder
+$\mathcal Q_T=\{(t,\vx):t\in I_T,\ \vx\in\OmgBt\}$. The reference and current
+lumen configurations are $\OmgB(0)$ and $\OmgBt$. The notation is summarized in
+Appendix~\ref{app:mathematical-notation}; the introduction uses it only to make
+clear what is being reduced.
 
 \begin{assumption}[Blood-dynamics kinematic setting]
     \label{ass:blood-dynamics-kinematic-setting}
-    For $t\in\ITBar$, blood motion is represented by a sufficiently
-    regular orientation-preserving diffeomorphism
+    Blood motion is represented by a sufficiently regular flow map
+    $\La_t:\OmgB(0)\to\OmgBt$ carrying material labels to current positions.
+    The Eulerian velocity field $\vu$ satisfies
     \begin{flalign*}
-        \quad \La_t:\OmgB(0)\to\OmgBt, \quad \det \nabla_{\vxi}\La_t > 0 &&
+        \quad \pd_t\La_t(\vxi)=\vu(t,\La_t(\vxi)), &&
     \end{flalign*}
-    It carries each material label $\vxi$ to its current location $\vx(t,\vxi)=\La_t(\vxi)$.
-    The Eulerian velocity field $\vu:\mathcal{Q}_T\to\R^3$ satisfies
-    \begin{flalign*}
-        \quad \pd_t \La_t(\vxi)=\vu(t,\La_t(\vxi)). &&
-    \end{flalign*}
-    The accompanying continuum fields are pressure
-    $p:\mathcal{Q}_T\to\R$, density
-    $\rho:\mathcal{Q}_T\to\R^+$, and Cauchy stress
-    $\vT:\mathcal{Q}_T\to\R^{3\times3}$.
+    and the accompanying continuum fields are pressure $p$, density $\rho$, and
+    Cauchy stress $\vT$ on the current lumen.
 \end{assumption}
 
-Figure~\ref{fig:lagrangian-eulerian-map} summarizes the change of viewpoint
-from material labels to Eulerian field evaluation.
+Mass and momentum balance, together with a stress closure, provide the continuum
+source for the lower-dimensional models. For the present report, the essential
+point is not the proof of the transport identities; it is that a 1D model stores
+cross-sectional quantities and must close the effects of the discarded transverse
+velocity and wall response. A section area, volumetric flow, mean axial velocity,
+wall law, profile factor, friction law, and rheology descriptor are therefore
+part of the reduced model specification rather than incidental implementation
+details.
 
-\begin{figure}[!htb]
-    \centering
-    \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \figtikz{lagrangian-eulerian-map}
-    \caption{%
-        Lagrangian-to-Eulerian flow-map notation. The map
-        $\La_t:\OmgB(0)\to\OmgBt$ sends a material label $\vxi$
-        to the current spatial point $\vx(t;\vxi)=\La_t(\vxi)$.
-        The Eulerian velocity field is then evaluated at the occupied point,
-        so the particle velocity satisfies
-        $\partial_t\vx(t;\vxi)=\vu(t,\vx(t;\vxi))=\vu(t,\La_t(\vxi))$.
-        The lower curve $T_{\vxi}$ records the same labelled particle over
-        $s\in\ITBar$, from $\vxi$ at $s=0$ to $\vx(t;\vxi)$ at $s=t$.}
-    \label{fig:lagrangian-eulerian-map}
-\end{figure}
-
-\begin{remark}[Eulerian vs. Lagrangian]
-    \label{rmk:eulerian-lagrangian}
-    The Eulerian description views fields such as $\phi(t,\vx)$ or
-    $\vu(t,\vx)$ at fixed spatial locations. The Lagrangian description follows
-    material particles $\vxi$ along trajectories generated by the velocity field
-    and views fields as functions of the material label $\vxi$ and time $t$,
-    such as $\widehat{\phi}(t,\vxi)=\phi(t,\La_t(\vxi))$ or
-    $\vuhat(t,\vxi)=\vu(t,\La_t(\vxi))$. The flow map $\La_t$ is the change of
-    variables between these descriptions, and the trajectory of a particle with
-    label $\vxi$ is the characteristic curve
-    $t\mapsto \vx(t;\vxi)=\La_t(\vxi)$. Where defined, the inverse
-    $\La_t^{-1}$ maps an Eulerian location back to its material label.
-\end{remark}
-
-Classical identities in this report are read under the standing regularity
-convention in Convention~\ref{conv:foundation-standing-regularity}. For
-trajectory existence and uniqueness, the standard ODE hypothesis is that the
-prescribed velocity field is continuous in time and uniformly Lipschitz in
-space; under that condition, particle trajectories exist uniquely and depend
-continuously on their initial
-labels~\cite[Ch.~2]{Teschl2012OrdinaryDifferentialEquations}.
-
-\subsubsection{Material derivative, transport, and balance laws}
-
-\begin{definition}[Material derivative]
-    \label{def:material-derivative}
-    For $\phi\in C^1(\mathcal{Q}_T)$, the material derivative is the derivative
-    along a particle trajectory:
-    \begin{flalign*}
-        \quad D_t\phi(t,\vx)
-        \defined
-        \dt\phi(t,\La_t(\vxi))
-        =
-        \pd_t \phi(t,\vx)+\vu(t,\vx)\cdot\nabla\phi(t,\vx),
-        \qquad \vxi=\La_t^{-1}(\vx). &&
-    \end{flalign*}
-\end{definition}
-
-For vector fields, the material derivative is applied componentwise. Let
-$\vFhat_t=\nabla_{\vxi}\La_t$ and $\Jhatdet_t=\det\vFhat_t$. In Eulerian
-notation this is written
-$\vF_t(\vx)=\vFhat_t(\La_t^{-1}(\vx))$ and
-$\Jdet_t(\vx)=\det\vF_t(\vx)=\det\vFhat_t(\La_t^{-1}(\vx))$.
-The standard Jacobian evolution law is
-\begin{flalign*}
-        \quad D_t\Jdet_t=\Jdet_t\,\Div\vu. &&
-\end{flalign*}
-This Jacobian identity supports the Reynolds transport theorem. Mass
-conservation is the separate balance law that gives the continuity equation
-used below; in the constant-density specialization, that equation reduces to
-the divergence-free constraint. Derivation details are deferred to
-Appendix~\ref{app:continuum-derivation-details}.
-\begin{theorem}[Reynolds Transport Theorem]
-    \label{thm:reynolds-transport}
-    Let $V(t)=\La_t(V(0))$ be a bounded material volume with Lipschitz boundary.
-    If $\phi\in C^1(\mathcal{Q}_T)$, then
-    \begin{flalign*}
-        \quad \dt\int_{V(t)}\phi\,\dx
-        &=
-        \int_{V(t)}\left(D_t\phi+\phi\,\Div\vu\right)\dx \\
-        &=
-        \int_{V(t)}\left(\pd_t \phi+\Div(\phi\vu)\right)\dx. &&
-    \end{flalign*}
-\end{theorem}
-
-Proof-level details for Theorem~\ref{thm:reynolds-transport} and the momentum
-balance below are found in Appendix~\ref{app:continuum-derivation-details}.
-Assumption~\ref{ass:blood-dynamics-kinematic-setting} supplies the 3D velocity,
-pressure, density, and stress fields used below. Mass conservation and linear
-momentum balance are imposed on material volumes and then localized to obtain
-the balance equations used in the model hierarchy.
-
-\begin{definition}[Material density preservation]
-    \label{def:material-density-preservation}
-    A flow has material density preservation if density is preserved along
-    particle trajectories:
-    \begin{flalign*}
-        \quad D_t\rho=0. &&
-    \end{flalign*}
-\end{definition}
-
-\begin{definition}[Incompressible flow]
-    \label{def:incompressible-flow}
-    A flow is incompressible, or volume preserving, if material volumes are
-    preserved. With $\La_0=\mathrm{Id}$ this is equivalent to
-    \begin{flalign*}
-        \quad \Jdet_t\equiv 1
-        \quad \Longleftrightarrow \quad
-        \Div\vu=0. &&
-    \end{flalign*}
-\end{definition}
-
-\begin{remark}[Divergence-free condition]
-    \label{rmk:incompressibility-divergence-free}
-    Mass conservation gives
-    \begin{flalign*}
-        \quad \pd_t \rho+\Div(\rho\vu)=0
-        \quad \Longleftrightarrow \quad
-        D_t\rho+\rho\Div\vu=0. &&
-    \end{flalign*}
-    In the constant-density model used for incompressible Navier--Stokes,
-    $\rho\equiv\rho_0>0$, so mass conservation reduces to
-    $\Div\vu=0$ in $\mathcal{Q}_T$.
-\end{remark}
-
-\begin{definition}[Linear momentum balance]
-    \label{def:linear-momentum-balance}
-    For a material fluid element $V(t)\subset\OmgBt$, the linear momentum
-    balance is
-    \begin{flalign*}
-        \quad
-        \dt\int_{V(t)}\rho\vu\,dV
-        =
-        \int_{\partial V(t)}\vT\nhat\,dS
-        +
-        \int_{V(t)}\rho\vfb\,dV, &&
-    \end{flalign*}
-    where $\vT$ is the Cauchy stress tensor and $\vfb$ is body force per unit
-    mass.
-\end{definition}
-
-\begin{definition}[Strong momentum balance]
-    \label{def:linear-momentum-balance-strong}
-    Under the regularity and mass-balance assumptions above, the local momentum
-    balance is
-    \begin{flalign*}
-        \quad
-        \rho\left(\pd_t \vu+(\vu\cdot\nabla)\vu\right)
-        =
-        \Divbf(\vT)+\rho\vfb,
-        \qquad \text{in } \OmgBt. &&
-    \end{flalign*}
-\end{definition}
-
-The stress law closes the momentum equation. Let the rate-of-deformation tensor be
-\begin{flalign*}
-    \quad \vct{D}(\vu)\defined
-    \frac{1}{2}\left(\nabla\vu+\nabla\vu^\top\right). &&
-\end{flalign*}
-
-\begin{definition}
-    \label{def:newtonian-fluid}
-    A fluid is Newtonian if, after separating the pressure contribution, its
-    viscous stress depends linearly on the rate-of-deformation tensor
-    $\vct{D}(\vu)$.
-\end{definition}
-
-\begin{remark}[Large-vessel continuum closure]
-    \label{rmk:blood-isotropy-justification}
-    Blood is often modeled as an isotropic continuum fluid at large-vessel
-    scales. This is a closure assumption for averaged behavior, not a microscopic
-    statement about cells suspended in plasma. The cited sources support the
-    scale and rheology caveat: nearly constant large-vessel relative viscosity
-    versus diameter- and hematocrit-dependent apparent viscosity in small tubes, not
-    a direct cellular-level isotropy
-    claim~\cite[Sec.~1.1.3, Fig.~1.14, pp.~12--14; Sec.~3.2, pp.~46--47]{KopplHelmig2023DimensionReducedModeling}~\cite[Abstract; pp.~H1770--H1772]{PriesEtAl1992BloodViscosityTubeFlow}.
-\end{remark}
-
-\begin{remark}[Isotropic constitutive response]
-    \label{rmk:isotropy-implication}
-    The stress law is first required to be objective, so it is not an artifact
-    of the observer or coordinate frame. Assuming in addition material
-    isotropy and linear dependence on $\vct{D}(\vu)$ gives the Newtonian
-    isotropic form below; isotropy is a material-symmetry assumption, not the
-    same statement as coordinate invariance.
-\end{remark}
-
-\begin{definition}[Newtonian, isotropic constitutive law]
-    \label{def:fluidsmodel}
-    For a Newtonian, isotropic fluid,
-    \begin{flalign*}
-        \quad \vT=-p\,\ident+2\eta\,\vct{D}(\vu)
-        +\lambda\,\Div(\vu)\,\ident, &&
-    \end{flalign*}
-    where $\eta$ is the dynamic viscosity and $\lambda$ is the coefficient of the
-    volumetric-viscous term.
-\end{definition}
-
-\begin{definition}[Incompressible stress tensor]
-    \label{def:incompressible-stress-tensor}
-    When $\Div\vu=0$, the Newtonian incompressible Cauchy stress is
-    \begin{flalign*}
-        \quad \vT=-p\,\ident+2\eta\,\vct{D}(\vu). &&
-    \end{flalign*}
-\end{definition}
-
-Generalized-Newtonian blood models keep the stress-level constitutive form but
-allow the dynamic viscosity to depend on the local deformation-rate
-magnitude~\cite[Part~I, Ch.~1, Secs.~2.7--3.1, pp.~16--19]{GaldiEtAl2008HemodynamicalFlows}.
-With the shear-rate convention
-\begin{flalign*}
-    \quad \dot{\gamma}\defined\sqrt{2\vct{D}(\vu):\vct{D}(\vu)}, &&
-\end{flalign*}
-the incompressible generalized-Newtonian Cauchy stress is
-\begin{flalign*}
-    \quad \vT=-p\,\ident
-    +2\eta_{\mathrm{eff}}(\dot{\gamma})\vct{D}(\vu). &&
-\end{flalign*}
-The pointwise Frobenius norm convention is
-\begin{flalign*}
-    \quad \norm{\vct{D}(\vu)}^2 \defined \vct{D}(\vu):\vct{D}(\vu)
-    =\sum_{i,j}D_{ij}(\vu)^2 &&
-\end{flalign*}
-When a source writes the viscosity as a function of $D:D$ or
-$|D|_{\mathrm F}^2$, this report translates it through the scalar shear-rate
-convention above. The coefficient $\eta_{\mathrm{eff}}$ is an effective dynamic
-viscosity; dividing by density gives the corresponding kinematic viscosity.
-The Newtonian incompressible model is recovered from this generalized
-Newtonian form when $\eta_{\mathrm{eff}}$ is constant. Positivity of a
-displayed scalar viscosity law alone is not used here as a standalone
-parabolicity theorem. Any theorem-level classification of the
-generalized-Newtonian PDE would additionally require stated lower-bound,
-growth, and monotonicity hypotheses for
-$2\eta_{\mathrm{eff}}(\sqrt{2D:D})D$.
-
-\begin{definition}[Implemented effective-viscosity closure catalog]
-    \label{def:rheology-closure-catalog}
-    A computed 1D realization uses the rheology descriptor $\mathcal R$ to choose
-    an implemented scalar effective dynamic-viscosity law
-    $\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma)$. The admitted descriptor
-    values are \texttt{newtonian}, \texttt{carreau}, \texttt{carreau-yasuda},
-    \texttt{casson}, and \texttt{power-law}. The displayed superscripts
-    abbreviate these descriptors, with $\mathrm{newt}$, $\mathrm{CY}$, and
-    $\mathrm{power}$ denoting \texttt{newtonian}, \texttt{carreau-yasuda}, and
-    \texttt{power-law}. This catalog defines the scalar dynamic-viscosity laws.
-    A computed 1D realization evaluates the selected law on the shear-rate proxy
-    in Appendix~\ref{app:numerical-methods-details} and forms the
-    closure-indexed kinematic viscosity
-    $\nu_{\mathrm{eff}}^{\mathcal R}
-    =\eta_{\mathrm{eff}}^{\mathcal R}/\rho$.
-    Assumption~\ref{ass:1d-first-run-alpha-friction} records that the velocity
-    profile, friction law, rheology descriptor, and wall closure are part of the
-    closed model specification. For computed non-Newtonian realizations, the
-    laws are evaluated at the positive regularized shear rate
-    \begin{flalign*}
-        \quad
-        \dot\gamma_\epsilon\defined\max\{|\dot\gamma|,\epsilon_\gamma\},
-        \qquad \epsilon_\gamma>0,\qquad [\epsilon_\gamma]=\mathrm{s}^{-1}. &&
-    \end{flalign*}
-    This positive regularization is required for the Casson and power-law
-    families when their zero-shear limits are singular or degenerate. For
-    descriptors that declare dynamic-viscosity bounds, the bounds satisfy
-    $0\leq\eta_{\min}\leq\eta_{\max}\leq\infty$ with $\eta_{\max}>0$ and define
-    the interval projection
-    \begin{flalign*}
-        \quad
-        \Pi_{[\eta_{\min},\eta_{\max}]}(\xi)
-        \defined
-        \min\{\eta_{\max},\max\{\eta_{\min},\xi\}\}. &&
-    \end{flalign*}
-    The bounded viscosity is then
-    $\Pi_{[\eta_{\min},\eta_{\max}]}
-    (\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma))$; without declared bounds,
-    this projection is the identity on the displayed model law.
-    \begin{flalign*}
-        \quad \eta_{\mathrm{eff}}^{\mathrm{newt}}
-        &\equiv \eta, &&\\
-        \quad \eta_{\mathrm{eff}}^{\mathrm{carreau}}(\dot\gamma)
-        &=
-        \eta_\infty+(\eta_0-\eta_\infty)
-        \left(1+(\lambda_{\mathrm C}\dot\gamma_\epsilon)^2\right)^{(n_{\mathrm C}-1)/2}, &&\\
-        \quad \eta_{\mathrm{eff}}^{\mathrm{CY}}(\dot\gamma)
-        &=
-        \eta_\infty+(\eta_0-\eta_\infty)
-        \left(1+(\lambda_{\mathrm{CY}}\dot\gamma_\epsilon)^{a_{\mathrm Y}}\right)^{(n_{\mathrm{CY}}-1)/a_{\mathrm Y}}, &&\\
-        \quad \eta_{\mathrm{eff}}^{\mathrm{casson}}(\dot\gamma)
-        &=
-        \left(\sqrt{\tau_y/\dot\gamma_\epsilon}+\sqrt{\eta_p}\right)^2, &&\\
-        \quad \eta_{\mathrm{eff}}^{\mathrm{power}}(\dot\gamma)
-        &=
-        K_{\mathrm{pl}}\dot\gamma_\epsilon^{n_{\mathrm{pl}}-1}. &&
-    \end{flalign*}
-    In the computed Newtonian path, the constant dynamic viscosity is
-    $\eta=\rho\nu$, so the closure-indexed kinematic viscosity reduces to
-    $\nu$.
-    The parameter domains are
-    \begin{flalign*}
-        \quad
-        \eta_0>0,\quad \eta_\infty\geq0,\quad \eta_0\geq\eta_\infty,
-        \quad \lambda_{\mathrm C},\lambda_{\mathrm{CY}}\geq0,
-        \quad n_{\mathrm C},n_{\mathrm{CY}}>0,\quad a_{\mathrm Y}>0, &&
-    \end{flalign*}
-    for the Carreau and Carreau--Yasuda families,
-    \begin{flalign*}
-        \quad \tau_y\geq0,\qquad \eta_p>0 &&
-    \end{flalign*}
-    for Casson, and
-    \begin{flalign*}
-        \quad K_{\mathrm{pl}}>0,\qquad n_{\mathrm{pl}}>0 &&
-    \end{flalign*}
-    for the power-law closure. Under the SI convention,
-    $\eta$, $\eta_0$, $\eta_\infty$, $\eta_p$,
-    $\eta_{\min}$, and $\eta_{\max}$ have units
-    $\mathrm{Pa}\cdot\mathrm{s}$, $\lambda_{\mathrm C}$ and
-    $\lambda_{\mathrm{CY}}$ have units $\mathrm{s}$, $\tau_y$ has units
-    $\mathrm{Pa}$, and $K_{\mathrm{pl}}$ has units
-    $\mathrm{Pa}\cdot\mathrm{s}^{n_{\mathrm{pl}}}$. In the cgs numerical
-    convention of Convention~\ref{conv:cm-second-numerical-record}, the
-    corresponding dynamic-viscosity parameters are in
-    $\mathrm{g}/(\mathrm{cm}\,\mathrm{s})$, $\tau_y$ is in
-    $\mathrm{dyn}/\mathrm{cm}^2$, and $K_{\mathrm{pl}}$ is in
-    $\mathrm{dyn}\,\mathrm{s}^{n_{\mathrm{pl}}}/\mathrm{cm}^2$.
-    The Yasuda transition exponent is denoted $a_{\mathrm Y}$ here so that it
-    is not confused with the solver coordinate $a=R^2$ used in the reduced
-    numerical realization.
-    The listed families are the implemented generalized-Newtonian viscosity
-    options used by this report's closure catalog; their parameter values are
-    model-record data rather than universal constants
-    \cite[Part~I, Ch.~1, Secs.~2.7--3.1, pp.~16--19]{GaldiEtAl2008HemodynamicalFlows}~\cite{KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}.
-\end{definition}
-
-\begin{remark}[Newtonian blood justification]
-    \label{rmk:newtonian-justification}
-    For large arteries, empirical studies suggest that apparent viscosity is often
-    approximately constant across the relevant operating range, motivating the
-    Newtonian approximation in many reduced-order hemodynamic models. However,
-    diameter-dependent, hematocrit-dependent, and shear-dependent effects become
-    increasingly important in smaller vessels and low-shear
-    regions~\cite[Sec.~1.1.3, pp.~12--14]{KopplHelmig2023DimensionReducedModeling}~\cite{PriesEtAl1992BloodViscosityTubeFlow}.
-\end{remark}
-
-Together, Assumption~\ref{ass:blood-dynamics-kinematic-setting} and the
-balance-law and stress-closure definitions in this subsection form the
-continuum contract used by the following hierarchy: material volumes and
-Reynolds transport support the mass and momentum balances, while
-incompressibility and the selected constitutive law specialize those balances
-into the PDE tiers that are later reduced by cross-sectional averaging.
+This background also fixes the role of rheology. Large-artery studies often use a
+Newtonian approximation, while generalized-Newtonian descriptors can be used when
+the effective viscosity is part of the declared closure. In either case, the
+comparison in this report depends on the selected closure contract and on the
+observation operator, not on an unstated continuum model.

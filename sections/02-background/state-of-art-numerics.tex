@@ -1,76 +1,48 @@
-\subsection{Numerical Methods and Verification of 1D Arterial Solvers}
+\subsection{Balance-Law Discretization and Implementation Verification}
 \label{subsec:verification-literature}
 
-The numerical-method state of the art for 1D arterial flow is shaped by the
-hyperbolic balance-law structure of the area--flow equations. Finite-volume
-methods remain attractive because they track conservation and discontinuity-like
-features through numerical fluxes, while benchmark studies have also compared
-finite element, discontinuous Galerkin, finite difference, and simplified
-network-oriented schemes
-\cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems,BoileauEtAl2015Benchmark,Wang2014BloodFlowNetworks}.
-In recent open implementations, MUSCL finite-volume discretizations and
-Lax--Friedrichs-type fluxes are common because they give robust low-cost
-baselines with simple boundary and coupling treatments
+One-dimensional arterial solvers are balance-law solvers: fluxes, sources,
+boundary conditions, and time integration all affect the reported solution.
+Finite-volume methods are common because they expose conservation and use
+numerical fluxes to control wave propagation, while benchmark studies also
+compare finite-element, DG, finite-difference, and network-oriented schemes
+\cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems,BoileauEtAl2015Benchmark,Wang2014BloodFlowNetworks}. Open implementations and recent
+Lax--Friedrichs-type workflows provide useful comparators for reproducible solver
+records
 \cite{BenemeritoEtAl2024OpenBF,BeckersKolbe2025LaxFriedrichsHemodynamics}.
 
-High-order and equilibrium-aware methods address different limitations of such
-baselines. DG and WENO reconstructions can improve smooth-region resolution, but
-their evidence depends on source quadrature, boundary treatment, positivity
-handling, and whether limiter fallback or projections alter the formal order.
-Well-balanced schemes target a separate requirement: a physically meaningful
-steady or rest state should remain steady under the discrete operator. Recent
-work on well-balanced explicit, semi-implicit, and high-order blood-flow
-schemes makes this a central numerical property for elastic vessels and network
-applications
-\cite{LuccaEtAl2025FFRPrediction,PimentelGarciaEtAl2025HighOrderWellBalanced}.
-That literature is directly relevant to this report because the selected
-Rusanov/MUSCL realization is deliberately reported as not exactly well balanced
-for the stenotic geometry-rest state.
+Well-balanced methods address a distinct requirement: a meaningful equilibrium
+should remain steady under the discrete operator. This matters for stenotic
+area--flow equations because geometry and wall-source terms can cancel in the
+continuous balance while failing to cancel after discretization. High-order and
+well-balanced methods therefore motivate explicit equilibrium tests, source
+quadrature audits, boundary-regime diagnostics, and positivity or limiter records
+\cite{PimentelGarciaEtAl2025HighOrderWellBalanced}. The present report uses that
+literature to interpret the non-well-balanced geometry-rest drift as a material
+numerical limitation.
 
-Verification asks whether the implementation solves the declared equations and
-produces reproducible numerical records. For hyperbolic finite-volume solvers,
-relevant evidence includes conservation diagnostics, CFL reporting,
-positivity/limiting records, grid and timestep refinement, boundary-regime
-checks, exact equilibria, and manufactured solutions
-\cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems}. Arterial solver
-benchmarks provide a useful cross-code reference for wave propagation and
-network behavior, but they do not replace problem-specific verification of a
-selected stenosis realization
-\cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}.
+Implementation verification asks whether the code solves the declared equations
+and produces reproducible numerical records. Relevant evidence includes MMS
+studies, exact-equilibrium tests, grid and timestep sensitivity, CFL and
+subcriticality diagnostics, conservation records, positivity handling, and
+artifact provenance. A benchmark-stage completion row or backend-parity check can
+support implementation health, but it does not replace a manufactured-solution
+record or a rest-equilibrium preservation test for the selected stenosis solver.
 
-This distinction matters for the present report. A benchmark-stage completion
-row, an output-consistency check, or a cross-integrator discrepancy can be
-useful evidence about the computational realization, but it is weaker than a
-manufactured-solution convergence table or a demonstrated discrete equilibrium.
-A fixed-area characteristic boundary rule also requires evidence that the sign
-condition under which it is applied holds in the sampled run. Verification
-therefore has to persist diagnostic quantities, not only final plots.
-
-The literature also separates method order from study validity. A high-order
-scheme can still be the wrong evidence for a pressure-ratio claim if the
-pressure observation maps, wall model, inlet/outlet histories, and comparison
-data are not matched. Conversely, a lower-order method can still support a
-bounded implementation claim if its equations, numerical record, diagnostics,
-and limitations are explicit. The present report follows the second path: it
-states the selected method, exposes its rest-state defect, and limits the
-resolved comparison to velocity-output discrepancies.
-
-\subsection{Cross-Dimensional Comparison and Validation}
+\subsection{Cross-Dimensional Observation Operators and Evidence Categories}
 \label{subsec:cross-dimensional-comparison-review}
 
-A 1D--3D comparison is meaningful only after the compared observable has been
-mapped to a common quantity. For velocity, this can mean reducing a resolved
-3D velocity field to section averages, radial profiles, or point/slab samples.
-For pressure and FFR-style quantities, the required maps are different and
-must include proximal/distal pressure observations and time-averaging
-conventions
-\cite{Blanco2018FFR1D3D,LuccaEtAl2025FFRPrediction,ShaikhEtAl2025CTFFR}.
-Agreement under one operator is not agreement under another.
+A 1D--3D comparison is meaningful only after both outputs have been mapped to a
+common observable. For the velocity comparison in this report, the declared
+plane--tetrahedron operator reduces the resolved 3D field to section area,
+physical flow, and area-mean axial velocity, while the 1D state supplies
+$Q_{1D}=\pi q$ and $\bar u_{1D}=q/a$. Agreement or discrepancy under this
+operator is not automatically agreement under another observable.
 
-Validation is still a separate evidential category. A comparison with another
-simulation can identify cross-model discrepancies, but it does not establish
-physical accuracy for the target question unless the reference model and its
-boundary, wall, material, and history data are themselves accepted for that
-purpose. The present work therefore uses cross-model velocity discrepancy
-language and reserves \emph{error} for exact solutions, manufactured solutions,
-or accepted reference data under matched conditions.
+The literature categories also need to stay separate. Implementation verification
+checks a code against its declared equations and reference tests. Diagnostic
+cross-model comparison reports discrepancies between two computational outputs
+under a declared operator. External validation would require an accepted target
+for the question, including matched geometry, wall and material assumptions,
+boundary histories, timing, and measurement or reference conventions. The C23/C40
+comparison in this report belongs to the second category.
