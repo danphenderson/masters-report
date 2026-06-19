@@ -1,4 +1,0 @@
-status,severity,pressure_drop_pa,pressure_drop_dyn_cm2,mesh_nz,mesh_nr,mesh_ntheta,seed_count,seed_definitions,z_start_cm,z_end_cm,sample_count,trajectory_csv,note
-written,23,40,400,64,6,32,5,centerline;offaxis_radius_min_0p45_R0_start_0p70_R0_throat_at_theta0_90_180_270,0.05,5.95,241,figures/static/static/data/stenosis-geometry/stokes_particle_trajectories.csv,generated stationary Stokes streamlines for C-infinity geometry
-written,50,40,400,64,6,32,5,centerline;offaxis_radius_min_0p45_R0_start_0p70_R0_throat_at_theta0_90_180_270,0.05,5.95,241,figures/static/static/data/stenosis-geometry/stokes_particle_trajectories.csv,generated stationary Stokes streamlines for C-infinity geometry
-written,73,40,400,64,6,32,5,centerline;offaxis_radius_min_0p45_R0_start_0p70_R0_throat_at_theta0_90_180_270,0.05,5.95,241,figures/static/static/data/stenosis-geometry/stokes_particle_trajectories.csv,generated stationary Stokes streamlines for C-infinity geometry

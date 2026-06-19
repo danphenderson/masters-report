@@ -1,2 +1,0 @@
-status,severity,length_cm,rbase_cm,fem_csv,fem_mesh_nz,fem_mesh_nr,fem_mesh_ntheta,fem_nodes,fem_cells,fem_view_segments,fvm_csv,fvm_method,fvm_nx,fvm_dx_cm,note
-written,50,6,0.18,figures/static/static/data/stenosis-geometry/fem_mesh_view_sev50.csv,64,6,32,12545,67584,5228,figures/static/static/data/stenosis-geometry/fvm_mesh_view_sev50.csv,fv-muscl-minmod,400,0.015,mesh views for the C-infinity default stenosis geometry

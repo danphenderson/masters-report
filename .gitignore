@@ -11,6 +11,12 @@
 !.env.example
 !.env.template
 
+# Local review/orchestration notes that are not part of the public release
+executive-assessment.md
+claim_evidence_ledger.yaml
+final_editorial_rewrite_workflow.md
+manuscript_agent_harness.yaml
+
 # Python/Pipenv local state
 .venv/
 venv/
@@ -57,6 +63,13 @@ tmp/
 simulations/output/
 simulations/data/3d/
 figures/static/static/generated/
+final-report.pdf
+
+# Private local full-text/reference mirrors. Public releases keep bibliography
+# metadata and source inventory only.
+references/**/*.pdf
+references/**/*.html
+references/**/*.htm
 
 # Local tool state
 .cache/

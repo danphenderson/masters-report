@@ -1,25 +1,70 @@
-# Masters Report
+# StenosisHemodynamics
 
-This repository contains the LaTeX source for the master's report rooted at
-`final-report.tex`.
+This repository contains the Julia package, simulations, tests, and LaTeX
+source for an idealized stenotic-vessel hemodynamics master's report. The
+report source is rooted at `final-report.tex`; the solver package is
+`StenosisHemodynamics` under `src/`.
 
-## Build
+The project is prepared for public peer review as a source tree. It does not
+track generated final PDFs, third-party full-text reference mirrors, private
+review notes, local caches, raw optional resolved-3D inputs, or ordinary
+simulation outputs.
 
-Use a scratch output directory for validation builds:
+## Reviewer Quick Start
+
+Run Julia package validation with the repository-managed Julia 1.12+ launcher:
+
+```bash
+./scripts/julia-release test/runtests.jl
+```
+
+Build the report from source in a scratch directory:
 
 ```bash
 latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=/tmp/masters-report-build final-report.tex
 ```
 
-Treat `final-report.pdf` as the final synced render. Validate with a scratch
-build first, then refresh the tracked PDF only after checking the rendered
-pages.
+Run a small solver smoke case:
 
-Artifact classes and cleanup guardrails are documented in
-[`docs/artifact-policy.md`](docs/artifact-policy.md).
-Revision claim and release gates for the current executive-assessment response
-are tracked in [`docs/revision-claim-ledger.md`](docs/revision-claim-ledger.md)
-and [`docs/revision-release-gates.md`](docs/revision-release-gates.md).
+```bash
+./scripts/stenosis-hemodynamics simulate \
+  --nx 32 \
+  --tfinal 1e-5 \
+  --output tmp/smoke/simulate.csv
+```
+
+Install and validate Python support tooling only when report audits or figure
+renderers are needed:
+
+```bash
+pipenv install --dev
+pipenv run pytest
+pipenv run ruff check .
+pipenv run black --check .
+```
+
+Artifact classes, cleanup guardrails, and public-release checks are documented
+in [`docs/artifact-policy.md`](docs/artifact-policy.md) and
+[`docs/publication-readiness.md`](docs/publication-readiness.md).
+
+## Data and References
+
+Tracked report assets under `figures/static/static/` are derived artifacts used
+by the current TeX source. Optional raw resolved-3D inputs are intentionally not
+tracked; workflows that depend on them skip cleanly when the local files are
+absent.
+
+Bibliography metadata lives in `references.bib`; source provenance lives in
+[`references/source-inventory.tsv`](references/source-inventory.tsv). Public
+Git releases do not track third-party full-text PDFs or publisher HTML mirrors
+under `references/`.
+
+## Licensing
+
+Original code is licensed under the MIT license in [`LICENSE`](LICENSE).
+Original report prose and original derived figures are covered by the
+documentation notice in [`LICENSE-docs`](LICENSE-docs). Third-party references,
+external datasets, and publisher artifacts are excluded from those grants.
 
 ## Figure Assets
 

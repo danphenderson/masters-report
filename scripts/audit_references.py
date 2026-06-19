@@ -31,6 +31,7 @@ CURRENT_CITED_ARCHIVE_PREFIXES = (
 )
 REFERENCE_NON_ARTIFACTS = {
     "references/AGENTS.md",
+    "references/README.md",
     INVENTORY_PATH.as_posix(),
 }
 
@@ -194,13 +195,24 @@ def check_archive_coverage(
         bib_key = row["bib_key"]
         status = row["status"]
 
-        if local_path and local_path not in artifacts:
+        if local_path and not local_path.startswith("references/"):
+            issues.append(
+                AuditIssue(
+                    INVENTORY_PATH.as_posix(),
+                    line,
+                    "inventory-path-outside-references",
+                    f"local_path must stay under references/ or point to a private references mirror: {local_path}",
+                )
+            )
+        elif local_path and local_path in artifacts:
+            pass
+        elif local_path and Path(local_path).suffix.lower() not in {".pdf", ".html", ".htm"}:
             issues.append(
                 AuditIssue(
                     INVENTORY_PATH.as_posix(),
                     line,
                     "inventory-path-not-tracked-artifact",
-                    f"local_path is not a tracked reference artifact: {local_path}",
+                    f"non-full-text local_path is not a tracked reference artifact: {local_path}",
                 )
             )
 

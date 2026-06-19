@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this code or report source, please cite it using this metadata."
+title: "StenosisHemodynamics: Julia workflows for an idealized stenosis study"
+authors:
+  - family-names: Henderson
+    given-names: Daniel
+    affiliation: "Michigan Technological University"
+version: 0.1.0
+date-released: 2026-06-19
+license: MIT
+abstract: "Julia package code, simulations, validation tests, and LaTeX report source for an idealized stenotic-vessel hemodynamics study."

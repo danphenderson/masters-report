@@ -2,10 +2,11 @@
 
 # References Agent Instructions
 
-This directory tree stores local literature and web-source artifacts used by or
-adjacent to the master's report. The report bibliography entrypoint remains
-`references.bib`; local archive provenance is tracked separately in
-`references/source-inventory.tsv`.
+This directory tree stores public bibliography metadata and private/local path
+hints for literature and web-source artifacts used by or adjacent to the
+master's report. The report bibliography entrypoint remains `references.bib`;
+source provenance is tracked separately in `references/source-inventory.tsv`.
+Public GitHub releases do not track third-party full-text PDFs or HTML mirrors.
 
 ## Directory Policy
 
@@ -37,8 +38,10 @@ manuscript:
 
 ## Inventory Contract
 
-Maintain `references/source-inventory.tsv` for every tracked source artifact
-under `references/**` except this file and the inventory itself. The columns are:
+Maintain `references/source-inventory.tsv` for every source record used by the
+report or retained as research context. In public releases, `local_path` is a
+private archive path hint and may point to an ignored local PDF or HTML file
+that is not tracked by Git. The columns are:
 
 ```text
 source_id    bib_key    local_path    status    manuscript_role    notes
@@ -57,8 +60,8 @@ Use these status values only:
   retained for a documented provenance reason.
 
 `current-cited` rows must have a `bib_key` present in `references.bib` and cited
-by the current TeX source. Rows may leave `bib_key` blank when a local artifact
-has no BibLaTeX entry yet; record that gap in `notes`.
+by the current TeX source. Rows may leave `bib_key` blank when a source has no
+BibLaTeX entry yet; record that gap in `notes`.
 
 ## Naming Convention
 
@@ -73,7 +76,8 @@ the metadata is resolved.
 
 ## Required Validation
 
-After moving, adding, or reclassifying files under `references/**`, run:
+After moving, adding, reclassifying, or externalizing source records under
+`references/**`, run:
 
 ```text
 python3 scripts/audit_references.py
