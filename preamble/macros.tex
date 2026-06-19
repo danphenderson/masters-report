@@ -6,6 +6,20 @@
 \DeclareRobustCommand{\gray}[1]{\begingroup\color{Gray}\ignorespaces#1\endgroup\ignorespacesafterend}
 \newenvironment{redblock}{\begingroup\color{Red}\ignorespaces}{\endgroup\ignorespacesafterend}
 
+\newenvironment{stenosisillustration}{%
+    \begin{center}
+    \begin{minipage}{0.92\linewidth}
+    \hrule
+    \smallskip
+    \small
+    \textbf{Illustration from the idealized stenosis study.}\par\smallskip
+}{%
+    \smallskip
+    \hrule
+    \end{minipage}
+    \end{center}
+}
+
 
 % ---------- Define custom colors ----------
 \definecolor{bg}{rgb}{0.95,0.95,0.92}

@@ -1,0 +1,151 @@
+\section{Mathematical Model Hierarchy}
+\label{sec:model-hierarchy}
+
+Hemodynamic models are best read as a hierarchy of retained variables,
+closures, and observation maps, not as a single ladder of accuracy. A resolved
+three-dimensional model retains local velocity and pressure fields in the lumen.
+A fluid--structure interaction model additionally retains wall motion and
+interface work. Axisymmetric and two-dimensional models retain selected
+geometric or sectional structure. Distributed one-dimensional models retain
+axial propagation of area and flow. Zero-dimensional and network models retain
+compartmental pressure--flow relations. Geometrical multiscale models couple
+several of these tiers through interface conditions. Surrogate, PINN, and
+operator-learning models approximate solution or parameter-to-solution maps and
+therefore inherit the tier, data, and loss conventions used to train or
+constrain them
+\cite{QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,KopplHelmig2023DimensionReducedModeling}.
+
+\subsection{Resolved and Reduced Tiers}
+\label{subsec:resolved-reduced-model-tiers}
+
+The resolved continuum tier starts from conservation of mass and momentum on a
+three-dimensional lumen. In a fixed-wall CFD model the wall is a prescribed
+geometric boundary, while in resolved FSI the wall has structural degrees of
+freedom and transfers kinematic and traction information through a moving
+interface \cite{QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2007FSICoupling}.
+These models can expose local velocity gradients, wall traction, pressure
+fields, recirculation, separation, and geometry-specific flow structures. A WSS
+quantity, for example, is not just a scalar label: it requires a stress tensor,
+wall normal, tangent projection convention, and surface output map
+\cite{JohnEtAl2017WallShearStressVectorForm}.
+
+Axisymmetric and two-dimensional models occupy an intermediate role. They retain
+more geometry and local velocity information than a one-dimensional area--flow
+model, but they remove at least one spatial direction or impose symmetry. This
+makes them useful for idealized stenosis studies, sectional diagnostics, and
+controlled comparisons, while still requiring declared boundary conditions,
+rheology, wall treatment, and observable definitions.
+
+Distributed 1D models reduce each vessel segment to axial variables, most often
+cross-sectional area, flow, mean velocity, and pressure. They preserve pulse
+propagation and vessel-to-vessel transport at far lower cost than resolved
+CFD/FSI, but profile, wall, friction, rheology, stenosis, and boundary effects
+enter as closures rather than resolved fields
+\cite{FormaggiaEtAl2003OneDimensionalBloodFlow,KopplHelmig2023DimensionReducedModeling}.
+This tier is therefore the natural setting for a single-vessel stenosis solver
+whose native outputs are area, flow, mean velocity, and reduced pressure.
+
+Stenosis-specific reductions also divide by observable. Pressure-loss formulas
+and pressure-drop reduced-order models target obstruction through a flow--loss
+relation, while distributed 1D stenosis models place narrowed reference geometry
+and wall response inside an area--flow system. Network-scale coronary models add
+tree structure and terminal assumptions, so their pressure and flow outputs must
+be read with the same closure discipline
+\cite{LyrasLee2021PressureDropROM,DuanmuEtAl2019CoronaryArterialTree,CanicEtAl2024Extended1DStenosis}.
+
+\subsection{Network, Multiscale, and Learned Maps}
+\label{subsec:network-multiscale-learned-models}
+
+Zero-dimensional and network models replace distributed fields with lumped
+states and algebraic or ordinary-differential pressure--flow relations. They are
+central for terminal resistance, compliance, circulation closure, and large
+arterial networks, but their state variables are not local wall or velocity
+fields \cite{ShiEtAl2011BloodFlowModelReview}. In a single-vessel calculation,
+these models most often enter through inlet or outlet closure rather than as the
+main spatial solver.
+
+Geometrical multiscale models connect tiers, for example 3D--1D, 3D--0D, or
+1D--0D, through interface conditions that transfer pressure, flow, traction,
+impedance, or characteristic information
+\cite{QuarteroniVeneziani2003GeometricalMultiscale,FormaggiaEtAl2007FSICoupling}.
+The mathematical issue is not only that two solvers are coupled; it is that the
+interface variables must have compatible meanings across dimensions.
+
+Surrogate and scientific-ML models add a second axis to the hierarchy. A PINN
+uses residual, boundary, data, and regularization terms to constrain an
+approximate solution or inverse map
+\cite{RaissiEtAl2019PhysicsInformedNeuralNetworks,YuEtAl2026PINNHemodynamicsReview}.
+Operator-learning models, such as DeepONet and Fourier neural operators, learn
+maps between functions or parameterized fields
+\cite{LuEtAl2021DeepONet,LiEtAl2021FNO}. In stenosed-vessel applications, deep
+operator learning can target flow-model maps directly
+\cite{VelikorodnyEtAl2025DeepOperatorStenosed}. These learned categories do not
+remove the need to state the underlying model tier: a neural surrogate of a 1D
+model has different native outputs from a neural surrogate trained on resolved
+3D velocity fields.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Compact comparison of cardiovascular model tiers. ``Native
+    outputs'' means quantities retained directly by the mathematical state,
+    before an observation or reconstruction map is applied.}
+    \label{tab:model-hierarchy-comparison}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.19\textwidth}
+        >{\raggedright\arraybackslash}p{0.27\textwidth}
+        >{\raggedright\arraybackslash}p{0.25\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Category}
+            & \textbf{Native outputs}
+            & \textbf{Main closures}
+            & \textbf{Typical role} \\
+        \midrule
+        3D CFD
+            & Lumen velocity, pressure, stress-derived wall quantities.
+            & Geometry, rheology, wall boundary, inlet/outlet data, numerical
+            resolution.
+            & Local hemodynamics, pressure and velocity fields, WSS diagnostics. \\
+        Resolved FSI
+            & Fluid fields plus wall displacement, wall velocity, structural stress.
+            & Structural model, material law, interface coupling, fluid closures.
+            & Moving-wall mechanics and fluid--structure interaction. \\
+        Axisymmetric / 2D
+            & Reduced spatial velocity and pressure fields on a symmetry or
+            sectional domain.
+            & Symmetry assumptions, reduced geometry, boundary data, wall treatment.
+            & Controlled stenosis studies and lower-cost resolved diagnostics. \\
+        Distributed 1D
+            & Axial area, flow, mean velocity, pressure or pressure surrogate.
+            & Profile, wall law, friction, rheology, stenosis geometry, boundary
+            rules.
+            & Network-ready pulse propagation and single-vessel stenosis studies. \\
+        0D / network
+            & Lumped pressures, volumes, flows, and terminal states.
+            & Resistance, compliance, inertance, valves, junctions, terminal beds.
+            & Circulation closure, outlet models, and large-system screening. \\
+        Geometrical multiscale
+            & Coupled tier-specific states with shared interface variables.
+            & Interface pressure/flow/traction/impedance laws and stability rules.
+            & Coupling local resolved regions to reduced or lumped circulation. \\
+        Surrogate / PINN / operator learning
+            & Learned solution fields, parameters, or function-to-function maps.
+            & Training data, residual loss, architecture, normalization, model tier.
+            & Fast emulation, inverse estimation, and parametric maps. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{stenosisillustration}
+\label{ex:stenosisillustration-model-hierarchy}
+The StenosisHemodynamics case study sits in the distributed 1D branch. Its
+mathematical state is a single-vessel area--flow system with an analytic
+stenosis reference geometry and reduced wall/friction/profile closures. The
+case study therefore belongs beside other 1D stenosis models, including
+extended variable-radius formulations \cite{CanicEtAl2024Extended1DStenosis},
+rather than beside resolved CFD or FSI as a native wall-traction or
+wall-displacement solver. When it is compared with resolved data, the
+comparison passes through an observation map from 1D area--flow variables to the
+chosen velocity, flow, or pressure quantity.
+\end{stenosisillustration}

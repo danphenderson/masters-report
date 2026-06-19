@@ -1,15 +1,15 @@
-\section{Model and Computational Methodology}
+\subsection{Model and Computational Methodology}
 \label{sec:methodology}
 
-This chapter is the implementation contract for the completed numerical audit.
-It fixes the physical variables, solver-coordinate map, stenosis geometry, wall
+This section is the implementation contract for the worked stenosis example. It
+fixes the physical variables, solver-coordinate map, stenosis geometry, wall
 law, source terms, boundary approximation, principal finite-volume realization,
 velocity observation operator, comparison design, and provenance record before
 any numerical result is interpreted. Secondary solver surfaces remain appendix
 and verification context unless a result table explicitly identifies them as the
 active method.
 
-\subsection{Physical and Solver Variables}
+\subsubsection{Physical and Solver Variables}
 \label{subsec:methodology-problem-definition}
 \label{subsec:selected-1d-forward-model}
 \label{subsec:cross-sectional-variables-governing-equations}
@@ -80,11 +80,11 @@ follows standard compliant-artery and dimension-reduced modeling arguments
         \pd_a\Psi_h(a)=\frac{K}{2\rho R_{\max}^2}\sqrt a.
         &&
     \end{flalign*}
-    This map is the convention used by the Section~\ref{sec:resolved-3d-comparison}
-    velocity and flow comparisons.
+    This map is the convention used by the
+    Section~\ref{sec:resolved-3d-comparison} velocity and flow comparisons.
 \end{definition}
 
-\subsection{Geometry and Wall Law}
+\subsubsection{Geometry and Wall Law}
 \label{subsec:stenosis-geometry-implemented-coordinates}
 \label{subsec:selected-wall-law-closure-model}
 
@@ -117,8 +117,8 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     $z_s=3.4\,\mathrm{cm}$, $\sigma_a=1\,\mathrm{cm}$,
     $\kappa=0.95\,\mathrm{cm}$, and
     $\lambda=50\,\mathrm{cm}^{-4}$.
-    This geometry is the baseline idealized simulation geometry in this report,
-    not patient-specific morphology.
+    This geometry is the baseline idealized simulation geometry for the worked
+    example.
 \end{definition}
 
 \begin{remark}[Stenosis-profile and variable-radius boundary]
@@ -132,11 +132,10 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     Canic et al.\ show that standard 1D variable-geometry models may miss
     stenotic pressure and velocity trends unless additional variable-radius
     terms are included \cite[Abstract; Secs.~1--2]{CanicEtAl2024Extended1DStenosis}.
-    Those corrections are included only by the \texttt{canic-extended-1d}
-    forward-model descriptor; the classical parabolic-profile baseline
-    currently recorded by the historical token \texttt{classical-1d-no-slip}
-    retains the same selected wall law but omits the Canic variable-radius
-    corrections.
+    Those corrections are included by the \texttt{canic-extended-1d}
+    forward-model descriptor; the \texttt{classical-1d-no-slip} descriptor is
+    the parabolic-profile baseline that retains the same selected wall law but
+    omits the Canic variable-radius corrections.
 \end{remark}
 
 \begin{definition}[Classical parabolic-profile 1D baseline]
@@ -147,14 +146,13 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     tube, but no-slip alone does not imply that profile in an unsteady stenotic
     vessel. The parabolic profile is therefore an independent cross-sectional
     closure with $\alpha_{\mathcal P}=4/3$ and $g_{\mathcal P}=4$. In the
-    implementation manifests this member is still recorded under the historical
-    token \texttt{classical-1d-no-slip}; in the mathematical discussion it is
+    implementation manifests this member is recorded under the descriptor
+    \texttt{classical-1d-no-slip}; in the mathematical discussion it is
     the classical parabolic-profile baseline. It keeps the same reduced state
     variables and selected Canic-derived pressure--area wall law as the
     extended 1D framework, but omits the Canic effective-alpha variable-radius
-    correction. The descriptor \texttt{canic-extended-1d} is the historical
-    manifest token for the current $R_{\max}$-normalized Canic-derived
-    extended-model member.
+    correction. The descriptor \texttt{canic-extended-1d} names the
+    $R_{\max}$-normalized Canic-derived extended-model member.
 \end{definition}
 
 \begin{definition}[Selected Canic--Koiter pressure--area wall law]
@@ -210,7 +208,7 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     evolution wall law.
 \end{definition}
 
-\subsection{Implemented $R_{\max}$-Normalized Balance Law}
+\subsubsection{Implemented $R_{\max}$-Normalized Balance Law}
 \label{subsec:conservative-form-source-terms}
 
 \begin{definition}[Closed 1D area-flow model]
@@ -432,7 +430,7 @@ Continuous compatibility does not imply discrete preservation: the current
 MUSCL/Rusanov realization exhibits the reported non-well-balanced
 geometry-rest drift.
 
-\subsection{Source-to-Implementation Differences}
+\subsubsection{Source-to-Implementation Differences}
 \label{subsec:source-to-implementation-variant}
 
 The selected implementation is a documented Canic-derived extended model, not
@@ -497,13 +495,13 @@ frozen-viscosity computational closure for this term.
         Discrete well balancing
             & Continuous rest equilibrium is a model-level property.
             & Rusanov/MUSCL is not exactly well balanced for spatially varying
-            $R_0$; Chapter~\ref{sec:numerical-verification} reports
+            $R_0$; Section~\ref{sec:numerical-verification} reports
             zero-forcing rest-state drift. \\
         \bottomrule
     \end{tabularx}
 \end{table}
 
-\subsection{Boundary Approximation and Subcritical Condition}
+\subsubsection{Boundary Approximation and Subcritical Condition}
 \label{subsec:initial-boundary-conditions}
 
 The comparison runs start from the geometry-rest state and then impose the
@@ -553,7 +551,7 @@ variable-$\alpha_{\mathrm{eff}}$ solver. It is therefore an implemented boundary
 approximation, not an exact invariant derivation for the full variable-radius
 balance law.
 
-\subsection{Principal MUSCL/Rusanov/SSPRK3 Realization}
+\subsubsection{Principal MUSCL/Rusanov/SSPRK3 Realization}
 \label{subsec:muscl-ssprk3-discretization}
 
 Only the principal comparison method belongs in the main narrative. The reported
@@ -570,25 +568,17 @@ native time-stepper, and SciML/OrdinaryDiffEq surfaces are implementation-check
 or sensitivity context summarized in Table~\ref{tab:implemented-discretization-surface};
 they are not the principal C23/C40 comparison method.
 
-\subsection{Plane--Tetrahedron Observation Operator}
+\subsubsection{Plane--Tetrahedron Observation Operator}
 \label{subsec:cross-sectional-velocity-reconstruction}
 \label{subsec:plane-tetrahedron-comparison-operator}
 
 The 1D state directly supplies a section mean,
 $\bar u_{1D}(z,t)=q(z,t)/a(z,t)$, and physical flow
-$Q_{1D}(z,t)=\pi q(z,t)$. Principal radial profile plots use the
-current-radius coordinate $r/\sqrt{a(z,t)}$ and the parabolic-profile
-reconstruction
-\begin{flalign*}
-    \quad
-    u_{1D}(r;z,t)
-    &=
-    2\,\frac{q(z,t)}{a(z,t)}
-    \left(1-\left(\frac{r}{\sqrt{a(z,t)}}\right)^2\right) &&
-\end{flalign*}
-with the supplemental reference-radius coordinate $r/R_0(z)$ retained as an
-operator-control output. That reconstruction is a profile diagnostic, not a
-resolved secondary-flow, separation, skewness, or wall-traction model.
+$Q_{1D}(z,t)=\pi q(z,t)$. The implementation can also emit radial-profile
+rows using the same cut triangles, but those rows are quarantined in this
+manuscript because direct recomputation from the tracked radial data has not
+been reconciled with the existing summary values. No radial-profile figure,
+table, or interpretation is used as retained evidence.
 
 For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
 \texttt{CrossSectionQuadratureOperator} intersects every tetrahedron with
@@ -630,14 +620,9 @@ coordinate:
     =
     q(z_j,t)/a(z_j,t). &&
 \end{flalign*}
-Radial profile rows use the same cut triangles, binned by area-conservative
-three-point triangle quadrature in either $r/\sqrt{a(z,t)}$ or $r/R_0(z)$.
-The recorded controls include 10/20/40-bin sensitivity, area-weighted bin
-means, within-bin azimuthal variance, and the current-to-reference area
-mismatch. Empty bins are reported as invalid rows rather than zero-velocity
-observations.
+Quarantined radial rows are not part of the retained comparison metrics.
 
-\subsection{Comparison Design, Discrepancy Metrics, and Provenance}
+\subsubsection{Comparison Design, Discrepancy Metrics, and Provenance}
 \label{subsec:numerical-experiments-metrics-provenance}
 
 The resolved-velocity comparison evaluates the selected 1D solution against two
@@ -645,10 +630,9 @@ available resolved 3D velocity comparison datasets at nominally aligned
 final-time samples: the 1D output is sampled at $1.0$ s and the XDMF velocity
 field records $0.9995$ s. The cases are labelled C23 and C40 by stenosis
 severity. The comparison is a diagnostic cross-model velocity comparison under
-the declared observation operator. The C23/C40 section and radial quantities are
-descriptive cross-model discrepancies under the declared operator, not
-validation, accuracy, pressure-drop, FFR, physiological, clinical, predictive,
-or causal evidence.
+the declared observation operator, and the model-matching matrix below states
+the evidence boundary for interpreting the retained C23/C40 section
+discrepancies.
 
 \begin{center}
 \fbox{\begin{minipage}{0.90\linewidth}
@@ -807,6 +791,7 @@ and PGFPlots-ready static data, not the raw fields.
         \toprule
         \textbf{Quantity} & \textbf{Recorded value} \\
         \midrule
+        Package & \texttt{StenosisHemodynamics}. \\
         Forward model & \path{canic-extended-1d}. \\
         Wall model & $\mathcal W_{\mathrm{elastic1D}}$ with the selected
         Canic--Koiter pressure--area law

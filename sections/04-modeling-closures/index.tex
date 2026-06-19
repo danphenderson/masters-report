@@ -1,0 +1,127 @@
+\section{Constitutive, Geometric, Boundary, and Observable Modeling}
+\label{sec:modeling-closures}
+\label{sec:modeling-closures-observables}
+
+Choosing a model tier does not close a hemodynamic problem. The mathematical
+state must be paired with constitutive, geometric, wall, boundary, and
+observable conventions. These choices determine which terms appear in the
+equations and which reported quantities are native states, derived fields,
+diagnostics, or cross-tier observation maps.
+
+\subsection{Constitutive and Wall Closures}
+\label{subsec:constitutive-wall-closures}
+
+Blood is often modeled as an incompressible Newtonian fluid in large-vessel
+simulations, especially when the target quantities are dominated by moderate to
+high shear rates and the uncertainty in geometry or boundary data is already
+large. Non-Newtonian categories remain important in stenotic, small-vessel, or
+low-shear regimes because viscosity may depend on shear rate, hematocrit, and
+diameter \cite{PriesEtAl1992BloodViscosityTubeFlow}. In a review taxonomy,
+Carreau and Carreau--Yasuda laws represent shear-thinning models with limiting
+viscosities, Casson laws introduce a yield-stress-like response, and power-law
+models represent scale-free shear-rate dependence. Computational studies of
+Carreau--Yasuda and intracranial stenosis rheology illustrate why the selected
+rheology must be reported with the resulting hemodynamic observable
+\cite{KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}.
+
+Wall modeling is a separate closure axis. A fixed-wall model prescribes the
+lumen boundary and solves only the fluid problem. A reduced compliant-wall model
+uses an algebraic or differential pressure--area relation to close a 1D or
+network state. A resolved FSI model solves structural wall motion and couples it
+to the fluid at the interface
+\cite{FormaggiaEtAl2003OneDimensionalBloodFlow,FormaggiaEtAl2007FSICoupling}.
+The same rheology can be paired with any of these wall choices, so rheology and
+wall mechanics should not be merged into a single modeling label.
+
+\subsection{Geometry, Boundary Data, and Observables}
+\label{subsec:geometry-boundary-observable-closures}
+
+A stenosis can enter the mathematics as a resolved lumen narrowing, an
+axisymmetric radius profile, a 1D reference-area variation, an empirical
+pressure-loss relation, or a network resistance. Distributed 1D formulations
+make the reference area and its derivatives part of the balance-law closure,
+while resolved models represent the same narrowing through the computational
+domain. Extended 1D stenosis formulations show that variable-radius effects may
+require more than simply replacing a healthy radius with a narrowed radius in a
+standard area--flow model \cite{CanicEtAl2024Extended1DStenosis}.
+
+Boundary data are equally model dependent. Inlets may be prescribed as
+velocity profiles, mean-flow waveforms, pressure histories, or characteristic
+incoming data. Outlets may be prescribed as pressure, traction, resistance,
+Windkessel, impedance, reflection, or characteristic conditions. In multiscale
+models, the same words also name interface contracts between tiers, not only
+external boundary conditions
+\cite{QuarteroniVeneziani2003GeometricalMultiscale,ShiEtAl2011BloodFlowModelReview}.
+
+Observables should be named at the level where they are actually defined.
+Pressure may be an absolute pressure, gauge pressure, cross-sectional mean
+pressure, diagnostic pressure reconstructed from a wall law, or terminal
+compartment pressure. Flow may be a surface integral, a 1D state variable, or a
+network edge variable. Velocity may be a resolved vector field, a section
+average, an assumed radial profile, or a sampled centerline quantity. WSS is a
+traction-derived wall quantity requiring stress and wall geometry, not a generic
+name for any reduced shear proxy \cite{JohnEtAl2017WallShearStressVectorForm}.
+Displacement belongs to a wall or structural state, so it is native to resolved
+FSI or a structural model and only indirectly represented by a reduced
+pressure--area wall law.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Closure and observable axes that should remain explicit when
+    comparing stenotic-flow models.}
+    \label{tab:modeling-closures-observables}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.20\textwidth}
+        >{\raggedright\arraybackslash}p{0.34\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Axis}
+            & \textbf{Review categories}
+            & \textbf{Observable consequence} \\
+        \midrule
+        Rheology
+            & Newtonian; Carreau; Carreau--Yasuda; Casson; power-law; tube-flow
+            effective-viscosity laws.
+            & Changes viscosity, friction, shear-rate interpretation, and sometimes
+            pressure or WSS trends. \\
+        Wall mechanics
+            & Fixed wall; algebraic pressure--area law; compliant 1D wall;
+            resolved FSI wall.
+            & Determines whether area, pressure, displacement, and interface work are
+            solved states or reconstructed quantities. \\
+        Stenosis geometry
+            & Resolved surface; axisymmetric radius; 1D reference-area profile;
+            empirical loss; terminal/network resistance.
+            & Determines whether throat effects appear through geometry, source
+            terms, pressure loss, or lumped parameters. \\
+        Inlet data
+            & Resolved velocity profile; mean-flow waveform; pressure waveform;
+            characteristic incoming data.
+            & Fixes what enters the domain and whether section averages or local
+            profiles are prescribed. \\
+        Outlet data
+            & Pressure, traction, resistance, Windkessel, impedance, reflection, or
+            characteristic condition.
+            & Controls wave reflection, terminal load, and pressure--flow phase. \\
+        Observation map
+            & Pressure, flow, velocity, WSS, displacement, or derived diagnostic.
+            & Separates native model states from reconstructed or cross-tier
+            comparison quantities. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{stenosisillustration}
+\label{ex:stenosisillustration-modeling-closures}
+In the StenosisHemodynamics case study, the principal reported problem is a
+single-vessel distributed 1D stenosis model. The active review placement is:
+Newtonian viscosity for the principal comparison; a parabolic velocity profile
+for the main area--flow closure; an elastic pressure--area wall law; a smooth
+analytic stenosis reference radius; a prescribed reference-area inlet flow; and
+a fixed-area characteristic outlet approximation. The native states are reduced
+area and flow, with mean velocity and pressure obtained through the declared
+solver-coordinate and wall-law maps. The resolved-data comparison therefore
+reads as a velocity-observation comparison, not as a direct WSS or
+wall-displacement comparison.
+\end{stenosisillustration}

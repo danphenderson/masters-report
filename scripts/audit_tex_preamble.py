@@ -162,14 +162,14 @@ def relpath(path: Path, repo: Path) -> str:
 
 def tracked_tex_files(repo: Path) -> tuple[Path, ...]:
     result = subprocess.run(
-        ["git", "ls-files", "--", "*.tex"],
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "--", "*.tex"],
         cwd=repo,
         text=True,
         capture_output=True,
         check=False,
     )
     if result.returncode == 0 and result.stdout.strip():
-        return tuple(repo / line for line in result.stdout.splitlines())
+        return tuple(repo / line for line in result.stdout.splitlines() if (repo / line).exists())
 
     files = []
     for path in repo.rglob("*.tex"):
@@ -277,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{issue.path}:{issue.line}: {issue.rule}: {issue.message}")
         return 1
 
-    print(f"TeX preamble audit passed for {file_count} tracked .tex files.")
+    print(f"TeX preamble audit passed for {file_count} current .tex files.")
     return 0
 
 

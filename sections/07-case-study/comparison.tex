@@ -1,20 +1,15 @@
-\section{Diagnostic 1D-3D Velocity Comparison}
+\subsection{Diagnostic 1D-3D Velocity Comparison}
 \label{sec:resolved-3d-comparison}
 
-\subsection{Available 3D Data and Matching Limits}
+\subsubsection{Available 3D Data and Matching Limits}
 \label{subsec:preliminary-cross-model-velocity-comparison}
 
-This chapter reports the final-time resolved-velocity comparison whose protocol
-is defined in Section~\ref{subsec:numerical-experiments-metrics-provenance}. The
-evidential boundary is the one declared in the model-matching matrix: the
-comparison is a diagnostic cross-model comparison of velocity and physical-flow
-observables under a declared quadrature operator, not validation, an accuracy
-estimate, pressure-drop evidence, FFR evidence, physiological evidence, clinical
-evidence, predictive evidence, or causal evidence. The zero-input rest-state
-drift in Chapter~\ref{sec:numerical-verification} is the same order as the
-comparison-flow scale at $t=1$ s, so the values below remain
-single-realization descriptors rather than a clean discretization-accuracy
-study.
+This section reports the final-time resolved-velocity comparison whose protocol
+is defined in Section~\ref{subsec:numerical-experiments-metrics-provenance}. It
+is a cross-model comparison of velocity and physical-flow observables under the
+declared plane--tetrahedron quadrature operator. The zero-input rest-state test
+in Section~\ref{sec:numerical-verification} remains required context because it
+uses the same principal operator as the comparison runs.
 
 The available resolved datasets are the two local velocity fields labelled C23
 and C40. The comparison record uses source ID 77 for C23 and source ID 60 for
@@ -62,7 +57,7 @@ widen the velocity comparison beyond the declared observation operator.
 
 \FloatBarrier
 
-\subsection{Observation Operator}
+\subsubsection{Observation Operator}
 \label{subsec:cross-sectional-sampling-protocol-results}
 
 The comparison uses the declared
@@ -73,18 +68,18 @@ cut triangles as stated in Section~\ref{subsec:plane-tetrahedron-comparison-oper
 The 1D quantities use the solver-to-physical map from
 Definition~\ref{def:physical-to-solver-map}: $Q_{1D}=\pi q$ and
 $\bar u_{1D}=q/a$. The principal comparison uses 200 equally spaced section
-targets on $0\le z\le6$ cm and radial-profile slices at $z=1.951$, 2.451, and
-2.951 cm.
+targets on $0\le z\le6$ cm. Secondary radial-profile outputs were generated at
+$z=1.951$, 2.451, and 2.951 cm, but they are quarantined rather than used as
+retained results.
 
 The stenosis throat is the minimizer $z^\star=\argmin_z R_0(z)$ of the smooth
 reference-radius profile in Eq.~\ref{eq:1d-stenosis-profile}. For the comparison
 geometry this gives $z^\star\approx2.451\,\mathrm{cm}$ for both severities, with
 $R_{\min}=0.1386\,\mathrm{cm}$ for C23 and $R_{\min}=0.1080\,\mathrm{cm}$ for
 C40. The shaded region in Figure~\ref{fig:t1-section-mean-comparison} is the
-displayed interval $2.4\le z\le2.8\,\mathrm{cm}$; the radial-profile slices use
-$z^\star-0.5\,\mathrm{cm}$, $z^\star$, and $z^\star+0.5\,\mathrm{cm}$.
+displayed interval $2.4\le z\le2.8\,\mathrm{cm}$.
 
-\subsection{Cut-Area Audit}
+\subsubsection{Cut-Area Audit}
 \label{subsec:section-averaged-velocity-results}
 
 The same quadrature record audits whether the cut operator is sampling the
@@ -132,7 +127,7 @@ area discrepancy entering the 1D velocity denominator,
     \end{tabular}
 \end{table}
 
-\subsection{Axial Physical-Flow Behavior}
+\subsubsection{Axial Physical-Flow Behavior}
 \label{subsec:axial-flow-behavior}
 
 The reported section data include physical flows $Q_{1D}(z)=\pi q(z)$ and
@@ -209,7 +204,7 @@ bookkeeping for the reported samples, not causal attribution.
     }
 \end{table}
 
-\subsection{Section-Mean Velocity Discrepancies}
+\subsubsection{Section-Mean Velocity Discrepancies}
 \label{subsec:section-mean-velocity-discrepancies}
 
 Table~\ref{tab:t1-3d-comparison-summary} reports the retained section-mean
@@ -306,55 +301,24 @@ operator-sensitive.
     \end{tabular}
 \end{table}
 
-\subsection{Radial-Profile Discrepancies}
+\subsubsection{Quarantined Radial Output}
 \label{subsec:reconstructed-radial-profile-results}
 
-The radial-profile reconstruction in
-Figure~\ref{fig:t1-radial-profile-comparison} is retained as a qualitative,
-secondary visual diagnostic. It asks whether the 1D velocity-profile closure
-reconstructed from the section mean resembles area-weighted radial bins of the
-resolved 3D cut. The reconstructed parabolic profile used for the dashed 1D
-curve is
-\begin{flalign*}
-    \quad
-    u_{1D}(r;z,t)
-    &=
-    2\,\frac{q(z,t)}{a(z,t)}
-    \left(1-\left(\frac{r}{\sqrt{a(z,t)}}\right)^2\right) &&
-\end{flalign*}
-on the 1D current-radius normalization. Supplemental outputs retain the static
-reference-radius coordinate $r/R_0(z)$ and 10/20/40-bin sensitivity, with
-area-weighted radial means, area mismatch, and within-bin azimuthal variance.
+The radial-profile reducer is excluded from the retained publication results.
+Direct equal-bin recomputation from the tracked radial data has not been
+reconciled with the existing radial-summary values. Therefore no radial figure,
+table, discrepancy metric, profile-behavior statement, or radial-bin
+localization claim is used as evidence in this chapter.
 
-The radial-summary table is withheld from the main chapter because direct
-equal-bin recomputation from the tracked radial data has not been reconciled
-with the existing radial-summary values. Therefore this chapter makes no
-radial-bin numerical localization claim, and the radial plots are not used for
-the principal section-mean metrics.
-
-\begin{figure}[H]
-    \centering
-    \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \figtikz{radial-profile-comparison}
-    \caption{Radial velocity profile comparison at the declared throat-centered
-    slices. Markers are resolved 3D area-weighted radial-bin means from the
-    quadrature triangles under the 1D current-radius normalization; dashed
-    curves are the 1D closure profile reconstructed from $q/a$. Colored in-panel
-    labels identify the axial stations.}
-    \label{fig:t1-radial-profile-comparison}
-\end{figure}
-
-\subsection{Interpretation Limits}
+\subsubsection{Interpretation Limits}
 \label{subsec:spatial-localization-discrepancies}
 
 The result of this chapter is a localization of descriptive velocity
 discrepancies under the declared observation operator. The section-mean
 comparison localizes the largest C40 discrepancy upstream of the displayed
-throat-centered band. The radial-profile plots are retained only as qualitative
-secondary diagnostics and do not supply an additional numerical localization
-result. These observations are bounded by the matching limits stated at the
-start of the chapter: unmatched or unpersisted 3D wall, boundary, material,
-history, and current/deformed geometry information; unresolved axial variation
-in extracted 3D flow; and the $1.0$ s versus $0.9995$ s sample-time offset. The
-flow/area decomposition is bookkeeping, and the displayed differences do not
-identify a unique mechanism.
+throat-centered band. This observation is bounded by the matching limits stated
+at the start of the chapter: unmatched or unpersisted 3D wall, boundary,
+material, history, and current/deformed geometry information; unresolved axial
+variation in extracted 3D flow; and the $1.0$ s versus $0.9995$ s sample-time
+offset. The flow/area decomposition is bookkeeping, and the displayed
+differences do not identify a unique mechanism.

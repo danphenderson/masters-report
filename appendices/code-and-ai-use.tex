@@ -1,4 +1,4 @@
-\section{Code Availability and Release Record}
+\section{Software and Reproducibility Record}
 \label{app:code-and-ai-use}
 
 This report is built from the \LaTeX{} sources rooted at
@@ -9,11 +9,12 @@ at \path{src/StenosisHemodynamics.jl}. The command-line surface used by the
 report is \path{scripts/stenosis-hemodynamics}, which dispatches through
 \path{scripts/stenosis-hemodynamics.jl} and the root Julia project.
 
-The D16 proposal base commit is
-\texttt{beb774d8d32addf4fd64fae722b51ce106b9671f}. The canonical final release
-identifier for this integrated manuscript is the tag
-\texttt{masters-report-final-2026-06-19}. The final release gate verifies that
-this tag points to the release commit used for the detached-worktree build.
+At release, the machine-readable manifest identifies the submitted Git state,
+release tag if one is assigned, and either a stable public repository/archive or
+the applicable source-access policy. This working draft does not declare a
+public archival DOI or stable repository URL; unless a later release adds one,
+access to \texttt{StenosisHemodynamics} is by the repository owner's
+source-control policy.
 
 \paragraph*{Build command.}
 The report build command is:
@@ -41,6 +42,9 @@ assets are regenerated with:
   --radial-bin-counts 10,20,40 \
   --radial-radius-modes current,reference
 \end{lstlisting}
+This command reproduces the currently tracked comparison assets; it accepts the
+available $0.9995$ s 3D velocity field for the nominal $1.0$ s 1D comparison
+time and therefore does not eliminate the sample-time offset.
 Package-benchmark assets are regenerated separately from the PDF. Use the
 \texttt{benchmark} subcommand of \path{./scripts/stenosis-hemodynamics}; render
 those assets with \path{scripts/render_package_benchmark_figures.py}. Those rows
@@ -68,7 +72,7 @@ remain unresolved unless a later release record adds those data.
 
 The file-hash record is stored outside the thesis PDF. Its manifest path is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-editorial/release/D16-release-manifest.json
+reproducibility/release-manifest.json
 \end{lstlisting}
 Detailed SHA-256 values live there or in another tracked manifest, not as large
 tables inside this appendix.

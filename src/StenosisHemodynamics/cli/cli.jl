@@ -747,6 +747,8 @@ function print_verify_usage()
       ./scripts/stenosis-hemodynamics verify mms [--nxs 20,40,80] [--dt-values 2e-5,1e-5,5e-6] [options]
       ./scripts/stenosis-hemodynamics verify ph-refinement [--h-nxs 20,40,80,160] [--degrees 0,1,2,3,4] [options]
       ./scripts/stenosis-hemodynamics verify rest [--severities 23,40] [--nxs 50,100,200] [--elapsed-times 0,0.001,0.005] [options]
+
+    Rest verification defaults to --inlet-umax 0.0; simulate and compare-3d default to 45.0.
     """)
 end
 
@@ -829,6 +831,7 @@ function run_verify_cli(args::Vector{String})
             severity=parse(Float64, get(values, "severity", "23")),
             initial_condition=GeometryRestIC(),
             forcing=NoForcing(),
+            inlet_umax=parse(Float64, get(values, "inlet-umax", "0.0")),
             space=spatial_method_from_cli(values),
             time_stepper=time_stepper_from_cli(values),
             velocity_profile=velocity_profile_from_cli(values),

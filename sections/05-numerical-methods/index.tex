@@ -1,0 +1,205 @@
+\section{Numerical Methods, Verification, Validation, and Observation Operators}
+\label{sec:numerical-methods}
+\label{sec:numerical-methods-review}
+
+Numerical evidence for stenotic-flow models is inseparable from the method that
+produces the state, the reference data used to check it, and the operator used to
+observe it. A resolved incompressible-flow or FSI computation, a distributed 1D
+area--flow network, and a diagnostic postprocessing map can all report velocity
+or flow, but they do so through different discrete spaces, stability
+constraints, conservation properties, and measurement conventions. This chapter
+therefore reviews the numerical-method and evidence standards needed to interpret
+the StenosisHemodynamics audit.
+
+\subsection{Finite-Element Incompressible Flow and FSI}
+\label{subsec:numerical-methods-fem-fsi}
+
+Resolved hemodynamic models commonly start from incompressible Navier--Stokes or
+Stokes equations, optionally coupled to a deforming wall. A finite-element
+realization writes those equations in weak form, chooses discrete velocity and
+pressure spaces, and solves the resulting saddle-point problem. The mixed
+velocity--pressure pair is not a cosmetic choice: the discrete spaces must
+control the pressure null mode and avoid spurious pressure oscillations. Stable
+Taylor--Hood-type pairs, divergence-conforming constructions, or equal-order
+pairs augmented by pressure-stabilization, streamline-upwind/Petrov--Galerkin,
+least-squares, local projection, or grad-div terms are different numerical
+contracts, even when they target the same continuum equations
+\cite{GaldiEtAl2008HemodynamicalFlows}.
+
+When the wall moves, the numerical contract also includes the fluid--structure
+interface. FSI formulations must transfer traction and velocity or displacement
+data across the interface, update the fluid domain or mesh, and control the
+added-mass and time-lag effects that appear in partitioned coupling. Monolithic
+and partitioned schemes can both be useful, but they expose different solver
+errors, stability limits, and coupling residuals
+\cite{FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale}.
+For a reduced 1D comparison, a resolved FSI or CFD field is therefore not a raw
+truth object; it is a numerically produced state that still needs its own mesh,
+timestep, boundary, material, and output-operator record.
+
+\subsection{Finite Differences, Finite Volumes, DG, and High-Resolution Schemes}
+\label{subsec:numerical-methods-balance-law-families}
+
+One-dimensional blood-flow solvers are usually written as balance-law solvers.
+Finite-difference schemes approximate derivatives at grid points and can be
+compact and high-order, but conservation and geometric-source balance must be
+checked at the discrete level. Finite-volume schemes instead advance cell
+averages using numerical fluxes through cell faces. That structure makes local
+conservation visible and is well suited to wave propagation, boundary fluxes,
+and discontinuity-capturing limiters
+\cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems}. In arterial
+networks, node conditions and terminal models add another layer: each vessel
+solve must be compatible with coupling rules that determine incoming and
+outgoing characteristic information \cite{Wang2014BloodFlowNetworks}.
+
+Discontinuous Galerkin methods combine finite-volume fluxes with local
+polynomial approximation. They can raise spatial order, expose element-local
+residuals, and support $p$-refinement studies, but they still require numerical
+fluxes, limiters or troubled-cell controls, and timestep choices. WENO and other
+high-resolution reconstructions serve a related purpose for finite-volume and
+finite-difference methods: they recover high-order accuracy on smooth regions
+while suppressing nonphysical oscillations near steep gradients. In stenotic
+area--flow problems, these design choices interact with wall and geometry
+sources, so smooth-solution accuracy alone is not enough. A scheme can show good
+manufactured-solution behavior and still fail to preserve a physiologically
+meaningful rest state if flux and source terms are not balanced.
+
+\subsection{Stability, Positivity, Conservation, and Well-Balancing}
+\label{subsec:numerical-methods-stability-positivity-balance}
+
+Explicit wave-propagation schemes carry CFL restrictions: the timestep must stay
+compatible with the grid scale and characteristic speeds. Semi-implicit and
+implicit network methods can relax the fastest explicit restriction, especially
+when wave speed or network coupling is stiff, but they replace it with nonlinear
+or linear solver tolerances, splitting errors, and coupling-residual criteria.
+Open and benchmarked 1D hemodynamics workflows therefore record not only the
+equation family, but also the timestep policy, boundary assumptions, network
+coupling, and diagnostic metadata
+\cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF,BeckersKolbe2025LaxFriedrichsHemodynamics,
+LuccaEtAl2025FFRPrediction}.
+
+For compliant-vessel balance laws, three checks are especially direct. First,
+positivity guards ensure that area or radius states remain physical; any
+projection or floor must be counted because it changes the discrete solution.
+Second, conservation diagnostics record whether mass or flow bookkeeping is
+consistent with boundary fluxes and source terms. Third, well-balanced tests
+ask whether a target equilibrium is preserved by the discrete operator itself.
+High-order well-balanced schemes make this requirement explicit by reconstructing
+or integrating flux and source contributions so that selected rest states cancel
+after discretization, not only in the continuous equations
+\cite{PimentelGarciaEtAl2025HighOrderWellBalanced}. For the present report,
+geometry-rest preservation is therefore a core numerical property rather than a
+postprocessing preference.
+
+\subsection{Verification, Validation, and Reference Data}
+\label{subsec:numerical-methods-verification-validation}
+
+Verification asks whether the implementation solves the equations it claims to
+solve. Manufactured solutions are useful because the analyst chooses a smooth
+state, derives the forcing needed to make that state exact, and then checks the
+discrete error under grid and timestep refinement. Exact or manufactured states
+can probe fluxes, sources, time integration, boundary traces, and coordinate
+maps without requiring physiological data. They also expose whether a nominally
+high-order method is limited by boundaries, source quadrature, limiters, or
+operator splitting.
+
+Grid and timestep convergence studies then ask whether changes in resolution
+change the reported quantities in the expected direction and magnitude. These
+studies are strongest when spatial and temporal effects are separated; otherwise
+they are better reported as sensitivity or time-step-insensitivity checks.
+Benchmark problems provide a broader reproducibility context by comparing
+multiple solvers on shared model cases, but a benchmark row does not by itself
+prove that a different stenosis geometry, wall law, or boundary rule is
+accurate \cite{BoileauEtAl2015Benchmark}.
+
+Validation is a different evidence category. It requires comparison with an
+accepted reference for the target question, such as controlled experimental
+measurements, clinical measurements with known acquisition conventions, or a
+resolved computational reference whose geometry, material parameters, boundary
+history, timestep, and observable match the reduced model closely enough to
+support the intended claim. Computational reference data are often the practical
+first tier for method development, while experimental data are needed when the
+claim concerns physical or physiological prediction. In both cases, the
+observation operator determines what quantity is actually being compared.
+
+\subsection{Cross-Dimensional Observation Operators}
+\label{subsec:numerical-methods-observation-operators}
+
+Reduced and resolved models do not naturally live in the same data space. A 1D
+area--flow state supplies section area, flow, and mean axial velocity after a
+coordinate convention is fixed. A 3D velocity field supplies nodal, elemental, or
+quadrature-point velocities on a mesh. Comparing them therefore requires an
+observation operator: a declared map from each numerical state to a common
+observable.
+
+For section comparisons, the operator must specify the target planes, mesh
+intersection rule, interpolation of velocity onto the cut geometry, quadrature
+weights, area normalization, and treatment of empty or invalid cuts. For profile
+comparisons, it must also specify the radial coordinate, binning rule, profile
+closure used by the 1D reconstruction, and any azimuthal averaging. Multiscale
+and FSI literature treats such maps as part of the model interface rather than
+as after-the-fact plotting choices
+\cite{FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale}.
+In this report, the plane--tetrahedron quadrature operator plays that role for
+the available resolved 3D velocity data, while the 1D state is observed through
+physical flow and area-mean velocity.
+
+\subsection{Method Evidence Standards for the Present Audit}
+\label{subsec:numerical-methods-evidence-standards}
+
+The review above gives a compact standard for reading the numerical record.
+Each reported result should identify its equation tier, discrete operator,
+boundary rule, timestep policy, stability and positivity diagnostics, reference
+data, and observation operator. Table~\ref{tab:numerical-methods-evidence-map}
+summarizes the roles used by the present manuscript.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Numerical-method evidence roles used to interpret the implemented
+    stenosis audit.}
+    \label{tab:numerical-methods-evidence-map}
+    \begin{tabularx}{\textwidth}{@{}p{0.23\textwidth}p{0.31\textwidth}X@{}}
+        \toprule
+        \textbf{Evidence item} & \textbf{Numerical question} & \textbf{Role in this report} \\
+        \midrule
+        Manufactured solution
+            & Does the implemented forced operator reproduce a declared smooth exact
+            state under refinement?
+            & Implementation-verification evidence for flux, source, boundary, and
+            time-integration wiring. \\
+        Geometry-rest equilibrium
+            & Does the discrete flux/source operator preserve a selected rest state?
+            & Well-balanced-property test for the stenosis geometry and wall-source
+            realization. \\
+        CFL, positivity, conservation
+            & Did the accepted run remain inside the recorded admissible numerical
+            regime?
+            & Diagnostic bookkeeping for timestep, characteristic, area, and mass
+            behavior. \\
+        Benchmarks and reference data
+            & How does a solver compare on shared cases or against accepted data?
+            & Reproducibility and validation context, conditional on matched model
+            and observable assumptions. \\
+        Plane--tetrahedron quadrature
+            & What common observable is extracted from resolved 3D and 1D states?
+            & Cross-dimensional observation operator for section velocity, flow, and
+            radial-profile diagnostics. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{stenosisillustration}
+For the StenosisHemodynamics evidence record, the three central checks map
+directly onto the review concepts above. The MMS run is the manufactured-state
+verification problem: it checks whether the declared finite-volume operator,
+forcing residuals, boundary traces, and timestepper reproduce a known smooth
+area--flow solution. The rest-equilibrium run is the well-balanced test: it asks
+whether the discrete stenosis geometry, wall source, and numerical flux preserve
+the quiescent state that the continuous balance law admits. The
+plane--tetrahedron quadrature rule is the observation-operator test: it defines
+how a resolved 3D velocity field becomes section area, physical flow, mean axial
+velocity, and radial-bin data comparable to 1D outputs. These checks answer
+different numerical questions, so agreement in one cannot substitute for
+failure or ambiguity in another.
+\end{stenosisillustration}

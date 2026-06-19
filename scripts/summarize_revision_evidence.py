@@ -127,7 +127,12 @@ def summarize_rest(rest_paths: list[Path]) -> list[dict[str, object]]:
                 "max_abs_q": max_abs_q,
                 "normalized_to_comparison_flow": max_abs_q / COMPARISON_FLOW_SCALE_CM3_S,
                 "max_abs_area_drift": peak_row.get("max_abs_area_drift", ""),
-                "mass_defect": peak_row.get("mass_defect", ""),
+                "solver_volume_defect": peak_row.get(
+                    "solver_volume_defect",
+                    peak_row.get("mass_defect", ""),
+                ),
+                "boundary_flux_integral": peak_row.get("boundary_flux_integral", ""),
+                "conservation_residual": peak_row.get("conservation_residual", ""),
                 "evidence_status": status,
             }
         )
@@ -293,7 +298,9 @@ def main() -> int:
             "max_abs_q",
             "normalized_to_comparison_flow",
             "max_abs_area_drift",
-            "mass_defect",
+            "solver_volume_defect",
+            "boundary_flux_integral",
+            "conservation_residual",
             "evidence_status",
         ),
     )

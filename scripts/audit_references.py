@@ -78,7 +78,11 @@ def tracked_reference_artifacts(repo: Path) -> set[str]:
 
 
 def tracked_tex_files(repo: Path) -> list[Path]:
-    return [repo / path for path in git_lines(repo, ["ls-files", "--", "*.tex"])]
+    return [
+        repo / path
+        for path in git_lines(repo, ["ls-files", "--cached", "--others", "--exclude-standard", "--", "*.tex"])
+        if (repo / path).exists()
+    ]
 
 
 def bib_keys(repo: Path) -> set[str]:

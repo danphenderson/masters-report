@@ -107,23 +107,44 @@ end
         @test length(drift.rows) == 4
         @test isfile(drift.summary_csv)
         @test isfile(drift.summary_tex)
+        @test isfile(drift.profile_csv)
         @test isfile(replace(drift.summary_tex, r"\.tex$" => "_full.tex"))
         @test all(row.status == "ok" for row in drift.rows)
         @test all(row.max_abs_q >= 0.0 for row in drift.rows)
         @test all(row.max_abs_area_drift >= 0.0 for row in drift.rows)
+        @test all(row.requested_q_in ≈ 0.0 for row in drift.rows)
+        @test all(row.applied_q_in ≈ 0.0 for row in drift.rows)
         ok_drift_row = only(row for row in drift.rows if row.nx == 8 && row.requested_time_s > 0.0)
         @test ok_drift_row.elapsed_time_s ≈ ok_drift_row.requested_time_s
         @test ok_drift_row.terminal_time_error_s ≈
               abs(ok_drift_row.elapsed_time_s - ok_drift_row.requested_time_s)
         @test ok_drift_row.terminal_time_error_s <= 1.0e-12
+        @test isfinite(ok_drift_row.solver_volume_defect)
+        @test isfinite(ok_drift_row.boundary_flux_integral)
+        @test isfinite(ok_drift_row.conservation_residual)
 
         drift_header = split(readline(drift.summary_csv), ",")
-        @test all(in(drift_header), ["elapsed_time_s", "requested_time_s", "terminal_time_error_s"])
+        @test all(
+            in(drift_header),
+            [
+                "elapsed_time_s",
+                "requested_time_s",
+                "terminal_time_error_s",
+                "requested_q_in",
+                "applied_q_in",
+                "solver_volume_defect",
+                "boundary_flux_integral",
+                "conservation_residual",
+            ],
+        )
+        @test !("mass_defect" in drift_header)
         drift_csv_row = only(row for row in read_simple_csv(drift.summary_csv) if row["nx"] == "8" && row["requested_time_s"] != "0.0")
         @test parse(Float64, drift_csv_row["elapsed_time_s"]) ≈ parse(Float64, drift_csv_row["requested_time_s"])
         @test parse(Float64, drift_csv_row["terminal_time_error_s"]) <= 1.0e-12
-        @test occursin("\\Delta t_{\\mathrm{term}}", read(drift.summary_tex, String))
-        @test occursin("\\Delta t_{\\mathrm{term}}", read(replace(drift.summary_tex, r"\\.tex$" => "_full.tex"), String))
+        @test parse(Float64, drift_csv_row["requested_q_in"]) ≈ 0.0
+        @test parse(Float64, drift_csv_row["applied_q_in"]) ≈ 0.0
+        @test occursin("\\Delta\\!\\int a\\,dz", read(drift.summary_tex, String))
+        @test occursin("\\Delta\\!\\int a\\,dz", read(replace(drift.summary_tex, r"\\.tex$" => "_full.tex"), String))
 
         failing_drift = run_rest_state_drift(RestStateDriftSpec(;
             output_dir=joinpath(dir, "failing-rest-state"),

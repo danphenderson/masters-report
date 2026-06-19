@@ -81,42 +81,68 @@ rest_state_drift:
     - figures/static/static/tables/verification/rest_state_drift.csv
   C23:
     peak:
-      max_abs_q: 1.5664711777700278
-      displayed_max_abs_q: 1.566
+      max_abs_q: 0.011161517268974982
+      displayed_max_abs_q: 0.01116
       units: cm^3/s in solver q coordinate
       N: 800
-      elapsed_time_s: 0.01
-      realized_cfl_max: 0.45
-      subcritical_margin_min: 814.0377871496992
-    t1_N800:
-      max_abs_q: 0.7312614091313187
-      displayed_max_abs_q: 0.7313
-      units: cm^3/s in solver q coordinate
-      physical_pi_q: 2.2973254707806707
-      displayed_physical_pi_q: 2.297
+      elapsed_time_s: 0.001
+      max_abs_q_z_cm: 2.07375
+      physical_pi_q: 0.0350649406551
+      displayed_physical_pi_q: 0.03506
       physical_units: cm^3/s
+      qcomp_ratio: 0.0153254
+      requested_q_in: 0.0
+      applied_q_in: 0.0
+      realized_cfl_max: 0.45
+      subcritical_margin_min: 902.0481130219217
+    t1_N800:
+      max_abs_q: 0.009730041688743129
+      displayed_max_abs_q: 0.00973
+      units: cm^3/s in solver q coordinate
+      physical_pi_q: 0.0305678274885
+      displayed_physical_pi_q: 0.03057
+      physical_units: cm^3/s
+      qcomp_ratio: 0.0133599
+      solver_volume_defect: 1.8412511923471264e-7
+      boundary_flux_integral: -1.8412573651873694e-7
+      conservation_residual: -6.172840242967788e-13
+      requested_q_in: 0.0
+      applied_q_in: 0.0
       elapsed_time_s: 1.0
       realized_cfl_max: 0.45
-      subcritical_margin_min: 800.3955636269064
+      subcritical_margin_min: 902.0481130219217
   C40:
     peak:
-      max_abs_q: 1.657930565457769
-      displayed_max_abs_q: 1.658
+      max_abs_q: 0.017820611710715483
+      displayed_max_abs_q: 0.01782
       units: cm^3/s in solver q coordinate
       N: 800
-      elapsed_time_s: 0.01
-      realized_cfl_max: 0.45
-      subcritical_margin_min: 662.2335302420344
-    t1_N800:
-      max_abs_q: 0.7323993250829245
-      displayed_max_abs_q: 0.7324
-      units: cm^3/s in solver q coordinate
-      physical_pi_q: 2.300900339174638
-      displayed_physical_pi_q: 2.301
+      elapsed_time_s: 0.001
+      max_abs_q_z_cm: 2.07375
+      physical_pi_q: 0.0559851028329
+      displayed_physical_pi_q: 0.05599
       physical_units: cm^3/s
+      qcomp_ratio: 0.0244688
+      requested_q_in: 0.0
+      applied_q_in: 0.0
+      realized_cfl_max: 0.45
+      subcritical_margin_min: 795.9011181625532
+    t1_N800:
+      max_abs_q: 0.016048381471118017
+      displayed_max_abs_q: 0.01605
+      units: cm^3/s in solver q coordinate
+      physical_pi_q: 0.0504174773317
+      displayed_physical_pi_q: 0.05042
+      physical_units: cm^3/s
+      qcomp_ratio: 0.0220354
+      solver_volume_defect: 1.253985324106699e-6
+      boundary_flux_integral: -1.2539876642779972e-6
+      conservation_residual: -2.340171298243786e-12
+      requested_q_in: 0.0
+      applied_q_in: 0.0
       elapsed_time_s: 1.0
       realized_cfl_max: 0.45
-      subcritical_margin_min: 624.9248002716224
+      subcritical_margin_min: 795.9011181625532
 active_comparison_realization:
   grid:
     N: 400
@@ -320,19 +346,18 @@ sample_times:
     offset_s: 0.0005000000000546789
     displayed_offset_s: 0.0005
 radial_profile_discrepancy_metrics:
-  status: retained_table_has_direct_data_recompute_conflicts
+  status: quarantined_direct_data_recompute_conflict
   source_anchors:
-    - sections/02-comparison/index.tex:314
-    - sections/02-comparison/index.tex:335
-    - sections/02-comparison/index.tex:340
+    - sections/07-case-study/comparison.tex:307
+    - sections/07-case-study/methodology.tex:577
     - figures/static/static/data/stenosis-comparison/radial-quadrature-C23.dat
     - figures/static/static/data/stenosis-comparison/radial-quadrature-C40.dat
-  note: The manuscript table values are retained publication values, but direct equal-bin recomputation from the tracked radial dat files differs for several rows. D02 flags this without changing source.
+  note: Radial-profile outputs are quarantined from the retained publication results because direct equal-bin recomputation from the tracked radial dat files differs for several rows.
 numerical_conflicts:
   - id: NCONFLICT-RADIAL-001
     severity: conflict
-    description: Retained radial-profile summary table values do not match direct equal-bin recomputation from radial-quadrature-C23.dat and radial-quadrature-C40.dat for several rows.
-    affected_table: sections/02-comparison/index.tex:314
+    description: Quarantined radial-profile summary values do not match direct equal-bin recomputation from radial-quadrature-C23.dat and radial-quadrature-C40.dat for several rows.
+    affected_table: quarantined_not_retained
     source_data:
       - figures/static/static/data/stenosis-comparison/radial-quadrature-C23.dat
       - figures/static/static/data/stenosis-comparison/radial-quadrature-C40.dat

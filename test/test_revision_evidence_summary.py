@@ -31,9 +31,9 @@ def test_revision_evidence_summarizer_writes_gate_and_wall_status(tmp_path: Path
     repo = Path(__file__).resolve().parents[1]
     rest_csv = tmp_path / "rest_state_drift.csv"
     rest_csv.write_text(
-        "severity,nx,requested_time_s,max_abs_q,max_abs_area_drift,mass_defect,status\n"
-        "23.0,100,0.1,0.2,0.01,0.001,ok\n"
-        "23.0,100,1.0,0.4,0.02,0.002,ok\n",
+        "severity,nx,requested_time_s,max_abs_q,max_abs_area_drift,solver_volume_defect,boundary_flux_integral,conservation_residual,status\n"
+        "23.0,100,0.1,0.2,0.01,0.001,-0.001,0.0,ok\n"
+        "23.0,100,1.0,0.4,0.02,0.002,-0.002,0.0,ok\n",
         encoding="utf-8",
     )
 

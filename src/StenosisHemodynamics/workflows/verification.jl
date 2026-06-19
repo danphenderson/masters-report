@@ -132,8 +132,24 @@ Base.@kwdef struct RestStateDriftRow
     requested_time_s::Float64
     terminal_time_error_s::Float64
     max_abs_q::Float64
+    max_abs_q_z::Float64
     max_abs_area_drift::Float64
-    mass_defect::Float64
+    solver_volume_defect::Float64
+    physical_volume_defect::Float64
+    requested_q_in::Float64
+    applied_q_in::Float64
+    inlet_area_flux::Float64
+    outlet_area_flux::Float64
+    boundary_flux_integral::Float64
+    conservation_residual::Float64
+    inlet_cell_q::Float64
+    outlet_cell_q::Float64
+    mean_q::Float64
+    rms_q::Float64
+    lh_area_interior_max_abs::Float64
+    lh_area_boundary_max_abs::Float64
+    lh_flow_interior_max_abs::Float64
+    lh_flow_boundary_max_abs::Float64
     realized_cfl_max::Float64
     lambda_minus_min::Float64
     lambda_plus_max::Float64
@@ -149,6 +165,7 @@ struct RestStateDriftResult
     rows::Vector{RestStateDriftRow}
     summary_csv::String
     summary_tex::String
+    profile_csv::String
 end
 
 workflow_kind(::ManufacturedVerificationSpec) = "manufactured_verification"
@@ -236,6 +253,10 @@ function rest_state_drift_tex_path(spec::RestStateDriftSpec)
     return joinpath(spec.output_dir, "rest_state_drift.tex")
 end
 
+function rest_state_drift_profile_csv_path(spec::RestStateDriftSpec)
+    return joinpath(spec.output_dir, "rest_state_drift_profiles.csv")
+end
+
 default_output_paths(spec::ManufacturedVerificationSpec) = (
     summary_csv=manufactured_verification_csv_path(spec),
     summary_tex=manufactured_verification_tex_path(spec),
@@ -250,6 +271,7 @@ default_output_paths(spec::RestStateDriftSpec) = (
     summary_csv=rest_state_drift_csv_path(spec),
     summary_tex=rest_state_drift_tex_path(spec),
     full_tex=rest_state_drift_full_tex_path(rest_state_drift_tex_path(spec)),
+    profile_csv=rest_state_drift_profile_csv_path(spec),
 )
 
 function run_manufactured_verification(spec::ManufacturedVerificationSpec = ManufacturedVerificationSpec())
@@ -584,8 +606,11 @@ end
 function run_rest_state_drift(spec::RestStateDriftSpec = RestStateDriftSpec())
     validate_workflow_spec(spec)
     rows = RestStateDriftRow[]
+    profile_rows = NamedTuple[]
     for severity in spec.severities, nx in sort(spec.nxs), tfinal in sort(spec.elapsed_times)
-        push!(rows, rest_state_drift_case(spec, Float64(severity), nx, Float64(tfinal)))
+        row, profiles = rest_state_drift_case(spec, Float64(severity), nx, Float64(tfinal))
+        push!(rows, row)
+        append!(profile_rows, profiles)
     end
     paths = default_output_paths(spec)
     csv_path = paths.summary_csv
@@ -593,14 +618,20 @@ function run_rest_state_drift(spec::RestStateDriftSpec = RestStateDriftSpec())
     write_rest_state_drift_csv(csv_path, rows; overwrite=spec.overwrite)
     write_rest_state_drift_tex(tex_path, rows; overwrite=spec.overwrite)
     write_rest_state_drift_full_tex(paths.full_tex, rows; overwrite=spec.overwrite)
-    return RestStateDriftResult(spec, rows, csv_path, tex_path)
+    write_rest_state_drift_profile_csv(paths.profile_csv, profile_rows; overwrite=spec.overwrite)
+    return RestStateDriftResult(spec, rows, csv_path, tex_path, paths.profile_csv)
 end
 
 function rest_state_drift_case(spec::RestStateDriftSpec, severity::Float64, nx::Int, tfinal::Float64)
     params = params_with(spec.base_params; severity=severity, nx=nx, tfinal=tfinal)
     try
-        result = simulate(params, spec.backend; progress_every=spec.progress_every)
+        case = simulate_rest_state_drift_case(params, spec.backend; progress_every=spec.progress_every)
+        result = case.result
         reference_A = [stenosis(zi, params)[1]^2 for zi in result.z]
+        max_abs_q_index = argmax(abs.(result.flow))
+        solver_volume_defect = section_mass(result.area, params.length_cm / nx) - section_mass(reference_A, params.length_cm / nx)
+        physical_volume_defect = pi * solver_volume_defect
+        conservation_residual = solver_volume_defect + case.boundary_flux_integral
         return RestStateDriftRow(
             severity=severity,
             nx=nx,
@@ -609,8 +640,24 @@ function rest_state_drift_case(spec::RestStateDriftSpec, severity::Float64, nx::
             requested_time_s=tfinal,
             terminal_time_error_s=terminal_time_error(result.completed_time, tfinal),
             max_abs_q=maximum(abs.(result.flow)),
+            max_abs_q_z=result.z[max_abs_q_index],
             max_abs_area_drift=maximum(abs.(result.area .- reference_A)),
-            mass_defect=result.diagnostics.mass_defect,
+            solver_volume_defect=solver_volume_defect,
+            physical_volume_defect=physical_volume_defect,
+            requested_q_in=case.final_flux.requested_q_in,
+            applied_q_in=case.final_flux.applied_q_in,
+            inlet_area_flux=case.final_flux.inlet_area_flux,
+            outlet_area_flux=case.final_flux.outlet_area_flux,
+            boundary_flux_integral=case.boundary_flux_integral,
+            conservation_residual=conservation_residual,
+            inlet_cell_q=result.flow[begin],
+            outlet_cell_q=result.flow[end],
+            mean_q=mean(result.flow),
+            rms_q=sqrt(mean(abs2, result.flow)),
+            lh_area_interior_max_abs=case.initial_lh.area_interior_max_abs,
+            lh_area_boundary_max_abs=case.initial_lh.area_boundary_max_abs,
+            lh_flow_interior_max_abs=case.initial_lh.flow_interior_max_abs,
+            lh_flow_boundary_max_abs=case.initial_lh.flow_boundary_max_abs,
             realized_cfl_max=result.diagnostics.cfl_max,
             lambda_minus_min=result.diagnostics.lambda_minus_min,
             lambda_plus_max=result.diagnostics.lambda_plus_max,
@@ -619,7 +666,7 @@ function rest_state_drift_case(spec::RestStateDriftSpec, severity::Float64, nx::
             positivity_correction_total=result.diagnostics.positivity_correction_total,
             status="ok",
             error_message="",
-        )
+        ), rest_state_profile_rows(params, result)
     catch err
         return RestStateDriftRow(
             severity=severity,
@@ -629,8 +676,24 @@ function rest_state_drift_case(spec::RestStateDriftSpec, severity::Float64, nx::
             requested_time_s=tfinal,
             terminal_time_error_s=NaN,
             max_abs_q=NaN,
+            max_abs_q_z=NaN,
             max_abs_area_drift=NaN,
-            mass_defect=NaN,
+            solver_volume_defect=NaN,
+            physical_volume_defect=NaN,
+            requested_q_in=NaN,
+            applied_q_in=NaN,
+            inlet_area_flux=NaN,
+            outlet_area_flux=NaN,
+            boundary_flux_integral=NaN,
+            conservation_residual=NaN,
+            inlet_cell_q=NaN,
+            outlet_cell_q=NaN,
+            mean_q=NaN,
+            rms_q=NaN,
+            lh_area_interior_max_abs=NaN,
+            lh_area_boundary_max_abs=NaN,
+            lh_flow_interior_max_abs=NaN,
+            lh_flow_boundary_max_abs=NaN,
             realized_cfl_max=NaN,
             lambda_minus_min=NaN,
             lambda_plus_max=NaN,
@@ -639,8 +702,143 @@ function rest_state_drift_case(spec::RestStateDriftSpec, severity::Float64, nx::
             positivity_correction_total=NaN,
             status="error",
             error_message=sprint(showerror, err),
-        )
+        ), NamedTuple[]
     end
+end
+
+function simulate_rest_state_drift_case(params::Params, backend::AbstractTimeBackend; progress_every::Int = 0)
+    if backend isa NativeRK3Backend && method_family(params.space) != :discontinuous_galerkin
+        return simulate_rest_state_drift_native(params; progress_every=progress_every)
+    end
+
+    result = simulate(params, backend; progress_every=progress_every)
+    initial = initial_state_result(params)
+    return (
+        result=result,
+        boundary_flux_integral=NaN,
+        initial_lh=rest_state_lh_metrics(initial.area, initial.flow, initial.z, initial.dx, params),
+        final_flux=rest_state_boundary_flux_metrics(result.area, result.flow, result.z, params.length_cm / params.nx, params, result.completed_time),
+    )
+end
+
+function simulate_rest_state_drift_native(params::Params; progress_every::Int = 0)
+    validate(params)
+    initial = initial_state_result(params)
+    z = copy(initial.z)
+    A = copy(initial.area)
+    Q = copy(initial.flow)
+    dx = initial.dx
+    step_cache = NativeStepCache(length(A))
+    flux_cache = RHSCache(length(A))
+    diagnostics = DiagnosticsAccumulator(A, dx)
+    initial_lh = rest_state_lh_metrics(A, Q, z, dx, params)
+    boundary_flux_integral = 0.0
+    t = 0.0
+    step = 0
+
+    while t < params.tfinal - 1.0e-14
+        dt = min(choose_dt(A, Q, z, dx, params), params.tfinal - t)
+        start_flux = rest_state_boundary_flux_metrics(A, Q, z, dx, params, t, flux_cache)
+        start_flux_difference = start_flux.outlet_area_flux - start_flux.inlet_area_flux
+        record_timestep_diagnostics!(diagnostics, A, Q, z, dx, dt, params)
+        native_step!(A, Q, z, dx, dt, t, params, step_cache, diagnostics)
+        t += dt
+        step += 1
+        record_mass_diagnostics!(diagnostics, A, dx)
+        end_flux = rest_state_boundary_flux_metrics(A, Q, z, dx, params, t, flux_cache)
+        end_flux_difference = end_flux.outlet_area_flux - end_flux.inlet_area_flux
+        boundary_flux_integral += 0.5 * (start_flux_difference + end_flux_difference) * dt
+
+        if progress_every > 0 && step % progress_every == 0
+            @telemetry_info "rest-state progress" event="rest_state_progress" stage="verification" nx=params.nx tfinal=params.tfinal status="running" step t dt
+        end
+
+        if !all(isfinite, A) || !all(isfinite, Q)
+            error("non-finite solution at t=$(t)")
+        end
+    end
+
+    result = SimulationResult(z, A, Q, t, step, initial.summary, finalize_diagnostics(diagnostics))
+    final_flux = rest_state_boundary_flux_metrics(A, Q, z, dx, params, t, flux_cache)
+    return (
+        result=result,
+        boundary_flux_integral=boundary_flux_integral,
+        initial_lh=initial_lh,
+        final_flux=final_flux,
+    )
+end
+
+function rest_state_boundary_flux_metrics(
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    params::Params,
+    t::Float64,
+)
+    return rest_state_boundary_flux_metrics(A, Q, z, dx, params, t, RHSCache(length(A)))
+end
+
+function rest_state_boundary_flux_metrics(
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    params::Params,
+    t::Float64,
+    cache::RHSCache,
+)
+    fill_method_fluxes!(cache.area_flux, cache.flow_flux, A, Q, z, dx, 0.0, t, params.space, params, cache)
+    _, applied_q_in, _, _ = boundary_states(A, Q, params, t)
+    return (
+        requested_q_in=inlet_flow(params, t),
+        applied_q_in=applied_q_in,
+        inlet_area_flux=cache.area_flux[begin],
+        outlet_area_flux=cache.area_flux[end],
+    )
+end
+
+function rest_state_lh_metrics(
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    params::Params,
+)
+    cache = RHSCache(length(A))
+    dA = similar(A)
+    dQ = similar(Q)
+    fill_rhs_dt!(dA, dQ, A, Q, z, dx, 0.0, 0.0, params, cache)
+    return (
+        area_interior_max_abs=maximum_abs_index_range(dA, 2:(length(dA) - 1)),
+        area_boundary_max_abs=max(abs(dA[begin]), abs(dA[end])),
+        flow_interior_max_abs=maximum_abs_index_range(dQ, 2:(length(dQ) - 1)),
+        flow_boundary_max_abs=max(abs(dQ[begin]), abs(dQ[end])),
+    )
+end
+
+function maximum_abs_index_range(values::AbstractVector{Float64}, indices)
+    max_value = 0.0
+    for i in indices
+        max_value = max(max_value, abs(values[i]))
+    end
+    return max_value
+end
+
+function rest_state_profile_rows(params::Params, result::SimulationResult)
+    return [
+        (
+            severity=params.severity,
+            nx=params.nx,
+            requested_time_s=params.tfinal,
+            elapsed_time_s=result.completed_time,
+            z_cm=result.z[i],
+            a_cm2=result.area[i],
+            q_cm3_s=result.flow[i],
+            u_cm_s=result.flow[i] / result.area[i],
+        )
+        for i in eachindex(result.z)
+    ]
 end
 
 function write_manufactured_verification_csv(
@@ -759,8 +957,24 @@ rest_state_drift_header() = [
     "requested_time_s",
     "terminal_time_error_s",
     "max_abs_q",
+    "max_abs_q_z",
     "max_abs_area_drift",
-    "mass_defect",
+    "solver_volume_defect",
+    "physical_volume_defect",
+    "requested_q_in",
+    "applied_q_in",
+    "inlet_area_flux",
+    "outlet_area_flux",
+    "boundary_flux_integral",
+    "conservation_residual",
+    "inlet_cell_q",
+    "outlet_cell_q",
+    "mean_q",
+    "rms_q",
+    "lh_area_interior_max_abs",
+    "lh_area_boundary_max_abs",
+    "lh_flow_interior_max_abs",
+    "lh_flow_boundary_max_abs",
     "realized_cfl_max",
     "lambda_minus_min",
     "lambda_plus_max",
@@ -780,8 +994,24 @@ function rest_state_drift_values(row::RestStateDriftRow)
         row.requested_time_s,
         row.terminal_time_error_s,
         row.max_abs_q,
+        row.max_abs_q_z,
         row.max_abs_area_drift,
-        row.mass_defect,
+        row.solver_volume_defect,
+        row.physical_volume_defect,
+        row.requested_q_in,
+        row.applied_q_in,
+        row.inlet_area_flux,
+        row.outlet_area_flux,
+        row.boundary_flux_integral,
+        row.conservation_residual,
+        row.inlet_cell_q,
+        row.outlet_cell_q,
+        row.mean_q,
+        row.rms_q,
+        row.lh_area_interior_max_abs,
+        row.lh_area_boundary_max_abs,
+        row.lh_flow_interior_max_abs,
+        row.lh_flow_boundary_max_abs,
         row.realized_cfl_max,
         row.lambda_minus_min,
         row.lambda_plus_max,
@@ -791,6 +1021,21 @@ function rest_state_drift_values(row::RestStateDriftRow)
         row.status,
         row.error_message,
     ]
+end
+
+rest_state_profile_header() = [
+    "severity",
+    "nx",
+    "requested_time_s",
+    "elapsed_time_s",
+    "z_cm",
+    "a_cm2",
+    "q_cm3_s",
+    "u_cm_s",
+]
+
+function write_rest_state_drift_profile_csv(path::String, rows; overwrite::Bool = false)
+    return write_csv_table(path, rest_state_profile_header(), rows; overwrite=overwrite)
 end
 
 function write_manufactured_verification_tex(
@@ -880,16 +1125,18 @@ function write_rest_state_drift_tex(path::String, rows::Vector{RestStateDriftRow
         println(io, "\\begin{table}[!htb]")
         println(io, "    \\centering")
         println(io, "    \\scriptsize")
-        println(io, "    \\caption{Zero-forcing, zero-inlet geometry-rest drift summary. Values are maxima over the reported positive elapsed times for the two finest grids. The normalization uses the comparison-run flow scale \$q_{\\mathrm{comp}}=2.288/\\pi=0.7283\\,\\mathrm{cm^3/s}\$.}")
-        println(io, "    \\begin{tabular}{@{}rrrrrrrrr@{}}")
+        println(io, "    \\caption{Zero-forcing, zero-inlet geometry-rest drift summary. The table reports the requested/applied inlet flow, the largest cell flow over positive elapsed times, and the signed finite-volume balance at the final reported time.}")
+        println(io, "    \\resizebox{\\textwidth}{!}{%")
+        println(io, "    \\begin{tabular}{@{}rrrrrrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        Severity & \$N\$ & \$t_{\\max q}\$ & \$\\max |q_i|\$ & \$\\max |q_i|/q_{\\mathrm{comp}}\$ & \$\\max |a_i-R_{0,i}^2|\$ & \$\\max |\\Delta M|\$ & Subcrit. min & \$\\max |\\Delta t_{\\mathrm{term}}|\$ \\\\")
+        println(io, "        Severity & \$N\$ & \$t_{\\max |q|}\$ & requested \$q_{\\mathrm{in}}\$ & applied \$q_{\\mathrm{in}}\$ & peak \$\\max |q_i|\$ & \$z_{\\max |q|}\$ & final \$\\max |q_i|\$ & final \$\\Delta\\!\\int a\\,dz\$ & final flux integral & final balance residual \\\\")
         println(io, "        \\midrule")
         for row in rest_state_drift_summary_rows(rows)
             println(io, rest_state_drift_summary_latex_row(row))
         end
         println(io, "        \\bottomrule")
-        println(io, "    \\end{tabular}")
+        println(io, "    \\end{tabular}%")
+        println(io, "    }")
         println(io, "\\end{table}")
     end
     return path
@@ -900,17 +1147,19 @@ function write_rest_state_drift_full_tex(path::String, rows::Vector{RestStateDri
         println(io, "\\begin{table}[!htb]")
         println(io, "    \\centering")
         println(io, "    \\scriptsize")
-        println(io, "    \\caption{Full zero-forcing, zero-inlet geometry-rest drift diagnostics.}")
-        println(io, "    \\begin{tabular}{@{}rrrrrrrrr@{}}")
+        println(io, "    \\caption{Full zero-forcing, zero-inlet geometry-rest drift diagnostics. The volume-defect column is the signed solver-coordinate integral \$\\Delta\\!\\int a\\,dz\$; the balance residual is \$\\Delta\\!\\int a\\,dz+\\int(\\widehat F^a_{\\mathrm{out}}-\\widehat F^a_{\\mathrm{in}})\\,dt\$.}")
+        println(io, "    \\resizebox{\\textwidth}{!}{%")
+        println(io, "    \\begin{tabular}{@{}rrrrrrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        Severity & \$N\$ & \$t\$ & \$|\\Delta t_{\\mathrm{term}}|\$ & \$\\max |q_i|\$ & \$\\max |a_i-R_{0,i}^2|\$ & Mass defect & CFL max & Subcrit. margin \\\\")
+        println(io, "        Severity & \$N\$ & \$t\$ & requested \$q_{\\mathrm{in}}\$ & applied \$q_{\\mathrm{in}}\$ & \$\\widehat F^a_{\\mathrm{in}}\$ & \$\\widehat F^a_{\\mathrm{out}}\$ & \$\\max |q_i|\$ & \$z_{\\max |q|}\$ & \$\\Delta\\!\\int a\\,dz\$ & balance residual \\\\")
         println(io, "        \\midrule")
         for row in rows
             row.status == "ok" || continue
             println(io, rest_state_drift_latex_row(row))
         end
         println(io, "        \\bottomrule")
-        println(io, "    \\end{tabular}")
+        println(io, "    \\end{tabular}%")
+        println(io, "    }")
         println(io, "\\end{table}")
     end
     return path
@@ -929,16 +1178,20 @@ function rest_state_drift_summary_rows(rows::Vector{RestStateDriftRow})
         group = [row for row in ok_rows if row.severity == severity && row.nx == nx]
         isempty(group) && continue
         max_q_row = group[argmax([row.max_abs_q for row in group])]
+        final_row = group[argmax([row.elapsed_time_s for row in group])]
         terminal_errors = [row.terminal_time_error_s for row in group if isfinite(row.terminal_time_error_s)]
         push!(output, (
             severity=severity,
             nx=nx,
-            elapsed_time_s=max_q_row.elapsed_time_s,
-            max_abs_q=max_q_row.max_abs_q,
-            normalized_q=max_q_row.max_abs_q / rest_state_comparison_flow_scale(),
-            max_abs_area_drift=maximum(row.max_abs_area_drift for row in group),
-            max_abs_mass_defect=maximum(abs(row.mass_defect) for row in group),
-            subcritical_margin_min=minimum(row.subcritical_margin_min for row in group if isfinite(row.subcritical_margin_min)),
+            peak_time_s=max_q_row.elapsed_time_s,
+            peak_requested_q_in=max_q_row.requested_q_in,
+            peak_applied_q_in=max_q_row.applied_q_in,
+            peak_max_abs_q=max_q_row.max_abs_q,
+            peak_max_abs_q_z=max_q_row.max_abs_q_z,
+            final_max_abs_q=final_row.max_abs_q,
+            final_solver_volume_defect=final_row.solver_volume_defect,
+            final_boundary_flux_integral=final_row.boundary_flux_integral,
+            final_conservation_residual=final_row.conservation_residual,
             max_terminal_time_error_s=isempty(terminal_errors) ? NaN : maximum(terminal_errors),
         ))
     end
@@ -951,13 +1204,15 @@ function rest_state_drift_summary_latex_row(row)
     return join((
         string(round(Int, row.severity)),
         string(row.nx),
-        latex_number(row.elapsed_time_s),
-        latex_number(row.max_abs_q),
-        latex_number(row.normalized_q),
-        latex_number(row.max_abs_area_drift),
-        latex_number(row.max_abs_mass_defect),
-        latex_number(row.subcritical_margin_min),
-        latex_number(row.max_terminal_time_error_s),
+        latex_number(row.peak_time_s),
+        latex_number(row.peak_requested_q_in),
+        latex_number(row.peak_applied_q_in),
+        latex_number(row.peak_max_abs_q),
+        latex_number(row.peak_max_abs_q_z),
+        latex_number(row.final_max_abs_q),
+        latex_number(row.final_solver_volume_defect),
+        latex_number(row.final_boundary_flux_integral),
+        latex_number(row.final_conservation_residual),
     ), " & ") * " \\\\"
 end
 
@@ -966,11 +1221,13 @@ function rest_state_drift_latex_row(row::RestStateDriftRow)
         string(round(Int, row.severity)),
         string(row.nx),
         latex_number(row.elapsed_time_s),
-        latex_number(row.terminal_time_error_s),
+        latex_number(row.requested_q_in),
+        latex_number(row.applied_q_in),
+        latex_number(row.inlet_area_flux),
+        latex_number(row.outlet_area_flux),
         latex_number(row.max_abs_q),
-        latex_number(row.max_abs_area_drift),
-        latex_number(row.mass_defect),
-        latex_number(row.realized_cfl_max),
-        latex_number(row.subcritical_margin_min),
+        latex_number(row.max_abs_q_z),
+        latex_number(row.solver_volume_defect),
+        latex_number(row.conservation_residual),
     ), " & ") * " \\\\"
 end

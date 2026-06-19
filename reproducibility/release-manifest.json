@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "status": "draft_unreleased",
+  "draft_source_commit": "1a15a52d6e986f08d745c9e40ecbcd04d4475104",
+  "final_release_gate": "replace draft fields with the final integrated commit and release tag before submission",
+  "final_integrated_commit": "pending_final_integration",
+  "release_tag": "pending_final_release",
+  "public_repository_url": "not_declared",
+  "archival_doi": "not_declared",
+  "source_access_policy": "repository-owner source-control policy unless a later release declares a public archive",
+  "build_command": "latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=/tmp/masters-report-build final-report.tex",
+  "comparison_asset_regeneration_command": "./scripts/stenosis-hemodynamics compare-3d --data-root simulations/data/3d/canic_case3 --output-dir simulations/output/3d_comparison/full_t1_native_nx400 --nx 400 --target-time 1.0 --time-atol 1e-3 --overwrite --publish-report-assets --report-assets-dir figures/static/static/data/stenosis-comparison --radial-bin-counts 10,20,40 --radial-radius-modes current,reference",
+  "nonarchived_raw_3d_inputs": "simulations/data/3d/canic_case3/"
+}

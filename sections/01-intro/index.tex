@@ -1,15 +1,27 @@
-\section{Introduction}
+\section{Introduction and Review Methodology}
 \label{sec:intro}
 
-Coronary and arterial stenoses motivate a basic computational question: how do
-geometry, wall properties, rheology, and boundary data affect blood flow through
-a narrowed vessel? Anatomical narrowing alone does not determine functional
-obstruction, so a useful computational report must distinguish the physical
-quantity being predicted, the model tier that produces it, and the evidence
-used to check the computation. This report stays on the mathematical and
-numerical side of that problem. It studies a $C^\infty$ idealized stenosis
-geometry, an extended one-dimensional area--flow realization, and a bounded
-comparison with resolved 3D velocity data.
+Blood-flow simulation sits between continuum mechanics, numerical analysis, and
+biomedical interpretation. A stenosis is a useful organizing example because a
+narrowing changes velocity, pressure, wall loading, and downstream flow in ways
+that depend on the model tier and on the observable being compared. A
+three-dimensional CFD calculation, a fluid--structure interaction model, a
+distributed one-dimensional area--flow model, a lumped outlet network, and a
+learned surrogate do not retain the same state variables or answer the same
+question. The first task of a mathematical simulation report is therefore to
+state the governing assumptions before interpreting the computed quantities.
+Anatomical stenosis descriptors and lesion-imaging records do not by themselves
+determine the functional flow quantity being modeled, so pressure-flow and
+lesion-imaging studies distinguish anatomy from functional assessment
+\cite[p.~4401]{DerimayEtAl2021CoronaryStenosisObstruction}
+\cite[Abstract; Methods]{VanDenHoogenEtAl2022CoronaryLesionCTA}.
+
+This report reviews the principal mathematical formulations used to simulate
+blood flow and uses an idealized stenosis computation as a worked example. The
+case study is not the organizing limit of the literature review. Instead, it
+provides a concrete place to see how continuum assumptions, model reduction,
+closure laws, boundary approximations, numerical verification, equilibrium
+preservation, and observation operators enter a reproducible computation.
 
 \begin{figure}[H]
     \centering
@@ -18,91 +30,74 @@ comparison with resolved 3D velocity data.
     \caption{Finite-element and finite-volume views of the same $C^\infty$
     idealized stenosis geometry. Panel (a) shows the generated tetrahedral mesh
     for the stationary-Stokes initializer; panel (b) shows the 1D
-    finite-volume grid sampled along $R_0(z)$. The panels document geometry and
-    discretization only.}
+    finite-volume grid sampled along $R_0(z)$. The panels introduce the case
+    study geometry and discretization; the review chapters define the modeling
+    vocabulary used to interpret them.}
     \label{fig:stenosis-fem-fvm-meshes}
 \end{figure}
 
-\input{sections/01-intro/pressure-flow-motivation}
+\subsection{Narrative Review Scope}
+\label{subsec:narrative-review-scope}
 
-\input{sections/01-intro/blood-continuum}
-\input{sections/01-intro/governing-equations}
+The review is narrative and scoping in style rather than systematic. Sources
+were selected from the local source inventory and bibliography to cover the
+mathematical model hierarchy, stenosis-specific reduced models, rheology,
+wall and boundary closures, numerical methods, verification and validation,
+cross-dimensional comparison, and emerging scientific machine-learning
+approaches. The included sources span classical stenosis-loss studies,
+continuum and cardiovascular modeling references, benchmark and open-solver
+work, and recent learned-model literature
+\cite{YoungTsai1973SteadyStenosis,YoungTsai1973UnsteadyStenosis,GaldiEtAl2008HemodynamicalFlows,QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF,CanicEtAl2024Extended1DStenosis,YuEtAl2026PINNHemodynamicsReview}.
+
+The inclusion criterion is relevance to the mathematical reading of blood-flow
+simulation: what equations are solved, which physics are retained or closed,
+what data are required, what observables are produced, and what evidence can
+support a comparison. Clinical pressure-ratio and wall-shear literature is used
+only where it clarifies model-dependent observables. The review does not claim
+exhaustive coverage of all clinical or computational hemodynamics.
 
 \subsection{Research Problem and Questions}
 \label{subsec:research-problem-questions}
 
-The research problem is to make the implemented stenosis solver auditable as a
-mathematical and numerical object. The report therefore asks three questions:
+The research problem is to connect the mathematical simulation literature with
+a reproducible idealized stenosis example. The report asks three questions:
 \begin{enumerate}
-    \item What continuous model, solver-coordinate map, closure choices,
-    boundary approximation, and discrete operator define the implemented 1D
-    stenosis solver?
-    \item Does the implementation converge on a smooth manufactured solution
-    and preserve the geometry-rest equilibrium?
-    \item Under the declared plane-quadrature operator, what velocity
-    discrepancies are measured against the available resolved 3D data, and
-    which unmatched conditions limit interpretation?
+    \item What mathematical model hierarchies are used to simulate blood flow,
+    and which physical assumptions and observables distinguish 3D CFD, FSI,
+    2D or axisymmetric, 1D, 0D, multiscale, and learned formulations?
+    \item How do rheology, wall mechanics, geometry, boundary conditions,
+    numerical discretization, and output operators affect the interpretation
+    and reliability of blood-flow simulations?
+    \item How does an idealized stenosis case study illustrate the practical
+    consequences of model reduction, numerical verification, equilibrium
+    preservation, and 1D--3D comparison?
 \end{enumerate}
 
 \subsection{Objectives and Contributions}
 \label{subsec:objectives-contributions}
 
-The contribution is deliberately narrow:
-\begin{itemize}
-    \item an authoritative implemented-model specification;
-    \item bounded MMS-based verification evidence;
-    \item exposure of a material rest-equilibrium failure;
-    \item a declared 1D--3D velocity observation operator;
-    \item descriptive C23/C40 discrepancy localization.
-\end{itemize}
-Together, these items define a numerical audit and diagnostic cross-model
-velocity comparison. The report makes no broader validation, pressure-accuracy,
-FFR, physiological, clinical, predictive, or causal claim.
-
-\subsection{Scope and Limits of the Study}
-\label{subsec:scope-limits}
-
-These closing subsections define the report's active claim boundary for the
-completed work. Section~\ref{sec:methodology} is the implementation contract:
-it records the $R_{\max}$-normalized Canic-derived area--flow model, the
-solver-coordinate map, the closure choices, the fixed-area characteristic
-boundary approximation, and the active discrete operator. The principal
-comparison realization is identified only at the level needed for the audit:
-parabolic-profile baseline, Newtonian rheology, MUSCL finite volume with minmod
-limiting, Rusanov flux, source splitting, and native SSPRK3.
-
-Section~\ref{sec:numerical-verification} treats MMS as bounded
-implementation-verification evidence and treats the geometry-rest result as a
-material failure of the current Rusanov/MUSCL realization. At $t=1$ s, the
-artificial flow retained by this realization is the same order as the production
-comparison-flow scale, so the failure is a principal numerical limitation
-rather than a secondary caveat. Section~\ref{sec:resolved-3d-comparison}
-uses the declared plane--tetrahedron quadrature operator to compare C23/C40
-section velocities and reconstructed radial profiles. That comparison stops at
-descriptive discrepancy localization because the available 3D wall, boundary,
-material, history, and current/deformed geometry information is unmatched or not
-persisted; axial 3D flow variation and sample-time alignment remain evidential
-gates.
+The report has two linked contributions. First, it synthesizes the modeling
+and numerical choices that distinguish common blood-flow simulation tiers.
+Second, it documents an idealized stenosis case study in enough detail to show
+how those choices appear in a concrete computational record. The case study
+uses the Julia package \path{StenosisHemodynamics}; its role is illustrative
+and diagnostic within the review.
 
 \subsection{Report Organization}
 \label{subsec:report-organization}
 
-\begin{itemize}
-    \item Section~\ref{sec:background-literature-review} reviews only the
-    background needed for stenosis-aware 1D closures, well-balanced behavior,
-    implementation verification, and cross-dimensional velocity observables.
-    \item Section~\ref{sec:methodology} specifies the model variables,
-    solver-coordinate convention, closures, boundary approximation,
-    finite-volume/time-integration realization, comparison operator, metrics,
-    and provenance record.
-    \item Section~\ref{sec:numerical-verification} reports bounded MMS evidence
-    and the non-well-balanced geometry-rest drift that constrains the later
-    comparison.
-    \item Section~\ref{sec:resolved-3d-comparison} reports the C23/C40 velocity
-    and physical-flow discrepancies under the declared observation operator and
-    states the unmatched 3D conditions that limit interpretation.
-    \item Sections~\ref{sec:discussion} and
-    \ref{sec:conclusions-limitations} answer the three research questions and
-    identify the next required step: an equilibrium-preserving discretization
-    followed by matched 3D metadata and production-sensitivity records.
-\end{itemize}
+Section~\ref{sec:continuum-description} introduces the continuum description of
+blood flow, from flow maps and balance laws to incompressible Navier--Stokes
+and principal observables. Section~\ref{sec:model-hierarchy} compares model
+families across 3D, FSI, reduced, lumped, multiscale, and learned approaches.
+Section~\ref{sec:modeling-closures} reviews constitutive, geometric, wall,
+boundary, and observable conventions. Section~\ref{sec:numerical-methods}
+reviews discretization methods, verification, validation, convergence, and
+observation operators. Section~\ref{sec:literature-synthesis} synthesizes open
+challenges across these choices.
+
+Section~\ref{sec:case-study} then presents the idealized stenosis case study:
+model specification, numerical realization, verification evidence,
+geometry-rest testing, and the diagnostic 1D--3D velocity comparison. The final
+discussion and conclusion return from that example to the broader review
+questions.

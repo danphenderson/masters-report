@@ -6,15 +6,10 @@ assumptions without interrupting the reduced-order forward-model
 narrative within this report. It is appendix background for notation and
 model hierarchy, not additional evidence for the numerical study.
 All identities below are classical identities under the regularity needed for
-the displayed derivatives, traces, and changes of variables. The standing
-regularity convention, boundary notation, and differential-operator convention
-are those of
-Convention~\ref{conv:foundation-standing-regularity},
-Definition~\ref{def:foundation-domain-boundary-notation}, and
-Definition~\ref{def:foundation-differential-operator-conventions}. In
-particular, $\Divbf$ is the row-divergence of a tensor field, and boundary
-forms assume the stated trace and normal hypotheses; no weak formulation is
-being asserted in this appendix.
+the displayed derivatives, traces, and changes of variables. In particular,
+$\Divbf$ is the row-divergence of a tensor field, and boundary forms assume the
+trace and normal hypotheses needed for the displayed integrals; no weak
+formulation is being asserted in this appendix.
 
 \subsection{Material Derivative and Trajectory Details}
 \label{subsec:material-derivative-trajectory-details}
@@ -115,11 +110,9 @@ The surface traction term satisfies
     =
     \int_{V(t)}\Divbf(\vT)\,dV. &&
 \end{flalign*}
-This is the tensor row-divergence convention from
-Definition~\ref{def:foundation-differential-operator-conventions}, applied
-under the regularity needed for the stress trace $\vT\nhat$ and the volume
-integral of $\Divbf\vT$. Since $V(t)$ is arbitrary within the localization
-class, the differential form is
+This uses the tensor row-divergence convention under the regularity needed for
+the stress trace $\vT\nhat$ and the volume integral of $\Divbf\vT$. Since
+$V(t)$ is arbitrary within the localization class, the differential form is
 \begin{flalign*}
     \quad
     \rho\left(\pd_t \vu+(\vu\cdot\nabla)\vu\right)

@@ -1,167 +1,110 @@
-\section{Discussion}
+\section{Integrated Discussion}
 \label{sec:discussion}
 
-\subsection{Implemented Model and Auditability}
-\label{subsec:discussion-implemented-model-auditability}
+\subsection{Model Hierarchy and Question Matching}
+\label{subsec:discussion-model-hierarchy-question-matching}
 
-The first research question asks what continuous model, coordinate map, closure
-choices, boundary approximation, and discrete operator define the implemented
-solver. The answer is the implementation contract in
-Section~\ref{sec:methodology}. The reported solver is an
-$R_{\max}$-normalized Canic-derived one-dimensional area-flow model in solver
-coordinates $a=R^2$ and $q=Q_{\mathrm{phys}}/\pi$, with
-$A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and mean velocity $q/a$.
-The selected comparison realization uses the parabolic-profile baseline,
-Newtonian rheology, the fixed-area characteristic boundary approximation, MUSCL
-finite volumes, minmod-limited states, Rusanov flux, source splitting, and native
-SSPRK3 time integration.
+The first research question asked which model hierarchies are used for
+blood-flow simulation and which assumptions distinguish them. The review shows
+that the hierarchy is not a ranking from poor to good models. It is a set of
+state choices. Three-dimensional CFD retains local velocity, pressure, stress,
+and geometry. FSI adds wall motion and interface work. Axisymmetric and 2D
+models keep selected resolved structure under stronger geometric assumptions.
+Distributed 1D models keep axial area, flow, mean velocity, and pressure or
+wall-law variables. Zero-dimensional networks keep pressure--flow relations
+without local stenosis geometry. Multiscale models couple these tiers, and
+learned models approximate maps whose meaning depends on the tier and data used
+to train them.
 
-This specification is a contribution because it makes the numerical record
-audit-ready. The wall evolution law uses the $R_{\max}$ normalization stated in
-the implemented balance law, and the legacy pressure helper is not the evolution
-wall law. The boundary invariant is an $\alpha=1$ fixed-area characteristic
-approximation applied to the variable-$\alpha_{\mathrm{eff}}$ system under the
-persisted subcritical-regime diagnostics. The principal C23/C40 comparison runs
-use $N=400$ cells on $0\le z\le6$ cm, a timestep cap of $10^{-5}$ s, and a CFL
-cap of 0.45. Other finite-volume, modal-DG, native time-stepper, and SciML
-surfaces remain secondary implementation-health context rather than the method
-that defines the main comparison.
+The practical implication is that a simulation result should be read from the
+question backward. If the question concerns local wall traction, a reduced
+area--flow state is not the native object. If the question concerns wave
+propagation through a vascular network, a fully resolved local geometry may be
+unnecessary without appropriate boundary data. If the question concerns
+cross-model agreement, an observation operator is part of the mathematical
+claim. The idealized stenosis study demonstrates this point by treating the 1D
+state and resolved 3D velocity field as different numerical objects that must be
+mapped to common flow and velocity observables before comparison.
 
-The point of this contract is not to summarize every solver surface. It is to
-state which model, closure, boundary approximation, and discrete operator produce
-the reported verification and comparison artifacts. That restriction keeps the
-later claims traceable to the actual generated records.
+\subsection{Closure Choices and Interpretability}
+\label{subsec:discussion-closures-interpretability}
 
-\subsection{What the Verification Supports}
-\label{subsec:discussion-verification-evidence}
+The second research question asked how rheology, wall mechanics, geometry,
+boundary conditions, numerical discretization, and output operators affect
+interpretation. These choices are not secondary implementation details. They
+define the problem being solved. A Newtonian stress law and a generalized
+Newtonian stress law can produce different viscous and shear interpretations. A
+fixed wall, reduced pressure--area law, and resolved FSI wall represent
+different mechanical states. A Windkessel outlet, pressure outlet, traction
+condition, and characteristic boundary rule impose different downstream
+information. A section-mean velocity, wall shear stress, pressure ratio, and
+flow rate are different observables.
 
-The second research question first asks whether the implementation converges on a
-smooth manufactured solution. The answer is positive but bounded. The
-manufactured-solution rows compare the implemented forced operator with a
-declared smooth exact state, and they support bounded implementation-verification
-evidence for that forced operator. The spatial rows show decreasing MMS norms in
-the recorded refinement study, while the requested-timestep rows are read as
-time-step insensitivity at the displayed spatial resolution rather than as a
-clean temporal-order study.
+The case study makes the closure contract explicit: the StenosisHemodynamics
+example uses a smooth stenosis geometry, reduced area--flow variables, a
+specified physical-to-solver coordinate map, a pressure--area wall law,
+parabolic-profile closure, Newtonian viscosity for the principal comparison,
+and a finite-volume realization. That list is not a software inventory; it is
+the mathematical statement needed before any numerical result can be interpreted.
 
-The verification chapter also records boundary, CFL, positivity, conservation,
-and secondary implementation-health diagnostics. These records are useful because
-they make accepted runs inspectable: subcritical characteristic-speed signs,
-realized CFL, positivity projection counts, mass defects, and backend or
-sensitivity checks can be audited from the generated artifacts. They do not
-enlarge the MMS result into a formal order theorem for every model variant or a
-complete production-sensitivity record for the C23/C40 comparison.
+\subsection{Numerical Evidence and Observation Operators}
+\label{subsec:discussion-numerical-evidence-observation}
 
-\subsection{Consequences of the Rest-Equilibrium Failure}
-\label{subsec:discussion-rest-equilibrium-failure}
+The numerical review separates implementation verification, equilibrium
+preservation, sensitivity, cross-model comparison, and validation. Manufactured
+solutions check whether a declared operator reproduces a known smooth state.
+Grid and timestep studies check resolution sensitivity. Well-balanced tests ask
+whether a discrete method preserves a meaningful equilibrium. Benchmarks and
+open solvers support reproducibility. External validation requires an accepted
+target for the specific observable.
 
-The same research question also asks whether the implementation preserves the
-geometry-rest equilibrium. It does not. The selected continuous balance law admits
-$a=R_0^2$, $q=0$ under compatible zero-flow boundary data, but continuous
-compatibility does not imply discrete preservation. The current MUSCL/Rusanov
-realization exhibits non-well-balanced geometry-rest drift.
+The worked stenosis example illustrates why these categories should not be
+collapsed. The manufactured-solution record gives evidence about the declared
+forced operator. The geometry-rest test asks a different question about
+flux-source cancellation in a spatially varying vessel. The plane--tetrahedron
+quadrature operator asks a third question: how a resolved 3D velocity field is
+reduced to section area, physical flow, and area-mean velocity. Each check is
+useful, but none replaces the others.
 
-The size of that drift is decisive for the rest of the report. The production
-comparison-flow scale is
-$q_{\mathrm{comp}}\approx2.288/\pi=0.7283\,\mathrm{cm}^3/\mathrm{s}$ in solver
-coordinates. On the finest rest-state grid, the zero-forcing $t=1$ s rest-flow
-values are 0.7313 and 0.7324 cm$^3$/s in solver $q$ for C23 and C40, with
-physical flows $\pi q=2.297$ and $2.301\,\mathrm{cm}^3/\mathrm{s}$. The peak
-zero-forcing rest drift occurs earlier, at $t=0.01$ s, with 1.566 and
-1.658 cm$^3$/s in solver $q$. Thus the artificial rest flow at $t=1$ s is the
-same order as the production comparison-flow scale.
+\subsection{What the Case Study Contributes}
+\label{subsec:discussion-case-study-contribution}
 
-This is a material limitation, not a side diagnostic. The C23/C40 comparison runs
-start from the same geometry-rest state and use the same principal operator.
-Consequently, the later velocity comparison can be read only after the
-non-well-balanced startup motion has been exposed. The next numerical change must
-therefore be an equilibrium-preserving discretization or reconstruction, followed
-by a repeated rest-state audit before any stronger production-comparison claim is
-attempted.
+The idealized stenosis computation contributes a worked example of review
+principles rather than a universal blood-flow model. It shows how a smooth
+geometry can isolate model-reduction and numerical-method questions; how solver
+coordinates must be mapped back to physical area and flow; how boundary and wall
+closures enter the model contract; how equilibrium preservation becomes a
+discrete property; and how resolved and reduced models require a shared
+observation map before their outputs can be compared.
 
-\subsection{What the Diagnostic Comparison Shows}
-\label{subsec:discussion-cross-model-discrepancies}
-
-The third research question asks what velocity discrepancies are measured against
-the available resolved 3D data under the declared plane--tetrahedron operator.
-The answer is descriptive and operator-specific. The operator defines section
-area, physical flow, and area-mean axial velocity on the available C23 and C40
-resolved velocity fields; the 1D output is compared through
-$Q_{1D}=\pi q$ and $\bar u_{1D}=q/a$.
-
-For the 200 retained section targets, the signed mean velocity biases are
-0.480 cm/s in C23 and 0.909 cm/s in C40. The mean absolute velocity discrepancies
-are 0.505 and 0.966 cm/s, the RMS velocity discrepancies are 0.664 and
-1.87 cm/s, and the relative RMS velocity discrepancies are 0.0277 and 0.0688.
-The largest listed section discrepancies are 2.35 cm/s at $z=2.291$ cm for C23
-and 9.92 cm/s at $z=2.261$ cm for C40. In the physical-flow observable, the
-signed mean biases are 0.0472 and 0.0684 cm$^3$/s, the mean absolute
-discrepancies are 0.0482 and 0.0709 cm$^3$/s, and the RMS discrepancies are
-0.0509 and 0.0893 cm$^3$/s.
-
-These numbers localize a two-case discrepancy pattern, especially the upstream
-C40 shoulder, but they do not identify a mechanism. The flow/area decomposition
-is bookkeeping for the displayed samples, not causal attribution. The radial
-plots are retained only as qualitative secondary diagnostics; the radial-summary
-numeric table is withheld from the main evidence path pending reconciliation of
-the radial-summary recomputation conflict. No radial-bin numerical localization
-claim is part of the principal result.
-
-\subsection{Unmatched Conditions and Required Next Work}
-\label{subsec:discussion-unmatched-modeling-effects}
-\label{subsec:discussion-methodological-limitations}
-\label{subsec:discussion-implications-future-work}
-
-The unmatched conditions must remain in front of the interpretation. The 3D wall
-model, wall motion, boundary histories, material parameters, prior transient
-history, and current/deformed geometry status are not fully persisted in the
-tracked comparison record. The 3D sample is at 0.9995 s while the 1D sample is at
-1.0 s, leaving a reported 0.0005 s time offset. The extracted 3D physical flow
-also varies axially by 7.7\% of the C23 mean section flow and 20.2\% of the C40
-mean section flow. The available files do not determine whether that variation is
-an operator effect, a geometry-state effect, a boundary/history effect, or a
-property of the resolved run.
-
-The required next work follows from those gates. First, the principal numerical
-operator needs an equilibrium-preserving discretization and a repeated MMS and
-geometry-rest verification record. Second, the comparison record needs matched 3D
-metadata for wall, boundary, material, geometry state, displacement handling, and
-sample time, or an explicit exact-time resampling protocol. Third, production
-sensitivity needs to be recorded for the actual comparison outputs: grid,
-timestep, startup, area-cut sensitivity, and operator choices. Only after those
-steps would a broader output claim have the required evidence chain.
+The same example also shows what remains open. Stronger production comparison
+claims would require a repaired or explicitly well-balanced discretization if
+the rest-state test remains limiting, matched resolved-data metadata for wall,
+boundary, material, geometry state, and time, and production sensitivity studies
+for the reported comparison outputs. Those are not cosmetic additions. They are
+the evidence needed to move from an auditable case study to a broader predictive
+or validation claim.
 
 \section{Conclusion}
 \label{sec:conclusions-limitations}
 
-First, the implemented-model contribution is an authoritative specification of
-the solver that produced the recorded artifacts. The report fixes the physical
-and solver variables, the $R_{\max}$-normalized wall evolution law, the source-to-
-implementation differences, the fixed-area characteristic boundary approximation,
-the principal MUSCL/Rusanov/SSPRK3 realization, and the plane--tetrahedron
-observation operator.
+This report reframes the idealized stenosis computation within the broader
+mathematics of blood-flow simulation. The review connects continuum balance
+laws, full-order CFD and FSI models, reduced and lumped hemodynamic models,
+multiscale coupling, constitutive and wall closures, boundary conditions,
+numerical methods, verification, validation, and observation operators.
 
-Second, the MMS evidence is positive but bounded. It supports the declared forced
-operator and is reinforced by inspectable boundary, CFL, positivity, conservation,
-and secondary implementation-health records. It does not establish a formal order
-result for every variant or a complete production-sensitivity record.
+The central conclusion is that model interpretation depends on matched
+mathematical structure. A result is meaningful only relative to the equations,
+closures, boundary data, discretization, evidence standard, and observable that
+produced it. The StenosisHemodynamics case study makes this concrete for an
+idealized stenosis: it specifies the reduced model, verifies the implemented
+operator, tests an equilibrium property, and compares reduced and resolved
+velocity information through a declared quadrature operator.
 
-Third, the decisive geometry-rest limitation is that the current principal
-MUSCL/Rusanov realization is not well balanced for the stenotic geometry-rest
-state. At $t=1$ s the finest-grid artificial rest flow is the same order as the
-comparison-flow scale, and the peak earlier rest drift is larger. This limitation
-has to be repaired before the C23/C40 comparison can support a stronger numerical
-claim.
-
-Fourth, the 1D--3D comparison result is descriptive. Under the declared operator,
-the C23/C40 section-mean velocity record reports signed bias, mean absolute
-velocity discrepancy, RMS velocity discrepancy, maximum discrepancy and location,
-and relative RMS velocity discrepancy. The largest listed section discrepancy is
-localized in the upstream C40 shoulder in this two-case pair. Radial plots remain
-qualitative secondary diagnostics because the radial-summary numeric table is
-withheld pending reconciliation.
-
-The next required implementation step is an equilibrium-preserving
-discretization, followed by matched 3D metadata and production sensitivity for the
-actual comparison outputs. That sequence is the shortest path from the current
-audited record to a cleaner future comparison.
+The broader lesson is methodological. Review-led blood-flow simulation should
+not treat computation as a final figure alone. It should expose the model tier,
+state variables, closures, numerical evidence, and observation map that make the
+figure interpretable. The idealized stenosis example provides one auditable
+instance of that standard and identifies the numerical and data-matching work
+needed before stronger cross-model or physical claims can be made.

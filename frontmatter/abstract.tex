@@ -1,27 +1,23 @@
 \medskip
 \noindent\textbf{Abstract.}\par\smallskip
-This report audits a reduced-order stenosis solver and a diagnostic comparison
-with available resolved 3D velocity data. The implemented solver is the Julia
-\path{StenosisHemodynamics} realization of an $R_{\max}$-normalized
-Canic-derived one-dimensional area--flow model. Physical circular area and flow
-are represented in solver coordinates by $a=R^2$ and
-$q=Q_{\mathrm{phys}}/\pi$, so $A_{\mathrm{phys}}=\pi a$,
-$Q_{\mathrm{phys}}=\pi q$, and the mean velocity is $q/a$. The principal
-comparison realization uses the declared parabolic-profile baseline, Newtonian
-rheology, a fixed-area characteristic boundary approximation, MUSCL finite
-volume, minmod-limited states, Rusanov flux, source splitting, and native
-SSPRK3.
+This report reviews mathematical models and numerical methods used to simulate
+blood flow, with emphasis on large-vessel and stenotic settings. The review
+starts from continuum balance laws and incompressible Navier--Stokes models,
+then compares three-dimensional CFD, fluid--structure interaction, axisymmetric
+and two-dimensional reductions, distributed one-dimensional area--flow models,
+lumped zero-dimensional networks, geometrical multiscale coupling, and emerging
+learned surrogate approaches. Across those tiers, the report separates the
+modeling choices that determine interpretation: rheology, wall mechanics,
+geometry, inlet and outlet data, numerical discretization, verification,
+validation, and observable definitions.
 
-The verification record gives positive but bounded manufactured-solution
-evidence for the declared forced operator. It also exposes the central numerical
-limitation: the current MUSCL/Rusanov realization does not preserve the
-geometry-rest equilibrium. In zero-forcing C23/C40 rest runs, the artificial
-flow retained at $t=1$ s is the same order as the production comparison-flow
-scale. The comparison with resolved data is therefore interpreted only through a
-declared plane--tetrahedron quadrature operator that computes section area,
-physical flow, and area-mean axial velocity. Under that operator, the reported
-C23/C40 section and radial-profile results are descriptive velocity
-discrepancies for the available cases. Their interpretation is limited by
-unmatched or unpersisted 3D wall, boundary, material, history, and
-current/deformed geometry information, by unresolved axial variation in
-extracted 3D flow, and by the $1.0$ s versus $0.9995$ s sample-time offset.
+An idealized stenosis computation is used as a worked example of those review
+principles. The case study uses the \path{StenosisHemodynamics} implementation
+of an $R_{\max}$-normalized Canic-derived one-dimensional area--flow model, with
+solver variables $a=R^2$ and $q=Q_{\mathrm{phys}}/\pi$. It records the model
+contract, finite-volume realization, manufactured-solution verification record,
+geometry-rest equilibrium test, and a plane--tetrahedron observation operator
+for comparing one-dimensional output with available resolved three-dimensional
+velocity data. The case study illustrates how model reduction, closure choices,
+equilibrium preservation, and matched observation operators affect the meaning
+of computed blood-flow quantities.

@@ -1,0 +1,291 @@
+\section{Continuum Description of Blood Flow}
+\label{sec:continuum-description}
+\label{sec:continuum-description-blood-flow}
+
+This chapter fixes the continuum vocabulary used by the later reduced stenosis
+model. The aim is not to repeat a full mechanics derivation. It is to record the
+progression from material motion to transport identities, balance laws, stress
+closure, and the incompressible flow equations from which cross-sectional
+models inherit their variables and closure obligations.
+
+\subsection{Continuum Scale and Field Variables}
+\label{subsec:continuum-scale-and-fields}
+
+At the large-vessel scale, blood-flow models replace individual blood cells,
+platelets, and plasma constituents by macroscopic fields on a lumen. This is the
+scale at which three-dimensional CFD, FSI, and one-dimensional area--flow models
+can be placed in a common hierarchy. It is also a modeling assumption:
+small-vessel, hematocrit-dependent, or low-shear regimes can require additional
+rheology choices rather than the same constant-viscosity closure
+\cite{KopplHelmig2023DimensionReducedModeling,GaldiEtAl2008HemodynamicalFlows,PriesEtAl1992BloodViscosityTubeFlow}.
+
+\begin{assumption}[Large-vessel continuum setting]
+    \label{ass:continuum-bridge-large-vessel-setting}
+    Let $T_{\mathrm{final}}>0$,
+    $I_T=(0,T_{\mathrm{final}})$, and
+    $\ITBar=[0,T_{\mathrm{final}}]$. For each $t\in\ITBar$, the blood occupies
+    a spatial lumen $\OmgBt\subset\R^3$, with space-time cylinder
+    \begin{flalign*}
+        \quad
+        \mathcal Q_T=\{(t,\vx):t\in I_T,\ \vx\in\OmgBt\}. &&
+    \end{flalign*}
+    The continuum unknowns are the Eulerian velocity $\vu$, pressure $p$,
+    density $\rho$, and Cauchy stress tensor $\vT$ on $\mathcal Q_T$.
+\end{assumption}
+
+These fields are the common language of the model hierarchy. A full-order
+continuum tier evolves $\vu$ and $p$ on $\OmgBt$. A reduced 1D tier stores
+section area, flow, and mean velocity obtained from these fields by additional
+averaging and closure assumptions. The continuum assumption therefore fixes the
+objects being reduced before any numerical discretization is introduced.
+
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{compliant-vessel}
+    \caption{Continuum-to-1D averaging notation for a compliant vessel. The
+    physical lumen carries three-dimensional fields on $\OmgBt$; the reduced
+    description records section averages such as area, flow, mean velocity, and
+    gauge pressure. The figure is a bookkeeping map between model tiers, not a
+    separate wall-traction or secondary-flow model.}
+    \label{fig:compliant-vessel-reduction}
+\end{figure}
+
+\subsection{Flow Maps and Material Transport}
+\label{subsec:continuum-flow-map-transport}
+
+The two standard viewpoints are Eulerian and Lagrangian. The Eulerian viewpoint
+observes fields at spatial locations $\vx$ in the current lumen. The Lagrangian
+viewpoint follows a material label $\vxi$ from a reference configuration.
+
+\begin{definition}[Flow-map vocabulary]
+    \label{def:continuum-bridge-flow-map}
+    A sufficiently regular flow map
+    $\La_t:\OmgB(0)\to\OmgBt$ sends a material label $\vxi$ to its current
+    position $\vx(t;\vxi)=\La_t(\vxi)$. The Eulerian velocity field generates
+    the flow map through
+    \begin{flalign*}
+        \quad
+        \pd_t\La_t(\vxi)=\vu(t,\La_t(\vxi)).
+        &&
+    \end{flalign*}
+    For an Eulerian scalar field $\phi(t,\vx)$, the Lagrangian pullback is
+    $\widehat{\phi}(t,\vxi)=\phi(t,\La_t(\vxi))$.
+\end{definition}
+
+The material derivative is the derivative of a field along this trajectory.
+For a scalar field,
+\begin{flalign*}
+    \quad
+    D_t\phi(t,\vx)
+    =
+    \dt\phi(t,\La_t(\vxi))
+    =
+    \pd_t\phi(t,\vx)+\vu(t,\vx)\cdot\nabla\phi(t,\vx),
+    \qquad \vxi=\La_t^{-1}(\vx).
+    &&
+\end{flalign*}
+For vector fields it is applied componentwise. This notation is the bridge
+between material-volume statements and fixed-spatial differential equations.
+
+\begin{theorem}[Reynolds transport bridge]
+    \label{thm:continuum-bridge-reynolds-transport}
+    Let $V(t)=\La_t(V(0))$ be a material volume. For a regular scalar field
+    $\phi$,
+    \begin{flalign*}
+        \quad
+        \dt\int_{V(t)}\phi\,\dx
+        =
+        \int_{V(t)}\left(D_t\phi+\phi\,\Div\vu\right)\dx
+        =
+        \int_{V(t)}\left(\pd_t\phi+\Div(\phi\vu)\right)\dx. &&
+    \end{flalign*}
+\end{theorem}
+
+This identity supplies the modeling bridge used below: conservation statements
+are first written on material volumes and then localized into Eulerian balance
+laws.
+
+\subsection{Mass, Momentum, and Stress Closure}
+\label{subsec:continuum-balance-stress}
+
+Mass conservation states that mass is neither created nor destroyed in material
+volumes. In Eulerian form it is
+\begin{flalign*}
+    \quad
+    \pd_t\rho+\Div(\rho\vu)=0
+    \quad\Longleftrightarrow\quad
+    D_t\rho+\rho\Div\vu=0. &&
+\end{flalign*}
+For constant density $\rho\equiv\rho_0>0$, this reduces to the incompressibility
+constraint
+\begin{flalign*}
+    \quad
+    \Div\vu=0. &&
+\end{flalign*}
+
+Linear momentum balance compares the rate of change of momentum in a material
+volume with surface traction and body forces:
+\begin{flalign*}
+    \quad
+    \dt\int_{V(t)}\rho\vu\,dV
+    =
+    \int_{\partial V(t)}\vT\nhat\,dS
+    +
+    \int_{V(t)}\rho\vfb\,dV. &&
+\end{flalign*}
+Using Reynolds transport, mass conservation, and localization gives
+\begin{flalign*}
+    \quad
+    \rho\left(\pd_t\vu+(\vu\cdot\nabla)\vu\right)
+    =
+    \Divbf(\vT)+\rho\vfb. &&
+\end{flalign*}
+Here $\vfb$ is body force per unit mass.
+
+The momentum equation becomes a closed flow model only after a constitutive
+stress law is selected. With
+\begin{flalign*}
+    \quad
+    \vct{D}(\vu)=\frac{1}{2}\left(\nabla\vu+\nabla\vu^\top\right),
+    &&
+\end{flalign*}
+the Newtonian isotropic law is
+\begin{flalign*}
+    \quad
+    \vT=-p\,\ident+2\eta\,\vct{D}(\vu)
+    +\lambda\,\Div(\vu)\,\ident,
+    &&
+\end{flalign*}
+where $\eta$ is dynamic viscosity and $\lambda$ is the volumetric-viscosity
+coefficient. In the incompressible case this reduces to
+\begin{flalign*}
+    \quad
+    \vT=-p\,\ident+2\eta\,\vct{D}(\vu). &&
+\end{flalign*}
+Generalized-Newtonian blood models keep the same stress structure but allow
+viscosity to depend on a scalar shear-rate measure:
+\begin{flalign*}
+    \quad
+    \dot\gamma=\sqrt{2\vct{D}(\vu):\vct{D}(\vu)},
+    \qquad
+    \vT=-p\,\ident
+    +2\eta_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu).
+    &&
+\end{flalign*}
+The Newtonian model is recovered when
+$\eta_{\mathrm{eff}}$ is constant
+\cite[Part~I, Ch.~1, Secs.~2.7--3.1]{GaldiEtAl2008HemodynamicalFlows}.
+
+\subsection{Incompressible Navier--Stokes Forms}
+\label{subsec:continuum-navier-stokes}
+
+Combining constant density, incompressibility, and Newtonian stress gives the
+standard incompressible Navier--Stokes tier:
+\begin{flalign*}
+    \quad
+    \begin{cases}
+        \rho\left(\pd_t\vu+(\vu\cdot\nabla)\vu\right)
+        =
+        -\nabla p+\eta\Delta\vu+\rho\vfb, \\
+        \Div\vu=0.
+    \end{cases}
+    &&
+\end{flalign*}
+Equivalently, with kinematic viscosity $\nu=\eta/\rho$,
+\begin{flalign*}
+    \quad
+    \pd_t\vu+(\vu\cdot\nabla)\vu
+    =
+    -\rho^{-1}\nabla p+\nu\Delta\vu+\vfb,
+    \qquad
+    \Div\vu=0.
+    &&
+\end{flalign*}
+The generalized-Newtonian incompressible form replaces the constant-viscosity
+Laplacian by the divergence of the effective-viscosity stress:
+\begin{flalign*}
+    \quad
+    \rho\left(\pd_t\vu+(\vu\cdot\nabla)\vu\right)
+    =
+    -\nabla p+
+    \Divbf\!\left(2\eta_{\mathrm{eff}}(\dot\gamma)\vct{D}(\vu)\right)
+    +\rho\vfb,
+    \qquad
+    \Div\vu=0.
+    &&
+\end{flalign*}
+These equations are the full-order continuum reference for cardiovascular
+models; reduced arterial models inherit their conservation structure after
+geometric averaging and closure choices
+\cite[Sec.~6]{QuarteroniFormaggia2004CardiovascularModeling}.
+
+\subsection{Fixed and Moving Domains, Boundary Data, and Observables}
+\label{subsec:continuum-domains-observables}
+
+A fixed-domain blood-flow model treats the lumen geometry as prescribed. In the
+simplest rigid-wall setting, $\OmgBt=\OmgB$ and the wall boundary carries a
+no-slip or no-penetration condition while inlet and outlet portions carry
+velocity, flow, pressure, traction, or reduced-network data. A moving-domain or
+FSI setting instead evolves $\OmgBt$ through the wall motion and couples the
+fluid velocity to the wall kinematics and stresses. Dimension-reduced models
+replace parts of this boundary motion and stress information by section area,
+wall-law, profile, friction, and rheology closures
+\cite{KopplHelmig2023DimensionReducedModeling,QuarteroniFormaggia2004CardiovascularModeling}.
+
+The principal observables depend on the selected tier and on the operator used
+to read the field. Table~\ref{tab:continuum-principal-observables} records the
+main categories used when a continuum field is compared with a reduced stenosis
+model.
+
+\begin{table}[!htb]
+    \centering
+    \small
+    \caption{Principal continuum observables and the corresponding reduced
+    quantities used in stenosis modeling.}
+    \label{tab:continuum-principal-observables}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.27\textwidth}
+        >{\raggedright\arraybackslash}p{0.35\textwidth}
+        >{\raggedright\arraybackslash}X
+        @{}}
+        \toprule
+        \textbf{Continuum quantity}
+            & \textbf{Typical observation}
+            & \textbf{Reduced counterpart} \\
+        \midrule
+        Velocity $\vu$
+            & Point, profile, section mean, or resolved field.
+            & Mean axial velocity $\bar u=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$
+            and reconstructed profile descriptors. \\
+        Pressure $p$
+            & Local pressure, pressure drop, or pressure history.
+            & Section-averaged pressure or wall-law gauge pressure. \\
+        Flow through a section
+            & $Q_{\mathrm{phys}}=\int_{S(z,t)} u_z\,dS$.
+            & Stored flow state and physical-flow reconstruction. \\
+        Wall traction and shear
+            & Boundary stress or wall-shear measure.
+            & Friction, profile, and wall closures rather than a resolved
+            traction field. \\
+        Current geometry
+            & Lumen area, radius, and wall displacement.
+            & Section area, reference geometry, and wall-law relation. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{stenosisillustration}
+The idealized stenosis case study inherits the continuum description in four
+specific ways. First, the lumen is treated as a macroscopic blood domain
+carrying velocity, pressure, density, and stress fields; blood cells are not
+resolved individually. Second, the narrowing is represented through a declared
+smooth vessel geometry and a selected wall treatment, so any wall motion not
+solved at the continuum level must enter through the reduced wall law. Third,
+mass and momentum balance are retained as the source of the section area and
+flow equations, while discarded transverse velocity and stress information must
+be supplied by profile, friction, rheology, and wall closures. Fourth, the
+principal comparison quantities are continuum-derived observables: physical
+flow, section-mean axial velocity, pressure when a pressure output is declared,
+and velocity-profile descriptors.
+\end{stenosisillustration}
