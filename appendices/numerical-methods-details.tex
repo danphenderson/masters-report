@@ -89,8 +89,155 @@ narrative.
 \end{table}
 
 
+\subsection{Secondary implementation-health records}
+\label{app:num-secondary-implementation-health}
+\label{subsec:verification-reproducibility}
+\label{subsec:package-benchmark-suite}
+
+The package benchmark suite records implementation-health stages for the Julia
+solver: descriptor health, sampled self-convergence, native/SciML
+cross-integrator discrepancy, stationary-Stokes projection rows,
+rheology/profile sensitivity, OpenBF-style boundary handling, and
+resolved-velocity output diagnostics. These records check that documented solver
+surfaces remain runnable and that generated report assets retain their expected
+columns. They are not the principal C23/C40 comparison method, and they do not
+supersede the MMS or geometry-rest evidence in Chapter~\ref{sec:numerical-verification}.
+
+\IfFileExists{figures/static/static/tables/package-benchmark/package-benchmark-summary.tex}{%
+    \input{figures/static/static/tables/package-benchmark/package-benchmark-summary.tex}
+}{%
+    \begin{center}
+    \small
+    \emph{Benchmark table fragment unavailable in this checkout. Run the
+    benchmark renderer to populate
+    \path{figures/static/static/tables/package-benchmark/}.}
+    \end{center}
+}
+
+\subsubsection{Nonselected DG p/h demonstration}
+
+The manufactured-solution p/h demonstration is a secondary smooth-solution
+implementation check for the native modal-DG surface. The implemented DG support
+runs through $p=4$, while descriptor-health or package-benchmark rows may use
+only selected degrees such as $p=0,1,2$. These rows are appendix context, not the
+principal MUSCL/Rusanov/SSPRK3 comparison method.
+
+\IfFileExists{figures/static/static/tables/verification/p_h_refinement_demo.tex}{%
+    \input{figures/static/static/tables/verification/p_h_refinement_demo.tex}
+}{%
+    \begin{center}
+    \small
+    \emph{p/h-refinement table unavailable in this checkout. Run
+    \texttt{verify ph-refinement} and the renderer to populate
+    \path{figures/static/static/tables/verification/}.}
+    \end{center}
+}
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{figures/static/static/rendered/p-h-refinement-demo.pdf}{%
+        \includegraphics[width=0.92\linewidth]{figures/static/static/rendered/p-h-refinement-demo.pdf}
+    }{%
+        \fbox{\parbox{0.82\linewidth}{\centering p/h-refinement demonstration
+        asset unavailable in this checkout.}}
+    }
+    \caption{Manufactured-solution p- and h-refinement demonstration for the
+    modal DG surface. The comparison isolates fixed-degree h-refinement from a
+    fixed-mesh p sweep and should be interpreted as smooth-case implementation
+    evidence, not physical validation.}
+    \label{fig:ph-refinement-demo}
+\end{figure}
+
+\subsubsection{Self-convergence and cross-integrator records}
+\label{subsec:sampled-self-convergence}
+
+Self-convergence and backend-parity rows are empirical implementation-health
+checks. They can reveal grid sensitivity, boundedness problems, or
+integration-policy discrepancies, but they do not replace the exact-solution MMS
+rows and do not establish stability of the nonlinear semi-discrete operator.
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{figures/static/static/rendered/package-benchmark-convergence.pdf}{%
+        \includegraphics[width=0.86\linewidth]{figures/static/static/rendered/package-benchmark-convergence.pdf}
+    }{%
+        \fbox{\parbox{0.82\linewidth}{\centering Benchmark convergence
+        asset unavailable in this checkout.}}
+    }
+    \caption{Self-convergence observed-order summary reported by the benchmark
+    renderer. This is a sampled implementation-check diagnostic; the MMS table in
+    Section~\ref{subsec:mms-verification} is the stronger exact-solution
+    verification evidence.}
+    \label{fig:package-benchmark-convergence}
+\end{figure}
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{figures/static/static/rendered/package-benchmark-backend-parity.pdf}{%
+        \includegraphics[width=0.86\linewidth]{figures/static/static/rendered/package-benchmark-backend-parity.pdf}
+    }{%
+        \fbox{\parbox{0.82\linewidth}{\centering Benchmark
+        cross-integrator discrepancy asset unavailable in this checkout.}}
+    }
+    \caption{Native/SciML cross-integrator discrepancy versus runtime for
+    compatible methods. The native path uses the stagewise positivity limiter;
+    the SciML path integrates the unprojected semi-discrete system. The figure
+    is therefore a cross-integrator diagnostic, not a proof of solver equivalence.}
+    \label{fig:package-benchmark-backend-parity}
+\end{figure}
+
+\subsubsection{Resolved-velocity and descriptor sensitivity benchmark records}
+\label{subsec:resolved-velocity-benchmark-diagnostic}
+
+The package benchmark also keeps a resolved-velocity output-operator stage. Its
+role here is limited: it checks that the \texttt{CrossSectionQuadratureOperator}
+report path remains executable and records the same kind of mean absolute
+velocity discrepancy used in Section~\ref{sec:resolved-3d-comparison}. The
+detailed interpretation of the resolved comparison belongs to
+Chapter~\ref{sec:resolved-3d-comparison}.
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{figures/static/static/rendered/package-benchmark-resolved3d.pdf}{%
+        \includegraphics[width=0.72\linewidth]{figures/static/static/rendered/package-benchmark-resolved3d.pdf}
+    }{%
+        \fbox{\parbox{0.82\linewidth}{\centering Benchmark
+        resolved-velocity diagnostic asset unavailable in this checkout.}}
+    }
+    \captionsetup{justification=raggedright,singlelinecheck=false}
+    \caption{Resolved-velocity output-operator diagnostic summary for the
+    available local cases. The rendered value is the section-wise mean absolute
+    velocity discrepancy for the declared
+    \texttt{CrossSectionQuadratureOperator}.}
+    \label{fig:package-benchmark-resolved3d}
+\end{figure}
+
+\subsubsection{Descriptor sensitivity records}
+\label{subsec:verification-sensitivity-checks}
+
+The rheology/profile benchmark stage is a descriptor-level sensitivity check. It
+is retained to show that the descriptor options remain connected to the
+benchmark record, but it is not used to support the principal C23/C40 comparison
+claim.
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}{%
+        \includegraphics[width=0.86\linewidth]{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}
+    }{%
+        \fbox{\parbox{0.82\linewidth}{\centering Benchmark
+        rheology/profile asset unavailable in this checkout.}}
+    }
+    \caption{Rheology/profile sensitivity summary for declared descriptor
+    combinations. This stage checks descriptor response direction; it is not
+    part of the principal C23/C40 comparison evidence.}
+    \label{fig:package-benchmark-rheology-profile}
+\end{figure}
+
+
 \subsection{Fixed-wall stationary-Stokes refinement record}
 \label{app:num-stationary-stokes-refinement}
+\label{subsec:stationary-stokes-projection-checks}
 
 The local three-dimensional refinement study is limited to a fixed-wall
 stationary-Stokes problem on the smooth idealized stenosis geometry. The public
@@ -123,6 +270,18 @@ Here $\mathbf n$ is the analytic outward normal of the $C^\infty$ wall profile.
 The reported means and maxima are fixed-wall fluid-stress diagnostics sampled
 from the finite-element solution. They are not structural displacement, wall
 velocity, structural stress, or resolved FSI interface-work outputs.
+
+
+\IfFileExists{figures/static/static/tables/verification/stationary_stokes_refinement.tex}{%
+    \input{figures/static/static/tables/verification/stationary_stokes_refinement.tex}
+}{%
+    \begin{center}
+    \small
+    \emph{Stationary-Stokes refinement table unavailable in this checkout. Run
+    the stationary-Stokes refinement workflow to populate the verification
+    table.}
+    \end{center}
+}
 
 \subsection{Elastic-potential balance-law form}
 \label{app:num-elastic-potential-form}
@@ -399,13 +558,15 @@ The native modal DG option represents each cell state by Legendre coefficients,
     \mathbf U_i(\xi,t)
     =
     \sum_{m=0}^{p}\widehat{\mathbf U}_{i,m}(t)P_m(\xi),
-    \qquad -1\le\xi\le1,\qquad p\in\{0,1,2\}. &&
+    \qquad -1\le\xi\le1,\qquad p\in\{0,\ldots,4\}. &&
 \end{flalign*}
 The implemented DG interface traces are evaluated at $\xi=\pm1$ and passed to
 the same Rusanov flux form, while cell-volume flux and source contributions use
 the recorded quadrature rule. The degree-zero DG path is recorded as the
-cell-average finite-volume bridge; degrees one and two are native modal-DG
-benchmark rows, not the selected C23/C40 comparison method.
+cell-average finite-volume bridge. Descriptor-health or package-benchmark rows
+may exercise selected degrees such as $p=0,1,2$, while the p-refinement
+verification workflow runs through $p=4$; all of these DG rows are secondary
+appendix context rather than the selected C23/C40 comparison method.
 
 The local numerical speed for the Rusanov finite-volume and DG interface fluxes is
 \begin{flalign*}

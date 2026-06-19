@@ -1,15 +1,22 @@
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Zero-forcing, zero-inlet geometry-rest drift summary. Values are maxima over the reported positive elapsed times for the two finest grids. The normalization uses the comparison-run flow scale $q_{\mathrm{comp}}=2.288/\pi=0.7283\,\mathrm{cm^3/s}$.}
-    \begin{tabular}{@{}rrrrrrrrr@{}}
+    \caption{Zero-forcing, zero-inlet geometry-rest drift summary. Peak columns
+    report the maximum over positive elapsed times for each row; $t=1$ columns
+    report the final-time rest drift. Solver flow $q$ is in cm$^3$/s in the
+    solver coordinate, and physical circular flow is $\pi q$ in cm$^3$/s. The
+    normalization uses the comparison-run flow scale
+    $q_{\mathrm{comp}}=2.288/\pi=0.7283\,\mathrm{cm^3/s}$.}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}rrrrrrrrrrr@{}}
         \toprule
-        Severity & $N$ & $t_{\max q}$ & $\max |q_i|$ & $\max |q_i|/q_{\mathrm{comp}}$ & $\max |a_i-R_{0,i}^2|$ & $\max |\Delta M|$ & Subcrit. min & $\max |\Delta t_{\mathrm{term}}|$ \\
+        Severity & $N$ & $t_{\max |q|}$ & peak $\max |q_i|$ & peak $\pi\max |q_i|$ & peak$/q_{\mathrm{comp}}$ & $t=1$ $\max |q_i|$ & $t=1$ $\pi\max |q_i|$ & final/$q_{\mathrm{comp}}$ & $|\Delta M|_{t=1}$ & Subcrit. min \\
         \midrule
-23 & 400 & 0.01 & 1.559 & 2.141 & 7.422e-04 & 0.001577 & 800.9 & 0.000e+00 \\
-23 & 800 & 0.01 & 1.566 & 2.151 & 7.401e-04 & 0.001574 & 800.4 & 0.000e+00 \\
-40 & 400 & 0.01 & 1.64 & 2.252 & 7.984e-04 & 0.001944 & 626.1 & 0.000e+00 \\
-40 & 800 & 0.01 & 1.658 & 2.276 & 7.941e-04 & 0.001925 & 624.9 & 0.000e+00 \\
+23 & 400 & 0.01 & 1.559 & 4.898 & 2.141 & 0.7380 & 2.319 & 1.013 & 1.324e-04 & 800.9 \\
+23 & 800 & 0.01 & 1.566 & 4.921 & 2.151 & 0.7313 & 2.297 & 1.004 & 1.294e-04 & 800.4 \\
+40 & 400 & 0.01 & 1.640 & 5.152 & 2.252 & 0.7425 & 2.333 & 1.020 & 1.731e-04 & 626.1 \\
+40 & 800 & 0.01 & 1.658 & 5.209 & 2.276 & 0.7324 & 2.301 & 1.006 & 1.566e-04 & 624.9 \\
         \bottomrule
-    \end{tabular}
+    \end{tabular}%
+    }
 \end{table}
