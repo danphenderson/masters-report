@@ -855,26 +855,44 @@ and PGFPlots-ready static data, not the raw fields.
     \end{tabularx}
 \end{table}
 
-Velocity and flow differences are reported as empirical sample $L^1$, $L^2$,
-and $L^3$ discrepancies over valid section targets. With
+Velocity and flow differences are reported as sample discrepancy measures over
+valid section targets. With
 $d_{u,j}=\bar u_{1D,j}-\bar u_{3D,j}$ and
-$d_{Q,j}=Q_{1D,j}-Q_{3D,j}$, the normalized sample discrepancy norms are
+$d_{Q,j}=Q_{1D,j}-Q_{3D,j}$, the retained section metrics are the signed mean
+bias, mean absolute discrepancy, RMS discrepancy, maximum absolute discrepancy,
+and relative RMS discrepancy,
 \begin{flalign*}
     \quad
-    E_{u,p}
+    \overline d_u
     &=
-    \left(\frac{1}{n}\sum_j |d_{u,j}|^p\right)^{1/p},
+    \frac{1}{n}\sum_j d_{u,j},
     &
-    E_{Q,p}
+    D_{u,1}
     &=
-    \left(\frac{1}{n}\sum_j |d_{Q,j}|^p\right)^{1/p},
+    \frac{1}{n}\sum_j |d_{u,j}|,
     &
-    p&\in\{1,2,3\}, &&\\
+    D_{u,2}
+    &=
+    \left(\frac{1}{n}\sum_j d_{u,j}^2\right)^{1/2}, &&\\
     \quad
-    E_{u,p}^{\mathrm{rel}}
+    D_{u,\infty}
     &=
-    \frac{\left(\sum_j|d_{u,j}|^p\right)^{1/p}}
-         {\left(\sum_j|\bar u_{3D,j}|^p\right)^{1/p}},
+    \max_j |d_{u,j}|,
     &
-    p&\in\{1,2,3\}. &&
+    D_{u,2}^{\mathrm{rel}}
+    &=
+    \frac{\left(\sum_j d_{u,j}^2\right)^{1/2}}
+         {\left(\sum_j\bar u_{3D,j}^2\right)^{1/2}}, &&\\
+    \quad
+    \overline d_Q
+    &=
+    \frac{1}{n}\sum_j d_{Q,j},
+    &
+    D_{Q,1}
+    &=
+    \frac{1}{n}\sum_j |d_{Q,j}|,
+    &
+    D_{Q,2}
+    &=
+    \left(\frac{1}{n}\sum_j d_{Q,j}^2\right)^{1/2}. &&
 \end{flalign*}

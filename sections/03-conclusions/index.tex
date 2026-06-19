@@ -29,27 +29,28 @@ limitations, not as complete numerical verification of every possible output.
 \subsection{Interpretation of the Cross-Model Discrepancies}
 \label{subsec:discussion-cross-model-discrepancies}
 
-The largest resolved-velocity disagreement in this pair occurs in C40, the
-stronger stenosis case. The section-mean comparison in
-Table~\ref{tab:t1-3d-comparison-summary} records the descriptive widening:
-the velocity $L^1$ error increases from 0.505 cm/s in C23 to 0.966 cm/s in C40,
-while the velocity $L^3$ error increases from 0.853 cm/s to 2.82 cm/s. The
-largest section discrepancy increases from 2.35 cm/s to 9.92 cm/s.
+The largest section-mean resolved-velocity discrepancy in this pair occurs in
+C40, the stronger stenosis case. The section-mean comparison in
+Table~\ref{tab:t1-3d-comparison-summary} records the descriptive widening: the
+signed mean velocity bias changes from 0.480 cm/s in C23 to 0.909 cm/s in C40,
+the mean absolute velocity discrepancy changes from 0.505 to 0.966 cm/s, the
+RMS velocity discrepancy changes from 0.664 to 1.87 cm/s, and the relative RMS
+velocity discrepancy changes from 0.0277 to 0.0688. The largest section
+discrepancy increases from 2.35 cm/s to 9.92 cm/s.
 Table~\ref{tab:t1-largest-section-discrepancies} localizes the largest section
 discrepancies just upstream of the displayed throat band, in the C40
 acceleration/shoulder region. Because the numerical and data-matching gates
 remain unresolved, this two-case pattern should not be read as a causal
 stenosis-severity result.
 
-The radial-profile comparison gives a complementary reading. The throat and
-downstream C40 slices show the largest profile discrepancies, especially in
-Table~\ref{tab:t1-radial-profile-summary}. That is consistent with the
-expectation that a one-dimensional parabolic reconstruction will be most
-strained where the resolved field contains strong transverse structure. It is
-not, by itself, a diagnosis of secondary flow, skewness, separation, or any one
-omitted 3D mechanism. The radial plots show where the 1D profile closure fails
-to reproduce the resolved radial bins; they do not identify a unique physical
-cause.
+The radial-profile figure gives a more limited reading. It is retained as a
+qualitative secondary visual diagnostic of how the 1D parabolic reconstruction
+compares with resolved radial-bin means. The radial-summary table is withheld
+from the main evidence path pending reconciliation of the radial-summary
+recomputation conflict, so the discussion does not use radial-bin numeric
+values for localization or mechanism claims. The plots can motivate follow-up
+inspection, but they do not identify secondary flow, skewness, separation, or
+any one omitted 3D mechanism.
 
 \subsection{Effects of Unmatched Wall Models, Boundary Conditions, and Histories}
 \label{subsec:discussion-unmatched-modeling-effects}
@@ -97,9 +98,9 @@ partially persisted, so the current comparison can localize discrepancies but
 cannot uniquely attribute them. The section-flow audit is another unresolved
 gate: the available 3D cuts vary by about 7.7\% of the C23 mean section flow
 and 20.2\% of the C40 mean section flow, and the comparison files do not by
-themselves establish whether this is fixed-wall numerical/operator error,
-single-snapshot moving-wall geometry, or a moving-wall effect requiring
-area-rate and wall-history data.
+themselves establish whether this is a fixed-wall numerical/operator
+discrepancy, single-snapshot moving-wall geometry, or a moving-wall effect
+requiring area-rate and wall-history data.
 
 \subsection{Implications and Future Work}
 \label{subsec:discussion-implications-future-work}
@@ -108,10 +109,10 @@ The immediate implication is practical: the next useful step is a more
 controlled comparison record. That record should persist matched inlet and
 outlet histories, wall and material parameters, positivity/CFL/mass diagnostics,
 subcritical characteristic-speed signs, grid and operator sensitivity for the
-actual C23/C40 outputs, high-area-error section sensitivity, and an explicit
-classical-versus-extended ablation. It should also preserve the existing
-physical-flow and area-denominator decomposition as a standard output rather
-than as an after-the-fact table.
+actual C23/C40 outputs, high-area-discrepancy section sensitivity, and an
+explicit classical-versus-extended ablation. It should also preserve the
+existing physical-flow and area-denominator decomposition as a standard output
+rather than as an after-the-fact table.
 
 A pressure-focused extension would require a separate design. It would need
 proximal and distal pressure observation maps, reference-pressure and averaging
@@ -148,15 +149,18 @@ at $t=1.0$ s is still of the same order as the comparison-flow scale, so the
 later C23/C40 velocity comparison cannot be interpreted as a production-accuracy
 study.
 
-The 1D--3D velocity comparison shows localized discrepancy under the declared
-cross-section quadrature operator. For C23 and C40 at $t=1.0$ s, the
-section-wise area-mean velocity discrepancies have $L^1$ errors of 0.505 and
-0.966 cm/s, $L^2$ errors of 0.664 and 1.87 cm/s, and $L^3$ errors of 0.853 and
-2.82 cm/s. The largest listed section discrepancies are 2.35 and 9.92 cm/s.
-The larger discrepancies in this two-case pair occur in the upstream C40
-shoulder and in the reconstructed radial profiles; they are single-realization
-descriptive comparison outputs, not a validated stenosis-dependence or
-model-accuracy claim.
+The 1D--3D velocity comparison reports localized discrepancies under the
+declared cross-section quadrature operator. For C23 and C40 at $t=1.0$ s, the
+signed section-mean velocity biases are 0.480 and 0.909 cm/s, the mean absolute
+velocity discrepancies are 0.505 and 0.966 cm/s, the RMS velocity discrepancies
+are 0.664 and 1.87 cm/s, and the relative RMS velocity discrepancies are 0.0277
+and 0.0688. The largest listed section discrepancies are 2.35 and 9.92 cm/s,
+with the larger section discrepancy in the upstream C40 shoulder in this
+two-case pair. The radial-profile plots remain qualitative secondary diagnostics
+because the radial-summary table is withheld pending reconciliation of the
+radial-summary recomputation conflict. These outputs are single-realization
+descriptive comparison outputs, not evidence of stenosis dependence or model
+accuracy.
 
 The bounded contribution is therefore precise rather than clinical: a selected
 extended 1D stenosis model, an auditable finite-volume/time-integration
