@@ -4,30 +4,68 @@
 This chapter reports the implementation checks and targeted numerical
 verification now available for the selected solver. The title is intentionally
 narrower than ``full numerical verification.'' The evidence below supports the
-finite-volume implementation, diagnostics, data contracts, and selected
+finite-volume implementation, diagnostics, reported output records, and selected
 verification problems used in this report. It does not establish clinical
 validation, pressure or FFR accuracy, or exhaustive verification of every
 possible model variant.
+
+\subsection{Scope of Convergence and Stability Evidence}
+\label{subsec:verification-scope-convergence-stability}
+
+The numerical evidence in this chapter is implementation verification rather
+than a formal convergence proof for the full nonlinear stenosis solver. The
+standard finite-volume context is supplied by a conservative hyperbolic
+discretization with consistent numerical fluxes and sources, CFL-controlled
+time stepping, limiter and Rusanov dissipation choices, and SSP Runge--Kutta
+time integration
+\cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems}. In 1D blood-flow
+practice, MUSCL/Rusanov and Lax--Friedrichs-type discretizations are commonly
+assessed through exact-solution, benchmark, grid-refinement, and equilibrium
+tests
+\cite{Wang2014BloodFlowNetworks,BeckersKolbe2025LaxFriedrichsHemodynamics,BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF,LuccaEtAl2025FFRPrediction}.
+The report-level evidence then comes from manufactured-solution rows,
+zero-forcing rest-state drift checks, sampled refinement records, and
+admissibility diagnostics such as CFL, characteristic-sign, positivity, and
+mass-balance metadata.
+Discrete $L^1$, $L^2$, and $L^\infty$ histories are therefore read as empirical
+error and boundedness diagnostics for the recorded runs. They are not, by
+themselves, stability proofs or convergence theorems for every admissible
+stenosis configuration.
+
+\paragraph{Reading the diagnostics.}
+The strongest positive evidence in this chapter is the manufactured-solution
+table because it compares the implemented operator against a known smooth
+solution. The rest-state drift table is an equilibrium and well-balancedness
+diagnostic, and here it records a negative result for the selected
+Rusanov/MUSCL flux--source realization. CFL, characteristic-sign, positivity,
+and mass-balance rows are admissibility and boundedness diagnostics for the
+accepted runs. Self-convergence and cross-integrator rows are empirical
+implementation-health checks rather than stability or convergence proofs. The
+WENO3, SSPRK54, nonselected DG, and rheology/profile rows are sensitivity and
+descriptor-context evidence unless a later claim explicitly names them as the
+active method.
 
 \subsection{Software and Descriptor Checks}
 \label{subsec:verification-reproducibility}
 \label{subsec:package-benchmark-suite}
 
-The reproducible benchmark pipeline records implementation-check stages for the Julia
-solver: descriptor health, sampled self-convergence, native/SciML
+The reproducible benchmark suite records implementation-check stages for the
+Julia solver: descriptor health, sampled self-convergence, native/SciML
 cross-integrator discrepancy, stationary-Stokes projection rows,
 rheology/profile sensitivity, OpenBF-style boundary handling, and
 resolved-velocity output diagnostics. These stages check that the selected
-implementation surface remains runnable and schema-stable. Descriptor-health
-rows exercise the report-now spatial surface from
+implementation surface remains runnable and that documented output summaries
+retain their expected columns. Descriptor-health rows exercise the implemented
+spatial surface from
 Table~\ref{tab:implemented-discretization-surface}: first-order finite volume,
 MUSCL finite volume, characteristic WENO3 finite volume,
-Richtmyer/Lax--Wendroff finite volume, and modal DG degrees $p=0,1,2$, paired
-with the native Euler, SSPRK2, SSPRK3, and SSPRK54 steppers. Refinement rows
-provide FV/DG spatial context, while backend-parity rows compare native SSPRK3
-against the supported SciML/OrdinaryDiffEq policies for semi-discrete operators
-admitted by that backend, including \texttt{vern7} and \texttt{vern9} in the
-full profile.
+Richtmyer/Lax--Wendroff finite volume, and modal DG degrees $p=0,1,2$. The
+smoke profile pairs those spatial descriptors with SSPRK3; the full profile
+also expands native descriptor-health rows across Euler, SSPRK2, SSPRK3, and
+SSPRK54. Refinement rows provide FV/DG spatial context, while backend-parity
+rows compare native SSPRK3 against the supported SciML/OrdinaryDiffEq policies
+for semi-discrete operators admitted by that backend, including \texttt{vern7}
+and \texttt{vern9} in the full profile.
 
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 ./scripts/stenosis-hemodynamics benchmark \
@@ -59,8 +97,55 @@ The implementation now exposes an opt-in manufactured forcing term. The
 production equations use \texttt{NoForcing()} by default. For verification
 only, \texttt{ManufacturedForcing()} supplies a smooth exact state
 $(a^\star(z,t),q^\star(z,t))$, exact initial data, exact boundary states, and
-source terms inserted into the existing finite-volume right-hand side. The
-runner
+source terms inserted into the existing finite-volume right-hand side. In solver
+coordinates, let
+\begin{flalign*}
+    \quad
+    s(z)&=\sin\!\left(\frac{\pi z}{L}\right),&
+    a_0(z)&=R_0(z)^2,&
+    \omega&=\frac{2\pi}{T_{\mathrm{mms}}}. &&
+\end{flalign*}
+The default manufactured record uses
+\begin{flalign*}
+    \quad
+    \epsilon_a&=0.02,&
+    U_{\mathrm{mms}}&=2.0\,\mathrm{cm}/\mathrm{s},&
+    T_{\mathrm{mms}}&=0.02\,\mathrm{s}, &&
+\end{flalign*}
+and defines
+\begin{flalign*}
+    \quad
+    a^\star(z,t)
+    &=
+    a_0(z)\left[1+\epsilon_a s(z)\cos(\omega t)\right], &&
+    \\
+    \quad
+    q^\star(z,t)
+    &=
+    a_0(z)U_{\mathrm{mms}}s(z)^2\sin(\omega t). &&
+\end{flalign*}
+The tabulated run uses $0\le z\le L=6\,\mathrm{cm}$ and
+$0\le t\le2\times10^{-4}\,\mathrm{s}$ unless the CLI options below are changed.
+Initial data are sampled from $(a^\star,q^\star)$ at $t=0$, and the boundary
+state routine receives the exact traces at $z=0$ and $z=L$. The inserted forcing
+terms are the residuals required by the recorded flux and source realization,
+\begin{flalign*}
+    \quad
+    f_a(z,t)
+    &=
+    \pd_t a^\star+\pd_z F_a(a^\star,q^\star;z), &&
+    \\
+    \quad
+    f_q(z,t)
+    &=
+    \pd_t q^\star+\pd_z F_q(a^\star,q^\star;z)
+    -S_q(a^\star,q^\star;z), &&
+\end{flalign*}
+where $F_a,F_q$ and $S_q$ are the selected discrete-model point flux and source
+functions. The spatial derivatives used to evaluate the forcing are generated by
+the verification helper, so the test checks the implemented operator against
+this declared manufactured record rather than a physical stenosis experiment.
+The runner
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 ./scripts/stenosis-hemodynamics verify mms \
   --nxs 50,100,200,400 \
@@ -68,10 +153,24 @@ runner
   --output-dir figures/static/static/tables/verification \
   --overwrite
 \end{lstlisting}
-emits raw discrete $L^1$, $L^2$, and $L^\infty$ errors, with observed orders
-computed from the $L^2$ rows, for spatial refinement and requested-timestep
-sensitivity. The native backend also records realized CFL diagnostics because
-the accepted timestep is
+records cell-center discrete errors
+\begin{flalign*}
+    \quad
+    \|e\|_1&=\frac{1}{N}\sum_i |e_i|,&
+    \|e\|_2&=\left(\frac{1}{N}\sum_i e_i^2\right)^{1/2},&
+    \|e\|_\infty&=\max_i |e_i|, &&
+\end{flalign*}
+with observed orders computed from the $L^2$ rows as
+\begin{flalign*}
+    \quad
+    p_{\mathrm{obs}}
+    &=
+    \frac{\log(E_{\mathrm{coarse}}/E_{\mathrm{fine}})}
+         {\log(\Delta_{\mathrm{coarse}}/\Delta_{\mathrm{fine}})}. &&
+\end{flalign*}
+For spatial rows $\Delta$ is the grid spacing; for requested-timestep rows it is
+the requested timestep. The native solver also records realized CFL diagnostics
+because the accepted timestep is
 $\min(\Delta t_{\mathrm{request}},\Delta t_{\mathrm{CFL}})$. These rows are
 method-of-manufactured-solutions evidence for the implemented operator; the
 temporal rows should not be read as a clean temporal-order estimate when the
@@ -91,10 +190,65 @@ full-system observed rate. They are not physical validation cases.
     \path{figures/static/static/tables/verification/}.}
     \end{center}
 }
-The spatial rows support convergence of the implemented forced operator, but
-the observed rates are below the formal smooth-region MUSCL/SSPRK3 expectation.
-That is consistent with limiter activation, source discretization, boundary
-treatment, or an unresolved spatial/temporal error balance.
+The spatial rows support an empirical convergence reading for the implemented
+forced operator, but the observed rates are below the formal smooth-region
+MUSCL/SSPRK3 expectation. In this table, the reported observed order is taken
+from the $L^2$ rows; the $L^1$ history records integrated error behavior, while
+$L^\infty$ highlights localized boundary, limiter, or source-discretization
+effects. The subformal observed rates are consistent with limiter activation,
+source discretization, boundary treatment, or an unresolved spatial/temporal
+error balance.
+
+\paragraph{Illustrative p- and h-refinement split.}
+The same manufactured-solution setting is used for a deliberately narrow
+p-versus-h demonstration. In the h-refinement family, the DG polynomial degree
+is fixed and the element count is increased. In the p-refinement family, the
+mesh is fixed and the modal polynomial degree is increased through the
+implemented DG range. The shared horizontal cost measure is the number of
+state degrees of freedom. The runner and renderer are
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+./scripts/stenosis-hemodynamics verify ph-refinement \
+  --h-nxs 20,40,80,160 \
+  --h-degree 2 \
+  --degrees 0,1,2,3,4 \
+  --p-nx 40 \
+  --output-dir figures/static/static/data/verification \
+  --summary-tex figures/static/static/tables/verification/p_h_refinement_demo.tex \
+  --overwrite
+
+pipenv run python scripts/render_ph_refinement_demo.py
+\end{lstlisting}
+The resulting rows are read as an illustrative smooth-solution comparison.
+Boundary treatment, positivity limiting, source quadrature, and the fixed
+timestep can cap the ideal p-refinement trend, so flat or regressing high-order
+rows are reported as implementation sensitivity rather than hidden spectral
+convergence.
+
+\IfFileExists{figures/static/static/tables/verification/p_h_refinement_demo.tex}{%
+    \input{figures/static/static/tables/verification/p_h_refinement_demo.tex}
+}{%
+    \begin{center}
+    \small
+    \emph{p/h-refinement table unavailable in this checkout. Run
+    \texttt{verify ph-refinement} and the renderer to populate
+    \path{figures/static/static/tables/verification/}.}
+    \end{center}
+}
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{figures/static/static/rendered/p-h-refinement-demo.pdf}{%
+        \includegraphics[width=0.92\linewidth]{figures/static/static/rendered/p-h-refinement-demo.pdf}
+    }{%
+        \fbox{\parbox{0.82\linewidth}{\centering p/h-refinement demonstration
+        asset unavailable in this checkout.}}
+    }
+    \caption{Manufactured-solution p- and h-refinement demonstration for the
+    modal DG surface. The comparison isolates fixed-degree h-refinement from a
+    fixed-mesh p sweep and should be interpreted as smooth-case implementation
+    evidence, not physical validation.}
+    \label{fig:ph-refinement-demo}
+\end{figure}
 
 \subsection{Zero-Forcing Geometry-Rest Drift}
 \label{subsec:rest-state-drift}
@@ -105,11 +259,12 @@ operator is not exactly well balanced for spatially varying $R_0$ because the
 mass flux includes numerical viscosity. The verification runner therefore
 starts the selected C23 and C40 geometries from the rest state with a
 zero-velocity inlet and reports
-\[
-    \max_i |q_i|,\qquad
-    \max_i |a_i-R_0(z_i)^2|,\qquad
-    \left|\sum_i a_i\Delta z-\sum_i a_i(0)\Delta z\right|
-\]
+\begin{flalign*}
+    \quad
+    &\max_i |q_i|,&
+    &\max_i |a_i-R_0(z_i)^2|,&
+    &\left|\sum_i a_i\Delta z-\sum_i a_i(0)\Delta z\right| &&
+\end{flalign*}
 as functions of grid size and elapsed time. This test is required context for
 any comparison run initialized from the same geometry-rest state.
 
@@ -117,7 +272,7 @@ any comparison run initialized from the same geometry-rest state.
 ./scripts/stenosis-hemodynamics verify rest \
   --severities 23,40 \
   --nxs 100,200,400,800 \
-  --elapsed-times 0,0.001,0.01,0.1 \
+  --elapsed-times 0,0.001,0.01,0.1,1.0 \
   --output-dir figures/static/static/tables/verification \
   --overwrite
 \end{lstlisting}
@@ -136,28 +291,31 @@ any comparison run initialized from the same geometry-rest state.
 \paragraph{Interpretation of rest-state drift.}
 The corrected rest-state run has zero body forcing and zero inlet flow, so the
 reported motion is not an imposed boundary through-flow. The comparison-flow
-scale is $q_{\mathrm{comp}}\approx2.288/\pi=0.7283\,\mathrm{cm^2/s}$, close to
+scale is $q_{\mathrm{comp}}\approx2.288/\pi=0.7283\,\mathrm{cm}^3/\mathrm{s}$, close to
 the production through-flow scale in Table~\ref{tab:t1-3d-comparison-summary}.
 The largest corrected rest-state values on the two finest grids are about
-$2.14$--$2.28\,q_{\mathrm{comp}}$ by $t=0.01$ s. This is a material
+$2.14$--$2.28\,q_{\mathrm{comp}}$ by $t=0.01$ s and remain about one
+$q_{\mathrm{comp}}$ at $t=1.0$ s on the finest grid. This is a material
 non-well-balanced artifact of the present Rusanov/MUSCL flux--source
 realization, possibly amplified by the characteristic boundary response; it is
-not small relative to the C23/C40 comparison flow scale. The C23/C40
-comparison runs are initialized from the same geometry-rest state and use the
-same operator, so their start-up transient may include artificial rest-state
-motion before and during the imposed through-flow. The contribution claimed
-here is therefore an auditable, diagnostically exposed implementation, not a
-well-balanced stenosis discretization.
+not small relative to the C23/C40 comparison flow scale. The C23/C40 comparison
+runs are initialized from the same geometry-rest state and use the same
+operator, so their start-up transient may include artificial rest-state motion
+before and during the imposed through-flow. This limits the C23/C40 comparison
+to a velocity-output and reproducibility diagnostic rather than a clean
+discretization-accuracy result. The contribution claimed here is therefore an
+auditable, diagnostically exposed implementation, not a well-balanced stenosis
+discretization.
 
 \subsection{Boundary and Conservation Diagnostics}
 \label{subsec:boundary-diagnostics}
 
-The native backend now persists per-run diagnostics in
+The native solver records per-run diagnostics in
 \texttt{SimulationDiagnostics}: accepted timestep extrema, realized CFL extrema,
 $\lambda_-$ and $\lambda_+$ extrema, the minimum subcriticality margin
 $\min(-\lambda_-,\lambda_+)$, mass extrema and mass defect, positivity
 projection count, and total area correction from the positivity floor. These
-diagnostics are emitted by direct simulation summaries, benchmark case rows,
+diagnostics are reported by direct simulation summaries, benchmark case rows,
 rest-state drift rows, and resolved-velocity comparison summaries.
 
 The fixed-area characteristic boundary rule remains a method applied under the
@@ -169,6 +327,11 @@ native run.
 \subsection{Self-Convergence and Cross-Integrator Checks}
 \label{subsec:sampled-self-convergence}
 
+Self-convergence and backend-parity rows are empirical implementation checks.
+They can reveal grid sensitivity, boundedness problems, or integration-policy
+discrepancies, but they do not replace the exact-solution MMS rows and do not
+establish stability of the nonlinear semi-discrete operator.
+
 \begin{figure}[!htb]
     \centering
     \IfFileExists{figures/static/static/rendered/package-benchmark-convergence.pdf}{%
@@ -177,7 +340,7 @@ native run.
         \fbox{\parbox{0.82\linewidth}{\centering Benchmark convergence
         asset unavailable in this checkout.}}
     }
-    \caption{Self-convergence observed-order summary emitted by the benchmark
+    \caption{Self-convergence observed-order summary reported by the benchmark
     renderer. This is a sampled implementation-check diagnostic; the MMS table in
     Section~\ref{subsec:mms-verification} is the stronger exact-solution
     verification evidence.}
@@ -199,15 +362,15 @@ native run.
     \label{fig:package-benchmark-backend-parity}
 \end{figure}
 
-\subsection{Stationary-Stokes Refinement}
+\subsection{Stationary-Stokes Sensitivity}
 \label{subsec:stationary-stokes-projection-checks}
 
-The stationary-Stokes module now emits a refinement summary rather than only a
-projection-existence check. It compares projected one-dimensional section
-averages with finite-element section samples across generated stationary
-Stokes meshes and reports finest-mesh relative discrepancies. This remains an
-initializer/projection diagnostic; it is not transient 3D validation of the 1D
-solver.
+The stationary-Stokes module records a two-level mesh sensitivity summary rather
+than only a projection-existence check. It compares projected one-dimensional
+section averages with finite-element section samples across generated
+stationary Stokes meshes and reports finest-mesh-relative discrepancies. This
+remains an initializer/projection diagnostic; it is not a convergence theorem
+or transient 3D validation of the 1D solver.
 
 \IfFileExists{figures/static/static/tables/verification/stationary_stokes_refinement.tex}{%
     \input{figures/static/static/tables/verification/stationary_stokes_refinement.tex}
@@ -226,7 +389,7 @@ solver.
 The package benchmark also keeps a resolved-velocity output-operator stage.
 Its role in this chapter is limited: it checks that the
 \texttt{CrossSectionQuadratureOperator} report path remains executable and
-emits the same kind of mean absolute velocity discrepancy used in
+records the same kind of mean absolute velocity discrepancy used in
 Section~\ref{sec:resolved-3d-comparison}. The detailed interpretation of the
 resolved comparison belongs to Chapter~\ref{sec:resolved-3d-comparison}.
 
@@ -238,6 +401,7 @@ resolved comparison belongs to Chapter~\ref{sec:resolved-3d-comparison}.
         \fbox{\parbox{0.82\linewidth}{\centering Benchmark
         resolved-velocity diagnostic asset unavailable in this checkout.}}
     }
+    \captionsetup{justification=raggedright,singlelinecheck=false}
     \caption{Resolved-velocity output-operator diagnostic summary for the
     available local cases. The rendered value is the section-wise mean
     absolute velocity discrepancy for the declared
@@ -245,8 +409,13 @@ resolved comparison belongs to Chapter~\ref{sec:resolved-3d-comparison}.
     \label{fig:package-benchmark-resolved3d}
 \end{figure}
 
-\subsection{Sensitivity Checks}
+\subsection{Descriptor Sensitivity Checks}
 \label{subsec:verification-sensitivity-checks}
+
+The remaining benchmark figure is a descriptor-level sensitivity check. It is
+included here to show that the rheology/profile options remain connected to the
+benchmark record, but it is not used to support the principal C23/C40 comparison
+claim.
 
 \begin{figure}[!htb]
     \centering
@@ -257,21 +426,26 @@ resolved comparison belongs to Chapter~\ref{sec:resolved-3d-comparison}.
         rheology/profile asset unavailable in this checkout.}}
     }
     \caption{Rheology/profile sensitivity summary for declared descriptor
-    combinations. This stage checks descriptor plumbing and response
-    direction; it is not part of the principal C23/C40 comparison evidence.}
+    combinations. This stage checks descriptor response direction; it is not
+    part of the principal C23/C40 comparison evidence.}
     \label{fig:package-benchmark-rheology-profile}
 \end{figure}
 
 \subsection{Verification Summary}
 \label{subsec:verification-summary}
 
-The strengthened record supports a targeted numerical-verification claim. It
-includes exact-solution MMS evidence, zero-forcing rest-state drift diagnostics,
-persisted CFL and characteristic-speed metadata, mass-balance and positivity
-metadata, sampled self-convergence, cross-integrator checks, and
-stationary-Stokes projection refinement. The claim remains bounded: runtime,
-platform, broad rheology/profile sensitivity, WENO3, SSPRK54, Verner adaptive
-rows, Lax--Wendroff rows, and nonselected DG rows are implementation-check or
-appendix-level context unless tied to a principal research question.
+The chapter supports a bounded numerical-verification claim, not clinical
+validation or a convergence theorem for the full nonlinear stenosis problem.
+Its strongest positive evidence is the exact-solution MMS table for the
+implemented forced operator. Its main negative evidence is the zero-forcing
+rest-state drift table, which shows that the selected Rusanov/MUSCL
+flux--source realization is not well balanced for the recorded geometries. CFL
+and characteristic-speed metadata, mass-balance and positivity metadata,
+sampled self-convergence, cross-integrator checks, and stationary-Stokes
+projection sensitivity provide additional implementation-health and
+admissibility evidence. Rows for runtime, platform, broad rheology/profile
+sensitivity, WENO3, SSPRK54, Verner adaptive policies, Lax--Wendroff, and
+nonselected DG remain sensitivity or appendix-level context unless a principal
+research claim explicitly names them.
 
 \FloatBarrier

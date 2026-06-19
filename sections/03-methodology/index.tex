@@ -25,7 +25,10 @@ source-to-implementation choices.
     \scriptsize
     \caption{Source-to-implementation map for the selected 1D model.}
     \label{tab:source-to-implementation-model}
-    \begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}p{0.34\textwidth}X@{}}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.24\textwidth}
+        >{\raggedright\arraybackslash}p{0.34\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
         \toprule
         \textbf{Feature} & \textbf{Canic et al. source form} & \textbf{Implemented report realization} \\
         \midrule
@@ -78,7 +81,7 @@ $N=400$ cells on $0\le z\le6$ cm, a timestep cap of $10^{-5}$ s, and a CFL cap
 of 0.45. The boundary-state approximation is the fixed-area characteristic
 contract recorded in Appendix~\ref{app:num-boundary-state-realization}.
 
-The local Julia project also exposes the report-now spatial and time-integration
+The local Julia project also exposes the implemented spatial and time-integration
 surface in Table~\ref{tab:implemented-discretization-surface}. These options are
 implementation-check and sensitivity context unless a result table explicitly
 identifies them as the active method. The project dependencies include
@@ -91,12 +94,15 @@ future method-development options in this report.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Implemented report-now discretization surface. The principal
+    \caption{Implemented discretization surface used by the report. The principal
     comparison in this report uses MUSCL finite volume with minmod limiting and
     native SSPRK3; the other entries are benchmark, sensitivity, or backend
     parity context supported by the local Julia project.}
     \label{tab:implemented-discretization-surface}
-    \begin{tabularx}{\textwidth}{@{}p{0.20\textwidth}p{0.30\textwidth}X@{}}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.20\textwidth}
+        >{\raggedright\arraybackslash}p{0.30\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
         \toprule
         \textbf{Surface} & \textbf{Implemented option} & \textbf{Report role} \\
         \midrule
@@ -106,7 +112,8 @@ future method-development options in this report.
         Spatial
             & MUSCL finite volume with minmod-limited interface states and
             Rusanov flux
-            & Principal C23/C40 comparison method and main convergence target. \\
+            & Principal C23/C40 comparison method and main empirical
+            refinement target. \\
         Spatial
             & Characteristic WENO3 finite volume with Rusanov flux
             & Opt-in native finite-volume implementation check and smooth-regime
@@ -144,10 +151,13 @@ $\bar u_{1D}(z,t)=q(z,t)/a(z,t)$, and physical flow
 $Q_{1D}(z,t)=\pi q(z,t)$. Principal radial profile plots use the
 current-radius coordinate $r/\sqrt{a(z,t)}$ and the parabolic-profile
 reconstruction
-\[
-    u_{1D}(r;z,t)=2\,\frac{q(z,t)}{a(z,t)}
-    \left(1-\left(\frac{r}{\sqrt{a(z,t)}}\right)^2\right)
-\]
+\begin{flalign*}
+    \quad
+    u_{1D}(r;z,t)
+    &=
+    2\,\frac{q(z,t)}{a(z,t)}
+    \left(1-\left(\frac{r}{\sqrt{a(z,t)}}\right)^2\right) &&
+\end{flalign*}
 with the supplemental reference-radius coordinate $r/R_0(z)$ retained as an
 operator-control output. That reconstruction is a profile diagnostic, not a
 resolved secondary-flow, separation, skewness, or wall-traction model.
@@ -197,7 +207,7 @@ coordinate:
 \end{flalign*}
 Radial profile rows use the same cut triangles, binned by area-conservative
 three-point triangle quadrature in either $r/\sqrt{a(z,t)}$ or $r/R_0(z)$.
-The emitted controls include 10/20/40-bin sensitivity, area-weighted bin
+The recorded controls include 10/20/40-bin sensitivity, area-weighted bin
 means, within-bin azimuthal variance, and the current-to-reference area
 mismatch. Empty bins are reported as invalid rows rather than zero-velocity
 observations.
@@ -223,13 +233,16 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
 \end{minipage}}
 \end{center}
 
-All comparison numbers come from
-\path{simulations/output/3d_comparison/full_t1_native_nx400/}, interpreted
-under Convention~\ref{conv:computed-realization-record}. The regeneration
+The manuscript tables and figures use the tracked static report assets under
+\path{figures/static/static/data/stenosis-comparison/}, interpreted under
+Convention~\ref{conv:computed-realization-record}. The baseline regeneration
 command, source-path convention, and file hashes are listed in
-Appendix~\ref{app:code-and-ai-use}. The raw XDMF/HDF5 inputs remain local
-ignored files under \path{simulations/data/3d/canic_case3/}; the report
-archives the generated CSV and PGFPlots-ready static data.
+Appendix~\ref{app:code-and-ai-use}. Scratch sensitivity reruns live under
+\path{simulations/output/revision-*} or \path{tmp/revision-evidence/} and are
+not the manuscript assets used for the current tables and figures. The raw
+XDMF/HDF5 inputs remain local ignored files under
+\path{simulations/data/3d/canic_case3/}; the report archives the generated CSV
+and PGFPlots-ready static data, not the raw fields.
 
 \begin{table}[!htb]
     \centering
@@ -260,10 +273,10 @@ archives the generated CSV and PGFPlots-ready static data.
 \begin{landscape}
 \begin{table}[!htb]
     \centering
-    \small
+    \scriptsize
     \caption{Model-matching matrix for the 1D--3D velocity diagnostic. Status
-    labels record what the archived report artifact establishes, not what a
-    future matched study might supply.}
+    labels record what the archived report artifact supports, not what a future
+    matched study might supply.}
     \label{tab:t1-model-matching-matrix}
     \begin{tabularx}{\linewidth}{@{}
         >{\raggedright\arraybackslash}p{0.13\linewidth}
@@ -293,15 +306,16 @@ archives the generated CSV and PGFPlots-ready static data.
         Current lumen area
             & Dynamic 1D area is $A_{1D}=\pi a(z,t)$.
             & Fixed 3D cut area is $A_{3D}(z)$.
-            & unknown
-            & The area denominator mismatch relevant to $\bar u=Q/A$ is not
-            decomposed in the archived artifact. \\
+            & algebraically reconstructed
+            & The tracked section asset supports the reported flow/area split,
+            but the split is bookkeeping rather than a wall-motion attribution. \\
         Wall model
             & Compliant reduced Canic--Koiter wall law.
-            & Velocity field on a fixed geometry; matching wall-law metadata
-            is not persisted here.
+            & Velocity and displacement XDMF files expose one local snapshot;
+            wall-history and area-rate data are not persisted here.
             & unmatched
-            & Wall effects cannot be isolated from velocity mismatch. \\
+            & Wall effects and flow conservation cannot be isolated from the
+            velocity mismatch. \\
         Density
             & $\rho$ recorded by the 1D parameters.
             & Not persisted in the tracked comparison tables.
@@ -335,13 +349,14 @@ archives the generated CSV and PGFPlots-ready static data.
             & XDMF time is $0.9995$ s; earlier history is not recorded.
             & unknown
             & The final timestamps are close, but phase/history matching is not
-            proved. \\
+            established. \\
         Numerical resolution
             & $N=400$ finite-volume cells.
             & Node-centered velocity fields with loaded node counts reported.
-            & unknown
-            & 1D cell count and 3D node count are not comparable resolution
-            measures. \\
+            & unresolved
+            & Scratch reruns provide diagnostic resolution checks, but the
+            manuscript tables remain single-realization descriptors unless a
+            dedicated output-sensitivity study is completed. \\
         Velocity observable
             & Section mean $\bar u=q/a$ and physical flow $\pi q$.
             & Plane--tetrahedron cross-section quadrature of axial velocity.
@@ -361,9 +376,9 @@ archives the generated CSV and PGFPlots-ready static data.
     \centering
     \scriptsize
     \caption{Shared 1D realization and output-operator parameters for the
-    $t=1.0$ comparison. Realized CFL, characteristic-speed, mass, and
-    positivity diagnostics are persisted in the generated comparison and
-    verification records.}
+    $t=1.0$ comparison. The generated comparison records characteristic-speed
+    diagnostics, while realized CFL, mass, and positivity diagnostics are
+    exposed by the solver and verification records.}
     \label{tab:t1-parameter-matching}
     \begin{tabularx}{\textwidth}{@{}p{0.22\textwidth}X@{}}
         \toprule
@@ -396,37 +411,33 @@ archives the generated CSV and PGFPlots-ready static data.
         Radial targets & Slices $z=1.951$, 2.451, and 2.951 cm with principal
         20-bin plots in $r/\sqrt{a(z,t)}$ plus supplemental $r/R_0(z)$ and
         10/20/40-bin sensitivity rows. \\
-        Supplemental sensitivity & Node-slab arithmetic means are emitted only
+        Supplemental sensitivity & Node-slab arithmetic means are stored only
         to \path{node-slab-sensitivity.csv} for half-widths 0.0075,
         0.0150753769, and 0.0301507538 cm. \\
         \bottomrule
     \end{tabularx}
 \end{table}
 
-Velocity and flow differences are reported as empirical sample metrics over
-valid section targets: mean absolute discrepancy (MAE), root-mean-square
-discrepancy (RMSE), and maximum absolute discrepancy. With
-$d_{u,j}=\bar u_{1D,j}-\bar u_{3D,j}$, the velocity sample metrics are
+Velocity and flow differences are reported as empirical sample $L^1$, $L^2$,
+and $L^3$ errors over valid section targets. With
+$d_{u,j}=\bar u_{1D,j}-\bar u_{3D,j}$ and
+$d_{Q,j}=Q_{1D,j}-Q_{3D,j}$, the normalized sample errors are
 \begin{flalign*}
     \quad
-    \mathrm{MAE}_u
+    E_{u,p}
     &=
-    \frac{1}{n}\sum_j |d_{u,j}|,
+    \left(\frac{1}{n}\sum_j |d_{u,j}|^p\right)^{1/p},
     &
-    \mathrm{RMSE}_u
+    E_{Q,p}
     &=
-    \left(\frac{1}{n}\sum_j |d_{u,j}|^2\right)^{1/2},
+    \left(\frac{1}{n}\sum_j |d_{Q,j}|^p\right)^{1/p},
     &
-    \max |d_u|
-    &=
-    \max_j |d_{u,j}|, &&\\
+    p&\in\{1,2,3\}, &&\\
     \quad
-    \mathrm{rel}_{\mathrm{MAE}}
+    E_{u,p}^{\mathrm{rel}}
     &=
-    \frac{\sum_j|d_{u,j}|}{\sum_j|\bar u_{3D,j}|},
+    \frac{\left(\sum_j|d_{u,j}|^p\right)^{1/p}}
+         {\left(\sum_j|\bar u_{3D,j}|^p\right)^{1/p}},
     &
-    \mathrm{rel}_{\mathrm{RMSE}}
-    &=
-    \frac{\left(\sum_j|d_{u,j}|^2\right)^{1/2}}
-         {\left(\sum_j|\bar u_{3D,j}|^2\right)^{1/2}}. &&
+    p&\in\{1,2,3\}. &&
 \end{flalign*}

@@ -1,0 +1,225 @@
+\subsection{Stenotic Hemodynamics and Relevant Observables}
+\label{subsec:stenotic-hemodynamics-observables}
+
+Stenosis is a geometric and hemodynamic problem: a local lumen reduction can
+alter axial velocity, pressure drop, wall loading, recirculation, and the
+relationship between flow and downstream perfusion. Clinical and computational
+literatures therefore use different observables depending on the question.
+Pressure-ratio work emphasizes pressure drops and fractional-flow style
+indices
+\cite{PijlsEtAl1996FFRFunctionalSeverity,ToninoEtAl2010FAMEAngioFunctional,TebaldiEtAl2015FFROverview},
+whereas computational fluid-dynamics studies can expose local velocity,
+traction, and wall-shear structures that are not section-averaged quantities
+\cite{JohnEtAl2017WallShearStressVectorForm,GaldiEtAl2008HemodynamicalFlows}.
+The present report uses velocity observables only. It does not report pressure
+drop, FFR, CT-FFR, wall shear stress, or clinical validation.
+
+Reduced models are attractive because stenosis studies often require repeated
+parameter sweeps, reproducible solver comparisons, or network-level coupling.
+The cost is that the relevant output must be compatible with the reduced state.
+For a one-dimensional area--flow model, section mean velocity and physical flow
+are natural; resolved radial profile, secondary flow, skewness, and wall
+traction are not native outputs unless an additional reconstruction or
+observation map is declared.
+
+\subsection{State-of-the-Art Model Families}
+\label{subsec:model-hierarchy-literature}
+
+The current modeling landscape is best read as a hierarchy of model roles, not
+as a single ladder of accuracy. Three-dimensional CFD and FSI models retain
+geometry-resolved velocity and stress fields and can represent local stenotic
+acceleration, separation, and wall interaction more directly than reduced
+models
+\cite{CourchaineRugonyi2018CardiacDevelopmentCFD,DaveyEtAl2024CardiacFluidDynamicsHeart}.
+They also require detailed geometry, material assumptions, boundary histories,
+mesh generation, and substantially higher computational cost. Coupled 3D--1D
+or geometrical multiscale formulations address domain-size and boundary
+limitations by joining local resolved regions with reduced vascular networks
+\cite{FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale,KopplHelmig2023DimensionReducedModeling}.
+
+One-dimensional distributed models retain axial propagation and
+pressure--area--flow dynamics while replacing the transverse velocity field by
+closure terms
+\cite{FormaggiaEtAl2003OneDimensionalBloodFlow,QuarteroniFormaggia2004CardiovascularModeling,ShiEtAl2011BloodFlowModelReview}.
+Zero-dimensional networks and terminal models are still cheaper and are useful
+for lumped impedance and perfusion effects, but they do not resolve axial
+stenosis localization. Intermediate 2D or axisymmetric models can retain more
+local structure than 1D systems with less cost than full 3D, but they still
+require their own symmetry and boundary assumptions.
+
+Recent surrogate, PINN, and operator-learning methods add another axis:
+trained maps can reduce evaluation cost or assimilate data, but their evidence
+depends on training data, uncertainty treatment, boundary-condition coverage,
+and comparison with mechanistic solvers or measurements
+\cite{RaissiEtAl2019PhysicsInformedNeuralNetworks,LuEtAl2021DeepONet,YuEtAl2026PINNHemodynamicsReview,VelikorodnyEtAl2025DeepOperatorStenosed}.
+They are therefore useful state-of-the-art context and future-work vocabulary
+for stenosed-vessel modeling, but they are not used as forward generators in
+the present report.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{State-of-the-art model and method families relevant to this
+    report. The table maps field context to the evidence standard needed before
+    a result can support a claim in this thesis.}
+    \label{tab:sota-model-method-map}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.21\textwidth}
+        >{\raggedright\arraybackslash}p{0.27\textwidth}
+        >{\raggedright\arraybackslash}p{0.25\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Family}
+            & \textbf{Representative role}
+            & \textbf{Evidence requirement}
+            & \textbf{Reading in this report} \\
+        \midrule
+        3D CFD / FSI and multiscale 3D--1D--0D
+            & Resolved local fields, wall interaction, and coupled circulation
+            \cite{FormaggiaEtAl2007FSICoupling,DaveyEtAl2024CardiacFluidDynamicsHeart}.
+            & Matched geometry, wall and material data, boundary histories,
+            mesh/time studies, and output operators.
+            & Reference vocabulary and comparison target, not the selected
+            repeated forward generator. \\
+        Distributed 1D stenosis-aware models
+            & Low-cost area--flow dynamics with closure-indexed wall, profile,
+            friction, and stenosis terms
+            \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,CanicEtAl2024Extended1DStenosis}.
+            & Explicit closure contract, boundary rule, coordinate map, and
+            verification of the computed realization.
+            & Selected model class; the implementation is an
+            $R_{\max}$-normalized Canic-derived variant. \\
+        Open and reproducible 1D solver workflows
+            & Published solver surfaces, benchmark cases, and reusable
+            finite-volume infrastructure
+            \cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}.
+            & Runnable commands, persisted descriptors, benchmark outputs,
+            hashes, and documented optional inputs.
+            & Workflow comparator and reproducibility standard, not an
+            independent-solver parity claim. \\
+        Well-balanced and high-order 1D numerical schemes
+            & Equilibrium-preserving finite-volume or high-order discretizations
+            for elastic-vessel networks and source terms
+            \cite{LuccaEtAl2025FFRPrediction,PimentelGarciaEtAl2025HighOrderWellBalanced}.
+            & Rest-state/equilibrium preservation, manufactured solutions,
+            refinement, and boundary-regime diagnostics.
+            & Context for why the present rest-state drift is a material
+            numerical limitation. \\
+        Surrogates, PINNs, and operator learning
+            & Fast learned maps or physics-constrained reconstructions for
+            hemodynamic quantities
+            \cite{RaissiEtAl2019PhysicsInformedNeuralNetworks,YuEtAl2026PINNHemodynamicsReview,VelikorodnyEtAl2025DeepOperatorStenosed}.
+            & Training-data provenance, uncertainty, out-of-distribution tests,
+            and comparison with accepted reference outputs.
+            & Bounded outlook only; no learned model is part of the completed
+            numerical study. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Model-tier roles relevant to the present report. The listed
+    observables are admissible outputs only after the corresponding model and
+    observation map have been declared.}
+    \label{tab:model-tier-review}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.19\textwidth}
+        >{\raggedright\arraybackslash}p{0.22\textwidth}
+        >{\raggedright\arraybackslash}p{0.22\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Tier} & \textbf{Retained physics} & \textbf{Data and cost} & \textbf{Typical admissible outputs} \\
+        \midrule
+        3D CFD / FSI
+            & Resolved velocity, local gradients, geometry, and possibly wall motion.
+            & Detailed mesh, material and boundary histories; high cost.
+            & Local velocity, pressure, traction, wall shear stress, section averages. \\
+        Axisymmetric / 2D
+            & More local structure than 1D under symmetry or planar assumptions.
+            & Intermediate geometry and mesh burden.
+            & Axial/radial fields consistent with the symmetry assumption. \\
+        1D distributed
+            & Axial wave propagation, area--flow dynamics, wall and friction closures.
+            & Vessel centerline, radius, wall law, terminal and inlet data; low cost.
+            & Area, flow, section mean velocity, reduced pressure variables. \\
+        0D network
+            & Lumped resistance, compliance, inertance, and terminal coupling.
+            & Lowest spatial data burden; low cost.
+            & Compartment pressures and flows, not local stenotic fields. \\
+        Geometrical multiscale
+            & Local resolved region coupled to reduced upstream/downstream networks.
+            & Requires interface conditions and compatible observables.
+            & Mixed local and network outputs with interface consistency checks. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{One-Dimensional Models for Nonuniform and Stenotic Vessels}
+\label{subsec:literature-1d-stenotic-vessels}
+
+The defining step in a 1D vessel model is cross-sectional averaging. The state
+typically stores a section area and volumetric flow, while the discarded
+transverse structure re-enters through closure choices: momentum-flux factor,
+velocity profile, wall law, friction, rheology, and source terms for nonuniform
+reference geometry
+\cite{FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview}.
+These choices are not interchangeable. A profile factor changes the convective
+flux; a wall law changes the pressure--area relation and wave speed; a
+friction or rheology law changes dissipative closure; and a stenosis-loss or
+variable-radius term changes how geometry enters the reduced momentum balance.
+
+Classical stenosis literature also shows that reduced pressure-loss formulas
+and unsteady stenosis corrections can be useful but model a different closure
+object than a distributed 1D finite-volume system
+\cite{YoungTsai1973SteadyStenosis,YoungTsai1973UnsteadyStenosis,LyrasLee2021PressureDropROM}.
+Recent stenosis-focused reduced models, including the Canic et al. extended 1D
+formulation, add variable-radius contributions intended to better represent
+stenotic geometry in a distributed balance
+\cite{CanicEtAl2024Extended1DStenosis}. Coronary and arterial-tree models make
+the same point at network scale: useful predictions depend on the declared
+wall, terminal, and closure assumptions
+\cite{DuanmuEtAl2019CoronaryArterialTree,Wang2014BloodFlowNetworks}.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Closure dimensions that should be separated when comparing
+    stenosis-aware 1D models.}
+    \label{tab:one-dimensional-closure-review}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.20\textwidth}
+        >{\raggedright\arraybackslash}p{0.30\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Closure dimension} & \textbf{Common choices} & \textbf{Effect on evidence} \\
+        \midrule
+        State variables
+            & Area--flow, radius--flow, pressure--flow, or network compartment variables.
+            & Determines which outputs are native and which require reconstruction. \\
+        Wall model
+            & Fixed geometry, algebraic pressure--area relation, FSI coupling, terminal compliance.
+            & Controls wave speed and pressure interpretation. \\
+        Profile / momentum flux
+            & Flat, parabolic, power-law, empirical correction factors.
+            & Controls convective flux and any reconstructed radial profile. \\
+        Friction / rheology
+            & Newtonian, Carreau, Carreau--Yasuda, Casson, power-law, tube-flow laws.
+            & Controls dissipation and shear-rate proxy interpretation
+            \cite{PriesEtAl1992BloodViscosityTubeFlow,KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}. \\
+        Stenosis treatment
+            & Reference-radius variation, empirical loss terms, variable-radius distributed terms.
+            & Determines whether geometry appears only in area or also as a momentum source. \\
+        Numerical method
+            & Finite volume, discontinuous Galerkin, WENO, Lax--Friedrichs-type,
+            well-balanced, and method-specific boundaries.
+            & Determines conservation, equilibrium preservation, stability evidence,
+            and boundary evidence needs
+            \cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems,BeckersKolbe2025LaxFriedrichsHemodynamics,LuccaEtAl2025FFRPrediction}. \\
+        Validation target
+            & Benchmarks, manufactured solutions, 3D fields, pressure ratios, clinical measurements.
+            & Determines whether the result is verification, cross-model comparison, or validation. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}

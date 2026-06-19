@@ -55,10 +55,11 @@ can show. The report is organized around three answerable questions:
 
 The contribution is a consistent model-and-output specification for an
 idealized stenotic vessel, an internally reproducible implementation and
-benchmark suite for the selected extended 1D model, and a bounded cross-model
-velocity comparison that localizes discrepancies relative to two resolved 3D
-computational datasets. The comparison is diagnostic rather than clinical or
-experimental validation.
+benchmark suite for the selected extended 1D model, a targeted numerical audit
+that exposes a geometry-rest preservation failure, and a bounded cross-model
+velocity comparison against two resolved 3D computational datasets. The
+comparison is diagnostic rather than clinical, experimental, or
+production-accuracy validation.
 
 \subsection{Scope and Limits of the Study}
 \label{subsec:scope-limits}
@@ -72,7 +73,10 @@ FFR or CT-FFR measurement relationship.
 
 \begin{center}
 \footnotesize
-\begin{tabularx}{\textwidth}{@{}p{0.27\textwidth}p{0.34\textwidth}X@{}}
+\begin{tabularx}{\textwidth}{@{}
+    >{\raggedright\arraybackslash}p{0.27\textwidth}
+    >{\raggedright\arraybackslash}p{0.34\textwidth}
+    >{\raggedright\arraybackslash}X@{}}
 \toprule
 \textbf{Claim} & \textbf{Evidence in this report} & \textbf{Permitted wording} \\
 \midrule
@@ -82,10 +86,12 @@ Smooth idealized geometry & Analytic $C^\infty$ stenosis profile and shared
 finite-volume / finite-element geometry views
 & Supports controlled numerical studies, not patient-specific morphology. \\
 Code behavior & Tests, self-convergence, descriptor checks, cross-integrator
-discrepancies, and manifests
-& Verifies reported implementation properties. \\
+discrepancies, rest-state drift rows, and manifests
+& Supports reported implementation properties and exposes the non-well-balanced
+rest-state defect. \\
 Resolved velocity comparison & Tetrahedral cross-section quadrature at
-$t=1.0$ s & Reports a diagnostic cross-model comparison. \\
+$t=1.0$ s, with production sensitivity still incomplete
+& Reports single-realization diagnostic cross-model descriptors. \\
 Pressure accuracy & No computed pressure comparison & Future work only. \\
 Clinical validity & No experimental or clinical measurement comparison
 & No clinical validation claim. \\
@@ -111,7 +117,8 @@ cross-model comparison only.
     finite-volume/time-integration realization, comparison operator, metrics,
     and provenance record.
     \item Section~\ref{sec:numerical-verification} reports the implementation
-    and numerical-verification evidence emitted by the benchmark suite.
+    and numerical-verification evidence recorded by the benchmark suite, including
+    the failed geometry-rest preservation check that limits the later comparison.
     \item Section~\ref{sec:resolved-3d-comparison} reports the resolved-3D
     velocity comparison and localizes the observed discrepancies.
     \item Sections~\ref{sec:discussion} and

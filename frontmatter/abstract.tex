@@ -1,28 +1,29 @@
 \medskip
 \noindent\textbf{Abstract.}\par\smallskip
-This report develops an auditable reduced-model workflow for comparing
-stenotic-flow velocity outputs, rather than a broad physiological validation
-study. The selected solver is the Julia \path{StenosisHemodynamics}
-implementation of an $R_{\max}$-normalized Canic-derived one-dimensional
-area--flow model, with physical area and flow mapped to the solver variables
-$a=R^2$ and $q=Q_{\mathrm{phys}}/\pi$; the principal C23/C40 comparison uses
-MUSCL finite volume with minmod-limited Rusanov fluxes and native SSPRK3 time
-integration. The supporting numerical surface includes first-order and
-Richtmyer/Lax--Wendroff finite-volume paths, modal DG degrees $p=0,1,2$ for
-benchmark and sensitivity context, and generated stationary-Stokes
-finite-element solves for initialization, refinement, and projection
-diagnostics. The verification record combines manufactured-solution rows,
-zero-forcing rest-state drift diagnostics, CFL, characteristic-speed, mass, and
-positivity metadata, sampled self-convergence, native/SciML cross-integrator
-checks, stationary-Stokes refinement, and resolved-velocity output-operator
-checks; it also exposes that the present Rusanov/MUSCL flux--source realization
-is not well balanced for the geometry-rest state. At $t=1.0$ s, section-averaged
-axial velocities are compared with two resolved three-dimensional velocity
-datasets using plane--tetrahedron quadrature; for C23 and C40, respectively,
-the sectionwise area-mean velocity discrepancies have MAEs of 0.505 and
-0.966 cm/s, RMSEs of 0.664 and 1.87 cm/s, and maximum absolute values of
-2.35 and 9.92 cm/s. Because the wall models, boundary conditions, and transient
-histories are not fully matched, these comparisons characterize differences
-between computational outputs; they do not constitute a fully matched
-one-dimensional--three-dimensional validation, physiological validation, or
-support for pressure-ratio, FFR, or clinical claims.
+This report specifies and audits a reduced-order workflow for comparing velocity
+outputs in an idealized stenotic vessel. It is not a physiological or clinical
+validation study. The implemented solver is the Julia
+\path{StenosisHemodynamics} realization of an $R_{\max}$-normalized
+Canic-derived one-dimensional area--flow model, with physical area and flow
+mapped to solver variables $a=R^2$ and $q=Q_{\mathrm{phys}}/\pi$. The principal
+C23/C40 comparison uses MUSCL finite volume with minmod-limited Rusanov fluxes
+and native SSPRK3 time integration; first-order and Richtmyer/Lax--Wendroff
+finite-volume paths, modal DG degrees $p=0,1,2$, and generated
+stationary-Stokes finite-element solves provide implementation and sensitivity
+context.
+
+The numerical record combines manufactured-solution rows, zero-forcing
+rest-state drift diagnostics, CFL, characteristic-speed, mass, and positivity
+metadata, sampled self-convergence, native/SciML cross-integrator checks,
+stationary-Stokes sensitivity, and resolved-velocity output-operator checks.
+These records expose an important limitation: the present Rusanov/MUSCL
+flux--source realization is not well balanced for the geometry-rest state, and
+zero-input rest-state runs on the C23/C40 geometries retain artificial flow of
+the same order as the reported comparison-flow scale at $t=1.0$ s.
+Section-averaged axial velocities are then
+compared with two resolved three-dimensional velocity datasets using
+plane--tetrahedron quadrature. Because the wall models, boundary conditions,
+transient histories, and production grid/time sensitivities are not fully
+matched, the reported C23/C40 metrics are single-realization cross-model
+descriptors under this operator, not converged accuracy estimates and not
+support for pressure-ratio, FFR, physiological, or clinical claims.

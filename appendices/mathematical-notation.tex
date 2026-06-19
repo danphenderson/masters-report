@@ -6,9 +6,10 @@
 This appendix collects the mathematical notation used throughout this report.
 \end{notation}
 
-\begingroup
-\small
-\begin{longtable}{@{}
+\noindent\begin{minipage}[t]{\textwidth}
+\begin{compactacronymtables}
+\setlength{\parskip}{0pt}
+\begin{tabular}{@{}
     >{\raggedright\arraybackslash}p{0.36\linewidth}
     @{\hspace{1em}}
     >{\raggedright\arraybackslash}p{0.58\linewidth}
@@ -16,11 +17,6 @@ This appendix collects the mathematical notation used throughout this report.
     \toprule
     \textbf{Symbol} & \textbf{Meaning} \\
     \midrule
-    \endfirsthead
-    \toprule
-    \textbf{Symbol} & \textbf{Meaning} \\
-    \midrule
-    \endhead
         $\defined$                      & defines\\
         $\equivto$                      & notational equivalence / identified with \\
         $ \R$                           & real numbers \\
@@ -55,6 +51,25 @@ This appendix collects the mathematical notation used throughout this report.
             & $k$ times continuously differentiable functions with compact
             support in $\Omg$ \\
         $C^{\infty}_{c}(\Omg)$          & smooth functions with compact support in $\Omg$ \\
+\bottomrule
+\end{tabular}
+\end{compactacronymtables}
+\end{minipage}
+\par
+
+\clearpage
+
+\noindent\begin{minipage}[t]{\textwidth}
+\begin{compactacronymtables}
+\setlength{\parskip}{0pt}
+\begin{tabular}{@{}
+    >{\raggedright\arraybackslash}p{0.36\linewidth}
+    @{\hspace{1em}}
+    >{\raggedright\arraybackslash}p{0.58\linewidth}
+    @{}}
+    \toprule
+    \textbf{Symbol} & \textbf{Meaning} \\
+    \midrule
         $C(K)$                          & continuous functions on a stated compact set $K$ \\
         $L^{p}(\Omg)$                   & Lebesgue space of $p$-integrable functions modulo equality a.e. \\
         $ \dx $                           & Lebesgue volume element on $\R^n$ \\
@@ -82,6 +97,8 @@ This appendix collects the mathematical notation used throughout this report.
             & norm on a specified normed space $X$; bare $\norm{\cdot}$ is
             local shorthand \\
         $\norm{\cdot}_{\mathrm F}$        & Frobenius norm of a matrix or second-order tensor \\
-\bottomrule
-\end{longtable}
-\endgroup
+	\bottomrule
+\end{tabular}
+\end{compactacronymtables}
+\end{minipage}
+\par

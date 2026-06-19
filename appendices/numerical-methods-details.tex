@@ -253,15 +253,16 @@ $D_z^h$ differences below. The first-order finite-volume method is the separate
 path that passes neighboring cell and ghost states directly to the same
 Rusanov flux.
 
-The report-now finite-volume surface also includes an opt-in characteristic
+The implemented finite-volume surface also includes an opt-in characteristic
 WENO3 reconstruction. At an interior interface $i+1/2$ with the four-cell
 stencil $(i-1,i,i+1,i+2)$, the implementation freezes the homogeneous
 flux-Jacobian eigenvalues at the local reference state
-\[
+\begin{flalign*}
+    \quad
     \mathbf U_{\mathrm{ref}}
-    =
-    \frac{1}{2}(\mathbf U_i+\mathbf U_{i+1})
-\]
+    &=
+    \frac{1}{2}(\mathbf U_i+\mathbf U_{i+1}) &&
+\end{flalign*}
 and projects conservative states into characteristic components
 \begin{flalign*}
     \quad
@@ -297,7 +298,7 @@ protection to reconstructed $a$ states, and falls back to the existing
 ghost-state/minmod reconstruction at the domain faces and boundary-adjacent
 interfaces where a full WENO3 stencil is not available.
 
-The implemented report-now spatial surface also includes a native
+The implemented spatial surface also includes a native
 Richtmyer/Lax--Wendroff finite-volume path. It uses the same minmod-limited
 interface states as above, then forms the half-step interface state
 \begin{flalign*}

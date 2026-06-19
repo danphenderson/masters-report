@@ -17,6 +17,9 @@ pages.
 
 Artifact classes and cleanup guardrails are documented in
 [`docs/artifact-policy.md`](docs/artifact-policy.md).
+Revision claim and release gates for the current executive-assessment response
+are tracked in [`docs/revision-claim-ledger.md`](docs/revision-claim-ledger.md)
+and [`docs/revision-release-gates.md`](docs/revision-release-gates.md).
 
 ## Figure Assets
 
@@ -85,15 +88,24 @@ does not prepare the other.
 ## Python Support Tooling
 
 Python remains in this repository only for auxiliary report tooling: TeX and
-reference audits plus figure/table rendering scripts. It is not a hemodynamics
-solver surface, and there is no Python simulation CLI or editable package to
-install.
+reference audits, figure/table rendering scripts, and compact revision-evidence
+summaries. It is not a hemodynamics solver surface, and there is no Python
+simulation CLI or editable package to install.
 
 ```bash
 pipenv install --dev
 pipenv run pytest
 pipenv run python scripts/render_package_benchmark_figures.py \
   --benchmark-dir simulations/output/package_benchmark/overnight-YYYYMMDD
+```
+
+Revision evidence summaries are scratch artifacts by default:
+
+```bash
+pipenv run python scripts/summarize_revision_evidence.py \
+  --rest-csv figures/static/static/tables/verification/rest_state_drift.csv \
+  --comparison-root simulations/output/3d_comparison/full_t1_native_nx400 \
+  --data-root simulations/data/3d/canic_case3
 ```
 
 Run simulations and benchmarks with `./scripts/stenosis-hemodynamics` or

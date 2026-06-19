@@ -174,7 +174,7 @@ declared.
 \end{convention}
 
 
-\begin{minipage}[t]{\textwidth}
+\noindent\begin{minipage}[t]{\textwidth}
     \begin{tabular}{@{}p{0.22\linewidth} p{0.50\linewidth} p{0.18\linewidth}@{}}
         \toprule
         \textbf{Symbol} & \textbf{Meaning} & \textbf{Units} \\
@@ -221,19 +221,15 @@ declared.
 \paragraph*{Reduced-model and forward-map notation.}
 \par\smallskip\noindent
 
-\begingroup
-\small
-\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}
+\noindent\begin{minipage}[t]{\textwidth}
+\begin{compactacronymtables}
+\setlength{\parskip}{0pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}
         >{\raggedright\arraybackslash}p{0.54\linewidth}
         >{\raggedright\arraybackslash}p{0.14\linewidth}@{}}
         \toprule
         \textbf{Symbol} & \textbf{Meaning} & \textbf{Units} \\
         \midrule
-        \endfirsthead
-        \toprule
-        \textbf{Symbol} & \textbf{Meaning} & \textbf{Units} \\
-        \midrule
-        \endhead
         $A(z,t)$ & cross-sectional lumen area in the 1D model & $\mathrm{m}^2$ \\
 
         $Q(z,t)$ & volumetric flow rate through a cross-section & $\mathrm{m}^3/\mathrm{s}$ \\
@@ -316,6 +312,22 @@ declared.
         $z_a$ & center of the Gaussian asymmetry term in $g(z)$ & $\mathrm{m}$ \\
 
         $z_s$ & axial shift parameter in $g(z)$ & $\mathrm{m}$ \\
+	\bottomrule
+\end{tabular}
+\end{compactacronymtables}
+\end{minipage}
+
+\clearpage
+
+\noindent\begin{minipage}[t]{\textwidth}
+\begin{compactacronymtables}
+\setlength{\parskip}{0pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}
+        >{\raggedright\arraybackslash}p{0.54\linewidth}
+        >{\raggedright\arraybackslash}p{0.14\linewidth}@{}}
+        \toprule
+        \textbf{Symbol} & \textbf{Meaning} & \textbf{Units} \\
+        \midrule
 
         $\sigma_a$ & width parameter for the Gaussian asymmetry term in $g(z)$ & $\mathrm{m}$ \\
 
@@ -395,6 +407,22 @@ declared.
 
         $c_{\mathrm{wave}}$ or $c$ & 1D pulse-wave speed,
         $c^2=(A/\rho) \pd_A p_{\mathrm{g}}$ when no concentration field is in scope & $\mathrm{m}/\mathrm{s}$ \\
+	\bottomrule
+\end{tabular}
+\end{compactacronymtables}
+\end{minipage}
+
+\clearpage
+
+\begin{minipage}[t]{\textwidth}
+\begin{compactacronymtables}
+\setlength{\parskip}{0pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}
+        >{\raggedright\arraybackslash}p{0.54\linewidth}
+        >{\raggedright\arraybackslash}p{0.14\linewidth}@{}}
+        \toprule
+        \textbf{Symbol} & \textbf{Meaning} & \textbf{Units} \\
+        \midrule
 
         $e\in\mathcal E$
             & expert/closure record for a closure-indexed 1D forward-map
@@ -406,12 +434,13 @@ declared.
             and expert record $e$
             & mixed \\
         \bottomrule
-\end{longtable}
-\endgroup
+\end{tabular}
+\end{compactacronymtables}
+\end{minipage}
 
 
-\begin{minipage}[t]{\textwidth}
-    \footnotesize
+\noindent\begin{minipage}[t]{\textwidth}
+    \begin{compactacronymtables}
     \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}
         >{\raggedright\arraybackslash}p{0.54\linewidth}
         >{\raggedright\arraybackslash}p{0.14\linewidth}@{}}
@@ -534,6 +563,7 @@ declared.
             & $-$ \\
         \bottomrule
     \end{tabular}
+    \end{compactacronymtables}
 \end{minipage}
 
 \begin{remark}[Viscosity notation]

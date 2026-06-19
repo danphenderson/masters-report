@@ -1,0 +1,24 @@
+\subsection{Literature Synthesis and Research Gap}
+\label{subsec:literature-synthesis-gap}
+
+The reviewed literature supports a calibrated gap. State-of-the-art stenosis
+modeling spans resolved 3D/FSI simulations, geometrical multiscale coupling,
+distributed 1D reductions, open solver workflows, well-balanced and high-order
+schemes, and emerging surrogate or physics-informed learning methods. These
+families answer different questions. Resolved models expose local velocity,
+pressure, and traction fields at high setup cost. Reduced models support
+repeated studies only after their closure and observation maps are declared.
+Well-balanced and high-order schemes improve numerical evidence only for the
+equilibria and outputs they actually test. Learned surrogates reduce evaluation
+cost only after training data, uncertainty, and admissible operating regimes are
+made part of the evidence record.
+
+The present work addresses a practical reproducibility and observation-operator
+gap for this implementation of an extended 1D stenosis model. It specifies the
+solver-coordinate map, the Canic-derived model variant, targeted verification
+evidence, and a declared plane--tetrahedron velocity comparison operator. Its
+claim is therefore intentionally narrower than a field-wide state-of-the-art
+claim. A stronger novelty or validation claim would require broader evidence
+that comparable auditable implementations and matched 1D--3D operators do not
+already exist, together with matched pressure, experimental, or clinical data.
+That broader claim is outside this report.

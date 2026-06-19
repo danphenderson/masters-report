@@ -23,11 +23,12 @@ resolved dependency versions. \\
 \path{src/StenosisHemodynamics.jl}
 & Package entry point and public export surface for the solver, studies,
 resolved-3D comparison, and report figure export helpers. \\
-\path{src/StenosisHemodynamics/*.jl}
-& Solver components: model descriptors, geometry, state layout, finite-volume
-and DG operators, native and SciML backends, Stokes initial condition,
-OpenBF-style adapter, studies, refinement, resolved-3D diagnostics, output
-writers, package benchmarks, and geometry-export helpers. \\
+\path{src/StenosisHemodynamics/**/*.jl}
+& Solver components organized under adapter, core, CLI, IO, numerics, and
+workflow subdirectories: model descriptors, geometry, state layout,
+finite-volume and DG operators, native and SciML backends, Stokes initial
+condition, OpenBF-style adapter, studies, refinement, resolved-3D diagnostics,
+output writers, package benchmarks, and geometry-export helpers. \\
 \path{scripts/stenosis-hemodynamics}, \path{scripts/stenosis-hemodynamics.jl}
 & Primary Julia command surface. The dispatcher exposes simulation, OpenBF
 adapter, studies, stationary-Stokes refinement, resolved-3D comparison,
@@ -147,13 +148,21 @@ following SHA-256 hashes:
 \end{tabularx}
 \end{center}
 
-The Section~\ref{sec:resolved-3d-comparison} comparison artifact for this
-build was generated in the non-archived scratch directory
-\path{tmp/major-revision-3d-comparison/}. The command shape for regenerating
-the comparison, when the raw 3D inputs are restored, is:
+The Section~\ref{sec:resolved-3d-comparison} comparison tables and plots in
+this build are the tracked report assets under
+\path{figures/static/static/data/stenosis-comparison/}. Scratch sensitivity
+runs for the revision use ignored directories under
+\path{simulations/output/revision-*} and \path{tmp/revision-evidence/}; those
+scratch runs are evidence inputs, not the manuscript assets used by this build.
+The command shape for regenerating the tracked comparison assets, when the raw
+3D inputs are restored, is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 ./scripts/stenosis-hemodynamics compare-3d \
-  --output-dir tmp/major-revision-3d-comparison \
+  --data-root simulations/data/3d/canic_case3 \
+  --output-dir simulations/output/3d_comparison/full_t1_native_nx400 \
+  --nx 400 \
+  --target-time 1.0 \
+  --time-atol 1e-3 \
   --overwrite \
   --publish-report-assets \
   --report-assets-dir figures/static/static/data/stenosis-comparison \
@@ -252,7 +261,7 @@ the following SHA-256 hashes. They were generated with the package CLI:
 ./scripts/stenosis-hemodynamics verify rest \
   --severities 23,40 \
   --nxs 100,200,400,800 \
-  --elapsed-times 0,0.001,0.01,0.1 \
+  --elapsed-times 0,0.001,0.01,0.1,1.0 \
   --output-dir figures/static/static/tables/verification \
   --overwrite
 
@@ -278,14 +287,14 @@ the following SHA-256 hashes. They were generated with the package CLI:
 & c0c768fee47bb33d52cc6043b67dec07\newline
 9bbd17e9e1abc45f0ed591699f10ec02 \\
 \path{figures/static/static/tables/verification/rest_state_drift.csv}
-& 7026d7bec583901c80b515a8a05455c5\newline
-e4214c910971b1ef3a9ce76f3592ed29 \\
+& 4ef2126c5d1edb34e7d27e217bba40bc\newline
+718cef008f85cef1bba2cdea10fedf3f \\
 \path{figures/static/static/tables/verification/rest_state_drift.tex}
-& 4922b5a741b77453eaad96e71ba642dfa\newline
-31ad43b7a6ee65e74ca763b3d23dea3 \\
+& 3e7dd97f6c1b4437ba2ca49107a56d6fc\newline
+61c88857f9164a30ae28354fb1efe41 \\
 \path{figures/static/static/tables/verification/rest_state_drift_full.tex}
-& 7976dbe675e8e97124a1146f5e91db56\newline
-dddbda6a22879e18f54c1a7aa81e6e89 \\
+& f3ff7f2931ff191958f3c811ce3f1faf\newline
+16007797456a18c6250e98996f2b4405 \\
 \path{figures/static/static/tables/verification/stationary_stokes_refinement.csv}
 & cdc3ee48b4f693a019258d7de0518877\newline
 4c91b1e4591b21aef58226a75cc404f4 \\

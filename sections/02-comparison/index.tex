@@ -8,6 +8,10 @@ This section reports the final-time resolved-velocity comparison whose protocol
 is defined in Section~\ref{subsec:numerical-experiments-metrics-provenance}.
 The comparison is velocity-focused: pressure-drop, pressure-ratio, FFR, and
 clinical validation claims remain outside the completed numerical evidence.
+Because the zero-input rest-state diagnostic is not small at the comparison time
+scale and a production-level grid/time sensitivity study is not complete in the
+tracked report assets, the numerical values in this section are
+single-realization descriptors under the declared output operator.
 
 \begin{figure}[!htb]
     \centering
@@ -19,7 +23,7 @@ clinical validation claims remain outside the completed numerical evidence.
     21,975 loaded nodes. The shared color scale makes the stronger
     axial-velocity concentration in C40 visible. Sparse arrows indicate local
     vector direction, and the transparent surface frames the 3D point cloud.
-    These are resolved velocity comparison-data renderings, not the
+    These are renderings of the resolved velocity comparison data, not the
     stationary-Stokes pathline proxy or a pressure-drop, FFR, or
     patient-specific clinical calibration measurement.}
     \label{fig:stenosis-3d-reference-geometry}
@@ -41,7 +45,7 @@ $A_{\mathrm{ref}}(z_j)=\pi R_0(z_j)^2$, define
          {A_{\mathrm{ref}}(z_j)}. &&
 \end{flalign*}
 Table~\ref{tab:t1-area-audit} reports this geometry/operator audit for the
-same 200 section targets. It verifies that the tetrahedral cut areas agree with
+same 200 section targets. It shows that the tetrahedral cut areas agree with
 the expected fixed stenosis cross-sections to sub-percent typical discrepancy,
 with the largest differences confined to a few section targets.
 It does not measure the dynamic area discrepancy entering the 1D velocity
@@ -52,7 +56,7 @@ denominator. The relevant unpersisted quantity for velocity attribution is
     =
     \frac{|\pi a(z_j,t)-A_{3D}(z_j)|}{A_{3D}(z_j)}. &&
 \end{flalign*}
-The exact algebraic split needed for a future attribution study is
+The algebraic split used here for flow/area bookkeeping is
 \begin{flalign*}
     \quad
     \frac{Q_{1D}}{A_{1D}}-\frac{Q_{3D}}{A_{3D}}
@@ -62,9 +66,14 @@ The exact algebraic split needed for a future attribution study is
     Q_{3D}\left(\frac{1}{A_{1D}}-\frac{1}{A_{3D}}\right),
     \qquad A_{1D}=\pi a. &&
 \end{flalign*}
-The report asset stores enough section-wise values to reconstruct this split:
-$A_{1D}=Q_{1D}/\bar u_{1D}$ and $A_{3D}=Q_{3D}/\bar u_{3D}$. Table~\ref{tab:t1-flow-area-decomposition}
-summarizes the resulting contribution magnitudes.
+The tracked section-quadrature data store enough section-wise values to
+reconstruct this split on retained sections with nonzero mean-velocity
+denominators:
+$A_{1D}=Q_{1D}/\bar u_{1D}$ and
+$A_{3D}=Q_{3D}/\bar u_{3D}$. Table~\ref{tab:t1-flow-area-decomposition}
+summarizes the resulting contribution magnitudes. This decomposition is an
+accounting identity for the reported samples, not a causal attribution of the
+flow mismatch.
 
 \subsection{Section-Averaged Velocity Results}
 \label{subsec:section-averaged-velocity-results}
@@ -74,7 +83,7 @@ summarizes the resulting contribution magnitudes.
     \scriptsize
     \caption{Quadrature cut-area audit against the static reference
     $A_{\mathrm{ref}}(z)=\pi R_0(z)^2$. Discrepancies are percentages over
-    valid section targets and are emitted in the tracked
+    valid section targets and are stored in the tracked
     \texttt{area-audit.dat} report asset.}
     \label{tab:t1-area-audit}
     \begin{tabular}{@{}lrrrrr@{}}
@@ -91,6 +100,14 @@ summarizes the resulting contribution magnitudes.
         \bottomrule
     \end{tabular}
 \end{table}
+
+The largest C40 velocity discrepancy occurs at the same section as the largest
+static cut-area error in Table~\ref{tab:t1-area-audit}. Recomputing the summary
+after excluding the two C40 sections with static area error above 4\% moves the
+maximum discrepancy from 9.92 cm/s at $z=2.261$ cm to 8.74 cm/s at
+$z=2.291$ cm, where the static area error is below 1\%. Thus the localized C40
+peak is not solely an area-audit artifact, but the exact maximum value and
+location remain operator-sensitive.
 
 \begin{table}[!htb]
     \centering
@@ -120,15 +137,17 @@ summarizes the resulting contribution magnitudes.
     \centering
     \scriptsize
     \caption{Quadrature-backed section velocity and physical-flow summary at
-    nominally aligned final-time samples. Mean velocities and velocity
-    discrepancies are in cm/s; physical flows and flow discrepancies are in
+    nominally aligned final-time samples. These are single-realization
+    descriptors, not converged production-accuracy estimates. Mean velocities
+    and velocity errors are in cm/s; physical flows and flow errors are in
     cm$^3$/s. Angle brackets in this table denote axial sample means over the
     200 retained comparison sections, not temporal averages or inner products.
     The 1D physical flow is
     $Q_{1D}=\pi q$.}
     \label{tab:t1-3d-comparison-summary}
-    {\setlength{\tabcolsep}{2.5pt}
-    \begin{tabular}{@{}lrrrrrrrrrrr@{}}
+    {\setlength{\tabcolsep}{1.8pt}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lrrrrrrrrrrrrrr@{}}
         \toprule
         \textbf{Case}
             & \textbf{Sections}
@@ -136,24 +155,28 @@ summarizes the resulting contribution magnitudes.
             & $\boldsymbol{\langle\bar u_{3D}\rangle}$
             & $\boldsymbol{\langle Q_{1D}\rangle}$
             & $\boldsymbol{\langle Q_{3D}\rangle}$
-            & $\boldsymbol{\mathrm{MAE}_u}$
-            & $\boldsymbol{\mathrm{RMSE}_u}$
-            & \textbf{rel.} $\boldsymbol{\mathrm{MAE}}$
-            & \textbf{rel.} $\boldsymbol{\mathrm{RMSE}}$
-            & $\boldsymbol{\mathrm{MAE}_Q}$
-            & $\boldsymbol{\mathrm{RMSE}_Q}$ \\
+            & $\boldsymbol{E_{u,1}}$
+            & $\boldsymbol{E_{u,2}}$
+            & $\boldsymbol{E_{u,3}}$
+            & \textbf{rel.} $\boldsymbol{E_{u,1}}$
+            & \textbf{rel.} $\boldsymbol{E_{u,2}}$
+            & \textbf{rel.} $\boldsymbol{E_{u,3}}$
+            & $\boldsymbol{E_{Q,1}}$
+            & $\boldsymbol{E_{Q,2}}$
+            & $\boldsymbol{E_{Q,3}}$ \\
         \midrule
-        C23 & 200 & 24.11 & 23.63 & 2.288 & 2.241 & 0.505 & 0.664 & 0.0214 & 0.0277 & 0.0482 & 0.0509 \\
-        C40 & 200 & 26.43 & 25.52 & 2.287 & 2.219 & 0.966 & 1.87 & 0.0379 & 0.0688 & 0.0709 & 0.0893 \\
+        C23 & 200 & 24.11 & 23.63 & 2.288 & 2.241 & 0.505 & 0.664 & 0.853 & 0.0214 & 0.0277 & 0.0351 & 0.0482 & 0.0509 & 0.0537 \\
+        C40 & 200 & 26.43 & 25.52 & 2.287 & 2.219 & 0.966 & 1.87 & 2.82 & 0.0379 & 0.0688 & 0.0961 & 0.0709 & 0.0893 & 0.112 \\
         \bottomrule
     \end{tabular}
+    }%
     }
 \end{table}
 
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Generated solver diagnostics for the same runs. The positive
+    \caption{Recorded solver diagnostics for the same runs. The positive
     characteristic-radicand values are in solver units of cm$^2$/s$^2$ and
     support the reported characteristic-speed evaluation. The generated
     comparison summaries now also persist $\lambda_-$, $\lambda_+$, and the
@@ -180,11 +203,14 @@ summarizes the resulting contribution magnitudes.
     }
 \end{table}
 
-The nominal final-time offset between $1.0$ s and $0.9995$ s is numerically
-small, but it does not establish matched transient histories. The reported
-characteristic-radicand scales correspond to one-way traversal times on the
-order of milliseconds for a 6 cm vessel, so boundary and start-up histories can
-influence the state many times before the sampled final time.
+The comparison records now report both the requested and completed
+1D times. In the tracked C23/C40 sample, the 1D run completes at $1.0$ s and
+the XDMF velocity field is sampled at $0.9995$ s, so the cross-model sampling
+offset is $5\times10^{-4}$ s. That offset is numerically small, but it does not
+establish matched transient histories. The reported characteristic-radicand
+scales correspond to one-way traversal times on the order of milliseconds for a
+6 cm vessel, so boundary and start-up histories can influence the state many
+times before the sampled final time.
 
 The stenosis throat is the minimizer $z^\star=\argmin_z R_0(z)$ of the
 smooth reference-radius profile in Eq.~\ref{eq:1d-stenosis-profile}. For the
@@ -194,12 +220,17 @@ $R_{\min}=0.1080\,\mathrm{cm}$ for C40. The shaded ``throat zone'' in
 Figure~\ref{fig:t1-section-mean-comparison} is the displayed interval
 $2.4\le z\le2.8\,\mathrm{cm}$; the radial-profile slices use
 $z^\star-0.5\,\mathrm{cm}$, $z^\star$, and $z^\star+0.5\,\mathrm{cm}$.
+The largest section discrepancies listed in
+Table~\ref{tab:t1-largest-section-discrepancies} sit upstream of that displayed
+band, in the acceleration/shoulder region.
 
 Figure~\ref{fig:t1-section-mean-comparison} shows the area-mean axial velocity
-comparison. The 1D and quadrature-averaged 3D means agree closely away from the
-largest acceleration zone, while the largest mismatch remains localized near
-the stronger stenosis. The C40 maximum section discrepancy is 9.92 cm/s at
-$z=2.261$ cm; C23 reaches 2.35 cm/s at $z=2.291$ cm.
+comparison. The 1D and quadrature-averaged 3D means are closest away from the
+largest acceleration zone, while the largest mismatch in this two-case pair is
+localized in the upstream C40 shoulder. This is a descriptive comparison under
+the declared output operator, not evidence of model accuracy. The C40 maximum
+section discrepancy is 9.92 cm/s at $z=2.261$ cm; C23 reaches 2.35 cm/s at
+$z=2.291$ cm.
 
 \begin{figure}[H]
     \centering
@@ -209,7 +240,8 @@ $z=2.261$ cm; C23 reaches 2.35 cm/s at $z=2.291$ cm.
     are tetrahedral cross-section quadrature means from the resolved 3D
     velocity field; dashed curves are interpolated 1D means
     $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$. The shaded band marks
-    the throat-centered stenosis region.}
+    the displayed throat-centered stenosis region; the largest listed section
+    discrepancies occur just upstream of this band.}
     \label{fig:t1-section-mean-comparison}
 \end{figure}
 
@@ -254,13 +286,18 @@ downstream slices show the largest C40 discrepancy. This is suggestive of
 profile-shape effects omitted by the 1D closure, but it does not uniquely
 diagnose secondary flow, skewness, separation, or any single omitted mechanism.
 The reconstructed parabolic profile used for the dashed 1D curve is
-\[
-    u_{1D}(r;z,t)=2\,\frac{q(z,t)}{a(z,t)}
-    \left(1-\left(\frac{r}{\sqrt{a(z,t)}}\right)^2\right)
-\]
+\begin{flalign*}
+    \quad
+    u_{1D}(r;z,t)
+    &=
+    2\,\frac{q(z,t)}{a(z,t)}
+    \left(1-\left(\frac{r}{\sqrt{a(z,t)}}\right)^2\right) &&
+\end{flalign*}
 on the current-radius coordinate. Supplemental rows retain the static
 reference-radius coordinate $r/R_0(z)$ and 10/20/40-bin sensitivity, with
 area-weighted radial means, area mismatch, and within-bin azimuthal variance.
+The MAE/RMSE radial summaries weight valid radial bins equally after those
+area-weighted bin means are formed.
 
 \begin{figure}[H]
     \centering
@@ -268,9 +305,9 @@ area-weighted radial means, area mismatch, and within-bin azimuthal variance.
     \figtikz{radial-profile-comparison}
     \caption{Radial velocity profile comparison at the declared
     throat-centered slices. Markers are resolved 3D area-weighted radial-bin
-    means from the quadrature triangles; dashed curves are the 1D closure
-    profile reconstructed from $q/a$. Colored in-panel labels identify the
-    axial stations.}
+    means from the quadrature triangles on the current-radius coordinate;
+    dashed curves are the 1D closure profile reconstructed from $q/a$. Colored
+    in-panel labels identify the axial stations.}
     \label{fig:t1-radial-profile-comparison}
 \end{figure}
 
@@ -278,8 +315,8 @@ area-weighted radial means, area mismatch, and within-bin azimuthal variance.
     \centering
     \scriptsize
     \caption{Radial-profile discrepancy by case and slice. Bin means are
-    area-weighted over the quadrature triangles in each bin; the displayed
-    MAE and RMSE summaries are over the valid radial-bin means.
+    area-weighted over the quadrature triangles in each bin; the displayed MAE
+    and RMSE summaries weight the valid radial-bin means equally after binning.
     Velocity discrepancies are in cm/s; radial-bin physical-flow discrepancies are in
     cm$^3$/s and use
     $Q_{1D,\mathrm{bin}}=\bar u_{1D,\mathrm{bin}}A_{\mathrm{bin}}$.
