@@ -25,6 +25,70 @@ Definition~\ref{def:foundation-norm-conventions}; discrete residuals use the
 recorded $D_t$, $D_z$, grid, and quadrature weights rather than unnamed
 continuum derivatives.
 
+\subsection{Implemented secondary solver surfaces}
+\label{app:num-secondary-solver-surfaces}
+
+The principal C23/C40 comparison uses MUSCL finite volume with minmod limiting
+and native SSPRK3. Table~\ref{tab:implemented-discretization-surface} records
+the wider implemented surface so that benchmark and sensitivity rows can be
+interpreted without moving secondary methods into the main methodology
+narrative.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Implemented discretization surface used by the report. The principal
+    comparison in this report uses MUSCL finite volume with minmod limiting and
+    native SSPRK3; the other entries are benchmark, sensitivity, or backend
+    parity context supported by the local Julia project.}
+    \label{tab:implemented-discretization-surface}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.20\textwidth}
+        >{\raggedright\arraybackslash}p{0.30\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Surface} & \textbf{Implemented option} & \textbf{Report role} \\
+        \midrule
+        Spatial
+            & First-order finite-volume Rusanov
+            & Low-order cell-average baseline and DG $p=0$ bridge. \\
+        Spatial
+            & MUSCL finite volume with minmod-limited interface states and
+            Rusanov flux
+            & Principal C23/C40 comparison method and main empirical
+            refinement target. \\
+        Spatial
+            & Characteristic WENO3 finite volume with Rusanov flux
+            & Opt-in native finite-volume implementation check and smooth-regime
+            sensitivity method; not the principal comparison method. \\
+        Spatial
+            & Richtmyer/Lax--Wendroff finite volume with minmod-limited
+            interface states
+            & Native fixed-step sensitivity method; not exposed through the
+            SciML \texttt{ODEProblem} backend because its flux predictor depends
+            on $\Delta t/\Delta z$. \\
+        Spatial
+            & Modal Legendre DG implemented for degrees $p=0,\ldots,4$
+            & Secondary native-DG surface. Descriptor-health and
+            package-benchmark rows may currently exercise only $p=0,1,2$;
+            the p-refinement verification workflow runs through $p=4$. These
+            rows are appendix context, not the principal C23/C40 comparison
+            method. \\
+        Time
+            & Forward Euler, SSPRK2, SSPRK3, and SSPRK54
+            & Native fixed-step options; SSPRK3 is the selected reported
+            integrator, while Euler, SSPRK2, and SSPRK54 are diagnostic or
+            higher-order sensitivity rows. \\
+        Time
+            & SciML/OrdinaryDiffEq \texttt{auto}, \texttt{tsit5},
+            \texttt{vern7}, \texttt{vern9}, and \texttt{rodas5p}
+            & Adaptive backend-parity checks for semi-discrete operators that
+            the current \texttt{ODEProblem} path supports. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+
 \subsection{Fixed-wall stationary-Stokes refinement record}
 \label{app:num-stationary-stokes-refinement}
 
