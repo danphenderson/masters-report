@@ -253,6 +253,50 @@ $D_z^h$ differences below. The first-order finite-volume method is the separate
 path that passes neighboring cell and ghost states directly to the same
 Rusanov flux.
 
+The report-now finite-volume surface also includes an opt-in characteristic
+WENO3 reconstruction. At an interior interface $i+1/2$ with the four-cell
+stencil $(i-1,i,i+1,i+2)$, the implementation freezes the homogeneous
+flux-Jacobian eigenvalues at the local reference state
+\[
+    \mathbf U_{\mathrm{ref}}
+    =
+    \frac{1}{2}(\mathbf U_i+\mathbf U_{i+1})
+\]
+and projects conservative states into characteristic components
+\begin{flalign*}
+    \quad
+    w^- &= \frac{\lambda^+ a-q}{\lambda^+-\lambda^-},
+    &
+    w^+ &= \frac{-\lambda^- a+q}{\lambda^+-\lambda^-}. &&
+\end{flalign*}
+For a scalar characteristic component with stencil values
+$(v_{i-1},v_i,v_{i+1})$, the left state uses
+\begin{flalign*}
+    \quad
+    p_0^- &= -\frac{1}{2}v_{i-1}+\frac{3}{2}v_i,
+    &
+    p_1^- &= \frac{1}{2}v_i+\frac{1}{2}v_{i+1}, &&\\
+    \quad
+    \beta_0^- &= (v_i-v_{i-1})^2,
+    &
+    \beta_1^- &= (v_{i+1}-v_i)^2, &&\\
+    \quad
+    \omega_k^- &=
+    \frac{d_k^-/(\varepsilon+\beta_k^-)^2}
+         {\sum_{\ell=0}^1 d_\ell^-/(\varepsilon+\beta_\ell^-)^2},
+    &
+    (d_0^-,d_1^-) &= \left(\frac{1}{3},\frac{2}{3}\right), &&\\
+    \quad
+    v^-_{i+1/2} &= \omega_0^-p_0^-+\omega_1^-p_1^-. &&
+\end{flalign*}
+The right state is formed symmetrically from $(v_i,v_{i+1},v_{i+2})$ and then
+mapped back to $(a,q)$ through
+$a=w^-+w^+$ and $q=\lambda^-w^-+\lambda^+w^+$. The WENO3 path uses the same
+Rusanov flux and source discretization as MUSCL, applies the same positive-area
+protection to reconstructed $a$ states, and falls back to the existing
+ghost-state/minmod reconstruction at the domain faces and boundary-adjacent
+interfaces where a full WENO3 stencil is not available.
+
 The implemented report-now spatial surface also includes a native
 Richtmyer/Lax--Wendroff finite-volume path. It uses the same minmod-limited
 interface states as above, then forms the half-step interface state
@@ -428,9 +472,12 @@ the $a$-components,
             u^{(2)}+\Delta t_n\mathcal L_h(u^{(2)},t^n+\Delta t_n)
         \right]\right). &&
 \end{flalign*}
-The native code also exposes Forward Euler and SSPRK2 steppers for diagnostic
+The native code also exposes Forward Euler, SSPRK2, and the standard
+five-stage fourth-order SSPRK54 stepper for diagnostic and higher-order
 sensitivity rows; they are not the selected time integrators for the principal
-comparison. The native step size is
+comparison. SSPRK54 reuses the same stage right-hand side, positive-area
+projection, and diagnostics accounting as the SSPRK3 path. The native step size
+is
 \begin{flalign*}
     \quad
     \Delta t_n
@@ -444,7 +491,8 @@ comparison. The native step size is
 The SciML realization constructs an \texttt{ODEProblem} for the same
 $\dot u_h=\mathcal L_h(u_h,t;\theta)$ and applies the selected
 OrdinaryDiffEq policy recorded in the solve specification. The local policy
-surface exposes \texttt{auto}, \texttt{tsit5}, and \texttt{rodas5p}. Thus
+surface exposes \texttt{auto}, \texttt{tsit5}, \texttt{vern7}, \texttt{vern9},
+and \texttt{rodas5p}. Thus
 comparisons between these realizations change the time integrator, not the
 semi-discrete spatial operator, for the spatial methods supported by that
 backend. The native fully discrete path applies the stage projection $\Pi$,
