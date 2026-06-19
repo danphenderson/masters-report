@@ -1,6 +1,6 @@
 project_state: CORE_REWRITE
 source_commit: 371ba631f7cb24a3463e4923696218304bc6ff09
-active_dispatch: D18
+active_dispatch: D90-GLOBAL-CONSISTENCY
 claim_lock: approved
 structure_approval: approved
 open_blockers: []
@@ -18,4 +18,5 @@ completed_dispatches:
   - D15
   - D16
   - D17
-next_dispatch: D18
+  - D18
+next_dispatch: D90-GLOBAL-CONSISTENCY
