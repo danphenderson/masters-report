@@ -11,12 +11,6 @@
 !.env.example
 !.env.template
 
-# Local review/orchestration notes that are not part of the public release
-executive-assessment.md
-claim_evidence_ledger.yaml
-final_editorial_rewrite_workflow.md
-manuscript_agent_harness.yaml
-
 # Python/Pipenv local state
 .venv/
 venv/
