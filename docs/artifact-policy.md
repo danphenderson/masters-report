@@ -21,7 +21,7 @@ in one sweep.
 | Reference PDFs and citation provenance | `references/**/*.pdf`, `references/**/*.html`, `references/source-inventory.tsv`, `references/AGENTS.md`, `references.bib` | Yes for the current local reference archive, subject to a future LFS or archive decision. | No. Source artifacts are preserved records, not build products. | No. | Follow `references/AGENTS.md`. Run `python3 scripts/audit_references.py`, `pipenv run pytest test/test_references_inventory.py`, and `biber --tool --validate-datamodel --output-file /tmp/masters-report-references.bib references.bib` after moving, adding, or reclassifying reference artifacts. |
 | Ignored local environments/caches | `.venv/`, `.julia_depot/`, `.pytest_cache/`, `.ruff_cache/`, `__pycache__/`, `*.egg-info/`, local editor files, `.DS_Store` | No. | Yes. They are local machine state. | Yes, if no command is actively using them. | `git status --short --ignored=matching` should show them as ignored, not untracked. Recreate environments through the documented Julia or Pipenv setup if needed. |
 | Large/raw data | `simulations/data/3d/**`, local XDMF/HDF5 resolved-3D inputs, any future raw solver dumps or external datasets | No, unless the project owner explicitly chooses Git LFS, DVC, or another archival policy. | No for external raw inputs; yes for derived data when regeneration is documented. | No, unless the data is a disposable local copy and its source or archive pointer is known. | Record source, checksum, and expected local path before relying on the data. Keep raw data out of ordinary commits until an LFS or archive strategy is approved. |
-| Stale or review-only artifacts | `masters_report_review.md`, superseded local notes, one-off audit exports, review handbacks | Usually no, unless intentionally retained as project documentation. | No. | No automatic deletion. Review provenance first. | Confirm the artifact is not referenced by TeX, README, AGENTS, appendix provenance, active review notes, or pending dirty work. Move or remove it in its own cleanup patch. |
+| Stale or review-only artifacts | Root review handbacks, historical review notes, superseded local notes, one-off audit exports | Usually no, unless intentionally retained as project documentation. | No. | No automatic deletion. Review provenance first. | Confirm the artifact is not referenced by TeX, README, AGENTS, appendix provenance, active review notes, or pending dirty work. Move or remove it in its own cleanup patch. |
 
 ## Cleanup Safety Rules
 
@@ -46,7 +46,7 @@ in one sweep.
 1. Resolve the active manuscript dirty state, including any untracked live
    section files and tracked `final-report.pdf` drift.
 2. Establish or update this policy before moving artifacts.
-3. Handle stale review artifacts such as `masters_report_review.md` in a small
+3. Handle stale root review handbacks or historical review notes in a small
    documentation/provenance patch.
 4. Audit unused report assets by checking TeX inputs, `\includegraphics`,
    `\figtikz`, appendix provenance text, and static hash records.
