@@ -32,12 +32,14 @@ end
 
 FVLaxWendroffMethod() = FVLaxWendroffMethod(MinmodLimiter())
 
-"""Modal Legendre DG method for polynomial degrees 0, 1, and 2."""
+const MAX_DG_DEGREE = 4
+
+"""Modal Legendre DG method for polynomial degrees 0 through 4."""
 struct DGMethod <: AbstractSpatialMethod
     degree::Int
 
     function DGMethod(degree::Int)
-        0 <= degree <= 2 || throw(ArgumentError("DG degree must be 0, 1, or 2"))
+        0 <= degree <= MAX_DG_DEGREE || throw(ArgumentError("DG degree must be in 0:$MAX_DG_DEGREE"))
         return new(degree)
     end
 end
@@ -67,7 +69,10 @@ validate(::FVFirstOrderMethod) = FVFirstOrderMethod()
 validate(method::FVMUSCLMethod) = (validate(method.limiter); method)
 validate(method::FVWENO3Method) = (method.epsilon > 0.0 || throw(ArgumentError("WENO epsilon must be positive")); method)
 validate(method::FVLaxWendroffMethod) = (validate(method.limiter); method)
-validate(method::DGMethod) = (0 <= method.degree <= 2 || throw(ArgumentError("DG degree must be 0, 1, or 2")); method)
+validate(method::DGMethod) = (
+    0 <= method.degree <= MAX_DG_DEGREE || throw(ArgumentError("DG degree must be in 0:$MAX_DG_DEGREE"));
+    method
+)
 validate(::ForwardEulerStepper) = ForwardEulerStepper()
 validate(::SSPRK2Stepper) = SSPRK2Stepper()
 validate(::SSPRK3Stepper) = SSPRK3Stepper()
@@ -88,22 +93,53 @@ function limited_slope(values::AbstractVector{Float64}, i::Int, ::MinmodLimiter)
 end
 
 function legendre_value(degree::Int, xi::Float64)
+    0 <= degree <= MAX_DG_DEGREE || throw(ArgumentError("Legendre degree must be in 0:$MAX_DG_DEGREE"))
     degree == 0 && return 1.0
-    degree == 1 && return xi
-    degree == 2 && return 0.5 * (3.0 * xi^2 - 1.0)
-    throw(ArgumentError("Legendre degree must be 0, 1, or 2"))
+    p_nm2 = 1.0
+    p_nm1 = xi
+    degree == 1 && return p_nm1
+    p_n = p_nm1
+    for n in 2:degree
+        p_n = ((2n - 1) * xi * p_nm1 - (n - 1) * p_nm2) / n
+        p_nm2 = p_nm1
+        p_nm1 = p_n
+    end
+    return p_n
 end
 
 function legendre_derivative(degree::Int, xi::Float64)
+    0 <= degree <= MAX_DG_DEGREE || throw(ArgumentError("Legendre degree must be in 0:$MAX_DG_DEGREE"))
     degree == 0 && return 0.0
-    degree == 1 && return 1.0
-    degree == 2 && return 3.0 * xi
-    throw(ArgumentError("Legendre degree must be 0, 1, or 2"))
+    p_nm2 = 1.0
+    p_nm1 = xi
+    dp_nm2 = 0.0
+    dp_nm1 = 1.0
+    degree == 1 && return dp_nm1
+    dp_n = dp_nm1
+    for n in 2:degree
+        p_n = ((2n - 1) * xi * p_nm1 - (n - 1) * p_nm2) / n
+        dp_n = ((2n - 1) * (p_nm1 + xi * dp_nm1) - (n - 1) * dp_nm2) / n
+        p_nm2 = p_nm1
+        p_nm1 = p_n
+        dp_nm2 = dp_nm1
+        dp_nm1 = dp_n
+    end
+    return dp_n
 end
 
 function dg_quadrature()
     r = sqrt(3.0 / 5.0)
     return (-r, 0.0, r), (5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0)
+end
+
+function dg_quadrature(degree::Int)
+    0 <= degree <= MAX_DG_DEGREE || throw(ArgumentError("DG quadrature degree must be in 0:$MAX_DG_DEGREE"))
+    degree <= 2 && return dg_quadrature()
+    r1 = sqrt(5.0 - 2.0 * sqrt(10.0 / 7.0)) / 3.0
+    r2 = sqrt(5.0 + 2.0 * sqrt(10.0 / 7.0)) / 3.0
+    w1 = (322.0 + 13.0 * sqrt(70.0)) / 900.0
+    w2 = (322.0 - 13.0 * sqrt(70.0)) / 900.0
+    return (-r2, -r1, 0.0, r1, r2), (w2, w1, 128.0 / 225.0, w1, w2)
 end
 
 function dg_degrees_of_freedom(nx::Int, method::DGMethod)

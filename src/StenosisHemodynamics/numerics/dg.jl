@@ -1,3 +1,13 @@
+struct DGSimulationCoefficients
+    z::Vector{Float64}
+    area_coefficients::Matrix{Float64}
+    flow_coefficients::Matrix{Float64}
+    dx::Float64
+    completed_time::Float64
+    steps::Int
+    initial_condition::Union{Nothing,InitialConditionSummary}
+end
+
 function dg_initial_coefficients(p::Params, method::DGMethod)
     z, Acoef, Qcoef, dx, _ = dg_initial_coefficients_with_summary(p, method)
     return z, Acoef, Qcoef, dx
@@ -9,7 +19,7 @@ function dg_initial_coefficients_with_summary(p::Params, method::DGMethod)
     z = [(i - 0.5) * dx for i in 1:p.nx]
     Acoef = zeros(Float64, p.nx, degree + 1)
     Qcoef = zeros(Float64, p.nx, degree + 1)
-    xis, weights = dg_quadrature()
+    xis, weights = dg_quadrature(degree)
     zq = Float64[]
 
     for i in 1:p.nx
@@ -99,7 +109,7 @@ function dg_rhs(
         FA[iface], FQ[iface] = rusanov_flux(AL, QL, AR, QR, zi, p)
     end
 
-    xis, weights = dg_quadrature()
+    xis, weights = dg_quadrature(degree)
     gp2 = gamma_plus_two(p)
 
     for i in 1:nx
@@ -108,6 +118,7 @@ function dg_rhs(
             boundary_Q = FQ[i + 1] * legendre_value(m, 1.0) - FQ[i] * legendre_value(m, -1.0)
             volume_A = 0.0
             volume_Q = 0.0
+            source_A = 0.0
             source_Q = 0.0
 
             for (xi, w) in zip(xis, weights)
@@ -120,12 +131,16 @@ function dg_rhs(
                 fA, fQ = flux(Aq, Qq, zq, p)
                 volume_A += w * fA * legendre_derivative(m, xi)
                 volume_Q += w * fQ * legendre_derivative(m, xi)
-                source_Q += w * source_point(Aq, Qq, zq, dA_dz, dQ_dz, r0, r0z, r0zz, gp2, p) *
-                            legendre_value(m, xi)
+                test_value = legendre_value(m, xi)
+                source_A += w * mass_forcing(p.forcing, zq, t, p) * test_value
+                source_Q += w * (
+                    source_point(Aq, Qq, zq, dA_dz, dQ_dz, r0, r0z, r0zz, gp2, p) +
+                    momentum_forcing(p.forcing, zq, t, p)
+                ) * test_value
             end
 
             scale = 2m + 1
-            dA[i, m + 1] = -scale / dx * (boundary_A - volume_A)
+            dA[i, m + 1] = -scale / dx * (boundary_A - volume_A) + 0.5 * scale * source_A
             dQ[i, m + 1] = -scale / dx * (boundary_Q - volume_Q) + 0.5 * scale * source_Q
         end
     end
@@ -137,7 +152,7 @@ function limit_dg_coefficients!(Acoef::Matrix{Float64}, Qcoef::Matrix{Float64}, 
     degree = method.degree
     degree == 0 && return Acoef, Qcoef
     nx = size(Acoef, 1)
-    xis = (-1.0, dg_quadrature()[1]..., 1.0)
+    xis = (-1.0, dg_quadrature(degree)[1]..., 1.0)
 
     for i in 1:nx
         mean_A = max(Acoef[i, 1], AREA_LIMITER_FLOOR)
@@ -156,8 +171,10 @@ function limit_dg_coefficients!(Acoef::Matrix{Float64}, Qcoef::Matrix{Float64}, 
             if limited_A1 != Acoef[i, 2] || limited_Q1 != Qcoef[i, 2]
                 Acoef[i, 2] = limited_A1
                 Qcoef[i, 2] = limited_Q1
-                degree >= 2 && (Acoef[i, 3] = 0.0)
-                degree >= 2 && (Qcoef[i, 3] = 0.0)
+                for m in 2:degree
+                    Acoef[i, m + 1] = 0.0
+                    Qcoef[i, m + 1] = 0.0
+                end
             end
         else
             for m in 1:degree
@@ -324,6 +341,46 @@ function choose_dt_dg(Acoef::Matrix{Float64}, Qcoef::Matrix{Float64}, z::Vector{
     return min(p.dt, p.cfl * dx / max((2 * method.degree + 1) * smax, eps()))
 end
 
+function simulate_dg_coefficients(p::Params, method::DGMethod; progress_every::Int = 0)
+    method.degree == 0 && return simulate_dg0_coefficients(p; progress_every=progress_every)
+
+    validate(p)
+    z, Acoef, Qcoef, dx, initial_summary = dg_initial_coefficients_with_summary(p, method)
+    limit_dg_coefficients!(Acoef, Qcoef, method)
+    t = 0.0
+    step = 0
+
+    while t < p.tfinal - 1.0e-14
+        dt = min(choose_dt_dg(Acoef, Qcoef, z, dx, p, method), p.tfinal - t)
+        Acoef, Qcoef = dg_step(Acoef, Qcoef, z, dx, dt, t, p, method)
+        t += dt
+        step += 1
+
+        if progress_every > 0 && step % progress_every == 0
+            @telemetry_info "DG simulation progress" event="simulation_progress" stage="simulate" backend="native" method=spatial_method_name(method) nx=p.nx tfinal=p.tfinal status="running" degree=method.degree step t dt minA=minimum(Acoef[:, 1]) maxU=maximum(abs.(Qcoef[:, 1] ./ Acoef[:, 1]))
+        end
+
+        if !all(isfinite, Acoef) || !all(isfinite, Qcoef)
+            error("non-finite DG solution at t=$(t)")
+        end
+    end
+
+    return DGSimulationCoefficients(z, Acoef, Qcoef, dx, t, step, initial_summary)
+end
+
+function simulate_dg0_coefficients(p::Params; progress_every::Int = 0)
+    result = simulate(params_with(p; space=FVFirstOrderMethod()), NativeRK3Backend(); progress_every=progress_every)
+    return DGSimulationCoefficients(
+        result.z,
+        reshape(copy(result.area), :, 1),
+        reshape(copy(result.flow), :, 1),
+        p.length_cm / p.nx,
+        result.completed_time,
+        result.steps,
+        result.initial_condition,
+    )
+end
+
 function simulate_dg(p::Params, method::DGMethod; progress_every::Int = 0)
     start_ns = telemetry_start_ns()
     @telemetry_info "simulation started" event="simulation_started" stage="simulate" backend="native" method=spatial_method_name(method) nx=p.nx tfinal=p.tfinal status="started"
@@ -331,29 +388,17 @@ function simulate_dg(p::Params, method::DGMethod; progress_every::Int = 0)
         validate(p)
         method.degree == 0 && return simulate(params_with(p; space=FVFirstOrderMethod()), NativeRK3Backend(); progress_every=progress_every)
 
-        z, Acoef, Qcoef, dx, initial_summary = dg_initial_coefficients_with_summary(p, method)
-        limit_dg_coefficients!(Acoef, Qcoef, method)
-        t = 0.0
-        step = 0
-
-        while t < p.tfinal - 1.0e-14
-            dt = min(choose_dt_dg(Acoef, Qcoef, z, dx, p, method), p.tfinal - t)
-            Acoef, Qcoef = dg_step(Acoef, Qcoef, z, dx, dt, t, p, method)
-            t += dt
-            step += 1
-
-            if progress_every > 0 && step % progress_every == 0
-                @telemetry_info "DG simulation progress" event="simulation_progress" stage="simulate" backend="native" method=spatial_method_name(method) nx=p.nx tfinal=p.tfinal status="running" degree=method.degree step t dt minA=minimum(Acoef[:, 1]) maxU=maximum(abs.(Qcoef[:, 1] ./ Acoef[:, 1]))
-            end
-
-            if !all(isfinite, Acoef) || !all(isfinite, Qcoef)
-                error("non-finite DG solution at t=$(t)")
-            end
-        end
-
-        A = max.(vec(Acoef[:, 1]), AREA_LIMITER_FLOOR)
-        Q = vec(Qcoef[:, 1])
-        result = SimulationResult(z, A, Q, t, step, initial_summary)
+        coefficients = simulate_dg_coefficients(p, method; progress_every=progress_every)
+        A = max.(vec(coefficients.area_coefficients[:, 1]), AREA_LIMITER_FLOOR)
+        Q = vec(coefficients.flow_coefficients[:, 1])
+        result = SimulationResult(
+            coefficients.z,
+            A,
+            Q,
+            coefficients.completed_time,
+            coefficients.steps,
+            coefficients.initial_condition,
+        )
         @telemetry_info "simulation completed" event="simulation_completed" stage="simulate" backend="native" method=spatial_method_name(method) nx=p.nx tfinal=p.tfinal status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(A)
         return result
     catch err

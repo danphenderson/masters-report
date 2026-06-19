@@ -16,6 +16,24 @@ end
 const PACKAGE_BENCHMARK_DATA_DIR =
     joinpath("figures", "static", "static", "data", "package-benchmark")
 
+const PACKAGE_BENCHMARK_OWNED_FILES = [
+    "case_results.csv",
+    "refinement.csv",
+    "backend_parity.csv",
+    "stokes_ic.csv",
+    "rheology_profile.csv",
+    "boundary_openbf.csv",
+    "resolved3d.csv",
+    "manifest.json",
+    "synthetic_waveform.csv",
+]
+
+const PACKAGE_BENCHMARK_OWNED_DIRS = [
+    "refinement_raw",
+    "stokes_ic",
+    "resolved3d",
+]
+
 const CASE_RESULTS_HEADER = [
     "stage",
     "case_id",
@@ -184,14 +202,7 @@ function run_package_benchmark(spec::PackageBenchmarkSpec=PackageBenchmarkSpec()
     start_ns = telemetry_start_ns()
     @telemetry_info "package benchmark started" event="package_benchmark_started" stage="run_package_benchmark" backend="package-benchmark" method=profile nx="" tfinal="" status="started" output_dir=spec.output_dir
     try
-        if isdir(spec.output_dir)
-            spec.overwrite ||
-                throw(ArgumentError("output directory exists; pass overwrite=true to replace it: $(spec.output_dir)"))
-            rm(spec.output_dir; recursive=true, force=true)
-        elseif isfile(spec.output_dir)
-            throw(ArgumentError("output path exists and is not a directory: $(spec.output_dir)"))
-        end
-        mkpath(spec.output_dir)
+        prepare_package_benchmark_output_dir(spec.output_dir; overwrite=spec.overwrite)
 
         paths = Dict{String,String}(
             "case_results" => joinpath(spec.output_dir, "case_results.csv"),
@@ -241,12 +252,99 @@ function run_package_benchmark(spec::PackageBenchmarkSpec=PackageBenchmarkSpec()
     end
 end
 
+"""
+    prepare_package_benchmark_output_dir(output_dir; overwrite=false)
+
+Validate and prepare a package-benchmark output directory.
+
+When `overwrite=false`, an existing directory is rejected. When
+`overwrite=true`, only files and subdirectories owned by the package benchmark
+workflow are removed; unrelated files in `output_dir` are preserved. Repository
+source, report, reference, and raw-data paths are rejected even with overwrite
+enabled.
+"""
+function prepare_package_benchmark_output_dir(output_dir::String; overwrite::Bool = false)
+    isempty(strip(output_dir)) && throw(ArgumentError("benchmark output_dir must not be empty"))
+    assert_package_benchmark_output_path(output_dir)
+
+    if isdir(output_dir)
+        overwrite ||
+            throw(ArgumentError("output directory exists; pass overwrite=true to replace benchmark-owned files: $output_dir"))
+        clear_package_benchmark_outputs(output_dir)
+    elseif isfile(output_dir)
+        throw(ArgumentError("output path exists and is not a directory: $output_dir"))
+    else
+        mkpath(output_dir)
+    end
+    return output_dir
+end
+
+function clear_package_benchmark_outputs(output_dir::String)
+    for name in PACKAGE_BENCHMARK_OWNED_FILES
+        path = joinpath(output_dir, name)
+        isfile(path) && rm(path; force=true)
+    end
+    for name in PACKAGE_BENCHMARK_OWNED_DIRS
+        path = joinpath(output_dir, name)
+        isdir(path) && rm(path; recursive=true, force=true)
+    end
+    return output_dir
+end
+
+function assert_package_benchmark_output_path(output_dir::String)
+    output_abs = canonical_package_benchmark_path(output_dir)
+    repo_root = package_benchmark_repo_root()
+    output_abs == repo_root && throw(ArgumentError(
+        "refusing to use protected repository root as package benchmark output_dir: $output_dir",
+    ))
+
+    for protected in package_benchmark_protected_roots(repo_root)
+        if same_or_descendant(output_abs, protected)
+            throw(ArgumentError(
+                "refusing to use protected repository path as package benchmark output_dir: $output_dir",
+            ))
+        end
+    end
+    return output_dir
+end
+
+function canonical_package_benchmark_path(path::String)
+    normalized = normpath(abspath(path))
+    while length(normalized) > 1 && (endswith(normalized, "/") || endswith(normalized, "\\"))
+        normalized = normalized[begin:prevind(normalized, lastindex(normalized))]
+    end
+    return normalized
+end
+
+package_benchmark_repo_root() = canonical_package_benchmark_path(joinpath(@__DIR__, "..", "..", ".."))
+
+function package_benchmark_protected_roots(repo_root::String = package_benchmark_repo_root())
+    return [
+        joinpath(repo_root, "src"),
+        joinpath(repo_root, "test"),
+        joinpath(repo_root, "docs"),
+        joinpath(repo_root, "scripts"),
+        joinpath(repo_root, "figures"),
+        joinpath(repo_root, "frontmatter"),
+        joinpath(repo_root, "sections"),
+        joinpath(repo_root, "appendices"),
+        joinpath(repo_root, "preamble"),
+        joinpath(repo_root, "references"),
+        joinpath(repo_root, "simulations", "data"),
+    ]
+end
+
+function same_or_descendant(path::String, parent::String)
+    rel = relpath(canonical_package_benchmark_path(path), canonical_package_benchmark_path(parent))
+    return rel == "." || !(rel == ".." || startswith(rel, "../") || startswith(rel, "..\\") || isabspath(rel))
+end
+
 function run_benchmark_stage!(producer, csv_outputs::Vector{String}, path::String, header, stage::String, spec::PackageBenchmarkSpec, profile::String)
     start_ns = telemetry_start_ns()
     @telemetry_info "package benchmark stage started" event="stage_started" stage=stage backend="package-benchmark" method=profile nx="" tfinal="" status="started" output_dir=spec.output_dir
     try
         rows = producer()
-        write_csv(path, header, rows)
+        write_csv_table(path, header, rows; pad_rows=true)
         push!(csv_outputs, path)
         @telemetry_info "package benchmark stage completed" event="stage_completed" stage=stage backend="package-benchmark" method=profile nx="" tfinal="" status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(rows) output_dir=spec.output_dir
         return rows
@@ -604,7 +702,7 @@ end
 function boundary_openbf_rows(profile::String, spec::PackageBenchmarkSpec)
     rows = Vector{Vector{Any}}()
     waveform_path = joinpath(spec.output_dir, "synthetic_waveform.csv")
-    open(waveform_path, "w") do io
+    guarded_open_write(waveform_path, true) do io
         write(io, "0.0 0.0\n")
         write(io, "0.00005 1.0\n")
         write(io, "0.00010 0.0\n")
@@ -935,10 +1033,7 @@ function write_manifest(path::String, spec::PackageBenchmarkSpec, profile::Strin
         "command" => join(vcat(isempty(PROGRAM_FILE) ? "julia" : PROGRAM_FILE, ARGS), " "),
         "output_hashes" => Dict(basename(p) => sha256_file(p) for p in hash_paths if isfile(p)),
     )
-    open(path, "w") do io
-        write_json(io, manifest, 0)
-        write(io, "\n")
-    end
+    write_json(path, manifest)
     return path
 end
 
@@ -953,73 +1048,6 @@ function manifest_output_paths(output_dir::String, csv_outputs::Vector{String}, 
         unique_paths[abspath(path)] = path
     end
     return sort!(collect(values(unique_paths)); by=basename)
-end
-
-function write_csv(path::String, header::Vector{String}, rows::Vector{Vector{Any}})
-    open(path, "w") do io
-        write(io, join(header, ","), "\n")
-        for row in rows
-            padded = length(row) < length(header) ? vcat(row, fill("", length(header) - length(row))) : row[1:length(header)]
-            write(io, join(csv_cell.(padded), ","), "\n")
-        end
-    end
-    return path
-end
-
-function csv_cell(value)
-    if value === nothing
-        return ""
-    end
-    text = string(value)
-    if any(occursin.(["\"", ",", "\n", "\r"], Ref(text)))
-        return "\"" * replace(text, "\"" => "\"\"") * "\""
-    end
-    return text
-end
-
-function write_json(io, value, indent::Int)
-    pad = repeat(" ", indent)
-    if value isa AbstractDict
-        write(io, "{")
-        first = true
-        for key in sort!(collect(keys(value)); by=string)
-            first || write(io, ",")
-            write(io, "\n", repeat(" ", indent + 2), json_string(string(key)), ": ")
-            write_json(io, value[key], indent + 2)
-            first = false
-        end
-        write(io, "\n", pad, "}")
-    elseif value isa AbstractVector
-        write(io, "[")
-        for (i, item) in enumerate(value)
-            i == 1 || write(io, ", ")
-            write_json(io, item, indent)
-        end
-        write(io, "]")
-    elseif value isa Bool
-        write(io, value ? "true" : "false")
-    elseif value isa Number
-        if isfinite(float(value))
-            write(io, string(value))
-        else
-            write(io, "null")
-        end
-    elseif value === nothing
-        write(io, "null")
-    else
-        write(io, json_string(string(value)))
-    end
-end
-
-function json_string(text::String)
-    escaped = replace(text, "\\" => "\\\\", "\"" => "\\\"", "\n" => "\\n", "\r" => "\\r", "\t" => "\\t")
-    return "\"" * escaped * "\""
-end
-
-function sha256_file(path::String)
-    open(path, "r") do io
-        return bytes2hex(sha256(io))
-    end
 end
 
 function safe_readchomp(cmd::Cmd)

@@ -260,18 +260,7 @@ Write compact study diagnostics without changing the single-run profile CSV
 format.
 """
 function write_study_csv(path::String, study::StudyResult; overwrite::Bool = false)
-    ensure_parent(path)
-    if isfile(path) && !overwrite
-        throw(ArgumentError("refusing to overwrite existing study summary '$path'; pass overwrite=true to allow replacement"))
-    end
-
-    open(path, "w") do io
-        println(io, study_summary_header())
-        for row in study.summaries
-            println(io, study_summary_row(row))
-        end
-    end
-    return path
+    return write_csv_table(path, study_summary_header(), (study_summary_values(row) for row in study.summaries); overwrite=overwrite)
 end
 
 function write_study_csv(path::String, rows::Vector{StudyRunSummary}; overwrite::Bool = false)
@@ -279,7 +268,7 @@ function write_study_csv(path::String, rows::Vector{StudyRunSummary}; overwrite:
 end
 
 function study_summary_header()
-    return join((
+    return [
         "study_kind",
         "severity",
         "nx",
@@ -303,11 +292,11 @@ function study_summary_header()
         "pressure_min",
         "pressure_max",
         "min_area",
-    ), ",")
+    ]
 end
 
-function study_summary_row(row::StudyRunSummary)
-    return join((
+function study_summary_values(row::StudyRunSummary)
+    return Any[
         row.study_kind,
         row.severity,
         row.nx,
@@ -331,5 +320,5 @@ function study_summary_row(row::StudyRunSummary)
         row.pressure_min,
         row.pressure_max,
         row.min_area,
-    ), ",")
+    ]
 end

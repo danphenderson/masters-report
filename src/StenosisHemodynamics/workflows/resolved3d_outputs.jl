@@ -44,35 +44,25 @@ function write_comparison_csvs(result::ComparisonResult; overwrite::Bool = false
     return result
 end
 
-function guarded_open_write(writer, path::String, overwrite::Bool)
-    ensure_parent(path)
-    if isfile(path) && !overwrite
-        throw(ArgumentError("refusing to overwrite existing file '$path'; pass overwrite=true to allow replacement"))
-    end
-    open(path, "w") do io
-        writer(io)
-    end
-    return path
-end
-
 function write_section_comparison_csv(
     path::String,
     rows::Vector{SectionComparisonRow};
     overwrite::Bool = false,
 )
-    guarded_open_write(path, overwrite) do io
-        println(io, section_comparison_header())
-        for row in rows
-            println(io, section_comparison_csv_row(row))
-        end
-    end
+    write_csv_table(path, section_comparison_header(), (section_comparison_values(row) for row in rows); overwrite=overwrite)
 end
 
 function section_comparison_header()
-    return join((
+    return [
         "case_label",
         "severity",
         "operator",
+        "model",
+        "nx",
+        "dt_s",
+        "initial_condition",
+        "backend",
+        "run_status",
         "z_cm",
         "area_cm2",
         "flow_3d_cm3_s",
@@ -90,14 +80,26 @@ function section_comparison_header()
         "observed_radius_cm",
         "xdmf_time_s",
         "time_offset_s",
-    ), ",")
+        "target_time_s",
+        "time_atol_s",
+        "one_d_completed_time_s",
+        "one_d_terminal_time_error_s",
+        "xdmf_target_time_error_s",
+        "cross_model_time_offset_s",
+    ]
 end
 
-function section_comparison_csv_row(row::SectionComparisonRow)
-    return join((
+function section_comparison_values(row::SectionComparisonRow)
+    return Any[
         row.case_label,
         row.severity,
         row.operator,
+        row.model,
+        row.nx,
+        row.dt_s,
+        row.initial_condition,
+        row.backend,
+        row.run_status,
         row.z_cm,
         row.area_cm2,
         row.flow_3d_cm3_s,
@@ -115,7 +117,13 @@ function section_comparison_csv_row(row::SectionComparisonRow)
         row.observed_radius_cm,
         row.xdmf_time_s,
         row.time_error_s,
-    ), ",")
+        row.target_time_s,
+        row.time_atol_s,
+        row.one_d_completed_time_s,
+        row.one_d_terminal_time_error_s,
+        row.xdmf_target_time_error_s,
+        row.cross_model_time_offset_s,
+    ]
 end
 
 function write_radial_profile_csv(
@@ -123,19 +131,20 @@ function write_radial_profile_csv(
     rows::Vector{RadialProfileRow};
     overwrite::Bool = false,
 )
-    guarded_open_write(path, overwrite) do io
-        println(io, radial_profile_header())
-        for row in rows
-            println(io, radial_profile_csv_row(row))
-        end
-    end
+    write_csv_table(path, radial_profile_header(), (radial_profile_values(row) for row in rows); overwrite=overwrite)
 end
 
 function radial_profile_header()
-    return join((
+    return [
         "case_label",
         "severity",
         "operator",
+        "model",
+        "nx",
+        "dt_s",
+        "initial_condition",
+        "backend",
+        "run_status",
         "z_slice_cm",
         "radial_bin",
         "r_over_radius_mid",
@@ -150,6 +159,12 @@ function radial_profile_header()
         "node_count",
         "xdmf_time_s",
         "time_offset_s",
+        "target_time_s",
+        "time_atol_s",
+        "one_d_completed_time_s",
+        "one_d_terminal_time_error_s",
+        "xdmf_target_time_error_s",
+        "cross_model_time_offset_s",
         "radial_bin_count",
         "radius_mode",
         "radius_scale_cm",
@@ -157,14 +172,20 @@ function radial_profile_header()
         "reference_area_cm2",
         "current_area_mismatch_rel",
         "velocity_variance_cm2_s2",
-    ), ",")
+    ]
 end
 
-function radial_profile_csv_row(row::RadialProfileRow)
-    return join((
+function radial_profile_values(row::RadialProfileRow)
+    return Any[
         row.case_label,
         row.severity,
         row.operator,
+        row.model,
+        row.nx,
+        row.dt_s,
+        row.initial_condition,
+        row.backend,
+        row.run_status,
         row.z_slice_cm,
         row.radial_bin,
         row.r_over_r0_mid,
@@ -179,6 +200,12 @@ function radial_profile_csv_row(row::RadialProfileRow)
         row.node_count,
         row.xdmf_time_s,
         row.time_error_s,
+        row.target_time_s,
+        row.time_atol_s,
+        row.one_d_completed_time_s,
+        row.one_d_terminal_time_error_s,
+        row.xdmf_target_time_error_s,
+        row.cross_model_time_offset_s,
         row.radial_bin_count,
         row.radius_mode,
         row.radius_scale_cm,
@@ -186,7 +213,7 @@ function radial_profile_csv_row(row::RadialProfileRow)
         row.reference_area_cm2,
         row.current_area_mismatch_rel,
         row.velocity_variance_cm2_s2,
-    ), ",")
+    ]
 end
 
 function write_comparison_summary_csv(
@@ -194,19 +221,20 @@ function write_comparison_summary_csv(
     rows::Vector{ComparisonSummaryRow};
     overwrite::Bool = false,
 )
-    guarded_open_write(path, overwrite) do io
-        println(io, comparison_summary_header())
-        for row in rows
-            println(io, comparison_summary_csv_row(row))
-        end
-    end
+    write_csv_table(path, comparison_summary_header(), (comparison_summary_values(row) for row in rows); overwrite=overwrite)
 end
 
 function comparison_summary_header()
-    return join((
+    return [
         "case_label",
         "severity",
         "operator",
+        "model",
+        "nx",
+        "dt_s",
+        "initial_condition",
+        "backend",
+        "run_status",
         "section_count",
         "profile_count",
         "mean_abs_discrepancy_cm_s",
@@ -235,14 +263,26 @@ function comparison_summary_header()
         "subcritical_margin_min",
         "xdmf_time_s",
         "time_offset_s",
-    ), ",")
+        "target_time_s",
+        "time_atol_s",
+        "one_d_completed_time_s",
+        "one_d_terminal_time_error_s",
+        "xdmf_target_time_error_s",
+        "cross_model_time_offset_s",
+    ]
 end
 
-function comparison_summary_csv_row(row::ComparisonSummaryRow)
-    return join((
+function comparison_summary_values(row::ComparisonSummaryRow)
+    return Any[
         row.case_label,
         row.severity,
         row.operator,
+        row.model,
+        row.nx,
+        row.dt_s,
+        row.initial_condition,
+        row.backend,
+        row.run_status,
         row.section_count,
         row.profile_count,
         row.mean_abs_error_cm_s,
@@ -271,7 +311,13 @@ function comparison_summary_csv_row(row::ComparisonSummaryRow)
         row.subcritical_margin_min,
         row.xdmf_time_s,
         row.time_error_s,
-    ), ",")
+        row.target_time_s,
+        row.time_atol_s,
+        row.one_d_completed_time_s,
+        row.one_d_terminal_time_error_s,
+        row.xdmf_target_time_error_s,
+        row.cross_model_time_offset_s,
+    ]
 end
 
 function write_node_slab_sensitivity_csv(
@@ -279,18 +325,19 @@ function write_node_slab_sensitivity_csv(
     rows::Vector{NodeSlabSensitivityRow};
     overwrite::Bool = false,
 )
-    guarded_open_write(path, overwrite) do io
-        println(io, node_slab_sensitivity_header())
-        for row in rows
-            println(io, node_slab_sensitivity_csv_row(row))
-        end
-    end
+    write_csv_table(path, node_slab_sensitivity_header(), (node_slab_sensitivity_values(row) for row in rows); overwrite=overwrite)
 end
 
 function node_slab_sensitivity_header()
-    return join((
+    return [
         "case_label",
         "severity",
+        "model",
+        "nx",
+        "dt_s",
+        "initial_condition",
+        "backend",
+        "run_status",
         "half_width_cm",
         "z_cm",
         "mean_u3d_cm_s",
@@ -301,13 +348,25 @@ function node_slab_sensitivity_header()
         "observed_radius_cm",
         "xdmf_time_s",
         "time_offset_s",
-    ), ",")
+        "target_time_s",
+        "time_atol_s",
+        "one_d_completed_time_s",
+        "one_d_terminal_time_error_s",
+        "xdmf_target_time_error_s",
+        "cross_model_time_offset_s",
+    ]
 end
 
-function node_slab_sensitivity_csv_row(row::NodeSlabSensitivityRow)
-    return join((
+function node_slab_sensitivity_values(row::NodeSlabSensitivityRow)
+    return Any[
         row.case_label,
         row.severity,
+        row.model,
+        row.nx,
+        row.dt_s,
+        row.initial_condition,
+        row.backend,
+        row.run_status,
         row.half_width_cm,
         row.z_cm,
         row.mean_u3d_cm_s,
@@ -318,7 +377,13 @@ function node_slab_sensitivity_csv_row(row::NodeSlabSensitivityRow)
         row.observed_radius_cm,
         row.xdmf_time_s,
         row.time_error_s,
-    ), ",")
+        row.target_time_s,
+        row.time_atol_s,
+        row.one_d_completed_time_s,
+        row.one_d_terminal_time_error_s,
+        row.xdmf_target_time_error_s,
+        row.cross_model_time_offset_s,
+    ]
 end
 
 function write_section_comparison_svg(

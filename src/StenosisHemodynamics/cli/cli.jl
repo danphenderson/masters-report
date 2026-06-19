@@ -483,7 +483,11 @@ const STUDY_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
 const STUDY_FLAG_OPTIONS = union(FLAG_OPTIONS, Set(["overwrite"]))
 
 const VERIFY_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
+    "degrees",
+    "h-degree",
+    "h-nxs",
     "nxs",
+    "p-nx",
     "dt-values",
     "elapsed-times",
     "severities",
@@ -496,6 +500,8 @@ const VERIFY_FLAG_OPTIONS = union(FLAG_OPTIONS, Set(["overwrite"]))
 const COMPARISON_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
     "data-root",
     "output-dir",
+    "target-time",
+    "time-atol",
     "section-count",
     "radial-bins",
     "radial-bin-counts",
@@ -738,6 +744,7 @@ function print_verify_usage()
     println("""
     Usage:
       ./scripts/stenosis-hemodynamics verify mms [--nxs 20,40,80] [--dt-values 2e-5,1e-5,5e-6] [options]
+      ./scripts/stenosis-hemodynamics verify ph-refinement [--h-nxs 20,40,80,160] [--degrees 0,1,2,3,4] [options]
       ./scripts/stenosis-hemodynamics verify rest [--severities 23,40] [--nxs 50,100,200] [--elapsed-times 0,0.001,0.005] [options]
     """)
 end
@@ -783,6 +790,36 @@ function run_verify_cli(args::Vector{String})
         println("mms_verification_csv,$(result.summary_csv)")
         println("mms_verification_tex,$(result.summary_tex)")
         return result
+    elseif subcommand == "ph-refinement"
+        h_degree = parse(Int, get(values, "h-degree", "2"))
+        base_params = Params(;
+            nx=parse(Int, get(values, "p-nx", "40")),
+            tfinal=parse(Float64, get(values, "tfinal", "2e-4")),
+            dt=parse(Float64, get(values, "dt", "5e-7")),
+            severity=parse(Float64, get(values, "severity", "0")),
+            initial_condition=ManufacturedSolutionIC(),
+            forcing=ManufacturedForcing(),
+            space=DGMethod(h_degree),
+            time_stepper=time_stepper_from_cli(values),
+            velocity_profile=velocity_profile_from_cli(values),
+            rheology=rheology_from_cli(values),
+            model=model_from_cli(values),
+        )
+        result = run_ph_refinement_demo(PHRefinementDemoSpec(;
+            base_params=base_params,
+            h_nxs=parse_int_list(get(values, "h-nxs", get(values, "nxs", "20,40,80,160"))),
+            h_degree=h_degree,
+            degrees=parse_int_list(get(values, "degrees", "0,1,2,3,4")),
+            p_nx=parse(Int, get(values, "p-nx", "40")),
+            output_dir=output_dir,
+            summary_csv=get(values, "summary-csv", ""),
+            summary_tex=get(values, "summary-tex", ""),
+            overwrite=overwrite,
+            progress_every=progress_every,
+        ))
+        println("ph_refinement_demo_csv,$(result.summary_csv)")
+        println("ph_refinement_demo_tex,$(result.summary_tex)")
+        return result
     elseif subcommand == "rest"
         base_params = Params(;
             nx=parse(Int, get(values, "nx", "80")),
@@ -813,13 +850,13 @@ function run_verify_cli(args::Vector{String})
         return result
     end
 
-    throw(ArgumentError("unknown verify subcommand '$subcommand'; expected mms or rest"))
+    throw(ArgumentError("unknown verify subcommand '$subcommand'; expected mms, ph-refinement, or rest"))
 end
 
 function print_compare3d_usage()
     println("""
     Usage:
-      ./scripts/stenosis-hemodynamics compare-3d [--data-root PATH] [--output-dir PATH] [--overwrite] [--publish-report-assets]
+      ./scripts/stenosis-hemodynamics compare-3d [--data-root PATH] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--overwrite] [--publish-report-assets]
     """)
 end
 
@@ -836,6 +873,8 @@ function run_compare3d_cli(args::Vector{String})
     radial_radius_modes = haskey(values, "radial-radius-modes") ? split(values["radial-radius-modes"], ",") : nothing
     result = run_available_resolved3d_comparison(;
         data_root=get(values, "data-root", default_resolved3d_data_root()),
+        target_time=parse(Float64, get(values, "target-time", "1.0")),
+        time_atol=parse(Float64, get(values, "time-atol", "1.0e-3")),
         base_params=params,
         backend=backend,
         output_dir=get(values, "output-dir", DEFAULT_COMPARISON_OUTPUT_DIR),

@@ -187,17 +187,11 @@ function observed_order(error_coarse::Float64, error_fine::Float64)
 end
 
 function write_refinement_study_csv(path::String, rows::Vector{RefinementStudyRow}; overwrite::Bool = false)
-    guarded_open_write(path, overwrite) do io
-        println(io, refinement_csv_header())
-        for row in rows
-            println(io, refinement_csv_row(row))
-        end
-    end
-    return path
+    return write_csv_table(path, refinement_csv_header(), (refinement_csv_values(row) for row in rows); overwrite=overwrite)
 end
 
 function refinement_csv_header()
-    return join((
+    return [
         "table_kind",
         "method",
         "degree",
@@ -214,11 +208,11 @@ function refinement_csv_header()
         "order_u",
         "error_pressure_l2",
         "order_pressure",
-    ), ",")
+    ]
 end
 
-function refinement_csv_row(row::RefinementStudyRow)
-    return join((
+function refinement_csv_values(row::RefinementStudyRow)
+    return Any[
         row.table_kind,
         row.method,
         row.degree,
@@ -235,7 +229,7 @@ function refinement_csv_row(row::RefinementStudyRow)
         row.order_u,
         row.error_pressure_l2,
         row.order_pressure,
-    ), ",")
+    ]
 end
 
 function write_refinement_latex_tables(result::RefinementStudyResult; overwrite::Bool = false)

@@ -17,6 +17,35 @@ function stenosis_throat_z(p::Params; samples::Int = 2001)
     return best_z
 end
 
+function resolved3d_time_fields(field::Resolved3DVelocityField, result::SimulationResult)
+    return resolved3d_time_fields(field.case_spec.target_time, field.metadata.time, result.completed_time)
+end
+
+function resolved3d_time_fields(target_time::Real, xdmf_time::Real, one_d_completed_time::Real)
+    target_time_s = Float64(target_time)
+    xdmf_time_s = Float64(xdmf_time)
+    one_d_completed_time_s = Float64(one_d_completed_time)
+    return (
+        target_time_s=target_time_s,
+        one_d_completed_time_s=one_d_completed_time_s,
+        one_d_terminal_time_error_s=terminal_time_error(one_d_completed_time_s, target_time_s),
+        xdmf_target_time_error_s=terminal_time_error(xdmf_time_s, target_time_s),
+        cross_model_time_offset_s=terminal_time_error(xdmf_time_s, one_d_completed_time_s),
+    )
+end
+
+function resolved3d_run_fields(case::Resolved3DCaseSpec, params::Params, backend::AbstractTimeBackend)
+    return (
+        model=model_name(params),
+        nx=params.nx,
+        dt_s=params.dt,
+        initial_condition=initial_condition_name(params.initial_condition),
+        backend=backend_name(backend),
+        run_status="ok",
+        time_atol_s=case.time_atol,
+    )
+end
+
 function run_comparison(spec::ComparisonSpec)
     section_rows = SectionComparisonRow[]
     profile_rows = RadialProfileRow[]
@@ -35,7 +64,19 @@ function run_comparison(spec::ComparisonSpec)
         append!(section_rows, case_sections)
         append!(profile_rows, case_profiles)
         append!(sensitivity_rows, case_sensitivity)
-        push!(summary_rows, summarize_comparison(case, field.metadata, case_sections, case_profiles, diagnostics))
+        push!(
+            summary_rows,
+            summarize_comparison(
+                case,
+                field.metadata,
+                params,
+                spec.backend,
+                case_sections,
+                case_profiles,
+                diagnostics,
+                result.completed_time,
+            ),
+        )
     end
 
     result = ComparisonResult(
@@ -82,7 +123,8 @@ function compare_section_means(
     z_targets = collect(range(0.0, params.length_cm; length=spec.section_count))
     u1d = velocity(result)
     rows = SectionComparisonRow[]
-    time_error = abs(field.metadata.time - field.case_spec.target_time)
+    time_fields = resolved3d_time_fields(field, result)
+    run_fields = resolved3d_run_fields(field.case_spec, params, spec.backend)
 
     for z in z_targets
         z_value = Float64(z)
@@ -100,6 +142,12 @@ function compare_section_means(
                 field.case_spec.case_label,
                 field.case_spec.severity,
                 operator_name(spec.operator),
+                run_fields.model,
+                run_fields.nx,
+                run_fields.dt_s,
+                run_fields.initial_condition,
+                run_fields.backend,
+                run_fields.run_status,
                 z_value,
                 observation.area_cm2,
                 observation.flow_cm3_s,
@@ -116,7 +164,13 @@ function compare_section_means(
                 observation.node_count,
                 observation.observed_radius_cm,
                 field.metadata.time,
-                time_error,
+                time_fields.xdmf_target_time_error_s,
+                time_fields.target_time_s,
+                run_fields.time_atol_s,
+                time_fields.one_d_completed_time_s,
+                time_fields.one_d_terminal_time_error_s,
+                time_fields.xdmf_target_time_error_s,
+                time_fields.cross_model_time_offset_s,
             ),
         )
     end
@@ -132,7 +186,8 @@ function compare_radial_profiles(
 )
     u1d = velocity(result)
     rows = RadialProfileRow[]
-    time_error = abs(field.metadata.time - field.case_spec.target_time)
+    time_fields = resolved3d_time_fields(field, result)
+    run_fields = resolved3d_run_fields(field.case_spec, params, spec.backend)
 
     for z_slice in spec.profile_slices
         r0, _, _ = stenosis(z_slice, params)
@@ -160,6 +215,12 @@ function compare_radial_profiles(
                         field.case_spec.case_label,
                         field.case_spec.severity,
                         operator_name(spec.operator),
+                        run_fields.model,
+                        run_fields.nx,
+                        run_fields.dt_s,
+                        run_fields.initial_condition,
+                        run_fields.backend,
+                        run_fields.run_status,
                         z_slice,
                         bin,
                         r_over_radius_mid,
@@ -173,7 +234,13 @@ function compare_radial_profiles(
                         observation.area_valid,
                         observation.node_count,
                         field.metadata.time,
-                        time_error,
+                        time_fields.xdmf_target_time_error_s,
+                        time_fields.target_time_s,
+                        run_fields.time_atol_s,
+                        time_fields.one_d_completed_time_s,
+                        time_fields.one_d_terminal_time_error_s,
+                        time_fields.xdmf_target_time_error_s,
+                        time_fields.cross_model_time_offset_s,
                         bin_count,
                         radius_mode,
                         radius_scale,
@@ -199,7 +266,8 @@ function compare_node_slab_sensitivity(
     z_targets = collect(range(0.0, params.length_cm; length=spec.section_count))
     u1d = velocity(result)
     rows = NodeSlabSensitivityRow[]
-    time_error = abs(field.metadata.time - field.case_spec.target_time)
+    time_fields = resolved3d_time_fields(field, result)
+    run_fields = resolved3d_run_fields(field.case_spec, params, spec.backend)
 
     for half_width in spec.node_slab_half_widths
         operator = NodeSlabOperator(half_width_cm=half_width)
@@ -213,6 +281,12 @@ function compare_node_slab_sensitivity(
                 NodeSlabSensitivityRow(
                     field.case_spec.case_label,
                     field.case_spec.severity,
+                    run_fields.model,
+                    run_fields.nx,
+                    run_fields.dt_s,
+                    run_fields.initial_condition,
+                    run_fields.backend,
+                    run_fields.run_status,
                     half_width,
                     z_value,
                     observation.mean_velocity_cm_s,
@@ -222,7 +296,13 @@ function compare_node_slab_sensitivity(
                     observation.node_count,
                     observation.observed_radius_cm,
                     field.metadata.time,
-                    time_error,
+                    time_fields.xdmf_target_time_error_s,
+                    time_fields.target_time_s,
+                    run_fields.time_atol_s,
+                    time_fields.one_d_completed_time_s,
+                    time_fields.one_d_terminal_time_error_s,
+                    time_fields.xdmf_target_time_error_s,
+                    time_fields.cross_model_time_offset_s,
                 ),
             )
         end
@@ -548,9 +628,12 @@ end
 function summarize_comparison(
     case::Resolved3DCaseSpec,
     metadata::XDMFVelocityMetadata,
+    params::Params,
+    backend::AbstractTimeBackend,
     section_rows::Vector{SectionComparisonRow},
     profile_rows::Vector{RadialProfileRow},
     diagnostics,
+    one_d_completed_time::Real,
 )
     section_abs = finite_values(row.abs_velocity_error_cm_s for row in section_rows)
     section_rel = finite_values(row.rel_error for row in section_rows)
@@ -558,7 +641,8 @@ function summarize_comparison(
     profile_abs = finite_values(row.abs_velocity_error_cm_s for row in profile_rows)
     node_counts = [row.node_count for row in section_rows]
     intersection_counts = [row.intersection_count for row in section_rows if row.intersection_count > 0]
-    time_error = abs(metadata.time - case.target_time)
+    time_fields = resolved3d_time_fields(case.target_time, metadata.time, one_d_completed_time)
+    run_fields = resolved3d_run_fields(case, params, backend)
     velocity_errors = finite_values(row.abs_velocity_error_cm_s for row in section_rows)
     velocity_refs = finite_values(row.mean_u3d_cm_s for row in section_rows)
 
@@ -566,6 +650,12 @@ function summarize_comparison(
         case.case_label,
         case.severity,
         isempty(section_rows) ? "" : first(section_rows).operator,
+        run_fields.model,
+        run_fields.nx,
+        run_fields.dt_s,
+        run_fields.initial_condition,
+        run_fields.backend,
+        run_fields.run_status,
         length(section_rows),
         length(profile_rows),
         mean_or_nan(section_abs),
@@ -593,7 +683,13 @@ function summarize_comparison(
         diagnostics.lambda_plus_max,
         diagnostics.subcritical_margin_min,
         metadata.time,
-        time_error,
+        time_fields.xdmf_target_time_error_s,
+        time_fields.target_time_s,
+        run_fields.time_atol_s,
+        time_fields.one_d_completed_time_s,
+        time_fields.one_d_terminal_time_error_s,
+        time_fields.xdmf_target_time_error_s,
+        time_fields.cross_model_time_offset_s,
     )
 end
 

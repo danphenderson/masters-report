@@ -414,13 +414,12 @@ function write_stationary_stokes_refinement_csv(
     rows::Vector{StationaryStokesRefinementRow};
     overwrite::Bool = false,
 )
-    guarded_open_write(path, overwrite) do io
-        println(io, stationary_stokes_refinement_header())
-        for row in rows
-            println(io, stationary_stokes_refinement_csv_row(row))
-        end
-    end
-    return path
+    return write_csv_table(
+        path,
+        stationary_stokes_refinement_header(),
+        (stationary_stokes_refinement_values(row) for row in rows);
+        overwrite=overwrite,
+    )
 end
 
 function write_stationary_stokes_refinement_tex(
@@ -463,7 +462,7 @@ function stationary_stokes_refinement_latex_row(row::StationaryStokesRefinementR
 end
 
 function stationary_stokes_refinement_header()
-    return join((
+    return [
         "case_id",
         "severity",
         "pressure_drop_pa",
@@ -497,11 +496,11 @@ function stationary_stokes_refinement_header()
         "wss_max",
         "status",
         "error_message",
-    ), ",")
+    ]
 end
 
-function stationary_stokes_refinement_csv_row(row::StationaryStokesRefinementRow)
-    return join(stationary_stokes_csv_cell.([
+function stationary_stokes_refinement_values(row::StationaryStokesRefinementRow)
+    return Any[
         row.case_id,
         row.severity,
         row.pressure_drop_pa,
@@ -535,14 +534,5 @@ function stationary_stokes_refinement_csv_row(row::StationaryStokesRefinementRow
         row.wss_max,
         row.status,
         row.error_message,
-    ]), ",")
-end
-
-function stationary_stokes_csv_cell(value)
-    value === nothing && return ""
-    text = string(value)
-    if any(occursin.(["\"", ",", "\n", "\r"], Ref(text)))
-        return "\"" * replace(text, "\"" => "\"\"") * "\""
-    end
-    return text
+    ]
 end

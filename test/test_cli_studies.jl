@@ -1,3 +1,6 @@
+const parse_args = StenosisHemodynamics.parse_args
+const study_summary_path = StenosisHemodynamics.study_summary_path
+
 @testset "StenosisHemodynamics CLI parsing" begin
     @test parse_args(["--help"]) === nothing
 
@@ -282,6 +285,46 @@ end
     mktempdir() do dir
         result = run_cli(["compare-3d", "--data-root", joinpath(dir, "missing"), "--output-dir", joinpath(dir, "out"), "--overwrite"])
         @test result === nothing
+    end
+
+    mktempdir() do dir
+        data_root = joinpath(dir, "resolved")
+        write_synthetic_xdmf_hdf5_case(joinpath(data_root, "77"); time=5.0e-5)
+        output_dir = joinpath(dir, "comparison")
+        result = run_cli([
+            "compare-3d",
+            "--data-root",
+            data_root,
+            "--output-dir",
+            output_dir,
+            "--target-time",
+            "5e-5",
+            "--time-atol",
+            "0",
+            "--nx",
+            "8",
+            "--section-count",
+            "3",
+            "--radial-bins",
+            "3",
+            "--profile-slices",
+            "0",
+            "--progress-every",
+            "0",
+            "--no-svg",
+            "--overwrite",
+        ])
+        @test result isa ComparisonResult
+        row = only(read_simple_csv(result.summary_csv))
+        @test row["case_label"] == "77"
+        @test row["model"] == "canic-extended-1d"
+        @test row["nx"] == "8"
+        @test row["initial_condition"] == "geometry-rest"
+        @test row["backend"] == "native"
+        @test row["run_status"] == "ok"
+        @test parse(Float64, row["target_time_s"]) ≈ 5.0e-5
+        @test parse(Float64, row["time_atol_s"]) ≈ 0.0
+        @test parse(Float64, row["xdmf_time_s"]) ≈ 5.0e-5
     end
 
     mktempdir() do dir

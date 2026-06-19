@@ -46,6 +46,61 @@ struct ManufacturedVerificationResult
     summary_tex::String
 end
 
+Base.@kwdef struct PHRefinementDemoSpec <: AbstractStudySpec
+    base_params::Params = Params(;
+        severity=0.0,
+        nx=40,
+        tfinal=2.0e-4,
+        dt=5.0e-7,
+        initial_condition=ManufacturedSolutionIC(),
+        forcing=ManufacturedForcing(),
+        space=DGMethod(2),
+        time_stepper=SSPRK3Stepper(),
+    )
+    h_nxs::Vector{Int} = [20, 40, 80, 160]
+    h_degree::Int = 2
+    degrees::Vector{Int} = [0, 1, 2, 3, 4]
+    p_nx::Int = 40
+    output_dir::String = joinpath("simulations", "output", "verification")
+    summary_csv::String = ""
+    summary_tex::String = ""
+    overwrite::Bool = false
+    progress_every::Int = 0
+end
+
+Base.@kwdef struct PHRefinementDemoRow
+    sweep::String
+    degree::Int
+    nx::Int
+    dx::Float64
+    dofs::Int
+    dt::Float64
+    tfinal::Float64
+    completed_time::Float64
+    steps::Int
+    area_l1_error::Float64
+    area_l2_error::Float64
+    area_linf_error::Float64
+    area_l2_observed_order::Float64
+    area_log10_l2_error::Float64
+    area_l2_reduction::Float64
+    flow_l1_error::Float64
+    flow_l2_error::Float64
+    flow_linf_error::Float64
+    flow_l2_observed_order::Float64
+    flow_log10_l2_error::Float64
+    flow_l2_reduction::Float64
+    status::String
+    error_message::String
+end
+
+struct PHRefinementDemoResult
+    spec::PHRefinementDemoSpec
+    rows::Vector{PHRefinementDemoRow}
+    summary_csv::String
+    summary_tex::String
+end
+
 Base.@kwdef struct RestStateDriftSpec <: AbstractStudySpec
     base_params::Params = Params(;
         severity=23.0,
@@ -74,6 +129,8 @@ Base.@kwdef struct RestStateDriftRow
     nx::Int
     dx::Float64
     elapsed_time_s::Float64
+    requested_time_s::Float64
+    terminal_time_error_s::Float64
     max_abs_q::Float64
     max_abs_area_drift::Float64
     mass_defect::Float64
@@ -108,6 +165,27 @@ function validate(spec::ManufacturedVerificationSpec)
     return spec
 end
 
+function validate(spec::PHRefinementDemoSpec)
+    validate(spec.base_params)
+    spec.base_params.forcing isa ManufacturedForcing ||
+        throw(ArgumentError("p/h refinement demo requires base_params.forcing=ManufacturedForcing(...)"))
+    spec.base_params.initial_condition isa ManufacturedSolutionIC ||
+        throw(ArgumentError("p/h refinement demo requires base_params.initial_condition=ManufacturedSolutionIC()"))
+    length(spec.h_nxs) >= 2 || throw(ArgumentError("p/h refinement demo requires at least two h-refinement grids"))
+    all(nx -> nx >= 3, spec.h_nxs) || throw(ArgumentError("all h-refinement grids must be at least 3"))
+    sort(spec.h_nxs) == spec.h_nxs || throw(ArgumentError("h-refinement grids must be sorted ascending"))
+    length(unique(spec.h_nxs)) == length(spec.h_nxs) || throw(ArgumentError("h-refinement grids must be unique"))
+    spec.p_nx >= 3 || throw(ArgumentError("p-refinement grid must be at least 3"))
+    !isempty(spec.degrees) || throw(ArgumentError("p/h refinement demo requires at least one p-refinement degree"))
+    sort(spec.degrees) == spec.degrees || throw(ArgumentError("p-refinement degrees must be sorted ascending"))
+    length(unique(spec.degrees)) == length(spec.degrees) || throw(ArgumentError("p-refinement degrees must be unique"))
+    all(degree -> 0 <= degree <= MAX_DG_DEGREE, spec.degrees) ||
+        throw(ArgumentError("p-refinement degrees must be in 0:$MAX_DG_DEGREE"))
+    0 <= spec.h_degree <= MAX_DG_DEGREE || throw(ArgumentError("h-refinement degree must be in 0:$MAX_DG_DEGREE"))
+    spec.progress_every >= 0 || throw(ArgumentError("progress_every must be nonnegative"))
+    return spec
+end
+
 function validate(spec::RestStateDriftSpec)
     validate(spec.base_params)
     spec.base_params.initial_condition isa GeometryRestIC ||
@@ -131,6 +209,16 @@ end
 function manufactured_verification_tex_path(spec::ManufacturedVerificationSpec)
     !isempty(spec.summary_tex) && return spec.summary_tex
     return joinpath(spec.output_dir, "mms_verification.tex")
+end
+
+function ph_refinement_demo_csv_path(spec::PHRefinementDemoSpec)
+    !isempty(spec.summary_csv) && return spec.summary_csv
+    return joinpath(spec.output_dir, "p_h_refinement_demo.csv")
+end
+
+function ph_refinement_demo_tex_path(spec::PHRefinementDemoSpec)
+    !isempty(spec.summary_tex) && return spec.summary_tex
+    return joinpath(spec.output_dir, "p_h_refinement_demo.tex")
 end
 
 function rest_state_drift_csv_path(spec::RestStateDriftSpec)
@@ -161,6 +249,196 @@ function run_manufactured_verification(spec::ManufacturedVerificationSpec = Manu
     write_manufactured_verification_csv(csv_path, rows; overwrite=spec.overwrite)
     write_manufactured_verification_tex(tex_path, rows; overwrite=spec.overwrite)
     return ManufacturedVerificationResult(spec, rows, csv_path, tex_path)
+end
+
+function run_ph_refinement_demo(spec::PHRefinementDemoSpec = PHRefinementDemoSpec())
+    validate(spec)
+    h_rows = [
+        ph_refinement_demo_case("h_refinement", spec, nx, spec.h_degree)
+        for nx in spec.h_nxs
+    ]
+    p_rows = [
+        ph_refinement_demo_case("p_refinement", spec, spec.p_nx, degree)
+        for degree in spec.degrees
+    ]
+    rows = vcat(assign_ph_h_orders(h_rows), assign_ph_p_reductions(p_rows))
+    csv_path = ph_refinement_demo_csv_path(spec)
+    tex_path = ph_refinement_demo_tex_path(spec)
+    write_ph_refinement_demo_csv(csv_path, rows; overwrite=spec.overwrite)
+    write_ph_refinement_demo_tex(tex_path, rows; overwrite=spec.overwrite)
+    return PHRefinementDemoResult(spec, rows, csv_path, tex_path)
+end
+
+function ph_refinement_demo_case(sweep::String, spec::PHRefinementDemoSpec, nx::Int, degree::Int)
+    params = params_with(spec.base_params; nx=nx, space=DGMethod(degree))
+    try
+        coefficients = simulate_dg_coefficients(params, DGMethod(degree); progress_every=spec.progress_every)
+        metrics = dg_manufactured_error_metrics(coefficients, params, degree)
+        return PHRefinementDemoRow(
+            sweep=sweep,
+            degree=degree,
+            nx=nx,
+            dx=params.length_cm / nx,
+            dofs=dg_degrees_of_freedom(nx, DGMethod(degree)),
+            dt=params.dt,
+            tfinal=params.tfinal,
+            completed_time=coefficients.completed_time,
+            steps=coefficients.steps,
+            area_l1_error=metrics.area_l1_error,
+            area_l2_error=metrics.area_l2_error,
+            area_linf_error=metrics.area_linf_error,
+            area_l2_observed_order=NaN,
+            area_log10_l2_error=safe_log10(metrics.area_l2_error),
+            area_l2_reduction=NaN,
+            flow_l1_error=metrics.flow_l1_error,
+            flow_l2_error=metrics.flow_l2_error,
+            flow_linf_error=metrics.flow_linf_error,
+            flow_l2_observed_order=NaN,
+            flow_log10_l2_error=safe_log10(metrics.flow_l2_error),
+            flow_l2_reduction=NaN,
+            status="ok",
+            error_message="",
+        )
+    catch err
+        return failed_ph_refinement_demo_row(sweep, params, degree, sprint(showerror, err))
+    end
+end
+
+function failed_ph_refinement_demo_row(sweep::String, params::Params, degree::Int, message::String)
+    return PHRefinementDemoRow(
+        sweep=sweep,
+        degree=degree,
+        nx=params.nx,
+        dx=params.length_cm / params.nx,
+        dofs=dg_degrees_of_freedom(params.nx, DGMethod(degree)),
+        dt=params.dt,
+        tfinal=params.tfinal,
+        completed_time=NaN,
+        steps=0,
+        area_l1_error=NaN,
+        area_l2_error=NaN,
+        area_linf_error=NaN,
+        area_l2_observed_order=NaN,
+        area_log10_l2_error=NaN,
+        area_l2_reduction=NaN,
+        flow_l1_error=NaN,
+        flow_l2_error=NaN,
+        flow_linf_error=NaN,
+        flow_l2_observed_order=NaN,
+        flow_log10_l2_error=NaN,
+        flow_l2_reduction=NaN,
+        status="error",
+        error_message=message,
+    )
+end
+
+function dg_manufactured_error_metrics(coefficients::DGSimulationCoefficients, params::Params, degree::Int)
+    xis, weights = dg_quadrature(MAX_DG_DEGREE)
+    area_l1 = 0.0
+    area_l2 = 0.0
+    area_linf = 0.0
+    flow_l1 = 0.0
+    flow_l2 = 0.0
+    flow_linf = 0.0
+
+    for i in axes(coefficients.area_coefficients, 1)
+        for (xi, weight) in zip(xis, weights)
+            zq = coefficients.z[i] + 0.5 * coefficients.dx * xi
+            physical_weight = 0.5 * coefficients.dx * weight
+            area_error = dg_value(coefficients.area_coefficients, i, xi, degree) -
+                         manufactured_area(params.forcing, zq, coefficients.completed_time, params)
+            flow_error = dg_value(coefficients.flow_coefficients, i, xi, degree) -
+                         manufactured_flow(params.forcing, zq, coefficients.completed_time, params)
+            area_l1 += abs(area_error) * physical_weight
+            area_l2 += area_error^2 * physical_weight
+            area_linf = max(area_linf, abs(area_error))
+            flow_l1 += abs(flow_error) * physical_weight
+            flow_l2 += flow_error^2 * physical_weight
+            flow_linf = max(flow_linf, abs(flow_error))
+        end
+    end
+
+    length_scale = params.length_cm
+    return (
+        area_l1_error=area_l1 / length_scale,
+        area_l2_error=sqrt(area_l2 / length_scale),
+        area_linf_error=area_linf,
+        flow_l1_error=flow_l1 / length_scale,
+        flow_l2_error=sqrt(flow_l2 / length_scale),
+        flow_linf_error=flow_linf,
+    )
+end
+
+function assign_ph_h_orders(rows::Vector{PHRefinementDemoRow})
+    output = PHRefinementDemoRow[]
+    for i in eachindex(rows)
+        current = rows[i]
+        next_row = i < lastindex(rows) ? rows[i + 1] : nothing
+        ratio = next_row === nothing ? NaN : current.dx / next_row.dx
+        area_order = next_row === nothing ? NaN :
+                     observed_order_ratio(current.area_l2_error, next_row.area_l2_error, ratio)
+        flow_order = next_row === nothing ? NaN :
+                     observed_order_ratio(current.flow_l2_error, next_row.flow_l2_error, ratio)
+        push!(output, ph_row_with_diagnostics(current, area_order, NaN, flow_order, NaN))
+    end
+    return output
+end
+
+function assign_ph_p_reductions(rows::Vector{PHRefinementDemoRow})
+    output = PHRefinementDemoRow[]
+    previous = nothing
+    for row in rows
+        area_reduction = previous === nothing ? NaN : safe_reduction(previous.area_l2_error, row.area_l2_error)
+        flow_reduction = previous === nothing ? NaN : safe_reduction(previous.flow_l2_error, row.flow_l2_error)
+        push!(output, ph_row_with_diagnostics(row, NaN, area_reduction, NaN, flow_reduction))
+        previous = row
+    end
+    return output
+end
+
+function ph_row_with_diagnostics(
+    row::PHRefinementDemoRow,
+    area_order::Float64,
+    area_reduction::Float64,
+    flow_order::Float64,
+    flow_reduction::Float64,
+)
+    return PHRefinementDemoRow(
+        sweep=row.sweep,
+        degree=row.degree,
+        nx=row.nx,
+        dx=row.dx,
+        dofs=row.dofs,
+        dt=row.dt,
+        tfinal=row.tfinal,
+        completed_time=row.completed_time,
+        steps=row.steps,
+        area_l1_error=row.area_l1_error,
+        area_l2_error=row.area_l2_error,
+        area_linf_error=row.area_linf_error,
+        area_l2_observed_order=area_order,
+        area_log10_l2_error=row.area_log10_l2_error,
+        area_l2_reduction=area_reduction,
+        flow_l1_error=row.flow_l1_error,
+        flow_l2_error=row.flow_l2_error,
+        flow_linf_error=row.flow_linf_error,
+        flow_l2_observed_order=flow_order,
+        flow_log10_l2_error=row.flow_log10_l2_error,
+        flow_l2_reduction=flow_reduction,
+        status=row.status,
+        error_message=row.error_message,
+    )
+end
+
+function safe_log10(value::Float64)
+    isfinite(value) && value > 0.0 || return NaN
+    return log10(value)
+end
+
+function safe_reduction(previous_error::Float64, current_error::Float64)
+    isfinite(previous_error) && isfinite(current_error) || return NaN
+    previous_error > 0.0 && current_error > 0.0 || return NaN
+    return previous_error / current_error
 end
 
 function manufactured_group_rows(study_kind::String, spec::ManufacturedVerificationSpec, cases)
@@ -304,6 +582,8 @@ function rest_state_drift_case(spec::RestStateDriftSpec, severity::Float64, nx::
             nx=nx,
             dx=params.length_cm / nx,
             elapsed_time_s=result.completed_time,
+            requested_time_s=tfinal,
+            terminal_time_error_s=terminal_time_error(result.completed_time, tfinal),
             max_abs_q=maximum(abs.(result.flow)),
             max_abs_area_drift=maximum(abs.(result.area .- reference_A)),
             mass_defect=result.diagnostics.mass_defect,
@@ -321,7 +601,9 @@ function rest_state_drift_case(spec::RestStateDriftSpec, severity::Float64, nx::
             severity=severity,
             nx=nx,
             dx=params.length_cm / nx,
-            elapsed_time_s=tfinal,
+            elapsed_time_s=NaN,
+            requested_time_s=tfinal,
+            terminal_time_error_s=NaN,
             max_abs_q=NaN,
             max_abs_area_drift=NaN,
             mass_defect=NaN,
@@ -342,13 +624,7 @@ function write_manufactured_verification_csv(
     rows::Vector{ManufacturedVerificationRow};
     overwrite::Bool = false,
 )
-    guarded_open_write(path, overwrite) do io
-        println(io, join(manufactured_verification_header(), ","))
-        for row in rows
-            println(io, join(manufactured_verification_values(row), ","))
-        end
-    end
-    return path
+    return write_csv_table(path, manufactured_verification_header(), (manufactured_verification_values(row) for row in rows); overwrite=overwrite)
 end
 
 manufactured_verification_header() = [
@@ -389,14 +665,66 @@ function manufactured_verification_values(row::ManufacturedVerificationRow)
     ]
 end
 
+function write_ph_refinement_demo_csv(path::String, rows::Vector{PHRefinementDemoRow}; overwrite::Bool = false)
+    return write_csv_table(path, ph_refinement_demo_header(), (ph_refinement_demo_values(row) for row in rows); overwrite=overwrite)
+end
+
+ph_refinement_demo_header() = [
+    "sweep",
+    "degree",
+    "nx",
+    "dx",
+    "dofs",
+    "dt",
+    "tfinal",
+    "completed_time",
+    "steps",
+    "area_l1_error",
+    "area_l2_error",
+    "area_linf_error",
+    "area_l2_observed_order",
+    "area_log10_l2_error",
+    "area_l2_reduction",
+    "flow_l1_error",
+    "flow_l2_error",
+    "flow_linf_error",
+    "flow_l2_observed_order",
+    "flow_log10_l2_error",
+    "flow_l2_reduction",
+    "status",
+    "error_message",
+]
+
+function ph_refinement_demo_values(row::PHRefinementDemoRow)
+    return Any[
+        row.sweep,
+        row.degree,
+        row.nx,
+        row.dx,
+        row.dofs,
+        row.dt,
+        row.tfinal,
+        row.completed_time,
+        row.steps,
+        row.area_l1_error,
+        row.area_l2_error,
+        row.area_linf_error,
+        row.area_l2_observed_order,
+        row.area_log10_l2_error,
+        row.area_l2_reduction,
+        row.flow_l1_error,
+        row.flow_l2_error,
+        row.flow_linf_error,
+        row.flow_l2_observed_order,
+        row.flow_log10_l2_error,
+        row.flow_l2_reduction,
+        row.status,
+        row.error_message,
+    ]
+end
+
 function write_rest_state_drift_csv(path::String, rows::Vector{RestStateDriftRow}; overwrite::Bool = false)
-    guarded_open_write(path, overwrite) do io
-        println(io, join(rest_state_drift_header(), ","))
-        for row in rows
-            println(io, join(rest_state_drift_values(row), ","))
-        end
-    end
-    return path
+    return write_csv_table(path, rest_state_drift_header(), (rest_state_drift_values(row) for row in rows); overwrite=overwrite)
 end
 
 rest_state_drift_header() = [
@@ -404,6 +732,8 @@ rest_state_drift_header() = [
     "nx",
     "dx",
     "elapsed_time_s",
+    "requested_time_s",
+    "terminal_time_error_s",
     "max_abs_q",
     "max_abs_area_drift",
     "mass_defect",
@@ -423,6 +753,8 @@ function rest_state_drift_values(row::RestStateDriftRow)
         row.nx,
         row.dx,
         row.elapsed_time_s,
+        row.requested_time_s,
+        row.terminal_time_error_s,
         row.max_abs_q,
         row.max_abs_area_drift,
         row.mass_defect,
@@ -480,15 +812,54 @@ function manufactured_verification_latex_row(row::ManufacturedVerificationRow)
     ), " & ") * " \\\\"
 end
 
+function write_ph_refinement_demo_tex(path::String, rows::Vector{PHRefinementDemoRow}; overwrite::Bool = false)
+    guarded_open_write(path, overwrite) do io
+        println(io, "\\begin{table}[!htb]")
+        println(io, "    \\centering")
+        println(io, "    \\scriptsize")
+        println(io, "    \\caption{Manufactured-solution p- and h-refinement demonstration. The h-refinement rows report observed order from adjacent grid spacings; the p-refinement rows report the error reduction relative to the previous polynomial degree on the fixed mesh.}")
+        println(io, "    \\resizebox{\\textwidth}{!}{%")
+        println(io, "    \\begin{tabular}{@{}lrrrrrrrrr@{}}")
+        println(io, "        \\toprule")
+        println(io, "        Sweep & \$p\$ & \$N\$ & DOFs & \$\\|e_a\\|_2\$ & h-order & p-reduction & \$\\|e_q\\|_2\$ & h-order & p-reduction \\\\")
+        println(io, "        \\midrule")
+        for row in rows
+            row.status == "ok" || continue
+            println(io, ph_refinement_demo_latex_row(row))
+        end
+        println(io, "        \\bottomrule")
+        println(io, "    \\end{tabular}%")
+        println(io, "    }")
+        println(io, "\\end{table}")
+    end
+    return path
+end
+
+function ph_refinement_demo_latex_row(row::PHRefinementDemoRow)
+    sweep = row.sweep == "h_refinement" ? "h-refinement" : "p-refinement"
+    return join((
+        sweep,
+        string(row.degree),
+        string(row.nx),
+        string(row.dofs),
+        latex_number(row.area_l2_error),
+        latex_number(row.area_l2_observed_order),
+        latex_number(row.area_l2_reduction),
+        latex_number(row.flow_l2_error),
+        latex_number(row.flow_l2_observed_order),
+        latex_number(row.flow_l2_reduction),
+    ), " & ") * " \\\\"
+end
+
 function write_rest_state_drift_tex(path::String, rows::Vector{RestStateDriftRow}; overwrite::Bool = false)
     guarded_open_write(path, overwrite) do io
         println(io, "\\begin{table}[!htb]")
         println(io, "    \\centering")
         println(io, "    \\scriptsize")
-        println(io, "    \\caption{Zero-forcing, zero-inlet geometry-rest drift summary. Values are maxima over the reported positive elapsed times for the two finest grids. The normalization uses the comparison-run flow scale \$q_{\\mathrm{comp}}=2.288/\\pi=0.7283\\,\\mathrm{cm^2/s}\$.}")
-        println(io, "    \\begin{tabular}{@{}rrrrrrrr@{}}")
+        println(io, "    \\caption{Zero-forcing, zero-inlet geometry-rest drift summary. Values are maxima over the reported positive elapsed times for the two finest grids. The normalization uses the comparison-run flow scale \$q_{\\mathrm{comp}}=2.288/\\pi=0.7283\\,\\mathrm{cm^3/s}\$.}")
+        println(io, "    \\begin{tabular}{@{}rrrrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        Severity & \$N\$ & \$t_{\\max q}\$ & \$\\max |q_i|\$ & \$\\max |q_i|/q_{\\mathrm{comp}}\$ & \$\\max |a_i-R_{0,i}^2|\$ & \$\\max |\\Delta M|\$ & Subcrit. min \\\\")
+        println(io, "        Severity & \$N\$ & \$t_{\\max q}\$ & \$\\max |q_i|\$ & \$\\max |q_i|/q_{\\mathrm{comp}}\$ & \$\\max |a_i-R_{0,i}^2|\$ & \$\\max |\\Delta M|\$ & Subcrit. min & \$\\max |\\Delta t_{\\mathrm{term}}|\$ \\\\")
         println(io, "        \\midrule")
         for row in rest_state_drift_summary_rows(rows)
             println(io, rest_state_drift_summary_latex_row(row))
@@ -506,9 +877,9 @@ function write_rest_state_drift_full_tex(path::String, rows::Vector{RestStateDri
         println(io, "    \\centering")
         println(io, "    \\scriptsize")
         println(io, "    \\caption{Full zero-forcing, zero-inlet geometry-rest drift diagnostics.}")
-        println(io, "    \\begin{tabular}{@{}rrrrrrrr@{}}")
+        println(io, "    \\begin{tabular}{@{}rrrrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        Severity & \$N\$ & \$t\$ & \$\\max |q_i|\$ & \$\\max |a_i-R_{0,i}^2|\$ & Mass defect & CFL max & Subcrit. margin \\\\")
+        println(io, "        Severity & \$N\$ & \$t\$ & \$|\\Delta t_{\\mathrm{term}}|\$ & \$\\max |q_i|\$ & \$\\max |a_i-R_{0,i}^2|\$ & Mass defect & CFL max & Subcrit. margin \\\\")
         println(io, "        \\midrule")
         for row in rows
             row.status == "ok" || continue
@@ -534,6 +905,7 @@ function rest_state_drift_summary_rows(rows::Vector{RestStateDriftRow})
         group = [row for row in ok_rows if row.severity == severity && row.nx == nx]
         isempty(group) && continue
         max_q_row = group[argmax([row.max_abs_q for row in group])]
+        terminal_errors = [row.terminal_time_error_s for row in group if isfinite(row.terminal_time_error_s)]
         push!(output, (
             severity=severity,
             nx=nx,
@@ -543,6 +915,7 @@ function rest_state_drift_summary_rows(rows::Vector{RestStateDriftRow})
             max_abs_area_drift=maximum(row.max_abs_area_drift for row in group),
             max_abs_mass_defect=maximum(abs(row.mass_defect) for row in group),
             subcritical_margin_min=minimum(row.subcritical_margin_min for row in group if isfinite(row.subcritical_margin_min)),
+            max_terminal_time_error_s=isempty(terminal_errors) ? NaN : maximum(terminal_errors),
         ))
     end
     return output
@@ -560,6 +933,7 @@ function rest_state_drift_summary_latex_row(row)
         latex_number(row.max_abs_area_drift),
         latex_number(row.max_abs_mass_defect),
         latex_number(row.subcritical_margin_min),
+        latex_number(row.max_terminal_time_error_s),
     ), " & ") * " \\\\"
 end
 
@@ -568,6 +942,7 @@ function rest_state_drift_latex_row(row::RestStateDriftRow)
         string(round(Int, row.severity)),
         string(row.nx),
         latex_number(row.elapsed_time_s),
+        latex_number(row.terminal_time_error_s),
         latex_number(row.max_abs_q),
         latex_number(row.max_abs_area_drift),
         latex_number(row.mass_defect),

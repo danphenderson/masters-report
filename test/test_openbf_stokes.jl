@@ -1,3 +1,5 @@
+const generated_stokes_mesh = StenosisHemodynamics.generated_stokes_mesh
+
 @testset "StenosisHemodynamics OpenBF protocol adapter" begin
     mktempdir() do dir
         config_path, inlet_path = write_openbf_fixture(dir)

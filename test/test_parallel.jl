@@ -1,3 +1,5 @@
+const parallel_case_map = StenosisHemodynamics.parallel_case_map
+
 @testset "StenosisHemodynamics case worker configuration" begin
     @test StenosisHemodynamics.default_case_workers(Dict("JULIA_CASE_WORKERS" => "3")) == 3
     @test StenosisHemodynamics.default_case_workers(Dict("JULIA_CASE_WORKERS" => "")) == 1

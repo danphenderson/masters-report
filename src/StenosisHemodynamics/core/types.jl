@@ -248,6 +248,8 @@ end
 
 velocity(result::SimulationResult) = result.flow ./ result.area
 
+terminal_time_error(actual_time::Real, requested_time::Real) = abs(Float64(actual_time) - Float64(requested_time))
+
 function default_output_stub(p::Params)
     severity_label = round(Int, p.severity)
     model_token = replace(model_name(p), "-" => "_")

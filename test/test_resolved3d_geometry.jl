@@ -1,3 +1,5 @@
+const parse_xdmf_velocity = StenosisHemodynamics.parse_xdmf_velocity
+
 @testset "StenosisHemodynamics resolved 3D parsing and loading" begin
     mktempdir() do dir
         xdmf_path, coords, velocity_values = write_synthetic_xdmf_hdf5_case(joinpath(dir, "synthetic"))
@@ -130,7 +132,7 @@ end
 
 @testset "StenosisHemodynamics resolved 3D comparison diagnostics" begin
     mktempdir() do dir
-        xdmf_path, _, _ = write_synthetic_xdmf_hdf5_case(joinpath(dir, "case77"))
+        xdmf_path, _, _ = write_synthetic_xdmf_hdf5_case(joinpath(dir, "case77"); time=4.5e-5)
         case_spec = Resolved3DCaseSpec("77", 23.0, xdmf_path; target_time=5.0e-5)
         output_dir = joinpath(dir, "out")
         spec = ComparisonSpec(
@@ -153,12 +155,54 @@ end
         @test isfile(result.profile_csvs[1])
         @test isfile(result.sensitivity_csv)
         @test isfile(result.summary_csv)
+        time_columns = [
+            "target_time_s",
+            "time_atol_s",
+            "one_d_completed_time_s",
+            "one_d_terminal_time_error_s",
+            "xdmf_target_time_error_s",
+            "cross_model_time_offset_s",
+        ]
+        provenance_columns = [
+            "model",
+            "nx",
+            "dt_s",
+            "initial_condition",
+            "backend",
+            "run_status",
+        ]
+        for path in (result.section_csvs[1], result.profile_csvs[1], result.sensitivity_csv, result.summary_csv)
+            header = split(readline(path), ",")
+            @test "time_offset_s" in header
+            @test all(in(header), time_columns)
+            @test all(in(header), provenance_columns)
+            csv_row = first(read_simple_csv(path))
+            xdmf_time = parse(Float64, csv_row["xdmf_time_s"])
+            target_time = parse(Float64, csv_row["target_time_s"])
+            one_d_completed_time = parse(Float64, csv_row["one_d_completed_time_s"])
+            @test csv_row["model"] == "canic-extended-1d"
+            @test csv_row["nx"] == "8"
+            @test parse(Float64, csv_row["dt_s"]) ≈ spec.base_params.dt
+            @test csv_row["initial_condition"] == "geometry-rest"
+            @test csv_row["backend"] == "native"
+            @test csv_row["run_status"] == "ok"
+            @test parse(Float64, csv_row["time_atol_s"]) ≈ case_spec.time_atol
+            @test parse(Float64, csv_row["time_offset_s"]) ≈ parse(Float64, csv_row["xdmf_target_time_error_s"])
+            @test parse(Float64, csv_row["xdmf_target_time_error_s"]) ≈ abs(xdmf_time - target_time)
+            @test parse(Float64, csv_row["cross_model_time_offset_s"]) ≈ abs(xdmf_time - one_d_completed_time)
+        end
 
         report_dir = joinpath(dir, "report-assets")
         report_paths = publish_resolved3d_report_assets(result; output_dir=report_dir, overwrite=true)
         area_audit_path = joinpath(report_dir, "area-audit.dat")
+        node_slab_report_path = joinpath(report_dir, "node-slab-sensitivity.csv")
         @test area_audit_path in report_paths
         @test isfile(area_audit_path)
+        @test node_slab_report_path in report_paths
+        @test isfile(node_slab_report_path)
+        node_slab_report_header = split(readline(node_slab_report_path), ",")
+        @test "time_offset_s" in node_slab_report_header
+        @test all(in(node_slab_report_header), time_columns)
 
         valid_sections = [row for row in result.section_rows if row.area_valid]
         @test !isempty(valid_sections)
@@ -178,6 +222,24 @@ end
         @test isfinite(only(result.summary_rows).flow_l2_error_cm3_s)
         @test isfinite(only(result.summary_rows).profile_l2_error_cm_s)
         @test isfinite(only(result.summary_rows).characteristic_radicand_min)
+        for rows in (result.section_rows, result.profile_rows, result.sensitivity_rows, result.summary_rows)
+            @test !isempty(rows)
+            for row in rows
+                @test row.target_time_s ≈ case_spec.target_time
+                @test row.time_atol_s ≈ case_spec.time_atol
+                @test row.model == "canic-extended-1d"
+                @test row.nx == spec.base_params.nx
+                @test row.dt_s ≈ spec.base_params.dt
+                @test row.initial_condition == "geometry-rest"
+                @test row.backend == "native"
+                @test row.run_status == "ok"
+                @test row.one_d_completed_time_s ≈ case_spec.target_time
+                @test row.one_d_terminal_time_error_s ≈ abs(row.one_d_completed_time_s - row.target_time_s)
+                @test row.xdmf_target_time_error_s ≈ abs(row.xdmf_time_s - row.target_time_s)
+                @test row.cross_model_time_offset_s ≈ abs(row.xdmf_time_s - row.one_d_completed_time_s)
+                @test row.time_error_s ≈ row.xdmf_target_time_error_s
+            end
+        end
 
         area_audit_lines = readlines(area_audit_path)
         @test split(area_audit_lines[1]) == [

@@ -270,7 +270,11 @@ cp -R /path/to/case3_all_3d_results/60 simulations/data/3d/canic_case3/
 Run the default comparison when the data root is present:
 
 ```bash
-./scripts/stenosis-hemodynamics compare-3d --overwrite --publish-report-assets
+./scripts/stenosis-hemodynamics compare-3d \
+  --target-time 1.0 \
+  --time-atol 1e-3 \
+  --overwrite \
+  --publish-report-assets
 ```
 
 To select a SciML backend:

@@ -106,20 +106,13 @@ function print_help()
 end
 
 function guarded_open(writer, path::String, overwrite::Bool)
-    mkpath(dirname(path))
-    if isfile(path) && !overwrite
-        throw(ArgumentError("refusing to overwrite existing file '$path'; pass --overwrite"))
-    end
-    open(path, "w") do io
-        writer(io)
-    end
-    return path
+    return guarded_open_write(writer, path, overwrite)
 end
 
 fmt(x::Real) = @sprintf("%.12g", Float64(x))
 
 function csv_row(values)
-    return join((value isa Real ? fmt(value) : string(value) for value in values), ",")
+    return csv_record(values; real_formatter=fmt)
 end
 
 function portable_project_path(path::String)

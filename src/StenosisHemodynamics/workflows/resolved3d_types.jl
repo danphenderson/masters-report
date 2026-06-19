@@ -186,6 +186,12 @@ struct SectionComparisonRow
     case_label::String
     severity::Float64
     operator::String
+    model::String
+    nx::Int
+    dt_s::Float64
+    initial_condition::String
+    backend::String
+    run_status::String
     z_cm::Float64
     area_cm2::Float64
     flow_3d_cm3_s::Float64
@@ -203,6 +209,12 @@ struct SectionComparisonRow
     observed_radius_cm::Float64
     xdmf_time_s::Float64
     time_error_s::Float64
+    target_time_s::Float64
+    time_atol_s::Float64
+    one_d_completed_time_s::Float64
+    one_d_terminal_time_error_s::Float64
+    xdmf_target_time_error_s::Float64
+    cross_model_time_offset_s::Float64
 end
 
 """One area-weighted radial-bin profile comparison row."""
@@ -210,6 +222,12 @@ struct RadialProfileRow
     case_label::String
     severity::Float64
     operator::String
+    model::String
+    nx::Int
+    dt_s::Float64
+    initial_condition::String
+    backend::String
+    run_status::String
     z_slice_cm::Float64
     radial_bin::Int
     r_over_r0_mid::Float64
@@ -224,6 +242,12 @@ struct RadialProfileRow
     node_count::Int
     xdmf_time_s::Float64
     time_error_s::Float64
+    target_time_s::Float64
+    time_atol_s::Float64
+    one_d_completed_time_s::Float64
+    one_d_terminal_time_error_s::Float64
+    xdmf_target_time_error_s::Float64
+    cross_model_time_offset_s::Float64
     radial_bin_count::Int
     radius_mode::String
     radius_scale_cm::Float64
@@ -237,6 +261,12 @@ end
 struct NodeSlabSensitivityRow
     case_label::String
     severity::Float64
+    model::String
+    nx::Int
+    dt_s::Float64
+    initial_condition::String
+    backend::String
+    run_status::String
     half_width_cm::Float64
     z_cm::Float64
     mean_u3d_cm_s::Float64
@@ -247,6 +277,12 @@ struct NodeSlabSensitivityRow
     observed_radius_cm::Float64
     xdmf_time_s::Float64
     time_error_s::Float64
+    target_time_s::Float64
+    time_atol_s::Float64
+    one_d_completed_time_s::Float64
+    one_d_terminal_time_error_s::Float64
+    xdmf_target_time_error_s::Float64
+    cross_model_time_offset_s::Float64
 end
 
 """Compact per-case comparison summary."""
@@ -254,6 +290,12 @@ struct ComparisonSummaryRow
     case_label::String
     severity::Float64
     operator::String
+    model::String
+    nx::Int
+    dt_s::Float64
+    initial_condition::String
+    backend::String
+    run_status::String
     section_count::Int
     profile_count::Int
     mean_abs_error_cm_s::Float64
@@ -282,6 +324,12 @@ struct ComparisonSummaryRow
     subcritical_margin_min::Float64
     xdmf_time_s::Float64
     time_error_s::Float64
+    target_time_s::Float64
+    time_atol_s::Float64
+    one_d_completed_time_s::Float64
+    one_d_terminal_time_error_s::Float64
+    xdmf_target_time_error_s::Float64
+    cross_model_time_offset_s::Float64
 end
 
 """Return value from `run_comparison`."""
@@ -300,15 +348,25 @@ end
 
 default_resolved3d_data_root() = DEFAULT_RESOLVED3D_DATA_ROOT
 
-function default_resolved3d_cases(data_root::String = default_resolved3d_data_root())
+function default_resolved3d_cases(
+    data_root::String = default_resolved3d_data_root();
+    target_time::Real = 1.0,
+    time_atol::Real = 1.0e-3,
+)
     return Resolved3DCaseSpec[
-        Resolved3DCaseSpec("77", 23.0, joinpath(data_root, "77", "velocity.xdmf")),
-        Resolved3DCaseSpec("60", 40.0, joinpath(data_root, "60", "velocity.xdmf")),
+        Resolved3DCaseSpec("77", 23.0, joinpath(data_root, "77", "velocity.xdmf"); target_time, time_atol),
+        Resolved3DCaseSpec("60", 40.0, joinpath(data_root, "60", "velocity.xdmf"); target_time, time_atol),
     ]
 end
 
-function available_resolved3d_cases(data_root::String = default_resolved3d_data_root())
-    cases = [case for case in default_resolved3d_cases(data_root) if isfile(case.velocity_xdmf)]
+function available_resolved3d_cases(
+    data_root::String = default_resolved3d_data_root();
+    target_time::Real = 1.0,
+    time_atol::Real = 1.0e-3,
+)
+    cases = [
+        case for case in default_resolved3d_cases(data_root; target_time, time_atol) if isfile(case.velocity_xdmf)
+    ]
     if isempty(cases)
         @telemetry_info "skipping resolved 3D comparison because no case XDMF files were found" event="resolved3d_skipped" stage="resolved3d" backend="resolved3d" method="" nx="" tfinal="" status="skipped" rows=0 reason="missing_xdmf" data_root expected_layout=[
             joinpath(data_root, "77", "velocity.xdmf"),
@@ -320,9 +378,11 @@ end
 
 function run_available_resolved3d_comparison(;
     data_root::String = default_resolved3d_data_root(),
+    target_time::Real = 1.0,
+    time_atol::Real = 1.0e-3,
     kwargs...,
 )
-    cases = available_resolved3d_cases(data_root)
+    cases = available_resolved3d_cases(data_root; target_time, time_atol)
     isempty(cases) && return nothing
     return run_comparison(ComparisonSpec(; cases=cases, kwargs...))
 end

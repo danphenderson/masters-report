@@ -1,0 +1,22 @@
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Manufactured-solution p- and h-refinement demonstration. The h-refinement rows report observed order from adjacent grid spacings; the p-refinement rows report error reduction relative to the previous polynomial degree.}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lrrrrrrrrr@{}}
+        \toprule
+        Sweep & $p$ & $N$ & DOFs & $\|e_a\|_2$ & h-order & p-reduction & $\|e_q\|_2$ & h-order & p-reduction \\
+        \midrule
+        h-refinement & 2 & 20 & 120 & 9.797e-06 & 1.457 & -- & 0.009629 & 1.052 & -- \\
+        h-refinement & 2 & 40 & 240 & 3.569e-06 & 1.488 & -- & 0.004643 & 1.209 & -- \\
+        h-refinement & 2 & 80 & 480 & 1.272e-06 & 1.51 & -- & 0.002009 & 1.424 & -- \\
+        h-refinement & 2 & 160 & 960 & 4.467e-07 & -- & -- & 7.489e-04 & -- & -- \\
+        p-refinement & 0 & 40 & 80 & 1.078e-05 & -- & -- & 0.002585 & -- & -- \\
+        p-refinement & 1 & 40 & 160 & 3.569e-06 & -- & 3.022 & 0.004645 & -- & 0.5565 \\
+        p-refinement & 2 & 40 & 240 & 3.569e-06 & -- & 1 & 0.004643 & -- & 1 \\
+        p-refinement & 3 & 40 & 320 & 3.569e-06 & -- & 0.9999 & 0.004643 & -- & 1 \\
+        p-refinement & 4 & 40 & 400 & 3.569e-06 & -- & 1 & 0.004642 & -- & 1 \\
+        \bottomrule
+    \end{tabular}%
+    }
+\end{table}

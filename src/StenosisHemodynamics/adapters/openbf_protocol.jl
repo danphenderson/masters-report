@@ -272,10 +272,9 @@ function write_openbf_stats(
     bytes::Int64,
     gc_time::Float64,
 )
-    ensure_parent(path)
     passed_cycles = floor(Int, result.completed_time / spec.inlet_period_s)
     gc_percent = elapsed > 0.0 ? 100.0 * gc_time / elapsed : 0.0
-    open(path, "w") do io
+    guarded_open_write(path, true) do io
         println(io, "false")
         println(io, passed_cycles)
         println(io, elapsed)

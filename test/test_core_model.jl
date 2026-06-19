@@ -1,3 +1,9 @@
+const default_output_stub = StenosisHemodynamics.default_output_stub
+const dg_quadrature = StenosisHemodynamics.dg_quadrature
+const legendre_derivative = StenosisHemodynamics.legendre_derivative
+const legendre_value = StenosisHemodynamics.legendre_value
+const observed_order = StenosisHemodynamics.observed_order
+
 @testset "StenosisHemodynamics rheology closures" begin
     @test rheology_name(NewtonianRheology()) == "newtonian"
     @test effective_kinematic_viscosity(NewtonianRheology(), 25.0, 1.055, 0.04) ≈ 0.04
@@ -133,6 +139,9 @@ end
     @test minmod(2.0, 3.0) == 2.0
     @test minmod(-2.0, -3.0) == -2.0
     @test minmod(-2.0, 3.0) == 0.0
+    @test DGMethod(3).degree == 3
+    @test DGMethod(4).degree == 4
+    @test_throws ArgumentError DGMethod(5)
 
     @test StenosisHemodynamics.reconstructed_area(0.02, -0.01, 1.0) > 0.0
     @test StenosisHemodynamics.reconstructed_area(1.0e-14, -1.0, 1.0) >= StenosisHemodynamics.AREA_LIMITER_FLOOR
@@ -182,6 +191,14 @@ end
     @test sum(w * legendre_value(1, xi) for (xi, w) in zip(xis, weights)) ≈ 0.0 atol=1.0e-14
     @test sum(w * legendre_value(2, xi) for (xi, w) in zip(xis, weights)) ≈ 0.0 atol=1.0e-14
     @test sum(w * xi^4 for (xi, w) in zip(xis, weights)) ≈ 2.0 / 5.0
+    @test legendre_value(3, 0.25) ≈ 0.5 * (5.0 * 0.25^3 - 3.0 * 0.25)
+    @test legendre_value(4, 0.25) ≈ (35.0 * 0.25^4 - 30.0 * 0.25^2 + 3.0) / 8.0
+    @test legendre_derivative(3, 0.25) ≈ 0.5 * (15.0 * 0.25^2 - 3.0)
+    @test legendre_derivative(4, 0.25) ≈ 0.5 * (35.0 * 0.25^3 - 15.0 * 0.25)
+    xis5, weights5 = dg_quadrature(4)
+    @test length(xis5) == 5
+    @test sum(weights5) ≈ 2.0
+    @test sum(w * xi^8 for (xi, w) in zip(xis5, weights5)) ≈ 2.0 / 9.0
 
     @test observed_order(0.25, 0.125) ≈ 1.0
     @test isnan(observed_order(0.0, 0.125))

@@ -1,25 +1,31 @@
-function ensure_parent(path::String)
-    dir = dirname(path)
-    if !isempty(dir) && !isdir(dir)
-        mkpath(dir)
-    end
-end
-
 function write_csv(path::String, result::SimulationResult, p::Params)
     write_csv(path, result.z, result.area, result.flow, p)
 end
 
 function write_csv(path::String, z::Vector{Float64}, A::Vector{Float64}, Q::Vector{Float64}, p::Params)
-    ensure_parent(path)
     P = pressure(A, Q, z, p)
 
-    open(path, "w") do io
-        println(io, "z_cm,R0_cm,A_cm2,Q_cm3_s,uavg_cm_s,pressure_dyn_cm2,alpha_c,shear_rate_1_s,nu_eff_cm2_s,rheology,model,variable_radius_terms,wall_law")
-        for i in eachindex(z)
+    header = [
+        "z_cm",
+        "R0_cm",
+        "A_cm2",
+        "Q_cm3_s",
+        "uavg_cm_s",
+        "pressure_dyn_cm2",
+        "alpha_c",
+        "shear_rate_1_s",
+        "nu_eff_cm2_s",
+        "rheology",
+        "model",
+        "variable_radius_terms",
+        "wall_law",
+    ]
+    rows = (
+        begin
             r0, r0z, _ = stenosis(z[i], p)
             shear_rate = characteristic_shear_rate(A[i], Q[i], r0, p)
             nu_eff = effective_kinematic_viscosity(p.rheology, shear_rate, p.rho, p.nu)
-            row = (
+            Any[
                 z[i],
                 r0,
                 A[i],
@@ -33,10 +39,11 @@ function write_csv(path::String, z::Vector{Float64}, A::Vector{Float64}, Q::Vect
                 model_name(p),
                 variable_radius_terms_enabled(p),
                 wall_law_name(p),
-            )
-            println(io, join(row, ","))
+            ]
         end
-    end
+        for i in eachindex(z)
+    )
+    write_csv_table(path, header, rows)
 end
 
 function write_svg(path::String, result::SimulationResult, p::Params)
@@ -44,8 +51,6 @@ function write_svg(path::String, result::SimulationResult, p::Params)
 end
 
 function write_svg(path::String, z::Vector{Float64}, A::Vector{Float64}, Q::Vector{Float64}, p::Params)
-    ensure_parent(path)
-
     u = Q ./ A
     P = pressure(A, Q, z, p)
     r0 = [stenosis(zi, p)[1] for zi in z]
@@ -59,7 +64,7 @@ function write_svg(path::String, z::Vector{Float64}, A::Vector{Float64}, Q::Vect
         ("Reference radius R0 (cm)", r0, 470, 590),
     )
 
-    open(path, "w") do io
+    guarded_open_write(path, true) do io
         println(io, """<svg xmlns="http://www.w3.org/2000/svg" width="$width" height="$height" viewBox="0 0 $width $height">""")
         println(io, """<rect width="100%" height="100%" fill="white"/>""")
         println(io, """<text x="55" y="30" font-family="Arial" font-size="18" fill="#111">$(model_name(p)) stenotic artery simulation, severity $(p.severity)%</text>""")

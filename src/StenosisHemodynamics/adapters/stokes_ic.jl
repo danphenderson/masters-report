@@ -370,11 +370,10 @@ function maybe_write_ic_diagnostics(
     pavg::Vector{Float64},
 )
     isempty(ic.diagnostics_path) && return nothing
-    ensure_parent(ic.diagnostics_path)
-    open(ic.diagnostics_path, "w") do io
+    guarded_open_write(ic.diagnostics_path, true) do io
         println(io, "z_cm,A_cm2,Q_cm3_s,uavg_cm_s,pressure_dyn_cm2")
         for i in eachindex(z)
-            println(io, join((z[i], A[i], Q[i], uavg[i], pavg[i]), ","))
+            println(io, csv_record((z[i], A[i], Q[i], uavg[i], pavg[i])))
         end
         println(io, "# mesh_nodes,$(length(solution.mesh.coordinates))")
         println(io, "# mesh_cells,$(length(solution.mesh.cells))")
