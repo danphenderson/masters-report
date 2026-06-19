@@ -82,9 +82,11 @@ The local Julia project also exposes the report-now spatial and time-integration
 surface in Table~\ref{tab:implemented-discretization-surface}. These options are
 implementation-check and sensitivity context unless a result table explicitly
 identifies them as the active method. The project dependencies include
-\texttt{SciMLBase} and \texttt{OrdinaryDiffEq}; they do not include an external
-WENO or ENO finite-volume package, so WENO/ENO reconstructions are future
-method-development options rather than report-now methods.
+\texttt{SciMLBase} and \texttt{OrdinaryDiffEq}; adaptive \texttt{vern7} and
+\texttt{vern9} policies therefore use the existing SciML backend. The
+characteristic WENO3 finite-volume reconstruction is implemented in-repo and is
+available as an opt-in higher-order sensitivity method. WENO5 and ENO remain
+future method-development options in this report.
 
 \begin{table}[!htb]
     \centering
@@ -106,6 +108,10 @@ method-development options rather than report-now methods.
             Rusanov flux
             & Principal C23/C40 comparison method and main convergence target. \\
         Spatial
+            & Characteristic WENO3 finite volume with Rusanov flux
+            & Opt-in native finite-volume implementation check and smooth-regime
+            sensitivity method; not the principal comparison method. \\
+        Spatial
             & Richtmyer/Lax--Wendroff finite volume with minmod-limited
             interface states
             & Native fixed-step sensitivity method; not exposed through the
@@ -117,12 +123,13 @@ method-development options rather than report-now methods.
             path, while $p=1,2$ are high-order spatial context rather than the
             principal comparison method. \\
         Time
-            & Forward Euler, SSPRK2, and SSPRK3
+            & Forward Euler, SSPRK2, SSPRK3, and SSPRK54
             & Native fixed-step options; SSPRK3 is the selected reported
-            integrator, while Euler and SSPRK2 are diagnostic sensitivity rows. \\
+            integrator, while Euler, SSPRK2, and SSPRK54 are diagnostic or
+            higher-order sensitivity rows. \\
         Time
-            & SciML/OrdinaryDiffEq \texttt{auto}, \texttt{tsit5}, and
-            \texttt{rodas5p}
+            & SciML/OrdinaryDiffEq \texttt{auto}, \texttt{tsit5},
+            \texttt{vern7}, \texttt{vern9}, and \texttt{rodas5p}
             & Adaptive backend-parity checks for semi-discrete operators that
             the current \texttt{ODEProblem} path supports. \\
         \bottomrule

@@ -21,11 +21,13 @@ resolved-velocity output diagnostics. These stages check that the selected
 implementation surface remains runnable and schema-stable. Descriptor-health
 rows exercise the report-now spatial surface from
 Table~\ref{tab:implemented-discretization-surface}: first-order finite volume,
-MUSCL finite volume, Richtmyer/Lax--Wendroff finite volume, and modal DG
-degrees $p=0,1,2$, paired with the native Euler, SSPRK2, and SSPRK3 steppers.
-Refinement rows provide FV/DG spatial context, while backend-parity rows compare
-native SSPRK3 against the supported SciML/OrdinaryDiffEq policies for
-semi-discrete operators admitted by that backend.
+MUSCL finite volume, characteristic WENO3 finite volume,
+Richtmyer/Lax--Wendroff finite volume, and modal DG degrees $p=0,1,2$, paired
+with the native Euler, SSPRK2, SSPRK3, and SSPRK54 steppers. Refinement rows
+provide FV/DG spatial context, while backend-parity rows compare native SSPRK3
+against the supported SciML/OrdinaryDiffEq policies for semi-discrete operators
+admitted by that backend, including \texttt{vern7} and \texttt{vern9} in the
+full profile.
 
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 ./scripts/stenosis-hemodynamics benchmark \
@@ -73,8 +75,11 @@ the accepted timestep is
 $\min(\Delta t_{\mathrm{request}},\Delta t_{\mathrm{CFL}})$. These rows are
 method-of-manufactured-solutions evidence for the implemented operator; the
 temporal rows should not be read as a clean temporal-order estimate when the
-spatial error floor or CFL cap dominates. They are not a physical validation
-case.
+spatial error floor or CFL cap dominates. The same runner can be repeated with
+\texttt{--space fv-weno3} to exercise the characteristic WENO3 operator, but
+WENO3 order claims are kept cautious because source quadrature, boundary
+treatment, limiter fallback, and positive-area projection can cap the
+full-system observed rate. They are not physical validation cases.
 
 \IfFileExists{figures/static/static/tables/verification/mms_verification.tex}{%
     \input{figures/static/static/tables/verification/mms_verification.tex}
@@ -265,8 +270,8 @@ includes exact-solution MMS evidence, zero-forcing rest-state drift diagnostics,
 persisted CFL and characteristic-speed metadata, mass-balance and positivity
 metadata, sampled self-convergence, cross-integrator checks, and
 stationary-Stokes projection refinement. The claim remains bounded: runtime,
-platform, broad rheology/profile sensitivity, Lax--Wendroff rows, and
-nonselected DG rows are implementation-check or appendix-level context unless
-tied to a principal research question.
+platform, broad rheology/profile sensitivity, WENO3, SSPRK54, Verner adaptive
+rows, Lax--Wendroff rows, and nonselected DG rows are implementation-check or
+appendix-level context unless tied to a principal research question.
 
 \FloatBarrier
