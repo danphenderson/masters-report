@@ -29,8 +29,11 @@ manuscript:
   but not central to the current report.
 - `98_needs_review/`: files with incomplete local metadata, unknown authorship,
   uncertain bibliographic mapping, or unclear manuscript relevance.
-- `99_duplicates_superseded/`: proven duplicates or superseded local snapshots;
-  do not delete sources just because they look redundant.
+- `99_duplicates_superseded/`: proven duplicates or superseded local snapshots
+  retained only when local provenance still requires the file. Exact duplicate
+  files may be removed in a scoped reference-cleanup patch after confirming the
+  replacement artifact, updating `references/source-inventory.tsv`, and running
+  the required validation below.
 
 ## Inventory Contract
 
@@ -50,7 +53,8 @@ Use these status values only:
   learning, or broader method extensions.
 - `background`: the source is retained as broad background only.
 - `needs-review`: the source needs bibliographic, metadata, or relevance review.
-- `duplicate-superseded`: the source is a duplicate or superseded local copy.
+- `duplicate-superseded`: the source is a duplicate or superseded local copy
+  retained for a documented provenance reason.
 
 `current-cited` rows must have a `bib_key` present in `references.bib` and cited
 by the current TeX source. Rows may leave `bib_key` blank when a local artifact
