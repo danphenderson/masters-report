@@ -1,6 +1,6 @@
 project_state: CORE_REWRITE
 source_commit: 371ba631f7cb24a3463e4923696218304bc6ff09
-active_dispatch: D17
+active_dispatch: D18
 claim_lock: approved
 structure_approval: approved
 open_blockers: []
@@ -17,4 +17,5 @@ completed_dispatches:
   - D14
   - D15
   - D16
-next_dispatch: D17
+  - D17
+next_dispatch: D18

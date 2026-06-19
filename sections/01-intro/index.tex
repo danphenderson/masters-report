@@ -14,16 +14,12 @@ comparison with resolved 3D velocity data.
 \begin{figure}[H]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \includegraphics[width=0.98\textwidth]{figures/static/static/rendered/stenosis-fem-fvm-meshes.pdf}
+    \includegraphics[width=\textwidth]{figures/static/static/rendered/stenosis-fem-fvm-meshes.pdf}
     \caption{Finite-element and finite-volume views of the same $C^\infty$
-    idealized stenosis geometry used in this report. Panel (a) shows the
-    generated tetrahedral Gridap mesh for the stationary-Stokes initializer;
-    panel (b) shows the one-dimensional finite-volume grid sampled along the
-    reference radius profile $R_0(z)$. The takeaway is that one declared
-    smooth geometry can feed distinct discretizations and controlled local
-    refinement studies; the panels show geometry only, not velocity,
-    pressure-drop, pressure-ratio, structural deformation, or patient-specific
-    clinical data.}
+    idealized stenosis geometry. Panel (a) shows the generated tetrahedral mesh
+    for the stationary-Stokes initializer; panel (b) shows the 1D
+    finite-volume grid sampled along $R_0(z)$. The panels document geometry and
+    discretization only.}
     \label{fig:stenosis-fem-fvm-meshes}
 \end{figure}
 

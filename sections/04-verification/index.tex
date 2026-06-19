@@ -165,6 +165,15 @@ any comparison run initialized from the same geometry-rest state.
 \end{lstlisting}
 
 \IfFileExists{figures/static/static/tables/verification/rest_state_drift.tex}{%
+    \begin{center}
+    \fbox{\begin{minipage}{0.92\linewidth}
+    \small
+    \textbf{Principal numerical limitation.} The zero-forcing geometry-rest
+    runs retain artificial solver flow at $t=1$ s on the production
+    comparison-flow scale. This table is therefore the chapter's main negative
+    numerical result.
+    \end{minipage}}
+    \end{center}
     \input{figures/static/static/tables/verification/rest_state_drift.tex}
 }{%
     \begin{center}
@@ -181,7 +190,8 @@ comparison-flow scale is
 $q_{\mathrm{comp}}\approx2.288/\pi=0.7283\,\mathrm{cm}^3/\mathrm{s}$ in the
 solver coordinate, corresponding to
 $Q_{\mathrm{comp}}\approx2.288\,\mathrm{cm}^3/\mathrm{s}$ in physical circular
-flow in Table~\ref{tab:t1-3d-comparison-summary}. On the finest grid, the
+flow, as used in the axial-flow comparison
+(Figure~\ref{fig:t1-axial-flow-comparison}). On the finest grid, the
 $t=1$ s zero-forcing rest-flow values are
 $0.7313$ and $0.7324\,\mathrm{cm}^3/\mathrm{s}$ in solver $q$ for C23 and C40,
 with physical flows $\pi q=2.297$ and $2.301\,\mathrm{cm}^3/\mathrm{s}$. These

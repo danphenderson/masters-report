@@ -1,0 +1,34 @@
+\begin{tikzpicture}[fig]
+  \begin{axis}[
+    width=\textwidth,
+    height=7.0cm,
+    xlabel={axial coordinate $z$ (cm)},
+    ylabel={physical flow $Q$ (cm$^3$/s)},
+    xmin=0, xmax=6,
+    ymin=1.75, ymax=2.36,
+    grid=both,
+    legend columns=2,
+    legend style={font=\scriptsize, at={(0.5,-0.20)}, anchor=north},
+  ]
+    \path[fill=wallgraylight, fill opacity=0.36, text opacity=1, draw=none]
+      (axis cs:2.4,1.75) rectangle (axis cs:2.8,2.36);
+    \draw[wallgray!65!black, densely dashed, line width=0.45pt]
+      (axis cs:2.451,1.75) -- (axis cs:2.451,2.36)
+      node[pos=0.94, right=1pt, font=\scriptsize, fill=white,
+           fill opacity=0.9, text opacity=1, inner sep=1pt]
+        {$z_\star$};
+
+    \addplot+[bloodred, mark=none, line width=1.15pt]
+      table[x=z, y=flow3dC23] {figures/static/static/data/stenosis-comparison/section-quadrature.dat};
+    \addlegendentry{C23 $Q_{3D}$}
+    \addplot+[bloodred, mark=none, dashed, line width=1.15pt]
+      table[x=z, y=flow1dC23] {figures/static/static/data/stenosis-comparison/section-quadrature.dat};
+    \addlegendentry{C23 $Q_{1D}$}
+    \addplot+[accentTeal, mark=none, line width=1.15pt]
+      table[x=z, y=flow3dC40] {figures/static/static/data/stenosis-comparison/section-quadrature.dat};
+    \addlegendentry{C40 $Q_{3D}$}
+    \addplot+[accentTeal, mark=none, dashed, line width=1.15pt]
+      table[x=z, y=flow1dC40] {figures/static/static/data/stenosis-comparison/section-quadrature.dat};
+    \addlegendentry{C40 $Q_{1D}$}
+  \end{axis}
+\end{tikzpicture}

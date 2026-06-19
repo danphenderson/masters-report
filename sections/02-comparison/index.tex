@@ -27,22 +27,6 @@ should be used for the final-time plane cuts. The 3D wall model, wall-motion
 history, inlet/outlet histories, material parameters, and prior transient
 history are likewise not persisted in the tracked report artifact.
 
-\begin{figure}[!htb]
-    \centering
-    \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \includegraphics[width=0.98\textwidth]{figures/static/static/rendered/resolved-3d-flow-field.pdf}
-    \caption{Resolved 3D node-centered axial velocity fields for the two
-    $T=1$ comparison cases used in Section~\ref{sec:resolved-3d-comparison}.
-    Panel (a) shows C23 with 22,691 loaded nodes; panel (b) shows C40 with
-    21,975 loaded nodes. The shared color scale makes the stronger
-    axial-velocity concentration in C40 visible. Sparse arrows indicate local
-    vector direction, and the transparent surface frames the 3D point cloud.
-    These are renderings of the resolved velocity comparison data, not the
-    stationary-Stokes pathline proxy or a pressure-drop, FFR, or patient-specific
-    calibration measurement.}
-    \label{fig:stenosis-3d-reference-geometry}
-\end{figure}
-
 \begin{table}[!htb]
     \centering
     \scriptsize
@@ -171,6 +155,18 @@ physical-flow discrepancies are 0.0509 and 0.0893 cm$^3$/s. The largest
 physical-flow discrepancies in the retained section table occur at the same
 locations as the largest mean-velocity discrepancies.
 
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{axial-flow-comparison}
+    \caption{Axial physical-flow comparison under the declared plane-quadrature
+    operator. Dashed curves are $Q_{1D}(z)=\pi q(z)$ and solid curves are
+    $Q_{3D}(z)$ from the available resolved velocity fields. The variation in
+    the solid curves is a matching limit for interpreting the velocity
+    discrepancies.}
+    \label{fig:t1-axial-flow-comparison}
+\end{figure}
+
 The algebraic split used for flow/area bookkeeping is
 \begin{flalign*}
     \quad
@@ -227,17 +223,15 @@ $z=2.291$ cm for C23 and 9.92 cm/s at $z=2.261$ cm for C40.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Quadrature-backed section velocity and physical-flow discrepancy
-    summary at nominally aligned final-time samples. These are
-    single-realization descriptors. Mean velocities and velocity discrepancies
-    are in cm/s; physical flows and flow discrepancies are in cm$^3$/s. Angle
+    \caption{Quadrature-backed section-mean velocity discrepancy summary at
+    nominally aligned final-time samples. These are single-realization
+    descriptors in cm/s except for the final axial-location column in cm. Angle
     brackets denote axial sample means over the 200 retained comparison
-    sections, not temporal averages or inner products. The 1D physical flow is
-    $Q_{1D}=\pi q$.}
+    sections, not temporal averages or inner products.}
     \label{tab:t1-3d-comparison-summary}
     {\setlength{\tabcolsep}{1.8pt}
     \resizebox{\textwidth}{!}{%
-    \begin{tabular}{@{}lrrrrrrrrrrrr@{}}
+    \begin{tabular}{@{}lrrrrrrrrr@{}}
         \toprule
         \textbf{Case}
             & \textbf{Sections}
@@ -247,14 +241,11 @@ $z=2.291$ cm for C23 and 9.92 cm/s at $z=2.261$ cm for C40.
             & $\boldsymbol{D_{u,1}}$
             & $\boldsymbol{D_{u,2}}$
             & \textbf{rel.} $\boldsymbol{D_{u,2}}$
-            & $\boldsymbol{\langle Q_{1D}\rangle}$
-            & $\boldsymbol{\langle Q_{3D}\rangle}$
-            & $\boldsymbol{\overline d_Q}$
-            & $\boldsymbol{D_{Q,1}}$
-            & $\boldsymbol{D_{Q,2}}$ \\
+            & $\boldsymbol{\max |d_u|}$
+            & $\boldsymbol{z_{\max |d_u|}}$ \\
         \midrule
-        C23 & 200 & 24.11 & 23.63 & 0.480 & 0.505 & 0.664 & 0.0277 & 2.288 & 2.241 & 0.0472 & 0.0482 & 0.0509 \\
-        C40 & 200 & 26.43 & 25.52 & 0.909 & 0.966 & 1.87 & 0.0688 & 2.287 & 2.219 & 0.0684 & 0.0709 & 0.0893 \\
+        C23 & 200 & 24.11 & 23.63 & 0.480 & 0.505 & 0.664 & 0.0277 & 2.35 & 2.291 \\
+        C40 & 200 & 26.43 & 25.52 & 0.909 & 0.966 & 1.87 & 0.0688 & 9.92 & 2.261 \\
         \bottomrule
     \end{tabular}
     }%
