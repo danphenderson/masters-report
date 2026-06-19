@@ -1,4 +1,4 @@
-@testset "CanicExtended1D OpenBF protocol adapter" begin
+@testset "StenosisHemodynamics OpenBF protocol adapter" begin
     mktempdir() do dir
         config_path, inlet_path = write_openbf_fixture(dir)
         spec = load_openbf_config(config_path)
@@ -52,8 +52,8 @@
         @test_throws ArgumentError FlowWaveformInlet(bad_inlet)
     end
 end
-@testset "CanicExtended1D stationary Stokes initial conditions" begin
-    @test_throws ArgumentError CanicExtended1D.validate(Params(nx=8, tfinal=0.0, severity=0.0))
+@testset "StenosisHemodynamics stationary Stokes initial conditions" begin
+    @test_throws ArgumentError StenosisHemodynamics.validate(Params(nx=8, tfinal=0.0, severity=0.0))
     @test_throws ArgumentError StationaryStokesIC(pressure_drop_pa=40.0, pressure_drop_dyn_cm2=400.0)
 
     ic = StationaryStokesIC(

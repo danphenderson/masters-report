@@ -1,17 +1,22 @@
-# Canic Extended 1D Stenosis Simulation
+# StenosisHemodynamics Simulation Notes
 
-This folder contains command-line wrappers, generated-data locations, and usage
-notes for the Julia package `CanicExtended1D`, a finite-volume reproduction of
-the extended 1D stenotic artery model from:
+This folder contains generated-data locations and usage notes for the Julia
+package `StenosisHemodynamics`. The default forward model,
+`canic-extended-1d`, is the historical manifest token for the
+Rmax-normalized Canic-derived extended 1D stenotic artery model used in the
+report. Its source model is:
 
 Canic, Guo, Wang, Yue, and Zheng, "Extended one-dimensional reduced model for
 blood flow within a stenotic artery" (2024).
 
-The implementation uses the paper's closed conservative `(A,Q)` system, the
-C^infinity asymmetric stenosis profile used as the report's idealized-vessel
-baseline, Riemann-invariant boundary treatment, Rusanov fluxes, and third-order
-SSP Runge-Kutta stepping. Units follow the paper and the authors' MATLAB code:
-centimeters, grams, seconds, and dynes.
+The implementation uses the paper's closed conservative `(A,Q)` system as the
+starting point, the C^infinity asymmetric stenosis profile used as the report's
+idealized-vessel baseline, Riemann-invariant boundary treatment, Rusanov
+fluxes, and third-order SSP Runge-Kutta stepping. The report documents the
+source-to-implementation differences, including the constant `Rmax` pressure
+denominator, parabolic-profile main case, locally frozen-viscosity `p2`
+derivative, and non-well-balanced finite-volume rest state. Units follow the
+paper and the authors' MATLAB code: centimeters, grams, seconds, and dynes.
 The smooth profile is also used by the local fixed-wall stationary-Stokes study:
 one analytic vessel definition supplies the 1D finite-volume geometry, generated
 tetrahedral Gridap meshes, wall normals, and repeatable mesh-refinement cases.
@@ -80,11 +85,16 @@ CSV paths now include `vp_<profile-token>` so parabolic, flat, and power-family
 cases do not collide; flat and power tokens also encode the selected
 shear-factor or exponent.
 
-Use `./scripts/julia-release` for repo commands. It prefers the latest installed
+The primary command surface is `./scripts/stenosis-hemodynamics <command>`.
+It internally uses `./scripts/julia-release`, which prefers the latest installed
 `release` channel and falls back to a directly-invoked `julia` binary only when
 that binary is already `1.12+`. Programmatic runs should load the root package
-with `using CanicExtended1D`; the scripts under `simulations/` are thin wrappers
-around that package.
+with `using StenosisHemodynamics`.
+
+The forward-model descriptor defaults to `--model canic-extended-1d`. Use
+`--model classical-1d-no-slip` for the classical parabolic-profile baseline; it
+requires `--velocity-profile parabolic` and disables the Canic variable-radius
+effective-alpha correction terms.
 
 Local zsh startup sources `~/.config/julia/resource-profile.zsh`. The batch
 profile sets `JULIA_NUM_THREADS=10`, `JULIA_NUM_GC_THREADS=2`,
@@ -139,31 +149,31 @@ or transient FSI.
 Exploratory native smoke test:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --tfinal 0.01 --nx 120 --ic-pressure-drop-pa 40 --ic-mesh-nz 2 --ic-mesh-nr 2 --ic-mesh-ntheta 8 --progress-every 0 --output simulations/output/verification_001s.csv --svg simulations/output/verification_001s.svg
+./scripts/stenosis-hemodynamics simulate --tfinal 0.01 --nx 120 --ic-pressure-drop-pa 40 --ic-mesh-nz 2 --ic-mesh-nr 2 --ic-mesh-ntheta 8 --progress-every 0 --output simulations/output/verification_001s.csv --svg simulations/output/verification_001s.svg
 ```
 
 Default 50% stenosis native run:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --tfinal 1.0 --nx 400 --severity 50 --ic-pressure-drop-pa 40 --progress-every 10000
+./scripts/stenosis-hemodynamics simulate --tfinal 1.0 --nx 400 --severity 50 --ic-pressure-drop-pa 40 --progress-every 10000
 ```
 
 Legacy first-order run:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --space fv-first-order --ic geometry-rest --tfinal 0.001 --nx 80 --progress-every 0
+./scripts/stenosis-hemodynamics simulate --space fv-first-order --ic geometry-rest --tfinal 0.001 --nx 80 --progress-every 0
 ```
 
 DG quadratic smoke run:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --space dg --degree 2 --time-stepper ssprk3 --ic-pressure-drop-pa 40 --ic-mesh-nz 2 --ic-mesh-nr 2 --ic-mesh-ntheta 8 --tfinal 0.001 --nx 80 --progress-every 0
+./scripts/stenosis-hemodynamics simulate --space dg --degree 2 --time-stepper ssprk3 --ic-pressure-drop-pa 40 --ic-mesh-nz 2 --ic-mesh-nr 2 --ic-mesh-ntheta 8 --tfinal 0.001 --nx 80 --progress-every 0
 ```
 
 Carreau-Yasuda smoke run:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --tfinal 0.001 --nx 80 --severity 40 --ic geometry-rest --rheology carreau-yasuda --eta0 0.56 --eta-inf 0.0345 --lambda-s 3.313 --yasuda-a 2.0 --flow-index 0.3568 --progress-every 0
+./scripts/stenosis-hemodynamics simulate --tfinal 0.001 --nx 80 --severity 40 --ic geometry-rest --rheology carreau-yasuda --eta0 0.56 --eta-inf 0.0345 --lambda-s 3.313 --yasuda-a 2.0 --flow-index 0.3568 --progress-every 0
 ```
 
 Other supported CLI rheology names are `newtonian`, `carreau`, `casson`, and
@@ -173,9 +183,9 @@ dyn/cm^2, and `--nu` remains the Newtonian kinematic viscosity in cm^2/s.
 SciML runs with explicit policies:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --backend sciml --alg auto --ic geometry-rest --tfinal 0.001 --nx 40 --progress-every 0
-./scripts/julia-release simulations/run_canic_extended_1d.jl --backend sciml --alg tsit5 --abstol 1e-7 --reltol 1e-7 --ic geometry-rest --tfinal 0.001 --nx 40 --progress-every 0
-./scripts/julia-release simulations/run_canic_extended_1d.jl --backend sciml --alg rodas5p --maxiters 1000000 --ic geometry-rest --tfinal 0.001 --nx 40 --progress-every 0
+./scripts/stenosis-hemodynamics simulate --backend sciml --alg auto --ic geometry-rest --tfinal 0.001 --nx 40 --progress-every 0
+./scripts/stenosis-hemodynamics simulate --backend sciml --alg tsit5 --abstol 1e-7 --reltol 1e-7 --ic geometry-rest --tfinal 0.001 --nx 40 --progress-every 0
+./scripts/stenosis-hemodynamics simulate --backend sciml --alg rodas5p --maxiters 1000000 --ic geometry-rest --tfinal 0.001 --nx 40 --progress-every 0
 ```
 
 Supported solver policy names are `auto`, `tsit5`, `rodas5p`, and `ssprk`.
@@ -193,16 +203,16 @@ Validation test suite:
 Show CLI options:
 
 ```bash
-./scripts/julia-release simulations/run_canic_extended_1d.jl --help
+./scripts/stenosis-hemodynamics simulate --help
 ```
 
-Run small programmatic studies from the shared simulation protocol:
+Run small studies through the command dispatcher:
 
 ```bash
-./scripts/julia-release -e 'using CanicExtended1D; run_study(SeveritySweepSpec(base_params=Params(nx=40,tfinal=0.001,initial_condition=GeometryRestIC()), severities=[23,50], overwrite=true))'
-./scripts/julia-release -e 'using CanicExtended1D; run_study(GridConvergenceStudySpec(base_params=Params(tfinal=0.001,severity=50,initial_condition=GeometryRestIC()), nxs=[40,80], overwrite=true))'
-./scripts/julia-release -e 'using CanicExtended1D; run_refinement_study(RefinementStudySpec(base_params=Params(tfinal=0.001,severity=40,initial_condition=GeometryRestIC()), nxs=[50,100,200,400], overwrite=true))'
-./scripts/julia-release -e 'using CanicExtended1D; run_stationary_stokes_refinement(StationaryStokesRefinementSpec(base_params=Params(nx=80,tfinal=0.0,initial_condition=GeometryRestIC()), overwrite=true, parallel_workers=1))'
+./scripts/stenosis-hemodynamics study severity --severities 23,50 --nx 40 --tfinal 0.001 --ic geometry-rest --overwrite
+./scripts/stenosis-hemodynamics study grid --nxs 40,80 --severity 50 --tfinal 0.001 --ic geometry-rest --overwrite
+./scripts/stenosis-hemodynamics study refinement --nxs 50,100,200,400 --severity 40 --tfinal 0.001 --ic geometry-rest --overwrite
+./scripts/stenosis-hemodynamics stokes refine --nx 80 --parallel-workers 1 --overwrite
 ```
 
 Study summaries are written to deterministic CSV paths under
@@ -260,13 +270,13 @@ cp -R /path/to/case3_all_3d_results/60 simulations/data/3d/canic_case3/
 Run the default comparison when the data root is present:
 
 ```bash
-./scripts/julia-release -e 'using CanicExtended1D; r=run_available_resolved3d_comparison(overwrite=true); publish_resolved3d_report_assets(r; overwrite=true)'
+./scripts/stenosis-hemodynamics compare-3d --overwrite --publish-report-assets
 ```
 
-To select a SciML backend programmatically:
+To select a SciML backend:
 
 ```bash
-./scripts/julia-release -e 'using CanicExtended1D; backend=SciMLTimeBackend(solve=SolveSpec(algorithm=Tsit5Policy(), abstol=1e-7, reltol=1e-7)); run_available_resolved3d_comparison(backend=backend, overwrite=true)'
+./scripts/stenosis-hemodynamics compare-3d --backend sciml --alg tsit5 --abstol 1e-7 --reltol 1e-7 --overwrite
 ```
 
 The default comparison operator intersects the tetrahedral 3D mesh with each

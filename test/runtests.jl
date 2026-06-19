@@ -10,7 +10,7 @@ using Distributed
 using HDF5
 using LinearAlgebra
 using Statistics
-using CanicExtended1D
+using StenosisHemodynamics
 
 include("test_helpers.jl")
 include("test_parallel.jl")
@@ -20,3 +20,4 @@ include("test_backends.jl")
 include("test_resolved3d_geometry.jl")
 include("test_cli_studies.jl")
 include("test_package_benchmark.jl")
+include("test_verification.jl")

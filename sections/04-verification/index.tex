@@ -1,29 +1,37 @@
-\section{Numerical Verification}
+\section{Implementation Checks and Targeted Numerical Verification}
 \label{sec:numerical-verification}
 
-This section reports implementation and numerical-verification evidence for
-the selected solver. The checks below address reproducibility, descriptor
-health, numerical consistency, and emitted data contracts. They do not become
-clinical validation, pressure or FFR accuracy evidence, full transient FEM
-validation, or scientific equivalence beyond the metrics actually compared.
+This chapter reports the implementation checks and targeted numerical
+verification now available for the selected solver. The title is intentionally
+narrower than ``full numerical verification.'' The evidence below supports the
+finite-volume implementation, diagnostics, data contracts, and selected
+verification problems used in this report. It does not establish clinical
+validation, pressure or FFR accuracy, or exhaustive verification of every
+possible model variant.
 
 \subsection{Software and Descriptor Checks}
 \label{subsec:verification-reproducibility}
 \label{subsec:package-benchmark-suite}
 
-The implementation includes an internally reproducible benchmark pipeline for
-the Julia solver and Python CLI. The suite records
-descriptor health, sampled self-convergence, native/SciML cross-integrator
-discrepancy, stationary-Stokes projection checks, rheology/profile sensitivity,
-OpenBF-style boundary handling, resolved-velocity diagnostics, and Python
-CPU/MPS checks for the emitted CSV records.
+The reproducible benchmark pipeline records implementation-check stages for the Julia
+solver: descriptor health, sampled self-convergence, native/SciML
+cross-integrator discrepancy, stationary-Stokes projection rows,
+rheology/profile sensitivity, OpenBF-style boundary handling, and
+resolved-velocity output diagnostics. These stages check that the selected
+implementation surface remains runnable and schema-stable. Descriptor-health
+rows exercise the report-now spatial surface from
+Table~\ref{tab:implemented-discretization-surface}: first-order finite volume,
+MUSCL finite volume, Richtmyer/Lax--Wendroff finite volume, and modal DG
+degrees $p=0,1,2$, paired with the native Euler, SSPRK2, and SSPRK3 steppers.
+Refinement rows provide FV/DG spatial context, while backend-parity rows compare
+native SSPRK3 against the supported SciML/OrdinaryDiffEq policies for
+semi-discrete operators admitted by that backend.
 
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-./scripts/julia-release simulations/run_package_benchmark.jl \
+./scripts/stenosis-hemodynamics benchmark \
   --profile overnight \
   --output-dir simulations/output/package_benchmark/<run_id> \
   --overwrite \
-  --include-python \
   --include-resolved3d \
   --publish-report-assets
 
@@ -31,139 +39,203 @@ pipenv run python scripts/render_package_benchmark_figures.py \
   --benchmark-dir simulations/output/package_benchmark/<run_id>
 \end{lstlisting}
 
-The smoke profile is a deterministic wiring check. The overnight profile
-expands the same schemas to the descriptor-health, refinement, native/SciML
-cross-integrator, stationary-Stokes projection, rheology/profile, OpenBF-style
-boundary, resolved-velocity, and Python CPU/Torch-MPS comparison stages.
-Optional SciPy and resolved-3D inputs are treated as availability boundaries:
-absent inputs produce structured skipped rows rather than manuscript claims.
-
 \IfFileExists{figures/static/static/tables/package-benchmark/package-benchmark-summary.tex}{%
     \input{figures/static/static/tables/package-benchmark/package-benchmark-summary.tex}
 }{%
     \begin{center}
     \small
-    \emph{Benchmark table fragment unavailable in this checkout. Run
-    the benchmark renderer to populate
+    \emph{Benchmark table fragment unavailable in this checkout. Run the
+    benchmark renderer to populate
     \path{figures/static/static/tables/package-benchmark/}.}
     \end{center}
 }
 
-\subsection{Boundary Diagnostics}
+\subsection{Manufactured-Solution Verification}
+\label{subsec:mms-verification}
+
+The implementation now exposes an opt-in manufactured forcing term. The
+production equations use \texttt{NoForcing()} by default. For verification
+only, \texttt{ManufacturedForcing()} supplies a smooth exact state
+$(a^\star(z,t),q^\star(z,t))$, exact initial data, exact boundary states, and
+source terms inserted into the existing finite-volume right-hand side. The
+runner
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+./scripts/stenosis-hemodynamics verify mms \
+  --nxs 50,100,200,400 \
+  --dt-values 2e-5,1e-5,5e-6,2.5e-6 \
+  --output-dir figures/static/static/tables/verification \
+  --overwrite
+\end{lstlisting}
+emits raw discrete $L^1$, $L^2$, and $L^\infty$ errors, with observed orders
+computed from the $L^2$ rows, for spatial refinement and requested-timestep
+sensitivity. The native backend also records realized CFL diagnostics because
+the accepted timestep is
+$\min(\Delta t_{\mathrm{request}},\Delta t_{\mathrm{CFL}})$. These rows are
+method-of-manufactured-solutions evidence for the implemented operator; the
+temporal rows should not be read as a clean temporal-order estimate when the
+spatial error floor or CFL cap dominates. They are not a physical validation
+case.
+
+\IfFileExists{figures/static/static/tables/verification/mms_verification.tex}{%
+    \input{figures/static/static/tables/verification/mms_verification.tex}
+}{%
+    \begin{center}
+    \small
+    \emph{Manufactured-solution table unavailable in this checkout. Run
+    \texttt{verify mms} to populate
+    \path{figures/static/static/tables/verification/}.}
+    \end{center}
+}
+
+\subsection{Zero-Forcing Geometry-Rest Drift}
+\label{subsec:rest-state-drift}
+
+The continuous model has a geometry-rest equilibrium at
+$a_i=R_0(z_i)^2$, $q_i=0$ under zero forcing. The discrete Rusanov/MUSCL
+operator is not exactly well balanced for spatially varying $R_0$ because the
+mass flux includes numerical viscosity. The verification runner therefore
+starts the selected C23 and C40 geometries from the rest state and reports
+\[
+    \max_i |q_i|,\qquad
+    \max_i |a_i-R_0(z_i)^2|,\qquad
+    \left|\sum_i a_i\Delta z-\sum_i a_i(0)\Delta z\right|
+\]
+as functions of grid size and elapsed time. This test is required context for
+any comparison run initialized from the same geometry-rest state.
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+./scripts/stenosis-hemodynamics verify rest \
+  --severities 23,40 \
+  --nxs 100,200,400,800 \
+  --elapsed-times 0,0.001,0.01,0.1 \
+  --output-dir figures/static/static/tables/verification \
+  --overwrite
+\end{lstlisting}
+
+\IfFileExists{figures/static/static/tables/verification/rest_state_drift.tex}{%
+    \input{figures/static/static/tables/verification/rest_state_drift.tex}
+}{%
+    \begin{center}
+    \small
+    \emph{Rest-state drift table unavailable in this checkout. Run
+    \texttt{verify rest} to populate
+    \path{figures/static/static/tables/verification/}.}
+    \end{center}
+}
+
+\subsection{Boundary and Conservation Diagnostics}
 \label{subsec:boundary-diagnostics}
 
-OpenBF-style boundary rows and the emitted comparison records check that the
-selected inlet, outlet, and descriptor conventions remain machine-readable.
-For the resolved-velocity comparison, the archived rows include accepted step
-counts, minimum area, maximum speed, pressure extrema, section counts, minimum
-intersection counts, $\alpha_{\mathrm{eff}}$ extrema, and the minimum
-characteristic radicand for the final sampled state. The archived
-cross-model runs used here did not persist positivity-activation counts, total
-projected correction, realized CFL range, mass-balance defect, or backend
-tolerances for the comparison artifact; these quantities are verification
-limitations rather than evidence.
+The native backend now persists per-run diagnostics in
+\texttt{SimulationDiagnostics}: accepted timestep extrema, realized CFL extrema,
+$\lambda_-$ and $\lambda_+$ extrema, the minimum subcriticality margin
+$\min(-\lambda_-,\lambda_+)$, mass extrema and mass defect, positivity
+projection count, and total area correction from the positivity floor. These
+diagnostics are emitted by direct simulation summaries, benchmark case rows,
+rest-state drift rows, and resolved-velocity comparison summaries.
 
-\subsection{Sampled Self-Convergence}
+The fixed-area characteristic boundary rule remains a method applied under the
+subcritical sign condition $\lambda_-<0<\lambda_+$. A positive characteristic
+radicand is not enough. The persisted sign extrema and subcriticality margin
+are therefore the relevant evidence for the boundary regime in each accepted
+native run.
+
+\subsection{Self-Convergence and Cross-Integrator Checks}
 \label{subsec:sampled-self-convergence}
 
-\begin{figure}[H]
+\begin{figure}[!htb]
     \centering
     \IfFileExists{figures/static/static/rendered/package-benchmark-convergence.pdf}{%
-        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-convergence.pdf}
+        \includegraphics[width=0.86\linewidth]{figures/static/static/rendered/package-benchmark-convergence.pdf}
     }{%
-        \fbox{\parbox{0.86\linewidth}{\centering Benchmark convergence
+        \fbox{\parbox{0.82\linewidth}{\centering Benchmark convergence
         asset unavailable in this checkout.}}
     }
-    \caption{Self-convergence observed-order summary emitted by the
-    benchmark renderer. Bars report median observed order by method and metric;
-    whiskers show the observed min--max range across the benchmarked
-    refinements. DG bars are implementation diagnostics emitted by the
-    benchmark suite; Appendix~\ref{app:num-current-solver-operator} specifies
-    the finite-volume operator used for the reported comparison. This is an
-    internal convergence diagnostic, not external validation evidence.}
+    \caption{Self-convergence observed-order summary emitted by the benchmark
+    renderer. This is a sampled implementation-check diagnostic; the MMS table in
+    Section~\ref{subsec:mms-verification} is the stronger exact-solution
+    verification evidence.}
     \label{fig:package-benchmark-convergence}
 \end{figure}
 
-\subsection{Cross-Integrator Discrepancies}
-\label{subsec:cross-integrator-discrepancies}
-
-\begin{figure}[H]
+\begin{figure}[!htb]
     \centering
     \IfFileExists{figures/static/static/rendered/package-benchmark-backend-parity.pdf}{%
-        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-backend-parity.pdf}
+        \includegraphics[width=0.86\linewidth]{figures/static/static/rendered/package-benchmark-backend-parity.pdf}
     }{%
-        \fbox{\parbox{0.86\linewidth}{\centering Benchmark
+        \fbox{\parbox{0.82\linewidth}{\centering Benchmark
         cross-integrator discrepancy asset unavailable in this checkout.}}
     }
     \caption{Native/SciML cross-integrator discrepancy versus runtime for
-    benchmarked compatible methods. Color identifies the method family and
-    marker shape identifies the SciML algorithm. The plotted scalar is the
-    maximum of emitted componentwise L2 difference columns, so it is a software
-    diagnostic rather than a dimensionally homogeneous physical norm.}
+    compatible methods. The native path uses the stagewise positivity limiter;
+    the SciML path integrates the unprojected semi-discrete system. The figure
+    is therefore a cross-integrator diagnostic, not a proof of solver equivalence.}
     \label{fig:package-benchmark-backend-parity}
 \end{figure}
 
-\subsection{Stationary-Stokes Projection Checks}
+\subsection{Stationary-Stokes Refinement}
 \label{subsec:stationary-stokes-projection-checks}
 
-The stationary-Stokes projection checks are included as implementation
-diagnostics for the local resolved-flow pipeline. They check that the
-projection and report assets are emitted under a reproducible schema. They do
-not constitute transient 3D validation of the 1D solver.
+The stationary-Stokes module now emits a refinement summary rather than only a
+projection-existence check. It compares projected one-dimensional section
+averages with finite-element section samples across generated stationary
+Stokes meshes and reports finest-mesh relative discrepancies. This remains an
+initializer/projection diagnostic; it is not transient 3D validation of the 1D
+solver.
+
+\IfFileExists{figures/static/static/tables/verification/stationary_stokes_refinement.tex}{%
+    \input{figures/static/static/tables/verification/stationary_stokes_refinement.tex}
+}{%
+    \begin{center}
+    \small
+    \emph{Stationary-Stokes refinement table unavailable in this checkout. Run
+    the stationary-Stokes refinement workflow to populate the verification
+    table.}
+    \end{center}
+}
 
 \begin{figure}[!htb]
     \centering
     \IfFileExists{figures/static/static/rendered/package-benchmark-resolved3d.pdf}{%
-        \includegraphics[width=0.74\linewidth]{figures/static/static/rendered/package-benchmark-resolved3d.pdf}
+        \includegraphics[width=0.72\linewidth]{figures/static/static/rendered/package-benchmark-resolved3d.pdf}
     }{%
-        \fbox{\parbox{0.86\linewidth}{\centering Benchmark
+        \fbox{\parbox{0.82\linewidth}{\centering Benchmark
         resolved-velocity diagnostic asset unavailable in this checkout.}}
     }
     \caption{Resolved-velocity output-operator diagnostic summary for the
-    available local cases. The rendered value is the section-wise velocity
-    mean absolute discrepancy for the declared
+    available local cases. The rendered value is the section-wise mean
+    absolute velocity discrepancy for the declared
     \texttt{CrossSectionQuadratureOperator}.}
     \label{fig:package-benchmark-resolved3d}
+\end{figure}
+
+\subsection{Sensitivity Checks}
+\label{subsec:verification-sensitivity-qa}
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}{%
+        \includegraphics[width=0.86\linewidth]{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}
+    }{%
+        \fbox{\parbox{0.82\linewidth}{\centering Benchmark
+        rheology/profile asset unavailable in this checkout.}}
+    }
+    \caption{Rheology/profile sensitivity summary for declared descriptor
+    combinations. This stage checks descriptor plumbing and response
+    direction; it is not part of the principal C23/C40 comparison evidence.}
+    \label{fig:package-benchmark-rheology-profile}
 \end{figure}
 
 \subsection{Verification Summary}
 \label{subsec:verification-summary}
 
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}{%
-        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-rheology-profile.pdf}
-    }{%
-        \fbox{\parbox{0.86\linewidth}{\centering Benchmark
-        rheology/profile asset unavailable in this checkout.}}
-    }
-    \caption{Rheology/profile sensitivity summary for declared descriptor
-    combinations. Facets separate stenosis severity; grouped bars separate the
-    rheology and velocity-profile descriptors. The diagnostic shows how the
-    maximum speed responds to descriptor choices within the emitted benchmark
-    records.}
-    \label{fig:package-benchmark-rheology-profile}
-\end{figure}
-
-\begin{figure}[!htb]
-    \centering
-    \IfFileExists{figures/static/static/rendered/package-benchmark-python-mps.pdf}{%
-        \includegraphics[width=0.95\linewidth]{figures/static/static/rendered/package-benchmark-python-mps.pdf}
-    }{%
-        \fbox{\parbox{0.86\linewidth}{\centering Python/MPS benchmark asset
-        unavailable in this checkout.}}
-    }
-    \caption{Python native CPU versus Torch-MPS comparison for the Python CLI
-    surface. The top panel reports elapsed time by method and grid size; the
-    lower panel reports the maximum relative final-state difference across the
-    emitted area and flow summaries.}
-    \label{fig:package-benchmark-python-mps}
-\end{figure}
-
-The verification record supports the reported finite-volume /
-time-integration workflow and data contracts. It does not yet persist every
-quantity needed for a stronger verification claim, including positivity
-activation counts, total projection correction, realized CFL extrema,
-mass-balance defect, and comparison-run backend tolerances.
+The strengthened record supports a targeted numerical-verification claim. It
+includes exact-solution MMS evidence, zero-forcing rest-state drift diagnostics,
+persisted CFL and characteristic-speed metadata, mass-balance and positivity
+metadata, sampled self-convergence, cross-integrator checks, and
+stationary-Stokes projection refinement. The claim remains bounded: runtime,
+platform, broad rheology/profile sensitivity, Lax--Wendroff rows, and
+nonselected DG rows are implementation-check or appendix-level context unless
+tied to a principal research question.
 
 \FloatBarrier

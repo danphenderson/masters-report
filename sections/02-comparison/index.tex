@@ -95,8 +95,11 @@ flow-versus-area contribution split.
     \centering
     \scriptsize
     \caption{Quadrature-backed section velocity and physical-flow summary at
-    $t=1.0$ s. Mean velocities and velocity errors are in cm/s; physical flows
-    and flow errors are in cm$^3$/s. The 1D physical flow is
+    nominally aligned final-time samples. Mean velocities and velocity
+    discrepancies are in cm/s; physical flows and flow discrepancies are in
+    cm$^3$/s. Angle brackets in this table denote axial sample means over the
+    200 retained comparison sections, not temporal averages or inner products.
+    The 1D physical flow is
     $Q_{1D}=\pi q$.}
     \label{tab:t1-3d-comparison-summary}
     {\setlength{\tabcolsep}{2.5pt}
@@ -127,35 +130,50 @@ flow-versus-area contribution split.
     \scriptsize
     \caption{Generated solver diagnostics for the same runs. The positive
     characteristic-radicand values are in solver units of cm$^2$/s$^2$ and
-    support the reported characteristic-speed evaluation on the sampled final
-    state. They do not by themselves prove the subcritical sign condition
-    $\lambda_-<0<\lambda_+$ required by
+    support the reported characteristic-speed evaluation. The generated
+    comparison summaries now also persist $\lambda_-$, $\lambda_+$, and the
+    subcriticality margin required by
     Assumption~\ref{ass:1d-subcritical-boundary-regime}.}
     \label{tab:t1-alpha-radicand-diagnostics}
-    \begin{tabular}{@{}lrrrr@{}}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lrrrrrrrr@{}}
         \toprule
         \textbf{Case}
             & $\boldsymbol{\min \alpha_{\mathrm{eff}}}$
             & $\boldsymbol{\max \alpha_{\mathrm{eff}}}$
-            & $\boldsymbol{\min \chi^2}$ (cm$^2$/s$^2$)
-            & \textbf{Valid sections} \\
+            & $\boldsymbol{\min \chi^2}$
+            & $\boldsymbol{\min\lambda_-}$
+            & $\boldsymbol{\max\lambda_-}$
+            & $\boldsymbol{\min\lambda_+}$
+            & $\boldsymbol{\max\lambda_+}$
+            & $\boldsymbol{\min\{\lambda_+,-\lambda_-\}}$ \\
         \midrule
-        C23 & 1.33058 & 1.33333 & $8.15\times 10^5$ & 200 \\
-        C40 & 1.32500 & 1.33333 & $6.36\times 10^5$ & 200 \\
+        C23 & 1.33058 & 1.33333 & $8.15\times 10^5$ & -998.85 & -852.17 & 953.33 & 1058.76 & 852.17 \\
+        C40 & 1.32500 & 1.33333 & $6.36\times 10^5$ & -999.08 & -713.79 & 880.69 & 1058.94 & 713.79 \\
         \bottomrule
     \end{tabular}
+    }
 \end{table}
 
-The final-time mismatch between $1.0$ s and $0.9995$ s is numerically small,
-but it does not establish matched transient histories. The reported
+The nominal final-time offset between $1.0$ s and $0.9995$ s is numerically
+small, but it does not establish matched transient histories. The reported
 characteristic-radicand scales correspond to one-way traversal times on the
 order of milliseconds for a 6 cm vessel, so boundary and start-up histories can
 influence the state many times before the sampled final time.
 
+The stenosis throat is the minimizer $z^\star=\argmin_z R_0(z)$ of the
+smooth reference-radius profile in Eq.~\ref{eq:1d-stenosis-profile}. For the
+comparison geometry this gives $z^\star\approx2.451\,\mathrm{cm}$ for both
+severities, with $R_{\min}=0.1386\,\mathrm{cm}$ for C23 and
+$R_{\min}=0.1080\,\mathrm{cm}$ for C40. The shaded ``throat zone'' in
+Figure~\ref{fig:t1-section-mean-comparison} is the displayed interval
+$2.4\le z\le2.8\,\mathrm{cm}$; the radial-profile slices use
+$z^\star-0.5\,\mathrm{cm}$, $z^\star$, and $z^\star+0.5\,\mathrm{cm}$.
+
 Figure~\ref{fig:t1-section-mean-comparison} shows the area-mean axial velocity
 comparison. The 1D and quadrature-averaged 3D means agree closely away from the
 largest acceleration zone, while the largest mismatch remains localized near
-the stronger stenosis. The C40 maximum section error is 9.92 cm/s at
+the stronger stenosis. The C40 maximum section discrepancy is 9.92 cm/s at
 $z=2.261$ cm; C23 reaches 2.35 cm/s at $z=2.291$ cm.
 
 \begin{figure}[H]
@@ -173,10 +191,11 @@ $z=2.261$ cm; C23 reaches 2.35 cm/s at $z=2.291$ cm.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Five largest section-wise velocity errors across the two included
-    cases. Velocities and velocity errors are in cm/s; physical flows and flow
-    errors are in cm$^3$/s, with $Q_{1D}=\pi q$.}
-    \label{tab:t1-largest-section-errors}
+    \caption{Five largest section-wise velocity discrepancies across the two
+    included cases. Velocities and velocity discrepancies are in cm/s;
+    physical flows and flow discrepancies are in cm$^3$/s, with
+    $Q_{1D}=\pi q$.}
+    \label{tab:t1-largest-section-discrepancies}
     \begin{tabular}{@{}rlrrrrrrrr@{}}
         \toprule
         \textbf{Rank}
@@ -184,10 +203,10 @@ $z=2.261$ cm; C23 reaches 2.35 cm/s at $z=2.291$ cm.
             & $\boldsymbol{z}$ \textbf{(cm)}
             & $\boldsymbol{\bar u_{1D}}$
             & $\boldsymbol{\bar u_{3D}}$
-            & $\boldsymbol{|e_u|}$
+            & $\boldsymbol{|d_u|}$
             & $\boldsymbol{Q_{1D}}$
             & $\boldsymbol{Q_{3D}}$
-            & $\boldsymbol{|e_Q|}$
+            & $\boldsymbol{|d_Q|}$
             & \textbf{Tri.} \\
         \midrule
         1 & C40 & 2.261 & 52.58 & 42.66 & 9.92 & 2.201 & 1.862 & 0.339 & 759 \\
@@ -212,12 +231,11 @@ diagnose secondary flow, skewness, separation, or any single omitted mechanism.
 The reconstructed parabolic profile used for the dashed 1D curve is
 \[
     u_{1D}(r;z,t)=2\,\frac{q(z,t)}{a(z,t)}
-    \left(1-\left(\frac{r}{R_0(z)}\right)^2\right)
+    \left(1-\left(\frac{r}{\sqrt{a(z,t)}}\right)^2\right)
 \]
-on the static reference-radius coordinate used by the archived radial asset.
-The artifact does not include the stronger sensitivity study with 10, 20, and
-40 bins, annular clipping of cut triangles, current-radius coordinate
-$r/\sqrt{a(z,t)}$, or within-bin azimuthal variance.
+on the current-radius coordinate. Supplemental rows retain the static
+reference-radius coordinate $r/R_0(z)$ and 10/20/40-bin sensitivity, with
+area-weighted radial means, area mismatch, and within-bin azimuthal variance.
 
 \begin{figure}[H]
     \centering
@@ -236,8 +254,8 @@ $r/\sqrt{a(z,t)}$, or within-bin azimuthal variance.
     \scriptsize
     \caption{Radial-profile discrepancy by case and slice. Bin means are
     area-weighted over the quadrature triangles in each bin; the displayed
-    MAE and RMSE summaries are unweighted over the valid radial-bin means.
-    Velocity errors are in cm/s; radial-bin physical-flow errors are in
+    MAE and RMSE summaries are over the valid radial-bin means.
+    Velocity discrepancies are in cm/s; radial-bin physical-flow discrepancies are in
     cm$^3$/s and use
     $Q_{1D,\mathrm{bin}}=\bar u_{1D,\mathrm{bin}}A_{\mathrm{bin}}$.
     All listed slices have 20 valid radial bins.}
@@ -265,13 +283,14 @@ $r/\sqrt{a(z,t)}$, or within-bin azimuthal variance.
 \subsection{Spatial Localization of Discrepancies}
 \label{subsec:spatial-localization-discrepancies}
 
-These discrepancies should be read in light of the comparison boundary in
-Section~\ref{subsec:model-hierarchy-comparison-boundary}. The quadrature
-operator gives a physical cross-sectional average of the resolved velocity
-field at the matched final time, but the comparison still changes model tier,
-wall treatment, boundary realization, and transient history. The result
-therefore localizes velocity mismatch; it does not attribute that mismatch
-uniquely to the 1D closure and does not supply pressure, FFR, or clinical
-accuracy evidence. The next defensible pressure-focused study would need
-declared pressure observations and a matched evidence record, not only this
-velocity diagnostic.
+These discrepancies should be read in light of the cross-dimensional comparison
+scope in Section~\ref{subsec:cross-dimensional-comparison-review} and the
+operator definition in Section~\ref{subsec:plane-tetrahedron-comparison-operator}.
+The quadrature operator gives a physical cross-sectional average of the resolved
+velocity field at the nominally aligned final-time samples, but the comparison
+still changes model tier, wall treatment, boundary realization, and transient
+history. The result therefore localizes velocity mismatch; it does not
+attribute that mismatch uniquely to the 1D closure and does not supply
+pressure, FFR, or clinical accuracy evidence. The next defensible
+pressure-focused study would need declared pressure observations and a matched
+evidence record, not only this velocity diagnostic.

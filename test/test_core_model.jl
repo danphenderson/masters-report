@@ -1,4 +1,4 @@
-@testset "CanicExtended1D rheology closures" begin
+@testset "StenosisHemodynamics rheology closures" begin
     @test rheology_name(NewtonianRheology()) == "newtonian"
     @test effective_kinematic_viscosity(NewtonianRheology(), 25.0, 1.055, 0.04) ≈ 0.04
 
@@ -24,9 +24,9 @@
     @test legacy_alpha.velocity_profile isa PowerVelocityProfile
     @test legacy_alpha.alpha ≈ 1.1
     @test characteristic_shear_rate(0.04, 0.2, 0.2, legacy_alpha) > 0.0
-    @test_throws ArgumentError CanicExtended1D.validate(CarreauRheology(eta0=0.01, eta_inf=0.02))
+    @test_throws ArgumentError StenosisHemodynamics.validate(CarreauRheology(eta0=0.01, eta_inf=0.02))
 end
-@testset "CanicExtended1D velocity profiles" begin
+@testset "StenosisHemodynamics velocity profiles" begin
     parabolic = ParabolicVelocityProfile()
     @test profile_name(parabolic) == "parabolic"
     @test momentum_alpha(parabolic) ≈ 4.0 / 3.0
@@ -55,48 +55,57 @@ end
     default_params = Params(initial_condition=GeometryRestIC())
     @test default_params.velocity_profile isa ParabolicVelocityProfile
     @test default_params.alpha ≈ 4.0 / 3.0
-    @test CanicExtended1D.inlet_uavg(default_params) ≈ 22.5
-    @test CanicExtended1D.inlet_uavg(Params(initial_condition=GeometryRestIC(), velocity_profile=flat)) ≈ 45.0
-    @test default_output_stub(Params()) == "simulations/output/canic_extended_1d_severity50_vp_parabolic"
+    @test StenosisHemodynamics.inlet_uavg(default_params) ≈ 22.5
+    @test StenosisHemodynamics.inlet_uavg(Params(initial_condition=GeometryRestIC(), velocity_profile=flat)) ≈ 45.0
+    @test default_params.model isa CanicExtendedOneDModel
+    @test model_name(default_params) == "canic-extended-1d"
+    @test variable_radius_terms_enabled(default_params) == true
+    @test default_output_stub(Params()) == "simulations/output/stenosis_hemodynamics_canic_extended_1d_severity50_vp_parabolic"
     @test occursin("vp_parabolic", default_output_stub(default_params))
     @test default_output_stub(default_params) != default_output_stub(Params(alpha=1.1, initial_condition=GeometryRestIC()))
+    classical = Params(initial_condition=GeometryRestIC(), model="classical-1d-no-slip")
+    @test classical.model isa ClassicalNoSlip1DModel
+    @test model_name(classical) == "classical-1d-no-slip"
+    @test variable_radius_terms_enabled(classical) == false
+    @test_throws ArgumentError Params(initial_condition=GeometryRestIC(), model="classical-1d-no-slip", velocity_profile=flat)
+    @test_throws ArgumentError Params(initial_condition=GeometryRestIC(), model="classical-1d-no-slip", alpha=1.1)
     @test default_output_stub(Params(initial_condition=GeometryRestIC(), velocity_profile=PowerVelocityProfile(exponent=4.0))) !=
           default_output_stub(Params(initial_condition=GeometryRestIC(), velocity_profile=PowerVelocityProfile(exponent=9.0)))
     @test default_output_stub(Params(initial_condition=GeometryRestIC(), velocity_profile=FlatVelocityProfile(shear_rate_factor=4.0))) !=
           default_output_stub(Params(initial_condition=GeometryRestIC(), velocity_profile=FlatVelocityProfile(shear_rate_factor=8.0)))
     @test_throws ArgumentError Params(alpha=1.1, velocity_profile=ParabolicVelocityProfile())
-    @test_throws ArgumentError CanicExtended1D.params_with(default_params; velocity_profile=flat, alpha=1.1)
-    @test_throws ArgumentError CanicExtended1D.validate(FlatVelocityProfile(shear_rate_factor=0.0))
+    @test_throws ArgumentError StenosisHemodynamics.params_with(default_params; velocity_profile=flat, alpha=1.1)
+    @test_throws ArgumentError StenosisHemodynamics.validate(FlatVelocityProfile(shear_rate_factor=0.0))
     @test_throws ArgumentError PowerVelocityProfile(alpha=1.0)
 end
 
-@testset "CanicExtended1D Canic-Koiter wall law" begin
+@testset "StenosisHemodynamics Canic-Koiter wall law" begin
     params = Params(initial_condition=GeometryRestIC(), severity=30.0)
     z = 2.75
     A = 0.035
     Q = 0.012
-    r0, r0z, _ = CanicExtended1D.stenosis(z, params)
-    K = CanicExtended1D.wall_stiffness(params)
-    gamma_plus_two = CanicExtended1D.gamma_plus_two(params)
-    nu_eff = CanicExtended1D.effective_kinematic_viscosity(A, Q, r0, params)
+    r0, r0z, _ = StenosisHemodynamics.stenosis(z, params)
+    K = StenosisHemodynamics.wall_stiffness(params)
+    gamma_plus_two = StenosisHemodynamics.gamma_plus_two(params)
+    nu_eff = StenosisHemodynamics.effective_kinematic_viscosity(A, Q, r0, params)
 
     @test params.wall_law isa CanicKoiterWallLaw
     @test wall_law_name(params) == "canic-koiter-thin-membrane"
-    @test CanicExtended1D.wall_reference_radius(params) ≈ params.rmax
-    @test CanicExtended1D.wall_elastic_pressure(A, z, params) ≈ K / r0^2 * (sqrt(A) - r0)
-    @test CanicExtended1D.variable_radius_pressure_correction(A, Q, r0, r0z, nu_eff, gamma_plus_two, params) ≈
+    @test StenosisHemodynamics.wall_reference_radius(params) ≈ params.rmax
+    @test StenosisHemodynamics.wall_elastic_pressure(A, z, params) ≈ K / r0^2 * (sqrt(A) - r0)
+    @test StenosisHemodynamics.variable_radius_pressure_correction(A, Q, r0, r0z, nu_eff, gamma_plus_two, params) ≈
           gamma_plus_two * params.rho * nu_eff * Q / A * r0z / r0
-    @test CanicExtended1D.pressure([A], [Q], [z], params)[1] ≈
-          CanicExtended1D.wall_elastic_pressure(A, z, params) +
-          CanicExtended1D.variable_radius_pressure_correction(A, Q, r0, r0z, nu_eff, gamma_plus_two, params)
-    @test CanicExtended1D.wall_elastic_potential(A, z, params) ≈ K / (3.0 * params.rho * params.rmax^2) * A^1.5
-    @test CanicExtended1D.wall_wave_speed_squared(A, z, params) ≈ K / (2.0 * params.rho * params.rmax^2) * sqrt(A)
-    @test CanicExtended1D.wall_geometry_source(A, z, r0, r0z, params) ≈ K / (params.rho * params.rmax^2) * A * r0z
-    @test CanicExtended1D.invariant_speed_factor(params) ≈ CanicExtended1D.wall_invariant_speed_factor(params)
-    @test CanicExtended1D.params_with(params; wall_law=CanicKoiterWallLaw()).wall_law isa CanicKoiterWallLaw
+    @test StenosisHemodynamics.pressure([A], [Q], [z], params)[1] ≈
+          StenosisHemodynamics.wall_elastic_pressure(A, z, params) +
+          StenosisHemodynamics.variable_radius_pressure_correction(A, Q, r0, r0z, nu_eff, gamma_plus_two, params)
+    @test StenosisHemodynamics.wall_elastic_potential(A, z, params) ≈ K / (3.0 * params.rho * params.rmax^2) * A^1.5
+    @test StenosisHemodynamics.wall_wave_speed_squared(A, z, params) ≈ K / (2.0 * params.rho * params.rmax^2) * sqrt(A)
+    @test StenosisHemodynamics.wall_geometry_source(A, z, r0, r0z, params) ≈ K / (params.rho * params.rmax^2) * A * r0z
+    @test StenosisHemodynamics.invariant_speed_factor(params) ≈ StenosisHemodynamics.wall_invariant_speed_factor(params)
+    @test StenosisHemodynamics.params_with(params; wall_law=CanicKoiterWallLaw()).wall_law isa CanicKoiterWallLaw
 end
 
-@testset "CanicExtended1D inlet and outlet boundaries" begin
+@testset "StenosisHemodynamics inlet and outlet boundaries" begin
     waveform = FlowWaveformInlet([0.0, 1.0], [0.0, 10.0])
     waveform_params = Params(initial_condition=GeometryRestIC(), inlet_boundary=waveform)
     @test inlet_boundary_name(waveform_params.inlet_boundary) == "flow-waveform"
@@ -104,7 +113,7 @@ end
     @test inlet_flow(waveform_params, 1.25) ≈ 2.5
 
     steady_params = Params(initial_condition=GeometryRestIC(), inlet_boundary=SteadyVelocityInlet(20.0))
-    r0_in, _, _ = CanicExtended1D.stenosis(0.0, steady_params)
+    r0_in, _, _ = StenosisHemodynamics.stenosis(0.0, steady_params)
     @test inlet_boundary_name(steady_params.inlet_boundary) == "steady-velocity"
     @test inlet_flow(steady_params, 10.0) ≈ r0_in^2 * 10.0
 
@@ -114,19 +123,19 @@ end
         initial_condition=GeometryRestIC(),
         outlet_boundary=ReflectionCoefficientOutlet(0.0),
     )
-    _, _, Aout, Qout = CanicExtended1D.boundary_states([0.04, 0.04, 0.04, 0.04], [0.0, 0.0, 0.0, 0.01], rt_params, 0.0)
-    r0_out, _, _ = CanicExtended1D.stenosis(rt_params.length_cm, rt_params)
-    @test CanicExtended1D.invariant_minus(Aout, Qout, rt_params) ≈ CanicExtended1D.invariant_minus(r0_out^2, 0.0, rt_params)
-    @test_throws ArgumentError CanicExtended1D.validate(ReflectionCoefficientOutlet(1.5))
+    _, _, Aout, Qout = StenosisHemodynamics.boundary_states([0.04, 0.04, 0.04, 0.04], [0.0, 0.0, 0.0, 0.01], rt_params, 0.0)
+    r0_out, _, _ = StenosisHemodynamics.stenosis(rt_params.length_cm, rt_params)
+    @test StenosisHemodynamics.invariant_minus(Aout, Qout, rt_params) ≈ StenosisHemodynamics.invariant_minus(r0_out^2, 0.0, rt_params)
+    @test_throws ArgumentError StenosisHemodynamics.validate(ReflectionCoefficientOutlet(1.5))
 end
 
-@testset "CanicExtended1D spatial methods and steppers" begin
+@testset "StenosisHemodynamics spatial methods and steppers" begin
     @test minmod(2.0, 3.0) == 2.0
     @test minmod(-2.0, -3.0) == -2.0
     @test minmod(-2.0, 3.0) == 0.0
 
-    @test CanicExtended1D.reconstructed_area(0.02, -0.01, 1.0) > 0.0
-    @test CanicExtended1D.reconstructed_area(1.0e-14, -1.0, 1.0) >= CanicExtended1D.AREA_LIMITER_FLOOR
+    @test StenosisHemodynamics.reconstructed_area(0.02, -0.01, 1.0) > 0.0
+    @test StenosisHemodynamics.reconstructed_area(1.0e-14, -1.0, 1.0) >= StenosisHemodynamics.AREA_LIMITER_FLOOR
 
     xis, weights = dg_quadrature()
     @test sum(weights) ≈ 2.0
@@ -138,17 +147,17 @@ end
     @test isnan(observed_order(0.0, 0.125))
 
     params = Params(nx=8, tfinal=1.0e-5, severity=30.0, initial_condition=GeometryRestIC())
-    z, A, Q, dx = CanicExtended1D.initial_state(params)
-    dt = min(CanicExtended1D.choose_dt(A, Q, z, dx, params), params.tfinal)
-    dA_uncached, dQ_uncached = CanicExtended1D.rhs_dt(A, Q, z, dx, dt, 0.0, params)
-    dA_cached, dQ_cached = CanicExtended1D.rhs_dt(A, Q, z, dx, dt, 0.0, params; cache=CanicExtended1D.RHSCache(length(A)))
+    z, A, Q, dx = StenosisHemodynamics.initial_state(params)
+    dt = min(StenosisHemodynamics.choose_dt(A, Q, z, dx, params), params.tfinal)
+    dA_uncached, dQ_uncached = StenosisHemodynamics.rhs_dt(A, Q, z, dx, dt, 0.0, params)
+    dA_cached, dQ_cached = StenosisHemodynamics.rhs_dt(A, Q, z, dx, dt, 0.0, params; cache=StenosisHemodynamics.RHSCache(length(A)))
     @test dA_cached ≈ dA_uncached
     @test dQ_cached ≈ dQ_uncached
 
-    A_reference, Q_reference = CanicExtended1D.native_step(copy(A), copy(Q), z, dx, dt, 0.0, params.time_stepper, params)
+    A_reference, Q_reference = StenosisHemodynamics.native_step(copy(A), copy(Q), z, dx, dt, 0.0, params.time_stepper, params)
     A_mutating = copy(A)
     Q_mutating = copy(Q)
-    CanicExtended1D.native_step!(A_mutating, Q_mutating, z, dx, dt, 0.0, params, CanicExtended1D.NativeStepCache(length(A)))
+    StenosisHemodynamics.native_step!(A_mutating, Q_mutating, z, dx, dt, 0.0, params, StenosisHemodynamics.NativeStepCache(length(A)))
     @test A_mutating ≈ A_reference
     @test Q_mutating ≈ Q_reference
 end

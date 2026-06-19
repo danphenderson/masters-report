@@ -1,4 +1,4 @@
-\subsection{Problem Definition and Modelling Assumptions}
+\subsection{Problem Definition and Modeling Assumptions}
 \label{subsec:methodology-problem-definition}
 \label{subsec:selected-1d-forward-model}
 
@@ -80,9 +80,10 @@ the blood-dynamics setting.
     implementation manifests this member is still recorded under the historical
     token \texttt{classical-1d-no-slip}; in the mathematical discussion it is
     the classical parabolic-profile baseline. It keeps the same reduced state
-    variables and selected Canic--Koiter pressure--area wall law as the
+    variables and selected Canic-derived pressure--area wall law as the
     extended 1D framework, but omits the Canic effective-alpha variable-radius
-    correction. The descriptor \texttt{canic-extended-1d} records the current
+    correction. The descriptor \texttt{canic-extended-1d} is the historical
+    manifest token for the current $R_{\max}$-normalized Canic-derived
     extended-model member.
 \end{definition}
 
@@ -186,7 +187,7 @@ the blood-dynamics setting.
     wall/geometry source below. Legacy pressure-output helpers in the
     implementation still report a local-denominator pressure diagnostic through
     \path{pressure(result, params)}; benchmark pressure extrema and
-    pressure-error bars refer to that diagnostic, not to the selected evolution
+    pressure-diagnostic bars refer to that diagnostic, not to the selected evolution
     wall law. Those pressure values are not used here as pressure-drop,
     pressure-ratio, or FFR evidence.
     The diagnostic extended pressure correction is

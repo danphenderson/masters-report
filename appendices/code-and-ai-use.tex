@@ -9,7 +9,7 @@ release is declared here, this appendix supports internal reproducibility of
 the local report package only; it does not claim a public repository or
 archival URL.
 
-The Julia simulation code is packaged as \path{CanicExtended1D} in the root
+The Julia simulation code is packaged as \path{StenosisHemodynamics} in the root
 Julia project. The tracked source inventory is:
 \begin{center}
 \scriptsize
@@ -20,30 +20,21 @@ Julia project. The tracked source inventory is:
 \path{Project.toml}, \path{Manifest.toml}
 & Julia package identity, dependency declarations, compatibility bounds, and
 resolved dependency versions. \\
-\path{src/CanicExtended1D.jl}
+\path{src/StenosisHemodynamics.jl}
 & Package entry point and public export surface for the solver, studies,
 resolved-3D comparison, and report figure export helpers. \\
-\path{src/CanicExtended1D/*.jl}
+\path{src/StenosisHemodynamics/*.jl}
 & Solver components: model descriptors, geometry, state layout, finite-volume
 and DG operators, native and SciML backends, Stokes initial condition,
 OpenBF-style adapter, studies, refinement, resolved-3D diagnostics, output
 writers, package benchmarks, and geometry-export helpers. \\
-\path{simulations/run_canic_extended_1d.jl},
-\path{simulations/canic_extended_1d_stenosis.jl}
-& Thin command-line wrappers around \path{CanicExtended1D.run_cli}. \\
-\path{simulations/run_package_benchmark.jl}
-& Thin command-line wrapper around
-\path{CanicExtended1D.run_package_benchmark}; writes the benchmark manifest and
-CSV schemas used in Section~\ref{subsec:package-benchmark-suite}. \\
-\path{simulations/export_stenosis_geometry_figures.jl}
-& Thin wrapper around
-\path{CanicExtended1D.export_stenosis_geometry_figures}. \\
-\path{python/src/research_hemodynamics/*.py}
-& Python Typer CLI and native/Torch/SciPy/SciML adapter surface used for
-descriptor smoke runs and CPU/Torch-MPS comparison rows. \\
-\path{scripts/render_package_benchmark_figures.py}
-& Python renderer for package-benchmark CSVs, report figures, and compact
-\LaTeX{} table fragments. \\
+\path{scripts/stenosis-hemodynamics}, \path{scripts/stenosis-hemodynamics.jl}
+& Primary Julia command surface. The dispatcher exposes simulation, OpenBF
+adapter, studies, stationary-Stokes refinement, resolved-3D comparison,
+benchmarks, and report asset export through \path{StenosisHemodynamics.run_cli}. \\
+\path{scripts/render_*.py}, \path{scripts/audit_*.py}
+& Python auxiliary tooling for report figure/table rendering and
+TeX/reference audits. Python is not a simulation surface in this package. \\
 \path{test/runtests.jl}, \path{test/test_*.jl}
 & Julia test orchestrator and feature-specific regression tests for model
 closures, backends, comparison diagnostics, CLI parsing, studies, benchmarks,
@@ -57,7 +48,7 @@ project environment. \\
 
 The standard package import surface used by report regeneration commands is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true,language=julia]
-using CanicExtended1D
+using StenosisHemodynamics
 
 r = run_available_resolved3d_comparison(
     output_dir="simulations/output/3d_comparison/full_t1_native_nx400",
@@ -70,11 +61,10 @@ The package-benchmark suite is regenerated separately from the tracked PDF. A
 smoke run writes deterministic schema checks; an overnight run expands the same
 schemas to the full benchmark matrix:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-./scripts/julia-release simulations/run_package_benchmark.jl \
+./scripts/stenosis-hemodynamics benchmark \
   --profile overnight \
   --output-dir simulations/output/package_benchmark/<run_id> \
   --overwrite \
-  --include-python \
   --include-resolved3d \
   --publish-report-assets
 
@@ -85,21 +75,17 @@ pipenv run python scripts/render_package_benchmark_figures.py \
 The tracked package-benchmark assets used in
 Section~\ref{subsec:package-benchmark-suite} are copied under
 \path{figures/static/static/data/package-benchmark/} and rendered under
-\path{figures/static/static/rendered/}. The tracked manifest records an
-\texttt{overnight} profile generated at \texttt{2026-06-18T20:20:04Z}. Its
-source output directory was the
-\path{overnight-20260618-quadrature/} benchmark run; Python stages and
-resolved-3D stages were enabled, and the completed run was copied into the
-tracked report assets.
-The recorded runtime context was Julia \texttt{1.12.6}, Python \texttt{3.13.12},
-Torch \texttt{2.12.0}, MPS available, SciPy unavailable, and generation commit
+\path{figures/static/static/rendered/}. The tracked assets were generated from
+the \path{overnight-20260618-quadrature/} benchmark run and then pruned to the
+Julia-authoritative benchmark stages. The recorded Julia runtime context was
+Julia \texttt{1.12.6}, with generation commit
 \texttt{24d311c0ddd169f943169b05736d439d9b877b57}. That commit identifies the
 benchmark/data-generation base state, not by itself the complete integrated
 manuscript state after the final report edits. The integrated report state is
 identified by the tracked source tree containing this appendix together with
-the file hashes below. The published benchmark CSVs contain 252 status rows
-across the eight report stages, all marked \texttt{ok}; this is an internal
-status summary, not an external validation claim.
+the file hashes below. The published benchmark CSVs contain 243 status rows
+across the seven retained report stages, all marked \texttt{ok}; this is an
+internal status summary, not an external validation claim.
 
 The tracked package-benchmark data and table fragment have the following
 SHA-256 hashes:
@@ -109,9 +95,6 @@ SHA-256 hashes:
 \toprule
 \textbf{Tracked package-benchmark file} & \textbf{SHA-256} \\
 \midrule
-\path{figures/static/static/data/package-benchmark/manifest.json}
-& dde2101fcea3d9cc896847682835356f\newline
-30a5d9c1d1aaa486fc7587a6f03bee50 \\
 \path{figures/static/static/data/package-benchmark/case_results.csv}
 & 0843a3e3fa986e0ec1227bedab1ff8f\newline
 616e3d3652b9e5e609c64a171e6d124fe \\
@@ -133,12 +116,9 @@ cb165a84fc56853a70839d53914c993d \\
 \path{figures/static/static/data/package-benchmark/resolved3d.csv}
 & 96443ae2dd54f9a0132ac7979209b256\newline
 0353195ee7ebb87d07a4778b66d1a53a \\
-\path{figures/static/static/data/package-benchmark/python_mps.csv}
-& a50dfc626f2a59f1ace544337e4c1d09\newline
-0168b09e2b502f92abf3b1b4cf3177cb \\
 \path{figures/static/static/tables/package-benchmark/package-benchmark-summary.tex}
-& 9649ee00c26921196d628a2c9f17f7d8\newline
-14e4390ad194da8f399482aafa617948 \\
+& ee5f8a1aff2a3d346ffaffe221f2cf17\newline
+ae87c85c9ef2408f600ead032a7e8b09 \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -163,19 +143,22 @@ following SHA-256 hashes:
 \path{figures/static/static/rendered/package-benchmark-resolved3d.pdf}
 & 9b6282153ee2827007df74a1d394f1ec\newline
 82e7b4d8ab93b6c176d2a102c4af4cab \\
-\path{figures/static/static/rendered/package-benchmark-python-mps.pdf}
-& 2a84d08be281de3a8c81e2710065bfc1\newline
-1400be8a258a2feb401452d9a77a8817 \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-The Section~\ref{sec:resolved-3d-comparison} comparison artifact is the
-non-archived directory
-\path{simulations/output/3d_comparison/full_t1_native_nx400/}. The command
-shape for regenerating the comparison, when the raw 3D inputs are restored, is:
+The Section~\ref{sec:resolved-3d-comparison} comparison artifact for this
+build was generated in the non-archived scratch directory
+\path{tmp/major-revision-3d-comparison/}. The command shape for regenerating
+the comparison, when the raw 3D inputs are restored, is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-./scripts/julia-release -e 'using CanicExtended1D; r=run_available_resolved3d_comparison(output_dir="simulations/output/3d_comparison/full_t1_native_nx400", overwrite=true); publish_resolved3d_report_assets(r; overwrite=true)'
+./scripts/stenosis-hemodynamics compare-3d \
+  --output-dir tmp/major-revision-3d-comparison \
+  --overwrite \
+  --publish-report-assets \
+  --report-assets-dir figures/static/static/data/stenosis-comparison \
+  --radial-bin-counts 10,20,40 \
+  --radial-radius-modes current,reference
 \end{lstlisting}
 
 The raw upstream XDMF/HDF5 inputs used for
@@ -218,17 +201,17 @@ The tracked static data copied into the PDF has the following SHA-256 hashes:
 \textbf{Tracked file} & \textbf{SHA-256} \\
 \midrule
 \path{figures/static/static/data/stenosis-comparison/section-quadrature.dat}
-& 92a6df1b035373abf9cf4fdfd2df7254\newline
-fb52c7d46378ff3ce89345d9ec34ee2c \\
+& 5f3b8f2be5fa4bbb1035abf7acca995e\newline
+a38d2667642ed1cfe9c6ab39ee16b431 \\
 \path{figures/static/static/data/stenosis-comparison/radial-quadrature-C23.dat}
-& 27f2f12747bfb1eb87e62cac736c3df1\newline
-1b94b0a4f02b3b3ebf157e6b72435bcd \\
+& a2ce3e183c87946d80984186ebd20815\newline
+87e702a77854404c5dc715303727f70a \\
 \path{figures/static/static/data/stenosis-comparison/radial-quadrature-C40.dat}
-& 4e0a6527b87f5b395e96cf379346c288\newline
-9175e8e9181a7d3f4b2423b57df024f0 \\
+& bec0f0d6658809dae1cf4af5dff260be\newline
+69a19c347c1d5ce0a0a494330ed8b3e2 \\
 \path{figures/static/static/data/stenosis-comparison/node-slab-sensitivity.csv}
-& 23014b8c5342fce4bfb1e7878fff815d\newline
-b988082b0ba344fbcbc688042cd5c167 \\
+& 7af64a08ef4e84bcfe4770ab2b37be82\newline
+9b394a9cb9fcf3ad2ebd94951fbc9306 \\
 \path{figures/static/static/data/stenosis-comparison/area-audit.dat}
 & 98e1fbb5b06ebe8cd928784e8c48fdc3\newline
 9cc07b0dde228c58edaf82107a738696 \\
@@ -257,6 +240,59 @@ b4409291c8f02dcd5a4da2398892a7c1d \\
 \end{tabularx}
 \end{center}
 
+The tracked targeted-verification tables introduced for the major revision have
+the following SHA-256 hashes. They were generated with the package CLI:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+./scripts/stenosis-hemodynamics verify mms \
+  --nxs 50,100,200,400 \
+  --dt-values 2e-5,1e-5,5e-6,2.5e-6 \
+  --output-dir figures/static/static/tables/verification \
+  --overwrite
+
+./scripts/stenosis-hemodynamics verify rest \
+  --severities 23,40 \
+  --nxs 100,200,400,800 \
+  --elapsed-times 0,0.001,0.01,0.1 \
+  --output-dir figures/static/static/tables/verification \
+  --overwrite
+
+./scripts/stenosis-hemodynamics stokes refine \
+  --severities 23,40 \
+  --meshes 8x2x8,16x4x16 \
+  --pressure-drop-pa 40 \
+  --summary-csv figures/static/static/tables/verification/stationary_stokes_refinement.csv \
+  --overwrite \
+  --parallel-workers 0
+\end{lstlisting}
+
+\begin{center}
+\scriptsize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\ttfamily\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Tracked verification file} & \textbf{SHA-256} \\
+\midrule
+\path{figures/static/static/tables/verification/mms_verification.csv}
+& 071f8fd53bfdd49dbd58f42a6613bdfb\newline
+576e509b3ee0ffc23d43191bc218e408 \\
+\path{figures/static/static/tables/verification/mms_verification.tex}
+& c0c768fee47bb33d52cc6043b67dec07\newline
+9bbd17e9e1abc45f0ed591699f10ec02 \\
+\path{figures/static/static/tables/verification/rest_state_drift.csv}
+& 7026d7bec583901c80b515a8a05455c5\newline
+e4214c910971b1ef3a9ce76f3592ed29 \\
+\path{figures/static/static/tables/verification/rest_state_drift.tex}
+& 7252a8f3900050e5d2ed2df3dbbd168a\newline
+334bd09536e2e0aea3bf445fdd27725a \\
+\path{figures/static/static/tables/verification/stationary_stokes_refinement.csv}
+& e0e7e5cd705c15fb1446a6ad19d59ea0\newline
+0f72432a9b184523ff08e212570cdc7f \\
+\path{figures/static/static/tables/verification/stationary_stokes_refinement.tex}
+& 651ef81e6e9eb1a234fe9eb56f9f250b\newline
+450ba71933f021c55b0304d3db2ff080 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
 The non-archived comparison artifact observed for this build contains the
 following output hashes; these files are provenance evidence, not tracked
 archive contents:
@@ -267,26 +303,26 @@ archive contents:
 \textbf{Generated artifact file} & \textbf{SHA-256} \\
 \midrule
 \path{comparison_summary.csv}
-& c582ee73a73b8c988a185bf55e86943c\newline
-a7a459e9ad74f6826ca83bddafb165a2 \\
+& a3009b5672ca52ac555c3e7a26c7fe32\newline
+e2ea3567d8d5e457293365615c1ba69b \\
 \path{section_mean_case77_sev23.csv}
-& 641a7ca341f9e6a6d1eecfd13ab94a8\newline
-4fcd77d5eb79ff4ebec63efa47605c39e \\
+& 5f6874c2e5086e91c693f6de9584f68f\newline
+bf95a21aa182640236445dede4c5fcf4 \\
 \path{section_mean_case60_sev40.csv}
-& 807c548d90cbb21fbecc333cfc4f185e\newline
-a60e05e0b317a4d34d480026d897afa2 \\
+& b4f6500000c854c7caf33699b1c156c7\newline
+f822c0a17c62800ab52081f6149593da \\
 \path{radial_profile_case77_sev23.csv}
-& 781018d4772472479a3b4f76ed61e10e\newline
-7bdefa7786c2daba263e2a130fb2b56a \\
+& be6dec4f08d13ebb68bce007bcedbb00\newline
+3df7ee8eeaab4c6b220738d9f3b92b4f \\
 \path{radial_profile_case60_sev40.csv}
-& d29c698ec8c2c35ffa39f51fa24e6b0d\newline
-96a60049fae20a7a65722050e7ca9ad4 \\
+& 6af2f16af0ab6ed195d9298a68413b9f\newline
+e148034d8eaba8ef1dfbfe453c5f7ea0 \\
 \path{node_slab_sensitivity.csv}
-& 23014b8c5342fce4bfb1e7878fff815d\newline
-b988082b0ba344fbcbc688042cd5c167 \\
+& 7af64a08ef4e84bcfe4770ab2b37be82\newline
+9b394a9cb9fcf3ad2ebd94951fbc9306 \\
 \path{section_quadrature_overlay.svg}
-& 2b465f2593106cac942c5f3733cde046\newline
-23dbe51b6c2f4ebfa81486d6b59dab94 \\
+& 119d73f560cf4e44009002d1f033e318\newline
+efa63002476bfe58aa9b4e932e358937 \\
 \bottomrule
 \end{tabularx}
 \end{center}

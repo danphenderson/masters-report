@@ -31,10 +31,6 @@ def write_fixture_csvs(root: Path) -> None:
         "case_id,case_label,severity,profile,section_count,mean_abs_error_cm_s,max_abs_error_cm_s,mean_relative_error,max_relative_error,status,elapsed_s,error_message\n"
         "resolved,77,23,parabolic,20,0.5,1.0,0.1,0.2,ok,0.01,\n"
     )
-    (root / "python_mps.csv").write_text(
-        "case_id,language,backend,device,method,degree,nx,tfinal,status,elapsed_s,relative_area_mean_final,relative_flow_mean_final,raw_json,error_message\n"
-        "python,python,torch,mps,fv-first-order,,16,0.0001,ok,0.02,1e-8,1e-8,raw.json,\n"
-    )
 
 
 def test_renderer_generates_figures_and_table(tmp_path: Path) -> None:
@@ -67,7 +63,6 @@ def test_renderer_generates_figures_and_table(tmp_path: Path) -> None:
         "package-benchmark-backend-parity.png",
         "package-benchmark-rheology-profile.png",
         "package-benchmark-resolved3d.png",
-        "package-benchmark-python-mps.png",
     ]:
         assert (output_dir / name).exists()
     table = table_dir / "package-benchmark-summary.tex"

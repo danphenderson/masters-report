@@ -4,7 +4,6 @@
             profile="smoke",
             output_dir=dir,
             overwrite=true,
-            include_python=false,
             include_resolved3d=false,
             publish_report_assets=false,
         )
@@ -21,7 +20,6 @@
             "rheology_profile.csv",
             "boundary_openbf.csv",
             "resolved3d.csv",
-            "python_mps.csv",
         ])
         @test Set(basename.(result.csv_paths)) == expected
         for path in result.csv_paths

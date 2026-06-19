@@ -4,25 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-ipython      = "*"
-numpy        = "*"
-matplotlib   = "*"
-torch = "*"
-torchvision = "*"
-torchaudio = "*"
-pydantic = "==2.13.4"
-pydantic-core = "==2.46.4"
-pydantic-settings = "==2.14.1"
-python-dotenv = "*"
-rich = "*"
-pypdf = "*"
-typer = "==0.26.6"
+numpy      = "*"
+matplotlib = "*"
 
 [dev-packages]
 pre-commit  = "*"
 black       = "==25.1.0"
 flake8      = "==7.2.0"
-httpx       = "*"
 isort       = "==6.0.1"
 mypy        = "==1.15.0"
 pytest      = "*"

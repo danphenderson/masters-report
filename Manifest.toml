@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "1c66c2f131a5cf182fdd190dc1187717a8287fba"
+project_hash = "437747fb47010ab3d5e2489f468b91c54ac9e70a"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "bbc22a9a08a0ef6460041086d8a7b27940ed4ffd"
@@ -215,12 +215,6 @@ deps = ["CpuId", "IfElse", "PrecompileTools", "Preferences", "Static"]
 git-tree-sha1 = "f3a21d7fc84ba618a779d1ed2fcca2e682865bab"
 uuid = "2a0fbf3d-bb9c-48f3-b0a9-814d99fd7ab9"
 version = "0.2.7"
-
-[[deps.CanicExtended1D]]
-deps = ["DelimitedFiles", "Distributed", "EzXML", "Gridap", "HDF5", "LinearAlgebra", "OrdinaryDiffEq", "Printf", "SHA", "SciMLBase", "Statistics", "YAML"]
-path = "."
-uuid = "606b6601-022a-4f84-8a44-db32733ea2a8"
-version = "0.1.0"
 
 [[deps.ChunkCodecCore]]
 git-tree-sha1 = "1a3ad7e16a321667698a19e77362b35a1e94c544"
@@ -1704,6 +1698,12 @@ deps = ["LinearAlgebra"]
 git-tree-sha1 = "178ed29fd5b2a2cfc3bd31c13375ae925623ff36"
 uuid = "82ae8749-77ed-4fe6-ae5f-f523153014b0"
 version = "1.8.0"
+
+[[deps.StenosisHemodynamics]]
+deps = ["DelimitedFiles", "Distributed", "EzXML", "Gridap", "HDF5", "LinearAlgebra", "OrdinaryDiffEq", "Printf", "SHA", "SciMLBase", "Statistics", "YAML"]
+path = "."
+uuid = "606b6601-022a-4f84-8a44-db32733ea2a8"
+version = "0.1.0"
 
 [[deps.StrideArraysCore]]
 deps = ["ArrayInterface", "CloseOpenIntervals", "IfElse", "LayoutPointers", "LinearAlgebra", "ManualMemory", "SIMDTypes", "Static", "StaticArrayInterface", "ThreadingUtilities"]

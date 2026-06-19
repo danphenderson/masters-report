@@ -4,8 +4,9 @@ This report specifies an extended one-dimensional model for blood flow through
 an idealized stenotic vessel, records numerical-verification evidence for its
 implementation, and compares its velocity outputs with resolved
 three-dimensional data under an explicit cross-sectional operator. The physical
-area and flow variables are mapped to the radius-squared coordinates used in a
-MUSCL finite-volume discretization with SSPRK3 time integration. The
+area and flow variables are mapped to the solver convention $a=R^2$,
+$q=Q_{\mathrm{phys}}/\pi$, used in a MUSCL finite-volume discretization with
+SSPRK3 time integration. The
 formulation documents the continuous source-balanced Canic--Koiter wall law,
 the parabolic-profile baseline, variable-radius correction terms, boundary
 approximations, and output conventions so that the model and implementation are

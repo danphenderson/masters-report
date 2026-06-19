@@ -37,7 +37,6 @@ CSV_FILES = {
     "rheology_profile": "rheology_profile.csv",
     "boundary_openbf": "boundary_openbf.csv",
     "resolved3d": "resolved3d.csv",
-    "python_mps": "python_mps.csv",
 }
 
 METRIC_LABELS = {
@@ -430,7 +429,9 @@ def rheology_profile_figure(rows: list[dict[str, str]]) -> plt.Figure:
 def resolved3d_figure(rows: list[dict[str, str]]) -> plt.Figure:
     points = []
     for row in ok_rows(rows):
-        value = as_float(row, "mean_abs_error_cm_s")
+        value = as_float(row, "mean_abs_discrepancy_cm_s")
+        if value is None:
+            value = as_float(row, "mean_abs_error_cm_s")
         if value is not None:
             points.append((resolved_case_label(row), row.get("profile", ""), value))
     if not points:
@@ -481,72 +482,11 @@ def resolved3d_figure(rows: list[dict[str, str]]) -> plt.Figure:
     values = [value for _, _, value in points]
     fig, ax = plt.subplots(figsize=(max(6.5, 0.6 * len(values)), 3.8))
     ax.bar(range(len(values)), values, color="#217A7A")
-    ax.set_ylabel("Velocity $L_1$ average error, cm/s")
+    ax.set_ylabel("Velocity $L_1$ average discrepancy, cm/s")
     ax.set_title("Resolved-velocity CrossSectionQuadratureOperator diagnostic")
     ax.set_xticks(range(len(labels)))
     ax.set_xticklabels(labels, rotation=25, ha="right", fontsize=8)
     ax.grid(axis="y", alpha=0.25)
-    return fig
-
-
-def python_mps_figure(rows: list[dict[str, str]]) -> plt.Figure:
-    points = []
-    for row in ok_rows(rows):
-        elapsed = as_float(row, "elapsed_s")
-        rel_area = as_float(row, "relative_area_mean_final")
-        rel_flow = as_float(row, "relative_flow_mean_final")
-        finite_errors = [value for value in [rel_area, rel_flow] if value is not None]
-        if elapsed is not None:
-            points.append(
-                (row.get("method", ""), row.get("nx", ""), elapsed, max(finite_errors) if finite_errors else None)
-            )
-    if not points:
-        return placeholder_figure("Python CPU/MPS Benchmark", "Python/Torch-MPS rows did not emit OK records.")
-
-    methods = ordered_unique(method for method, _, _, _ in points)
-    nxs = sorted(ordered_unique(nx for _, nx, _, _ in points), key=integer_sort_key)
-    by_key = {(method, nx): (elapsed, relative_error) for method, nx, elapsed, relative_error in points}
-    width = min(0.22, 0.78 / max(1, len(nxs)))
-    nx_colors = {nx: QUALITATIVE_COLORS[index % len(QUALITATIVE_COLORS)] for index, nx in enumerate(nxs)}
-
-    fig, (ax_runtime, ax_error) = plt.subplots(
-        2,
-        1,
-        figsize=(7.4, 5.0),
-        sharex=True,
-        gridspec_kw={"height_ratios": [1.35, 1.0]},
-    )
-    x_positions = list(range(len(methods)))
-    for nx_index, nx in enumerate(nxs):
-        offset = (nx_index - (len(nxs) - 1) / 2.0) * width
-        positions: list[float] = []
-        runtimes: list[float] = []
-        errors: list[float] = []
-        error_positions: list[float] = []
-        for method_index, method in enumerate(methods):
-            values = by_key.get((method, nx))
-            if values is None:
-                continue
-            elapsed, relative_error = values
-            positions.append(method_index + offset)
-            runtimes.append(elapsed)
-            if relative_error is not None:
-                error_positions.append(method_index + offset)
-                errors.append(max(relative_error, 1.0e-16))
-        ax_runtime.bar(positions, runtimes, width=width * 0.88, color=nx_colors[nx], label=f"N={nx}")
-        ax_error.scatter(error_positions, errors, s=42, color=nx_colors[nx], edgecolor="white", linewidth=0.5)
-
-    ax_runtime.set_ylabel("Compare elapsed, seconds")
-    ax_runtime.set_title("Python native/Torch-MPS comparison runtime and final differences")
-    ax_runtime.grid(axis="y", alpha=0.25)
-    ax_runtime.legend(title="Grid", fontsize=8, title_fontsize=8, ncols=len(nxs))
-    ax_error.set_ylabel("Max relative final difference")
-    ax_error.set_yscale("log")
-    ax_error.grid(axis="y", which="both", alpha=0.25)
-    ax_error.set_xticks(x_positions)
-    ax_error.set_xticklabels([method_label(method) for method in methods], rotation=25, ha="right", fontsize=8)
-    ax_error.set_xlabel("Python spatial method")
-    fig.tight_layout()
     return fig
 
 
@@ -620,9 +560,6 @@ def render_all(benchmark_dir: Path, output_dir: Path, table_dir: Path, formats: 
     )
     written.extend(
         save_figure(resolved3d_figure(tables["resolved3d"]), output_dir, "package-benchmark-resolved3d", formats)
-    )
-    written.extend(
-        save_figure(python_mps_figure(tables["python_mps"]), output_dir, "package-benchmark-python-mps", formats)
     )
     written.append(write_summary_table(tables, table_dir))
     return written

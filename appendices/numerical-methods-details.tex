@@ -2,10 +2,9 @@
 \label{app:numerical-methods-details}
 This appendix supplies the numerical-method detail behind
 Section~\ref{subsubsec:cross-sectional-reduction-selected-1d-model} and the
-comparison boundary in
-Section~\ref{subsec:model-hierarchy-comparison-boundary}. It is supporting
-method detail, not a claim of external-solver parity for the implemented
-solver.
+comparison operator in
+Section~\ref{subsec:plane-tetrahedron-comparison-operator}. It is supporting
+method detail, not a claim of external-solver parity for the implemented solver.
 The continuous identities are read under
 Convention~\ref{conv:foundation-standing-regularity}; computed quantities are
 read through the following numerical-record convention.
@@ -252,7 +251,54 @@ applied to reconstructed $a$ states before flux evaluation. The cell source is
 not MUSCL-reconstructed; it is evaluated at cell centers using the recorded
 $D_z^h$ differences below. The first-order finite-volume method is the separate
 path that passes neighboring cell and ghost states directly to the same
-Rusanov flux. The local numerical speed is
+Rusanov flux.
+
+The implemented report-now spatial surface also includes a native
+Richtmyer/Lax--Wendroff finite-volume path. It uses the same minmod-limited
+interface states as above, then forms the half-step interface state
+\begin{flalign*}
+    \quad
+    \mathbf U^{\mathrm{LW}}_{i+1/2}
+    =
+    \frac{1}{2}\left(
+        \mathbf U^-_{i+1/2}+\mathbf U^+_{i+1/2}
+    \right)
+    -
+    \frac{\Delta t}{2\Delta z}
+    \left[
+        \mathbf F(\mathbf U^+_{i+1/2},z_{i+1/2})
+        -
+        \mathbf F(\mathbf U^-_{i+1/2},z_{i+1/2})
+    \right],
+    &&
+\end{flalign*}
+with positivity limiting on its $a$ component before the interface flux is
+evaluated as
+\begin{flalign*}
+    \quad
+    \widehat{\mathbf F}^{\mathrm{LW}}_{i+1/2}
+    =
+    \mathbf F(\mathbf U^{\mathrm{LW}}_{i+1/2},z_{i+1/2}). &&
+\end{flalign*}
+Because this path depends explicitly on $\Delta t/\Delta z$, it is a native
+fixed-step alternative and is not the semi-discrete operator passed to the
+SciML \texttt{ODEProblem} backend.
+
+The native modal DG option represents each cell state by Legendre coefficients,
+\begin{flalign*}
+    \quad
+    \mathbf U_i(\xi,t)
+    =
+    \sum_{m=0}^{p}\widehat{\mathbf U}_{i,m}(t)P_m(\xi),
+    \qquad -1\le\xi\le1,\qquad p\in\{0,1,2\}. &&
+\end{flalign*}
+The implemented DG interface traces are evaluated at $\xi=\pm1$ and passed to
+the same Rusanov flux form, while cell-volume flux and source contributions use
+the recorded quadrature rule. The degree-zero DG path is recorded as the
+cell-average finite-volume bridge; degrees one and two are native modal-DG
+benchmark rows, not the selected C23/C40 comparison method.
+
+The local numerical speed for the Rusanov finite-volume and DG interface fluxes is
 \begin{flalign*}
     \quad
     s_{i+1/2}
@@ -354,8 +400,9 @@ $\alpha_{\mathcal P}=1$ and an explicit finite $g_{\mathcal P}$.
 \subsection{Time-integration realization}
 \label{app:num-time-integration-realization}
 
-The native time integrator advances the semi-discrete operator with the declared
-third-order strong-stability-preserving Runge--Kutta map
+The native time integrator selected for the reported comparison advances the
+semi-discrete operator with the declared third-order strong-stability-preserving
+Runge--Kutta map
 \begin{flalign*}
     \quad
     u_h^{n+1}
@@ -381,7 +428,9 @@ the $a$-components,
             u^{(2)}+\Delta t_n\mathcal L_h(u^{(2)},t^n+\Delta t_n)
         \right]\right). &&
 \end{flalign*}
-The native step size is
+The native code also exposes Forward Euler and SSPRK2 steppers for diagnostic
+sensitivity rows; they are not the selected time integrators for the principal
+comparison. The native step size is
 \begin{flalign*}
     \quad
     \Delta t_n
@@ -394,13 +443,16 @@ The native step size is
 \end{flalign*}
 The SciML realization constructs an \texttt{ODEProblem} for the same
 $\dot u_h=\mathcal L_h(u_h,t;\theta)$ and applies the selected
-OrdinaryDiffEq policy recorded in the solve specification. Thus comparisons
-between these realizations change the time integrator, not the semi-discrete
-spatial operator. The native fully discrete path applies the stage projection
-$\Pi$, whereas the SciML path integrates the unprojected ODE system. If
-$\Pi$ activates, the compared paths are no longer identical fully discrete
-problems; the archived comparison records do not persist projection-activation
-counts.
+OrdinaryDiffEq policy recorded in the solve specification. The local policy
+surface exposes \texttt{auto}, \texttt{tsit5}, and \texttt{rodas5p}. Thus
+comparisons between these realizations change the time integrator, not the
+semi-discrete spatial operator, for the spatial methods supported by that
+backend. The native fully discrete path applies the stage projection $\Pi$,
+whereas the SciML path integrates the unprojected ODE system. If $\Pi$
+activates, the compared paths are no longer identical fully discrete problems;
+the archived comparison records do not persist projection-activation counts.
+The current SciML backend excludes the Richtmyer/Lax--Wendroff path and DG
+degrees greater than zero; those rows remain native fixed-step method checks.
 
 \subsection{Boundary-state realization}
 \label{app:num-boundary-state-realization}

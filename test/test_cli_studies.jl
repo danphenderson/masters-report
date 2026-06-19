@@ -1,4 +1,4 @@
-@testset "CanicExtended1D CLI parsing" begin
+@testset "StenosisHemodynamics CLI parsing" begin
     @test parse_args(["--help"]) === nothing
 
     @testset "native defaults" begin
@@ -16,6 +16,8 @@
         @test params.time_stepper isa SSPRK3Stepper
         @test params.rheology isa NewtonianRheology
         @test params.velocity_profile isa ParabolicVelocityProfile
+        @test params.model isa CanicExtendedOneDModel
+        @test model_name(params) == "canic-extended-1d"
         @test params.alpha ≈ 4.0 / 3.0
         @test params.initial_condition isa StationaryStokesIC
         @test params.initial_condition.pressure_drop_dyn_cm2 == 400.0
@@ -116,6 +118,22 @@
         @test alpha_params.alpha ≈ power_params.alpha
     end
 
+    @testset "forward model flags" begin
+        classical_params, _, _ = parse_args([
+            "--model", "classical-1d-no-slip",
+            "--velocity-profile", "parabolic",
+            "--tfinal", "5e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--ic", "geometry-rest",
+        ])
+        @test classical_params.model isa ClassicalNoSlip1DModel
+        @test model_name(classical_params) == "classical-1d-no-slip"
+        @test variable_radius_terms_enabled(classical_params) == false
+        @test classical_params.velocity_profile isa ParabolicVelocityProfile
+    end
+
     @testset "SciML flags" begin
         params, output, backend = parse_args([
             "--backend", "sciml",
@@ -159,10 +177,81 @@
         @test_throws ArgumentError parse_args(["--velocity-profile", "flat", "--profile-shear-factor", "0", "--ic", "geometry-rest"])
         @test_throws ArgumentError parse_args(["--velocity-profile", "parabolic", "--profile-shear-factor", "4", "--ic", "geometry-rest"])
         @test_throws ArgumentError parse_args(["--alpha", "1.1", "--velocity-profile", "power", "--profile-exponent", "9", "--ic", "geometry-rest"])
+        @test_throws ArgumentError parse_args(["--model", "classical-1d-no-slip", "--velocity-profile", "flat", "--ic", "geometry-rest"])
+        @test_throws ArgumentError parse_args(["--model", "classical-1d-no-slip", "--alpha", "1.1", "--ic", "geometry-rest"])
     end
 end
 
-@testset "CanicExtended1D study output provenance" begin
+@testset "StenosisHemodynamics CLI command dispatch" begin
+    help_text = read(`$(joinpath(pwd(), "scripts", "stenosis-hemodynamics")) --help`, String)
+    @test occursin("simulate", help_text)
+    @test occursin("benchmark", help_text)
+
+    mktempdir() do dir
+        csv_path = joinpath(dir, "simulate.csv")
+        result = run_cli([
+            "simulate",
+            "--ic", "geometry-rest",
+            "--tfinal", "1e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--output", csv_path,
+        ])
+        @test result isa SimulationResult
+        @test isfile(csv_path)
+        @test occursin("model,variable_radius_terms,wall_law", first(readlines(csv_path)))
+    end
+
+    mktempdir() do dir
+        csv_path = joinpath(dir, "classical.csv")
+        result = run_cli([
+            "simulate",
+            "--model", "classical-1d-no-slip",
+            "--velocity-profile", "parabolic",
+            "--ic", "geometry-rest",
+            "--tfinal", "1e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--output", csv_path,
+        ])
+        @test result isa SimulationResult
+        rows = readlines(csv_path)
+        @test occursin("classical-1d-no-slip,false,canic-koiter-thin-membrane", rows[2])
+        @test_throws ArgumentError run_cli([
+            "simulate",
+            "--model", "classical-1d-no-slip",
+            "--velocity-profile", "flat",
+            "--ic", "geometry-rest",
+            "--tfinal", "1e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--output", joinpath(dir, "bad.csv"),
+        ])
+    end
+
+    mktempdir() do dir
+        config_path, _ = write_openbf_fixture(dir; project_name="cli_openbf")
+        result = run_cli(["openbf-run", "--config", config_path])
+        @test result isa SimulationResult
+        @test isfile(joinpath(dir, "out", "cli_openbf.csv"))
+    end
+
+    mktempdir() do dir
+        result = run_cli(["compare-3d", "--data-root", joinpath(dir, "missing"), "--output-dir", joinpath(dir, "out"), "--overwrite"])
+        @test result === nothing
+    end
+
+    mktempdir() do dir
+        result = run_cli(["benchmark", "--profile", "smoke", "--output-dir", dir, "--overwrite"])
+        @test result isa PackageBenchmarkResult
+        @test isfile(joinpath(dir, "manifest.json"))
+    end
+end
+
+@testset "StenosisHemodynamics study output provenance" begin
     parabolic_spec = SeveritySweepSpec(
         base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC()),
         severities=[23.0, 50.0],
@@ -209,13 +298,20 @@ end
         )
         flat_result = run_study(flat_spec)
         flat_row = only(flat_result.summaries)
+        @test flat_row.model == "canic-extended-1d"
+        @test flat_row.variable_radius_terms == true
+        @test flat_row.wall_law == "canic-koiter-thin-membrane"
         @test flat_row.velocity_profile == "flat"
         @test flat_row.alpha ≈ 1.0
         @test isnan(flat_row.profile_exponent)
         @test flat_row.shear_rate_factor ≈ 8.0
         flat_csv = read(flat_result.summary_csv, String)
+        @test occursin("model,variable_radius_terms,wall_law", flat_csv)
         @test occursin("velocity_profile,alpha,profile_exponent,shear_rate_factor", flat_csv)
         flat_csv_row = only(read_simple_csv(flat_result.summary_csv))
+        @test flat_csv_row["model"] == "canic-extended-1d"
+        @test flat_csv_row["variable_radius_terms"] == "true"
+        @test flat_csv_row["wall_law"] == "canic-koiter-thin-membrane"
         @test flat_csv_row["velocity_profile"] == "flat"
         @test parse(Float64, flat_csv_row["alpha"]) ≈ 1.0
         @test isnan(parse(Float64, flat_csv_row["profile_exponent"]))
@@ -249,7 +345,7 @@ end
     end
 end
 
-@testset "CanicExtended1D process-parallel studies" begin
+@testset "StenosisHemodynamics process-parallel studies" begin
     mktempdir() do dir
         spec = SeveritySweepSpec(
             base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC()),
@@ -272,7 +368,7 @@ end
     end
 end
 
-@testset "CanicExtended1D stationary Stokes refinement study" begin
+@testset "StenosisHemodynamics stationary Stokes refinement study" begin
     mktempdir() do dir
         base_params = Params(nx=4, tfinal=0.0, severity=0.0, initial_condition=GeometryRestIC())
         spec = StationaryStokesRefinementSpec(
@@ -333,7 +429,7 @@ end
     end
 end
 
-@testset "CanicExtended1D refinement studies" begin
+@testset "StenosisHemodynamics refinement studies" begin
     mktempdir() do dir
         @test SeveritySweepSpec(severities=[23.0]).base_params.initial_condition isa GeometryRestIC
         @test GridConvergenceStudySpec(nxs=[8, 16]).base_params.initial_condition isa GeometryRestIC

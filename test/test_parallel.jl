@@ -1,9 +1,9 @@
-@testset "CanicExtended1D case worker configuration" begin
-    @test CanicExtended1D.default_case_workers(Dict("JULIA_CASE_WORKERS" => "3")) == 3
-    @test CanicExtended1D.default_case_workers(Dict("JULIA_CASE_WORKERS" => "")) == 1
-    @test CanicExtended1D.effective_case_workers(3, 10) == 3
-    @test CanicExtended1D.effective_case_workers(3, 0) == 0
-    @test_throws ArgumentError CanicExtended1D.default_case_workers(Dict("JULIA_CASE_WORKERS" => "many"))
+@testset "StenosisHemodynamics case worker configuration" begin
+    @test StenosisHemodynamics.default_case_workers(Dict("JULIA_CASE_WORKERS" => "3")) == 3
+    @test StenosisHemodynamics.default_case_workers(Dict("JULIA_CASE_WORKERS" => "")) == 1
+    @test StenosisHemodynamics.effective_case_workers(3, 10) == 3
+    @test StenosisHemodynamics.effective_case_workers(3, 0) == 0
+    @test_throws ArgumentError StenosisHemodynamics.default_case_workers(Dict("JULIA_CASE_WORKERS" => "many"))
     @test parallel_case_map(x -> x + 1, [1, 2, 3]; parallel_workers=1) == [2, 3, 4]
 
     worker_rows = parallel_case_map([1, 2]; parallel_workers=2) do value

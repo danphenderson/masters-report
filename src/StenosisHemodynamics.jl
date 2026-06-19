@@ -1,0 +1,235 @@
+if VERSION < v"1.12"
+    error(
+        "StenosisHemodynamics requires Julia 1.12 or newer. " *
+        "Run it with ./scripts/julia-release ... or julia +release --project=....",
+    )
+end
+
+"""
+Finite-volume Canic extended 1D stenotic artery simulation.
+
+Public protocol:
+
+`Params` -> `semidiscretize`/packed RHS -> time backend and `SolveSpec` ->
+`simulate` -> `SimulationResult` -> diagnostics or `run_study`.
+
+The native backend is the default fixed-step SSP RK3 path. SciML support is
+kept behind backend/adapter code so geometry, model equations, and output code
+do not depend directly on SciML packages.
+"""
+module StenosisHemodynamics
+
+using SHA
+using Statistics
+
+export AbstractTimeBackend,
+       AbstractAlgorithmPolicy,
+       AbstractInletBoundary,
+       AbstractOutletBoundary,
+       AbstractRheology,
+       AbstractLimiter,
+       AbstractInitialConditionSpec,
+       AbstractForwardModel,
+       AbstractForcingTerm,
+       AbstractNativeTimeStepper,
+       AbstractSpatialMethod,
+       AbstractVelocityProfile,
+       AbstractWallLaw,
+       AutoPolicy,
+       CanicKoiterWallLaw,
+       CanicExtendedOneDModel,
+       CarreauRheology,
+       CarreauYasudaRheology,
+       CassonRheology,
+       ClassicalNoSlip1DModel,
+       AbstractStudySpec,
+       CrossSectionQuadratureOperator,
+       ComparisonResult,
+       ComparisonSpec,
+       ComparisonSummaryRow,
+       DGMethod,
+       FVFirstOrderMethod,
+       FVLaxWendroffMethod,
+       FVMUSCLMethod,
+       FixedAreaCharacteristicOutlet,
+       FlatVelocityProfile,
+       FlowWaveformInlet,
+       ForwardEulerStepper,
+       GeneratedStokesMesh,
+       GeometryRestIC,
+       GeometryExportOptions,
+       GridConvergenceStudySpec,
+       InitialConditionSummary,
+       MinmodLimiter,
+       ManufacturedForcing,
+       ManufacturedSolutionIC,
+       ManufacturedVerificationResult,
+       ManufacturedVerificationRow,
+       ManufacturedVerificationSpec,
+       NativeSSPRKPolicy,
+       NativeRK3Backend,
+       NoForcing,
+       NodeSlabOperator,
+       NodeSlabSensitivityRow,
+       NewtonianRheology,
+       Params,
+       OutputSpec,
+       OpenBFRunSpec,
+       PackageBenchmarkResult,
+       PackageBenchmarkSpec,
+       PackedStateLayout,
+       ParabolicVelocityProfile,
+       PowerLawRheology,
+       PowerVelocityProfile,
+       RefinementStudyResult,
+       RefinementStudySpec,
+       RefinementStudyRow,
+       ReflectionCoefficientOutlet,
+       Rodas5PPolicy,
+       RestStateDriftResult,
+       RestStateDriftRow,
+       RestStateDriftSpec,
+       SciMLTimeBackend,
+       RadialProfileRow,
+       Resolved3DCaseSpec,
+       Resolved3DVelocityField,
+       SectionComparisonRow,
+       SimulationResult,
+       SimulationDiagnostics,
+       SemiDiscreteSimulation,
+       SolveSpec,
+       SSPRK2Stepper,
+       SSPRK3Stepper,
+       StationaryStokesIC,
+       StationaryStokesRefinementResult,
+       StationaryStokesRefinementRow,
+       StationaryStokesRefinementSpec,
+       SteadyVelocityInlet,
+       SeveritySweepSpec,
+       StudyResult,
+       StudyRunSummary,
+       Tsit5Policy,
+       XDMFVelocityMetadata,
+       area_view,
+       algorithm_name,
+       algorithm_policy,
+       available_resolved3d_cases,
+       backend_algorithm_name,
+       backend_name,
+       characteristic_shear_rate,
+       characteristic_speeds,
+       default_output_stub,
+       default_resolved3d_cases,
+       default_resolved3d_data_root,
+       default_refinement_output_dir,
+       default_study_summary_path,
+       dg_degrees_of_freedom,
+       dg_quadrature,
+       effective_dynamic_viscosity,
+       effective_kinematic_viscosity,
+       export_stenosis_geometry_figures,
+       flow_view,
+       forcing_name,
+       forward_model,
+       forward_model_name,
+       initial_condition,
+       initial_condition_name,
+       initial_condition_values,
+       initial_state_result,
+       inlet_boundary_name,
+       inlet_flow,
+       generated_stokes_mesh,
+       load_openbf_config,
+       load_resolved3d_velocity,
+       legendre_derivative,
+       legendre_value,
+       limiter_name,
+       mean_to_max_velocity_ratio,
+       minmod,
+       model_name,
+       momentum_alpha,
+       observed_order,
+       ode_problem,
+       outlet_boundary_name,
+       pack_state,
+       parse_xdmf_velocity,
+       parallel_case_map,
+       parse_args,
+       params_from_openbf_config,
+       pressure,
+       profile_exponent,
+       profile_name,
+       publish_resolved3d_report_assets,
+       radial_profile_velocity,
+       run_refinement_study,
+       run_manufactured_verification,
+       run_stationary_stokes_refinement,
+       run_rest_state_drift,
+       run_available_resolved3d_comparison,
+       run_package_benchmark,
+       run_cli,
+       run_comparison,
+       run_simulation,
+       rhs!,
+       rheology_name,
+       run_study,
+       semidiscretize,
+       shear_rate_factor,
+       simulate,
+       solve_stationary_stokes,
+       spatial_method_name,
+       state_views,
+       stenosis_throat_z,
+       study_summary_path,
+       time_stepper_name,
+       unpack_state,
+       variable_radius_terms_enabled,
+       velocity,
+       wall_boundary_condition,
+       wall_law_name,
+       write_comparison_csvs,
+       write_csv,
+       write_refinement_latex_tables,
+       write_refinement_study_csv,
+       write_section_comparison_svg,
+       write_stationary_stokes_refinement_csv,
+       write_stationary_stokes_refinement_tex,
+       write_study_csv,
+       write_svg
+
+include("StenosisHemodynamics/logging.jl")
+include("StenosisHemodynamics/methods.jl")
+include("StenosisHemodynamics/rheology.jl")
+include("StenosisHemodynamics/initial_conditions.jl")
+include("StenosisHemodynamics/profiles.jl")
+include("StenosisHemodynamics/forward_models.jl")
+include("StenosisHemodynamics/wall_laws.jl")
+include("StenosisHemodynamics/boundaries.jl")
+include("StenosisHemodynamics/verification_types.jl")
+include("StenosisHemodynamics/types.jl")
+include("StenosisHemodynamics/parallel.jl")
+include("StenosisHemodynamics/policies.jl")
+include("StenosisHemodynamics/geometry.jl")
+include("StenosisHemodynamics/state.jl")
+include("StenosisHemodynamics/model.jl")
+include("StenosisHemodynamics/diagnostics.jl")
+include("StenosisHemodynamics/stokes_ic.jl")
+include("StenosisHemodynamics/solver.jl")
+include("StenosisHemodynamics/dg.jl")
+include("StenosisHemodynamics/sciml_problem.jl")
+include("StenosisHemodynamics/backends.jl")
+include("StenosisHemodynamics/outputs.jl")
+include("StenosisHemodynamics/openbf_protocol.jl")
+include("StenosisHemodynamics/studies.jl")
+include("StenosisHemodynamics/refinement.jl")
+include("StenosisHemodynamics/resolved3d_types.jl")
+include("StenosisHemodynamics/resolved3d_io.jl")
+include("StenosisHemodynamics/resolved3d_compare.jl")
+include("StenosisHemodynamics/resolved3d_outputs.jl")
+include("StenosisHemodynamics/stationary_stokes_refinement.jl")
+include("StenosisHemodynamics/verification.jl")
+include("StenosisHemodynamics/geometry_exports.jl")
+include("StenosisHemodynamics/benchmarks.jl")
+include("StenosisHemodynamics/cli.jl")
+
+end

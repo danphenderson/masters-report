@@ -1,4 +1,4 @@
-@testset "CanicExtended1D resolved 3D parsing and loading" begin
+@testset "StenosisHemodynamics resolved 3D parsing and loading" begin
     mktempdir() do dir
         xdmf_path, coords, velocity_values = write_synthetic_xdmf_hdf5_case(joinpath(dir, "synthetic"))
 
@@ -32,35 +32,35 @@
     end
 end
 
-@testset "CanicExtended1D cross-section quadrature" begin
+@testset "StenosisHemodynamics cross-section quadrature" begin
     mktempdir() do dir
         xdmf_path, _, _ = write_single_tetra_xdmf_hdf5_case(joinpath(dir, "tetra"))
         case_spec = Resolved3DCaseSpec("tetra", 0.0, xdmf_path; target_time=5.0e-5)
         field = load_resolved3d_velocity(case_spec)
 
-        mid = CanicExtended1D.quadrature_section_observation(field, 0.5)
+        mid = StenosisHemodynamics.quadrature_section_observation(field, 0.5)
         @test mid.area_valid
         @test mid.cut_status == "valid"
         @test mid.area_cm2 ≈ 0.125
         @test mid.flow_cm3_s / mid.area_cm2 ≈ 10.5
         @test mid.intersection_count == 3
 
-        face = CanicExtended1D.quadrature_section_observation(field, 0.0)
+        face = StenosisHemodynamics.quadrature_section_observation(field, 0.0)
         @test face.area_valid
         @test face.cut_status == "valid"
         @test face.area_cm2 ≈ 0.5
         @test face.mean_velocity_cm_s ≈ 10.0
 
-        empty = CanicExtended1D.quadrature_section_observation(field, 2.0)
+        empty = StenosisHemodynamics.quadrature_section_observation(field, 2.0)
         @test !empty.area_valid
         @test empty.cut_status == "empty-plane"
         @test empty.intersection_count == 0
 
-        tangent = CanicExtended1D.quadrature_section_observation(field, 1.0)
+        tangent = StenosisHemodynamics.quadrature_section_observation(field, 1.0)
         @test !tangent.area_valid
         @test tangent.cut_status == "degenerate-cut"
 
-        radial = CanicExtended1D.radial_profile_observations(field, 0.5, 1.0, 4, CrossSectionQuadratureOperator())
+        radial = StenosisHemodynamics.radial_profile_observations(field, 0.5, 1.0, 4, CrossSectionQuadratureOperator())
         @test sum(row.area_valid ? row.area_cm2 : 0.0 for row in radial) ≈ mid.area_cm2
         @test any(row.intersection_count > 0 for row in radial)
 
@@ -71,7 +71,7 @@ end
         constant_field = load_resolved3d_velocity(
             Resolved3DCaseSpec("constant", 0.0, constant_path; target_time=5.0e-5),
         )
-        constant_mid = CanicExtended1D.quadrature_section_observation(constant_field, 0.5)
+        constant_mid = StenosisHemodynamics.quadrature_section_observation(constant_field, 0.5)
         @test constant_mid.area_valid
         @test constant_mid.mean_velocity_cm_s ≈ 12.25 atol=1.0e-12
         @test constant_mid.flow_cm3_s ≈ 12.25 * constant_mid.area_cm2 atol=1.0e-12
@@ -83,7 +83,7 @@ end
         linear_field = load_resolved3d_velocity(
             Resolved3DCaseSpec("linear", 0.0, linear_path; target_time=5.0e-5),
         )
-        linear_mid = CanicExtended1D.quadrature_section_observation(linear_field, 0.5)
+        linear_mid = StenosisHemodynamics.quadrature_section_observation(linear_field, 0.5)
         exact_linear_mean = 2.0 + 3.0 * (1.0 / 6.0) + 5.0 * (1.0 / 6.0) + 7.0 * 0.5
         @test linear_mid.area_valid
         @test linear_mid.area_cm2 ≈ 0.125 atol=1.0e-12
@@ -103,7 +103,7 @@ end
         vertex_field = load_resolved3d_velocity(
             Resolved3DCaseSpec("vertex", 0.0, vertex_path; target_time=5.0e-5),
         )
-        vertex_cut = CanicExtended1D.quadrature_section_observation(vertex_field, 0.0)
+        vertex_cut = StenosisHemodynamics.quadrature_section_observation(vertex_field, 0.0)
         @test vertex_cut.area_valid
         @test vertex_cut.cut_status == "valid"
         @test isfinite(vertex_cut.flow_cm3_s)
@@ -121,14 +121,14 @@ end
         edge_field = load_resolved3d_velocity(
             Resolved3DCaseSpec("edge", 0.0, edge_path; target_time=5.0e-5),
         )
-        edge_cut = CanicExtended1D.quadrature_section_observation(edge_field, 0.0)
+        edge_cut = StenosisHemodynamics.quadrature_section_observation(edge_field, 0.0)
         @test !edge_cut.area_valid
         @test edge_cut.cut_status == "degenerate-cut"
         @test edge_cut.intersection_count == 0
     end
 end
 
-@testset "CanicExtended1D resolved 3D comparison diagnostics" begin
+@testset "StenosisHemodynamics resolved 3D comparison diagnostics" begin
     mktempdir() do dir
         xdmf_path, _, _ = write_synthetic_xdmf_hdf5_case(joinpath(dir, "case77"))
         case_spec = Resolved3DCaseSpec("77", 23.0, xdmf_path; target_time=5.0e-5)
@@ -210,7 +210,7 @@ end
     end
 end
 
-@testset "CanicExtended1D resolved 3D absent-data skip" begin
+@testset "StenosisHemodynamics resolved 3D absent-data skip" begin
     mktempdir() do dir
         missing_root = joinpath(dir, "not_present")
         @test isempty(available_resolved3d_cases(missing_root))
@@ -223,11 +223,11 @@ end
         default_opts = GeometryExportOptions()
         @test isabspath(default_opts.output_dir)
         @test isabspath(default_opts.data_root)
-        @test CanicExtended1D.portable_project_path(joinpath(CanicExtended1D.PROJECT_ROOT, "figures", "out.csv")) ==
+        @test StenosisHemodynamics.portable_project_path(joinpath(StenosisHemodynamics.PROJECT_ROOT, "figures", "out.csv")) ==
               joinpath("figures", "out.csv")
-        @test CanicExtended1D.portable_project_path(joinpath(dir, "outside.csv")) == joinpath(dir, "outside.csv")
+        @test StenosisHemodynamics.portable_project_path(joinpath(dir, "outside.csv")) == joinpath(dir, "outside.csv")
 
-        parsed_opts = CanicExtended1D.parse_export_args([
+        parsed_opts = StenosisHemodynamics.parse_export_args([
             "--output-dir", dir,
             "--data-root", joinpath(dir, "resolved"),
             "--z-samples", "31",
@@ -241,12 +241,12 @@ end
         @test parsed_opts.overwrite == true
 
         opts = GeometryExportOptions(output_dir=dir, z_samples=31, theta_samples=12, overwrite=true)
-        CanicExtended1D.export_analytic_summary(opts)
+        StenosisHemodynamics.export_analytic_summary(opts)
         summary_rows = read_simple_csv(joinpath(dir, "analytic_summary.csv"))
         sev73 = only(row for row in summary_rows if parse(Float64, row["severity"]) == 73.0)
         @test parse(Float64, sev73["rmin_over_rbase"]) ≈ 0.27 atol=5.0e-4
 
-        mesh_paths = CanicExtended1D.export_mesh_view_data(opts)
+        mesh_paths = StenosisHemodynamics.export_mesh_view_data(opts)
         @test length(mesh_paths) == 3
         @test all(isfile, mesh_paths)
         mesh_manifest = only(row for row in read_simple_csv(mesh_paths[1]) if row["status"] == "written")
@@ -293,7 +293,7 @@ end
             theta_samples=12,
             overwrite=true,
         )
-        velocity_paths = CanicExtended1D.export_resolved_velocity_nodes(resolved_opts)
+        velocity_paths = StenosisHemodynamics.export_resolved_velocity_nodes(resolved_opts)
         @test length(velocity_paths) == 2
         @test isfile(velocity_paths[1])
         @test isfile(velocity_paths[2])
@@ -306,7 +306,7 @@ end
         @test written["case_label"] == "77"
         @test parse(Int, written["node_count"]) == size(coords, 1)
 
-        paths = CanicExtended1D.export_stokes_particle_trajectories(
+        paths = StenosisHemodynamics.export_stokes_particle_trajectories(
             opts;
             ic=StationaryStokesIC(
                 pressure_drop_pa=40.0,
@@ -339,7 +339,7 @@ end
             @test r_over_r0 <= 1.0001
 
             params = Params(severity=severity, initial_condition=GeometryRestIC())
-            r0, _, _ = CanicExtended1D.stenosis(z, params)
+            r0, _, _ = StenosisHemodynamics.stenosis(z, params)
             @test hypot(x, y) <= 1.0001 * r0
         end
 

@@ -1,4 +1,4 @@
-@testset "CanicExtended1D simulation backends" begin
+@testset "StenosisHemodynamics simulation backends" begin
     native_params = Params(nx=8, tfinal=5.0e-5, severity=30.0, initial_condition=GeometryRestIC())
 
     @testset "native short run" begin
