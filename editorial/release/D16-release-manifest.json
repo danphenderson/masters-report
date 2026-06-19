@@ -2,8 +2,8 @@
   "manifest_schema": "masters-report-release-record-v1",
   "dispatch_id": "D16",
   "proposal_base_commit": "beb774d8d32addf4fd64fae722b51ce106b9671f",
-  "canonical_release_id": "D16-INTEGRATION-RELEASE-ID",
-  "canonical_release_id_status": "integration-time placeholder; replace with final integrated commit or tag before public release",
+  "canonical_release_id": "masters-report-final-2026-06-19",
+  "canonical_release_id_status": "canonical final tag assigned during global consistency remediation; D99 verifies it points to the final release commit",
   "source_root": "final-report.tex",
   "julia_package": {
     "name": "StenosisHemodynamics",

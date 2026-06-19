@@ -1,0 +1,148 @@
+figures/static/static/tikz/anatomical-vs-functional-stenosis.tex:6:\begin{tikzpicture}[fig, scale=1.08, transform shape,
+figures/static/static/tikz/anatomical-vs-functional-stenosis.tex:62:  \node[ptitle, bloodred!75!black, anchor=west] at (1.02,1.93)
+figures/static/static/tikz/stenosis-schematic.tex:8:\begin{tikzpicture}[fig, scale=1.0,
+figures/static/static/tikz/stenosis-schematic.tex:19:  \def\R{1.0}                   % reference radius
+figures/static/static/tikz/stenosis-schematic.tex:22:  \def\sigmaA{1.0}              % asymmetry width
+figures/static/static/tikz/stenosis-schematic.tex:81:  \draw[<->, mathblue, line width=1.0pt]
+figures/static/static/tikz/stenosis-schematic.tex:89:  \draw[flowArrow, line width=1.0pt] (\L+0.1,0) -- (\L+1.1,0);
+figures/static/static/tikz/stenosis-schematic.tex:96:  \draw[axisArrow] (-1.2,-\R-1.05) -- (\L+1.2,-\R-1.05)
+figures/static/static/tikz/stenosis-schematic.tex:100:  \draw[mathblue, line width=0.4pt] (\zstar,-\R-1.05) -- (\zstar,-\R-0.92);
+appendices/domain-notation.tex:31:quantity is explicitly labelled \texttt{Aphys\_cm2} or \texttt{Qphys\_cm3\_s}.
+appendices/domain-notation.tex:89:        $R_0(z)$ & reference stenosed radius used by the geometry and wall source & length \\
+appendices/domain-notation.tex:101:        $\beta(z)$ & wall-law stiffness parameter; for the selected member $\beta=\sqrt\pi K R_0^2/R_{\max}^2$ & pressure\,$\cdot$\,length \\
+appendices/code-and-ai-use.tex:36:  --target-time 1.0 \
+appendices/code-and-ai-use.tex:66:cuts, wall/boundary/material histories, and exact-time 0.9995 s resampling
+figures/static/static/tables/verification/p_h_refinement_demo.tex:10:        h-refinement & 2 & 20 & 120 & 9.797e-06 & 1.457 & -- & 0.009629 & 1.052 & -- \\
+figures/static/static/tables/verification/p_h_refinement_demo.tex:14:        p-refinement & 0 & 40 & 80 & 1.078e-05 & -- & -- & 0.002585 & -- & -- \\
+figures/static/static/tikz/compliant-vessel.tex:29:      (0,0.88) .. controls (1.4,1.08) and (2.8,0.82) .. (4.2,1.05)
+figures/static/static/tikz/compliant-vessel.tex:32:               .. controls (5.8,-0.82) and (5.0,-1.20) .. (4.2,-1.05)
+figures/static/static/tikz/compliant-vessel.tex:33:               .. controls (2.8,-0.82) and (1.4,-1.08) .. (0,-0.88)
+figures/static/static/tikz/compliant-vessel.tex:80:    \draw[flowArrowMain] (1.0,-1.65) -- (5.6,-1.65)
+figures/static/static/tikz/compliant-vessel.tex:82:    \draw[axisArrow] (0.10,-2.05) -- (1.05,-2.05) node[right, labelM] {$z$};
+figures/static/static/tikz/radial-profile-comparison.tex:24:    \addlegendimage{black, mark=none, dashed, line width=1.0pt}
+figures/static/static/tikz/radial-profile-comparison.tex:29:    \addplot+[bloodred, mark=none, dashed, line width=1.0pt]
+figures/static/static/tikz/radial-profile-comparison.tex:33:    \addplot+[mathblue, mark=none, dashed, line width=1.0pt]
+figures/static/static/tikz/radial-profile-comparison.tex:37:    \addplot+[accentTeal, mark=none, dashed, line width=1.0pt]
+figures/static/static/tikz/radial-profile-comparison.tex:65:    \addplot+[bloodred, mark=none, dashed, line width=1.0pt]
+figures/static/static/tikz/radial-profile-comparison.tex:69:    \addplot+[mathblue, mark=none, dashed, line width=1.0pt]
+figures/static/static/tikz/radial-profile-comparison.tex:73:    \addplot+[accentTeal, mark=none, dashed, line width=1.0pt]
+sections/02-comparison/index.tex:21:C40, each with an XDMF velocity sample at $0.9995$ s, while the corresponding
+sections/02-comparison/index.tex:22:1D run completes at $1.0$ s. The $5\times10^{-4}$ s sample-time offset is
+sections/02-comparison/index.tex:79:The stenosis throat is the minimizer $z^\star=\argmin_z R_0(z)$ of the smooth
+sections/02-comparison/index.tex:92:$A_{\mathrm{ref}}(z_j)=\pi R_0(z_j)^2$, define
+sections/02-comparison/index.tex:116:    $A_{\mathrm{ref}}(z)=\pi R_0(z)^2$. Discrepancies are percentages over
+sections/02-comparison/index.tex:206:        C40 & 1.012 & 0.133 & 2.261 & 9.92 & Flow term \\
+sections/02-comparison/index.tex:271:    \caption{Area-mean axial velocity comparison at $t=1.0$ s. Solid curves are
+sections/02-comparison/index.tex:326:reference-radius coordinate $r/R_0(z)$ and 10/20/40-bin sensitivity, with
+sections/02-comparison/index.tex:358:in extracted 3D flow; and the $1.0$ s versus $0.9995$ s sample-time offset. The
+figures/static/static/tables/verification/rest_state_drift_full.tex:13:23 & 100 & 1.0 & 0.000e+00 & 0.8693 & 1.683e-04 & 1.603e-04 & 0.1823 & 804.5 \\
+figures/static/static/tables/verification/rest_state_drift_full.tex:18:23 & 200 & 1.0 & 0.000e+00 & 0.7648 & 6.892e-05 & 1.437e-04 & 0.3653 & 802.1 \\
+figures/static/static/tables/verification/rest_state_drift_full.tex:23:23 & 400 & 1.0 & 0.000e+00 & 0.738 & 5.022e-05 & 1.324e-04 & 0.45 & 800.9 \\
+figures/static/static/tables/verification/rest_state_drift_full.tex:28:23 & 800 & 1.0 & 0.000e+00 & 0.7313 & 4.902e-05 & 1.294e-04 & 0.45 & 800.4 \\
+figures/static/static/tables/verification/rest_state_drift_full.tex:33:40 & 100 & 1.0 & 0.000e+00 & 0.9366 & 3.367e-04 & 3.388e-04 & 0.1828 & 640.4 \\
+figures/static/static/tables/verification/rest_state_drift_full.tex:38:40 & 200 & 1.0 & 0.000e+00 & 0.7826 & 1.148e-04 & 2.240e-04 & 0.3669 & 629.9 \\
+figures/static/static/tables/verification/rest_state_drift_full.tex:43:40 & 400 & 1.0 & 0.000e+00 & 0.7425 & 7.546e-05 & 1.731e-04 & 0.45 & 626.1 \\
+figures/static/static/tables/verification/rest_state_drift_full.tex:48:40 & 800 & 1.0 & 0.000e+00 & 0.7324 & 6.832e-05 & 1.566e-04 & 0.45 & 624.9 \\
+figures/static/static/tables/verification/mms_verification.tex:12:spatial & 200 & 2.500e-06 & 3.066e-08 & 1.049e-07 & 5.830e-07 & 1.639 & 8.195e-05 & 5.323e-04 & 0.005214 & 1.502 \\
+figures/static/static/tables/verification/mms_verification.tex:15:temporal & 400 & 1.000e-05 & 7.741e-09 & 3.369e-08 & 2.406e-07 & 2.672e-04 & 2.058e-05 & 1.879e-04 & 0.002612 & -7.372e-06 \\
+appendices/numerical-methods-details.tex:209:$A_0=\pi R_0^2$, the implemented member corresponds to
+appendices/numerical-methods-details.tex:210:$\beta(z)=\sqrt{\pi}K R_0(z)^2/R_{\max}^2$. Therefore
+appendices/numerical-methods-details.tex:270:$R_0^*=R_{\max}$, velocity-profile momentum factor $\alpha_{\mathcal P}$, and
+appendices/numerical-methods-details.tex:271:$\alpha_c(R_0')=-2(R_0')^2/35$, define $\iota_{\mathcal M}=1$ for the
+appendices/numerical-methods-details.tex:280:        \left(\alpha_{\mathcal P}+\iota_{\mathcal M}\alpha_c(R_0'(z))\right)\frac{q^2}{a}
+appendices/numerical-methods-details.tex:345:        \alpha_{\mathcal P}+\iota_{\mathcal M}\alpha_c(R_0'(z)),
+appendices/numerical-methods-details.tex:356:geometry-rest state. At $q_i=0$ with spatially varying $a_i=R_0(z_i)^2$, the
+appendices/numerical-methods-details.tex:371:and $\alpha_c'(z)=-4R_0'(z)R_0''(z)/35$. The implemented source is
+appendices/numerical-methods-details.tex:378:    \frac{K}{\rho R_{\max}^2}a_iR_0'(z_i)
+appendices/numerical-methods-details.tex:388:        \frac{q_iR_0''(z_i)}{a_iR_0(z_i)}
+appendices/numerical-methods-details.tex:390:        \frac{q_i(R_0'(z_i))^2}{a_iR_0(z_i)^2}
+appendices/numerical-methods-details.tex:392:        \frac{(D_z^h q)_iR_0'(z_i)}{a_iR_0(z_i)}
+appendices/numerical-methods-details.tex:394:        \frac{q_i(D_z^h a)_iR_0'(z_i)}{a_i^2R_0(z_i)}
+appendices/numerical-methods-details.tex:457:    c_0=\left(\frac{K}{2\rho (R_0^*)^2}\right)^{1/2}
+appendices/numerical-methods-details.tex:461:At the inlet, the incoming flow is $q_{\mathrm{in}}=R_0(0)^2\bar u_{\mathrm{in}}$.
+appendices/numerical-methods-details.tex:478:$a_{\mathrm{out}}=R_0(L)^2$. The outgoing invariant from the last interior cell is
+preamble/macros.tex:136:                         bloodred!80!black, line width=1.0pt},
+preamble/macros.tex:223:  {\begingroup\footnotesize\renewcommand{\arraystretch}{1.08}}
+figures/static/static/tables/verification/rest_state_drift.tex:15:23 & 400 & 0.01 & 1.559 & 4.898 & 2.141 & 0.7380 & 2.319 & 1.013 & 1.324e-04 & 800.9 \\
+figures/static/static/tables/verification/rest_state_drift.tex:16:23 & 800 & 0.01 & 1.566 & 4.921 & 2.151 & 0.7313 & 2.297 & 1.004 & 1.294e-04 & 800.4 \\
+figures/static/static/tables/verification/rest_state_drift.tex:17:40 & 400 & 0.01 & 1.640 & 5.152 & 2.252 & 0.7425 & 2.333 & 1.020 & 1.731e-04 & 626.1 \\
+figures/static/static/tables/verification/rest_state_drift.tex:18:40 & 800 & 0.01 & 1.658 & 5.209 & 2.276 & 0.7324 & 2.301 & 1.006 & 1.566e-04 & 624.9 \\
+figures/static/static/tikz/lagrangian-eulerian-map.tex:8:\begin{tikzpicture}[fig, scale=1.06, transform shape]
+figures/static/static/tikz/lagrangian-eulerian-map.tex:13:      .. controls (2.2,-0.7) and (1.0,-1.5) .. (-0.4,-1.4)
+figures/static/static/tikz/lagrangian-eulerian-map.tex:27:      .. controls (2.6,-1.0) and (0.8,-1.5) .. (-0.6,-1.6)
+figures/static/static/tikz/lagrangian-eulerian-map.tex:62:    \fill[bloodred!70!black] (7.5,1.0) circle (1.4pt);
+figures/static/static/tikz/lagrangian-eulerian-map.tex:63:    \node[tagLabelB, right=2pt] at (7.5,1.0) {$\vx(t;\vxi)$};
+sections/01-intro/index.tex:21:    finite-volume grid sampled along $R_0(z)$. The panels document geometry and
+sections/03-conclusions/index.tex:60:$a=R_0^2$, $q=0$ under compatible zero-flow boundary data, but continuous
+sections/03-conclusions/index.tex:118:tracked comparison record. The 3D sample is at 0.9995 s while the 1D sample is at
+sections/03-conclusions/index.tex:119:1.0 s, leaving a reported 0.0005 s time offset. The extracted 3D physical flow
+sections/04-verification/index.tex:47:    a_0(z)&=R_0(z)^2,&
+sections/04-verification/index.tex:140:$a_i=R_0(z_i)^2$, $q_i=0$ under compatible zero-flow boundary data
+sections/04-verification/index.tex:144:spatially varying $R_0$ this produces a nonzero discrete residual unless an
+sections/04-verification/index.tex:152:    &\max_i |a_i-R_0(z_i)^2|,&
+sections/04-verification/index.tex:162:  --elapsed-times 0,0.001,0.01,0.1,1.0 \
+figures/static/static/tables/verification/stationary_stokes_refinement.tex:13:stokes-s40-16x4x16 & 1105 & 5376 & 0.1286 & 0.2201 & 0.000e+00 & 11.06 \\
+sections/03-methodology/index.tex:74:    $R_0^*=R_{\max}$, the selected evolution wall law gives the solver elastic
+sections/03-methodology/index.tex:98:        R_0(z) &= R_{\mathrm{base}}(z)\big(1-s(z)\big),
+sections/03-methodology/index.tex:100:        A_0(z) &= \pi R_0(z)^2.
+sections/03-methodology/index.tex:176:    conservative-form reference radius $R_0^*=R_{\max}$:
+sections/03-methodology/index.tex:184:        \left(\sqrt a-R_0(z)\right),
+sections/03-methodology/index.tex:188:    With $A=\pi a$ and $A_0=\pi R_0^2$, the conventional law in
+sections/03-methodology/index.tex:192:        \beta(z)=\sqrt{\pi}\,K\,\frac{R_0(z)^2}{R_{\max}^2}. &&
+sections/03-methodology/index.tex:195:    denominator, not the local $R_0^{-2}$ denominator. In this report
+sections/03-methodology/index.tex:197:    for the default stenosis profile it equals $\max_zR_0(z)$. The selected
+sections/03-methodology/index.tex:199:    $\rho=1.055\,\mathrm{g}/\mathrm{cm}^3$,
+sections/03-methodology/index.tex:208:    \path{pressure(result, params)}; benchmark pressure extrema and
+sections/03-methodology/index.tex:348:        +\iota_{\mathcal M}\alpha_c(R_0'(z)),
+sections/03-methodology/index.tex:350:        \alpha_c(R_0')&=-\frac{2}{35}(R_0')^2, &&\\
+sections/03-methodology/index.tex:358:        \frac{K}{\rho R_{\max}^2}aR_0'(z), &&\\
+sections/03-methodology/index.tex:409:    $a(z)=R_0(z)^2$ and $q(z)=0$ are an exact steady state of the selected
+sections/03-methodology/index.tex:416:    $S_{\mathrm{fric}}=S_{\alpha}=S_{p_2}=0$. At $a=R_0^2$,
+sections/03-methodology/index.tex:419:        \pd_z\Psi_h(R_0^2)
+sections/03-methodology/index.tex:421:        \pd_z\left(\frac{K}{3\rho R_{\max}^2}R_0^3\right)
+sections/03-methodology/index.tex:423:        \frac{K}{\rho R_{\max}^2}R_0^2R_0'
+sections/03-methodology/index.tex:425:        S_{\mathrm{wall}}(R_0^2,z). &&
+sections/03-methodology/index.tex:449:    \frac{q}{a}\frac{R_0'(z)}{R_0(z)}. &&
+sections/03-methodology/index.tex:470:            & Elastic pressure written with a local $R_0(z)^{-2}$ denominator.
+sections/03-methodology/index.tex:500:            $R_0$; Chapter~\ref{sec:numerical-verification} reports
+sections/03-methodology/index.tex:521:        q_{\mathrm{in}}&=R_0(0)^2\bar u_{\mathrm{in}}, &&
+sections/03-methodology/index.tex:525:    $a_{\mathrm{out}}=R_0(L)^2$, and obtains the outlet ghost flow from the
+sections/03-methodology/index.tex:589:with the supplemental reference-radius coordinate $r/R_0(z)$ retained as an
+sections/03-methodology/index.tex:634:three-point triangle quadrature in either $r/\sqrt{a(z,t)}$ or $r/R_0(z)$.
+sections/03-methodology/index.tex:645:final-time samples: the 1D output is sampled at $1.0$ s and the XDMF velocity
+sections/03-methodology/index.tex:646:field records $0.9995$ s. The cases are labelled C23 and C40 by stenosis
+sections/03-methodology/index.tex:729:            & Static reference area $A_{\mathrm{ref}}=\pi R_0^2$ is available.
+sections/03-methodology/index.tex:765:            $q_{\mathrm{in}}=R_0(0)^2\bar u_{\mathrm{in}}$ from nominal
+sections/03-methodology/index.tex:776:            & Evaluated at $T=1.0$ s from a start-up transient.
+sections/03-methodology/index.tex:777:            & XDMF time is $0.9995$ s; earlier history is not recorded.
+sections/03-methodology/index.tex:802:    $t=1.0$ comparison. The generated comparison records characteristic-speed
+sections/03-methodology/index.tex:820:        Physical parameters & $\rho=1.055$ g/cm$^3$, $E=5.02\times10^6$
+sections/03-methodology/index.tex:826:        Time controls & $T=1.0$ s from a start-up transient, timestep cap
+sections/03-methodology/index.tex:829:        $a=R_0^2$, $q=0$; inlet $\bar u_{\mathrm{in}}=22.5$ cm/s; outlet
+sections/03-methodology/index.tex:830:        $a_{\mathrm{out}}=R_0(L)^2$ with the implemented characteristic
+sections/03-methodology/index.tex:835:        20-bin plots in $r/\sqrt{a(z,t)}$ plus supplemental $r/R_0(z)$ and
+sections/01-intro/model-hierarchy/1d-model.tex:32:through the reference geometry $R_0(z)$, $A_0(z)$, and $s(z)$, but resolved
+frontmatter/abstract.tex:27:extracted 3D flow, and by the $1.0$ s versus $0.9995$ s sample-time offset.
+sections/01-intro/selected-1d-model.tex:157:    $R_0^*=R_{\max}$:
+sections/01-intro/selected-1d-model.tex:165:        \left(\sqrt a-R_0(z)\right),
+sections/01-intro/selected-1d-model.tex:169:    With $A=\pi a$ and $A_0=\pi R_0^2$, the conventional law in
+sections/01-intro/selected-1d-model.tex:173:        \beta(z)=\sqrt{\pi}\,K\,\frac{R_0(z)^2}{R_{\max}^2}. &&
+sections/01-intro/selected-1d-model.tex:176:    denominator, not the local $R_0^{-2}$ denominator. In this report
+sections/01-intro/selected-1d-model.tex:178:    for the default stenosis profile it equals $\max_zR_0(z)$. The selected
+sections/01-intro/selected-1d-model.tex:180:    $\rho=1.055\,\mathrm{g}/\mathrm{cm}^3$,
+sections/01-intro/selected-1d-model.tex:189:    \path{pressure(result, params)}; benchmark pressure extrema and
+sections/01-intro/selected-1d-model.tex:199:        \frac{q}{a}\frac{R_0'(z)}{R_0(z)}. &&
+sections/01-intro/selected-1d-model.tex:233:    $R_0^*=R_{\max}$, the selected evolution wall law gives the solver elastic flux
+sections/01-intro/selected-1d-model.tex:269:        +\iota_{\mathcal M}\alpha_c(R_0'(z)),
+sections/01-intro/selected-1d-model.tex:271:        \alpha_c(R_0')&=-\frac{2}{35}(R_0')^2, &&\\
+sections/01-intro/selected-1d-model.tex:279:        \frac{K}{\rho R_{\max}^2}aR_0'(z), &&\\
+sections/01-intro/selected-1d-model.tex:328:    $a(z)=R_0(z)^2$ and $q(z)=0$ are an exact steady state of the selected
+sections/01-intro/selected-1d-model.tex:335:    $S_{\mathrm{fric}}=S_{\alpha}=S_{p_2}=0$. At $a=R_0^2$,
+sections/01-intro/selected-1d-model.tex:338:        \pd_z\Psi_h(R_0^2)
+sections/01-intro/selected-1d-model.tex:340:        \pd_z\left(\frac{K}{3\rho R_{\max}^2}R_0^3\right)
+sections/01-intro/selected-1d-model.tex:342:        \frac{K}{\rho R_{\max}^2}R_0^2R_0'
+sections/01-intro/selected-1d-model.tex:344:        S_{\mathrm{wall}}(R_0^2,z). &&
+sections/01-intro/selected-1d-model.tex:357:        R_0(z) &= R_{\mathrm{base}}(z)\big(1-s(z)\big),
+sections/01-intro/selected-1d-model.tex:359:        A_0(z) &= \pi R_0(z)^2.
+sections/01-intro/selected-1d-model.tex:502:        q_{\mathrm{in}}&=R_0(0)^2\bar u_{\mathrm{in}}, &&
+sections/01-intro/selected-1d-model.tex:506:    $a_{\mathrm{out}}=R_0(L)^2$, and obtains the outlet ghost flow from the

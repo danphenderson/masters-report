@@ -1,0 +1,29 @@
+figures/static/static/tikz/model-hierarchy.tex:7:% while explicitly warning that this is not a validation ranking.
+figures/static/static/tikz/model-hierarchy.tex:40:  % Single side-axis: decreasing resolved dimension, not validation rank.
+figures/static/static/tikz/model-hierarchy.tex:47:       not a validation rank};
+appendices/domain-notation.tex:63:comparison. The shorthand is not a clinical measurement model
+appendices/ns-coordinate-energy-details.tex:5:evidence for the 1D study specification or any downstream validation claim.
+sections/02-comparison/index.tex:11:observables under a declared quadrature operator, not validation, an accuracy
+sections/02-comparison/index.tex:12:estimate, pressure-drop evidence, FFR evidence, physiological evidence, clinical
+sections/02-comparison/index.tex:13:evidence, predictive evidence, or causal evidence. The zero-input rest-state
+sections/02-comparison/index.tex:16:single-realization descriptors rather than a clean discretization-accuracy
+sections/02-background/state-of-art-models.tex:140:            and external validation. \\
+appendices/acronyms.tex:17:        FFR & fractional flow reserve \\
+sections/02-background/index.tex:8:diagnostic cross-model comparison, and external validation. It is not a
+sections/01-intro/index.tex:59:velocity comparison. The report makes no broader validation, pressure-accuracy,
+sections/01-intro/index.tex:60:FFR, physiological, clinical, predictive, or causal claim.
+sections/02-background/state-of-art-numerics.tex:45:under a declared operator. External validation would require an accepted target
+sections/03-methodology/index.tex:650:validation, accuracy, pressure-drop, FFR, physiological, clinical, predictive,
+sections/01-intro/selected-1d-model.tex:192:    pressure-ratio, or FFR evidence.
+sections/01-intro/selected-1d-model.tex:380:    not a patient-specific plaque morphology or clinical calibration.
+sections/01-intro/selected-1d-model.tex:531:selected equation class; it is not, by itself, a validation of a particular
+sections/04-verification/index.tex:6:operator and recorded diagnostics. It does not support validation, accuracy,
+sections/04-verification/index.tex:7:pressure-drop, FFR, physiological, clinical, predictive, or causal claims.
+sections/04-verification/index.tex:208:under the declared observation operator, not a clean discretization-accuracy
+sections/01-intro/model-hierarchy/2d-model.tex:23:too idealized to serve as clinical or resolved-3D evidence. In this report it
+sections/01-intro/model-hierarchy/1d-model.tex:49:clinical-validity claim, an independent-solver parity claim, or a
+sections/01-intro/model-hierarchy/1d-model.tex:50:resolved-3D-accuracy claim.
+sections/01-intro/model-hierarchy/index.tex:5:scalar accuracy ranking. The governing equations above start from a
+sections/01-intro/model-hierarchy/index.tex:21:    axis, not a validation ranking. This report selects a 1D reduced forward
+sections/01-intro/model-hierarchy/index.tex:22:    model; 3D fixed-wall, resolved FSI, clinical, and independent-solver
+sections/01-intro/model-hierarchy/index.tex:101:as the forward map for the numerical study. Resolved-3D/FSI agreement, clinical

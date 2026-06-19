@@ -1,6 +1,6 @@
-project_state: CORE_REWRITE
+project_state: RELEASE_VERIFICATION
 source_commit: 371ba631f7cb24a3463e4923696218304bc6ff09
-active_dispatch: D90-GLOBAL-CONSISTENCY
+active_dispatch: D99-RELEASE
 claim_lock: approved
 structure_approval: approved
 open_blockers: []
@@ -19,4 +19,5 @@ completed_dispatches:
   - D16
   - D17
   - D18
-next_dispatch: D90-GLOBAL-CONSISTENCY
+  - D90-GLOBAL-CONSISTENCY
+next_dispatch: D99-RELEASE
