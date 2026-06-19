@@ -1,0 +1,45 @@
+\subsection{Continuum Background for Area--Flow Reduction}
+\label{subsec:continuum-constitutive-assumptions}
+
+Only a small amount of continuum background is needed before introducing the
+reduced model. At the macroscopic arterial scale, blood-flow models treat
+velocity, pressure, density, and stress as continuum fields on a time-dependent
+lumen, rather than resolving individual cells. This is the scale at which 3D CFD,
+FSI, and 1D area--flow models can be compared as different mathematical tiers;
+small-vessel or low-shear regimes require separate rheology caution
+\cite{KopplHelmig2023DimensionReducedModeling,GaldiEtAl2008HemodynamicalFlows,PriesEtAl1992BloodViscosityTubeFlow}.
+
+Let $I_T=(0,T_{\mathrm{final}})$ and
+$\ITBar=[0,T_{\mathrm{final}}]$. The blood domain at time $t$ is denoted
+$\OmgBt$, with space-time cylinder
+$\mathcal Q_T=\{(t,\vx):t\in I_T,\ \vx\in\OmgBt\}$. The reference and current
+lumen configurations are $\OmgB(0)$ and $\OmgBt$. The notation is summarized in
+Appendix~\ref{app:mathematical-notation}; the introduction uses it only to make
+clear what is being reduced.
+
+\begin{assumption}[Blood-dynamics kinematic setting]
+    \label{ass:blood-dynamics-kinematic-setting}
+    Blood motion is represented by a sufficiently regular flow map
+    $\La_t:\OmgB(0)\to\OmgBt$ carrying material labels to current positions.
+    The Eulerian velocity field $\vu$ satisfies
+    \begin{flalign*}
+        \quad \pd_t\La_t(\vxi)=\vu(t,\La_t(\vxi)), &&
+    \end{flalign*}
+    and the accompanying continuum fields are pressure $p$, density $\rho$, and
+    Cauchy stress $\vT$ on the current lumen.
+\end{assumption}
+
+Mass and momentum balance, together with a stress closure, provide the continuum
+source for the lower-dimensional models. For the present report, the essential
+point is not the proof of the transport identities; it is that a 1D model stores
+cross-sectional quantities and must close the effects of the discarded transverse
+velocity and wall response. A section area, volumetric flow, mean axial velocity,
+wall law, profile factor, friction law, and rheology descriptor are therefore
+part of the reduced model specification rather than incidental implementation
+details.
+
+This background also fixes the role of rheology. Large-artery studies often use a
+Newtonian approximation, while generalized-Newtonian descriptors can be used when
+the effective viscosity is part of the declared closure. In either case, the
+comparison in this report depends on the selected closure contract and on the
+observation operator, not on an unstated continuum model.

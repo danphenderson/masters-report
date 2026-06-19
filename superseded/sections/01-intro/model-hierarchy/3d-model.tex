@@ -1,0 +1,46 @@
+\subsubsection{3D Fixed-Wall and Resolved-FSI Models}
+\label{subsubsec:3d-models}
+
+The three-dimensional tier is the natural starting point after the governing
+equations because it keeps the lumen domain, velocity field $\vu(t,\vx)$,
+pressure field $p(t,\vx)$, stress tensor, and boundary decomposition of the
+continuum problem. In a fixed-wall hemodynamic model, the wall geometry is fixed
+or prescribed while the fluid equations are solved on the resolved lumen
+\cite{QuarteroniFormaggia2004CardiovascularModeling}. This tier can supply
+resolved velocity, pressure, and wall traction. A WSS output additionally
+requires the stress tensor, wall normal, wall location, tangent convention, and
+output operator to be declared
+\cite{JohnEtAl2017WallShearStressVectorForm}. These quantities are fields on
+the resolved lumen and describe the vessel wall's interaction with the fluid
+domain, not the 1D state variables $A$, $Q$, and $p_{\mathrm g}$.
+
+For the idealized stenosis used here, a fixed-wall stationary-Stokes study is
+the locally feasible 3D tier. The $C^\infty$ radius profile gives an analytic
+wall and repeatable tetrahedral mesh families, so resolved velocity, pressure,
+and stress-derived wall-traction diagnostics can be studied without changing
+the wall shape in time. This is still a fixed-wall fluid solve: it does not
+recover wall displacement, wall velocity, structural stress, or interface work.
+
+Resolved FSI changes the wall descriptor rather than merely adding a new output.
+A fixed-wall model belongs to the $\mathcal W_{\mathrm{rigid}}$ or
+prescribed-wall reading in Definition~\ref{def:wall-fsi-closure-catalog}; a
+resolved-FSI model uses $\mathcal W_{\mathrm{resolvedFSI}}$ and adds wall
+displacement, wall velocity, structural stress, interface kinematics, and
+fluid--structure force balance. The elastic 1D wall law
+$\mathcal W_{\mathrm{elastic1D}}$ is a reduced pressure--area closure, not a
+structural FSI solve
+\cite{FormaggiaEtAl2007FSICoupling,GaldiEtAl2008HemodynamicalFlows}.
+
+The 3D/FSI tier can represent eccentricity, curvature, branches, secondary
+flow, separation, and recirculation more directly than a 1D area--flow model.
+That role does not make it assumption-free. A valid comparison requires matched
+geometry, rheology descriptor $\mathcal R$, wall closure $\mathcal W$, boundary
+data, mesh and time resolution, output operators, and discrepancy metrics. A
+velocity-slab diagnostic, a traction-based WSS comparison, and a pressure-ratio
+comparison are different observation problems.
+
+The 3D/FSI tier supplies the reference vocabulary for resolved velocity,
+pressure, traction, and wall motion, but it does not automatically validate a
+reduced model without matched comparison data. It is not the selected broad
+parametric generator in this report because the setup and computational burden
+are high, not because resolved 3D or FSI models are unimportant.

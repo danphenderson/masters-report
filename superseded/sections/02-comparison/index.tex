@@ -1,0 +1,360 @@
+\section{Diagnostic 1D-3D Velocity Comparison}
+\label{sec:resolved-3d-comparison}
+
+\subsection{Available 3D Data and Matching Limits}
+\label{subsec:preliminary-cross-model-velocity-comparison}
+
+This chapter reports the final-time resolved-velocity comparison whose protocol
+is defined in Section~\ref{subsec:numerical-experiments-metrics-provenance}. The
+evidential boundary is the one declared in the model-matching matrix: the
+comparison is a diagnostic cross-model comparison of velocity and physical-flow
+observables under a declared quadrature operator, not validation, an accuracy
+estimate, pressure-drop evidence, FFR evidence, physiological evidence, clinical
+evidence, predictive evidence, or causal evidence. The zero-input rest-state
+drift in Chapter~\ref{sec:numerical-verification} is the same order as the
+comparison-flow scale at $t=1$ s, so the values below remain
+single-realization descriptors rather than a clean discretization-accuracy
+study.
+
+The available resolved datasets are the two local velocity fields labelled C23
+and C40. The comparison record uses source ID 77 for C23 and source ID 60 for
+C40, each with an XDMF velocity sample at $0.9995$ s, while the corresponding
+1D run completes at $1.0$ s. The $5\times10^{-4}$ s sample-time offset is
+reported, not eliminated. The current/deformed 3D geometry status also remains
+unresolved: the tracked assets support the static cut-area audit below, but they
+do not establish whether a deformed-wall geometry or displacement application
+should be used for the final-time plane cuts. The 3D wall model, wall-motion
+history, inlet/outlet histories, material parameters, and prior transient
+history are likewise not persisted in the tracked report artifact.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Recorded subcritical-boundary diagnostics for the same C23/C40
+    1D runs used in the resolved-velocity comparison. The positive
+    characteristic-radicand values are in solver units of cm$^2$/s$^2$; the
+    persisted $\lambda_-$, $\lambda_+$, and subcriticality margin support the
+    boundary-regime gate in Assumption~\ref{ass:1d-subcritical-boundary-regime}.}
+    \label{tab:t1-alpha-radicand-diagnostics}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lrrrrrrrr@{}}
+        \toprule
+        \textbf{Case}
+            & $\boldsymbol{\min \alpha_{\mathrm{eff}}}$
+            & $\boldsymbol{\max \alpha_{\mathrm{eff}}}$
+            & $\boldsymbol{\min \chi^2}$
+            & $\boldsymbol{\min\lambda_-}$
+            & $\boldsymbol{\max\lambda_-}$
+            & $\boldsymbol{\min\lambda_+}$
+            & $\boldsymbol{\max\lambda_+}$
+            & $\boldsymbol{\min\{\lambda_+,-\lambda_-\}}$ \\
+        \midrule
+        C23 & 1.33058 & 1.33333 & $8.15\times 10^5$ & -998.85 & -852.17 & 953.33 & 1058.76 & 852.17 \\
+        C40 & 1.32500 & 1.33333 & $6.36\times 10^5$ & -999.08 & -713.79 & 880.69 & 1058.94 & 713.79 \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+The entries in Table~\ref{tab:t1-alpha-radicand-diagnostics} are used as the
+subcritical-boundary gate for the paired C23/C40 comparison runs; they do not
+widen the velocity comparison beyond the declared observation operator.
+
+\FloatBarrier
+
+\subsection{Observation Operator}
+\label{subsec:cross-sectional-sampling-protocol-results}
+
+The comparison uses the declared
+\texttt{CrossSectionQuadratureOperator}. For each target plane, the operator
+intersects the tetrahedral 3D mesh with the plane, triangulates the cut polygon,
+and computes section area, physical flow, and area-mean axial velocity from the
+cut triangles as stated in Section~\ref{subsec:plane-tetrahedron-comparison-operator}.
+The 1D quantities use the solver-to-physical map from
+Definition~\ref{def:physical-to-solver-map}: $Q_{1D}=\pi q$ and
+$\bar u_{1D}=q/a$. The principal comparison uses 200 equally spaced section
+targets on $0\le z\le6$ cm and radial-profile slices at $z=1.951$, 2.451, and
+2.951 cm.
+
+The stenosis throat is the minimizer $z^\star=\argmin_z R_0(z)$ of the smooth
+reference-radius profile in Eq.~\ref{eq:1d-stenosis-profile}. For the comparison
+geometry this gives $z^\star\approx2.451\,\mathrm{cm}$ for both severities, with
+$R_{\min}=0.1386\,\mathrm{cm}$ for C23 and $R_{\min}=0.1080\,\mathrm{cm}$ for
+C40. The shaded region in Figure~\ref{fig:t1-section-mean-comparison} is the
+displayed interval $2.4\le z\le2.8\,\mathrm{cm}$; the radial-profile slices use
+$z^\star-0.5\,\mathrm{cm}$, $z^\star$, and $z^\star+0.5\,\mathrm{cm}$.
+
+\subsection{Cut-Area Audit}
+\label{subsec:section-averaged-velocity-results}
+
+The same quadrature record audits whether the cut operator is sampling the
+expected static cross-section. With the reference area
+$A_{\mathrm{ref}}(z_j)=\pi R_0(z_j)^2$, define
+\begin{flalign*}
+    \quad
+    \epsilon_A(z_j)
+    =
+    \frac{|A_{3D}(z_j)-A_{\mathrm{ref}}(z_j)|}
+         {A_{\mathrm{ref}}(z_j)}. &&
+\end{flalign*}
+Table~\ref{tab:t1-area-audit} reports this geometry/operator audit for the same
+200 section targets. It shows sub-percent typical static cut-area discrepancy,
+with the largest differences confined to a few targets. This audit does not
+resolve the current/deformed geometry question and does not measure the dynamic
+area discrepancy entering the 1D velocity denominator,
+\begin{flalign*}
+    \quad
+    \epsilon_A^{\mathrm{model}}(z_j,t)
+    =
+    \frac{|\pi a(z_j,t)-A_{3D}(z_j)|}{A_{3D}(z_j)}. &&
+\end{flalign*}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Quadrature cut-area audit against the static reference
+    $A_{\mathrm{ref}}(z)=\pi R_0(z)^2$. Discrepancies are percentages over
+    valid section targets and are stored in the tracked
+    \texttt{area-audit.dat} report asset.}
+    \label{tab:t1-area-audit}
+    \begin{tabular}{@{}lrrrrr@{}}
+        \toprule
+        \textbf{Case}
+            & \textbf{Sections}
+            & $\boldsymbol{\min \epsilon_A}$
+            & $\boldsymbol{\mathrm{median}\ \epsilon_A}$
+            & $\boldsymbol{\mathrm{mean}\ \epsilon_A}$
+            & $\boldsymbol{\max \epsilon_A}$ \\
+        \midrule
+        C23 & 200 & 0.045 & 0.281 & 0.389 & 2.94 \\
+        C40 & 200 & 0.005 & 0.291 & 0.397 & 4.46 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Axial Physical-Flow Behavior}
+\label{subsec:axial-flow-behavior}
+
+The reported section data include physical flows $Q_{1D}(z)=\pi q(z)$ and
+$Q_{3D}(z)$ before they are divided by area to form mean velocity. The axial 3D
+flow extracted by the declared plane operator is not constant across the 200
+section targets: its range is 7.7\% of the C23 mean and 20.2\% of the C40 mean.
+That unresolved axial variation appears before the velocity interpretation
+because it is a matching gate, not a solved mechanism. The tracked artifacts do
+not identify whether the variation comes from 3D numerical state, boundary or
+history mismatch, geometry handling, operator sensitivity, or another source.
+
+The section means are
+$\langle Q_{1D}\rangle=2.288\,\mathrm{cm}^3/\mathrm{s}$ and
+$\langle Q_{3D}\rangle=2.241\,\mathrm{cm}^3/\mathrm{s}$ for C23, and
+$\langle Q_{1D}\rangle=2.287\,\mathrm{cm}^3/\mathrm{s}$ and
+$\langle Q_{3D}\rangle=2.219\,\mathrm{cm}^3/\mathrm{s}$ for C40. The signed mean
+physical-flow biases are 0.0472 and 0.0684 cm$^3$/s, while the mean absolute
+physical-flow discrepancies are 0.0482 and 0.0709 cm$^3$/s and the RMS
+physical-flow discrepancies are 0.0509 and 0.0893 cm$^3$/s. The largest
+physical-flow discrepancies in the retained section table occur at the same
+locations as the largest mean-velocity discrepancies.
+
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{axial-flow-comparison}
+    \caption{Axial physical-flow comparison under the declared plane-quadrature
+    operator. Dashed curves are $Q_{1D}(z)=\pi q(z)$ and solid curves are
+    $Q_{3D}(z)$ from the available resolved velocity fields. The variation in
+    the solid curves is a matching limit for interpreting the velocity
+    discrepancies.}
+    \label{fig:t1-axial-flow-comparison}
+\end{figure}
+
+The algebraic split used for flow/area bookkeeping is
+\begin{flalign*}
+    \quad
+    \frac{Q_{1D}}{A_{1D}}-\frac{Q_{3D}}{A_{3D}}
+    =
+    \frac{Q_{1D}-Q_{3D}}{A_{1D}}
+    +
+    Q_{3D}\left(\frac{1}{A_{1D}}-\frac{1}{A_{3D}}\right),
+    \qquad A_{1D}=\pi a. &&
+\end{flalign*}
+The tracked section-quadrature data store enough section-wise values to
+reconstruct this split on retained sections with nonzero mean-velocity
+denominators: $A_{1D}=Q_{1D}/\bar u_{1D}$ and
+$A_{3D}=Q_{3D}/\bar u_{3D}$. Table~\ref{tab:t1-flow-area-decomposition}
+summarizes the resulting contribution magnitudes. This decomposition is
+bookkeeping for the reported samples, not causal attribution.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Section-wise decomposition of the mean-velocity discrepancy into
+    physical-flow and area-denominator contributions. Values are in cm/s and are
+    reconstructed from the tracked section-quadrature report asset. The split is
+    bookkeeping, not a causal attribution.}
+    \label{tab:t1-flow-area-decomposition}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lrrrrl@{}}
+        \toprule
+        \textbf{Case}
+            & $\boldsymbol{\langle |(Q_{1D}-Q_{3D})/A_{1D}|\rangle}$
+            & $\boldsymbol{\langle |Q_{3D}(A_{1D}^{-1}-A_{3D}^{-1})|\rangle}$
+            & $\boldsymbol{z_{\max |d_u|}}$
+            & $\boldsymbol{|d_u|_{\max}}$
+            & \textbf{Larger bookkeeping term at max} \\
+        \midrule
+        C23 & 0.529 & 0.112 & 2.291 & 2.35 & Flow term \\
+        C40 & 1.012 & 0.133 & 2.261 & 9.92 & Flow term \\
+        \bottomrule
+    \end{tabular}%
+    }
+\end{table}
+
+\subsection{Section-Mean Velocity Discrepancies}
+\label{subsec:section-mean-velocity-discrepancies}
+
+Table~\ref{tab:t1-3d-comparison-summary} reports the retained section-mean
+velocity discrepancy measures. The signed mean velocity biases are 0.480 cm/s
+for C23 and 0.909 cm/s for C40, while the mean absolute velocity discrepancies
+are 0.505 and 0.966 cm/s. The RMS velocity discrepancy is 0.664 cm/s for C23
+and 1.87 cm/s for C40, with relative RMS values 0.0277 and 0.0688. The maximum
+section discrepancies are localized in the upstream shoulder: 2.35 cm/s at
+$z=2.291$ cm for C23 and 9.92 cm/s at $z=2.261$ cm for C40.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Quadrature-backed section-mean velocity discrepancy summary at
+    nominally aligned final-time samples. These are single-realization
+    descriptors in cm/s except for the final axial-location column in cm. Angle
+    brackets denote axial sample means over the 200 retained comparison
+    sections, not temporal averages or inner products.}
+    \label{tab:t1-3d-comparison-summary}
+    {\setlength{\tabcolsep}{1.8pt}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lrrrrrrrrr@{}}
+        \toprule
+        \textbf{Case}
+            & \textbf{Sections}
+            & $\boldsymbol{\langle\bar u_{1D}\rangle}$
+            & $\boldsymbol{\langle\bar u_{3D}\rangle}$
+            & $\boldsymbol{\overline d_u}$
+            & $\boldsymbol{D_{u,1}}$
+            & $\boldsymbol{D_{u,2}}$
+            & \textbf{rel.} $\boldsymbol{D_{u,2}}$
+            & $\boldsymbol{\max |d_u|}$
+            & $\boldsymbol{z_{\max |d_u|}}$ \\
+        \midrule
+        C23 & 200 & 24.11 & 23.63 & 0.480 & 0.505 & 0.664 & 0.0277 & 2.35 & 2.291 \\
+        C40 & 200 & 26.43 & 25.52 & 0.909 & 0.966 & 1.87 & 0.0688 & 9.92 & 2.261 \\
+        \bottomrule
+    \end{tabular}
+    }%
+    }
+\end{table}
+
+Figure~\ref{fig:t1-section-mean-comparison} shows the same area-mean axial
+velocity comparison along the vessel. The 1D and quadrature-averaged 3D means
+are closest away from the largest acceleration zone, while the largest
+discrepancies in this two-case pair are upstream of the displayed throat-centered
+band. The largest C40 velocity discrepancy occurs at the same section as the
+largest static cut-area discrepancy in Table~\ref{tab:t1-area-audit}. Excluding
+the two C40 sections with static area discrepancy above 4\% moves the maximum
+from 9.92 cm/s at $z=2.261$ cm to 8.74 cm/s at $z=2.291$ cm, where the static
+area discrepancy is below 1\%. Thus the localized C40 peak is not solely an
+area-audit artifact, but the exact maximum value and location remain
+operator-sensitive.
+
+\begin{figure}[H]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{section-mean-comparison}
+    \caption{Area-mean axial velocity comparison at $t=1.0$ s. Solid curves are
+    tetrahedral cross-section quadrature means from the resolved 3D velocity
+    field; dashed curves are interpolated 1D means
+    $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$. The shaded band marks the
+    displayed throat-centered stenosis region; the largest listed section
+    discrepancies occur just upstream of this band.}
+    \label{fig:t1-section-mean-comparison}
+\end{figure}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Five largest section-wise velocity discrepancies across the two
+    included cases. Velocities and velocity discrepancies are in cm/s; physical
+    flows and flow discrepancies are in cm$^3$/s, with $Q_{1D}=\pi q$.}
+    \label{tab:t1-largest-section-discrepancies}
+    \begin{tabular}{@{}rlrrrrrrrr@{}}
+        \toprule
+        \textbf{Rank}
+            & \textbf{Case}
+            & $\boldsymbol{z}$ \textbf{(cm)}
+            & $\boldsymbol{\bar u_{1D}}$
+            & $\boldsymbol{\bar u_{3D}}$
+            & $\boldsymbol{|d_u|}$
+            & $\boldsymbol{Q_{1D}}$
+            & $\boldsymbol{Q_{3D}}$
+            & $\boldsymbol{|d_Q|}$
+            & \textbf{Tri.} \\
+        \midrule
+        1 & C40 & 2.261 & 52.58 & 42.66 & 9.92 & 2.201 & 1.862 & 0.339 & 759 \\
+        2 & C40 & 2.291 & 56.94 & 48.20 & 8.74 & 2.230 & 1.903 & 0.327 & 749 \\
+        3 & C40 & 2.352 & 61.43 & 53.22 & 8.21 & 2.270 & 1.980 & 0.290 & 743 \\
+        4 & C40 & 2.322 & 59.81 & 52.09 & 7.72 & 2.253 & 1.970 & 0.283 & 771 \\
+        5 & C40 & 2.231 & 46.95 & 39.94 & 7.01 & 2.174 & 1.918 & 0.256 & 833 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Radial-Profile Discrepancies}
+\label{subsec:reconstructed-radial-profile-results}
+
+The radial-profile reconstruction in
+Figure~\ref{fig:t1-radial-profile-comparison} is retained as a qualitative,
+secondary visual diagnostic. It asks whether the 1D velocity-profile closure
+reconstructed from the section mean resembles area-weighted radial bins of the
+resolved 3D cut. The reconstructed parabolic profile used for the dashed 1D
+curve is
+\begin{flalign*}
+    \quad
+    u_{1D}(r;z,t)
+    &=
+    2\,\frac{q(z,t)}{a(z,t)}
+    \left(1-\left(\frac{r}{\sqrt{a(z,t)}}\right)^2\right) &&
+\end{flalign*}
+on the 1D current-radius normalization. Supplemental outputs retain the static
+reference-radius coordinate $r/R_0(z)$ and 10/20/40-bin sensitivity, with
+area-weighted radial means, area mismatch, and within-bin azimuthal variance.
+
+The radial-summary table is withheld from the main chapter because direct
+equal-bin recomputation from the tracked radial data has not been reconciled
+with the existing radial-summary values. Therefore this chapter makes no
+radial-bin numerical localization claim, and the radial plots are not used for
+the principal section-mean metrics.
+
+\begin{figure}[H]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{radial-profile-comparison}
+    \caption{Radial velocity profile comparison at the declared throat-centered
+    slices. Markers are resolved 3D area-weighted radial-bin means from the
+    quadrature triangles under the 1D current-radius normalization; dashed
+    curves are the 1D closure profile reconstructed from $q/a$. Colored in-panel
+    labels identify the axial stations.}
+    \label{fig:t1-radial-profile-comparison}
+\end{figure}
+
+\subsection{Interpretation Limits}
+\label{subsec:spatial-localization-discrepancies}
+
+The result of this chapter is a localization of descriptive velocity
+discrepancies under the declared observation operator. The section-mean
+comparison localizes the largest C40 discrepancy upstream of the displayed
+throat-centered band. The radial-profile plots are retained only as qualitative
+secondary diagnostics and do not supply an additional numerical localization
+result. These observations are bounded by the matching limits stated at the
+start of the chapter: unmatched or unpersisted 3D wall, boundary, material,
+history, and current/deformed geometry information; unresolved axial variation
+in extracted 3D flow; and the $1.0$ s versus $0.9995$ s sample-time offset. The
+flow/area decomposition is bookkeeping, and the displayed differences do not
+identify a unique mechanism.

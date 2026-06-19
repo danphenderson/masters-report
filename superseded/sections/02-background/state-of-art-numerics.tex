@@ -1,0 +1,48 @@
+\subsection{Balance-Law Discretization and Implementation Verification}
+\label{subsec:verification-literature}
+
+One-dimensional arterial solvers are balance-law solvers: fluxes, sources,
+boundary conditions, and time integration all affect the reported solution.
+Finite-volume methods are common because they expose conservation and use
+numerical fluxes to control wave propagation, while benchmark studies also
+compare finite-element, DG, finite-difference, and network-oriented schemes
+\cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems,BoileauEtAl2015Benchmark,Wang2014BloodFlowNetworks}. Open implementations and recent
+Lax--Friedrichs-type workflows provide useful comparators for reproducible solver
+records
+\cite{BenemeritoEtAl2024OpenBF,BeckersKolbe2025LaxFriedrichsHemodynamics}.
+
+Well-balanced methods address a distinct requirement: a meaningful equilibrium
+should remain steady under the discrete operator. This matters for stenotic
+area--flow equations because geometry and wall-source terms can cancel in the
+continuous balance while failing to cancel after discretization. High-order and
+well-balanced methods therefore motivate explicit equilibrium tests, source
+quadrature audits, boundary-regime diagnostics, and positivity or limiter records
+\cite{PimentelGarciaEtAl2025HighOrderWellBalanced}. The present report uses that
+literature to interpret the non-well-balanced geometry-rest drift as a material
+numerical limitation.
+
+Implementation verification asks whether the code solves the declared equations
+and produces reproducible numerical records. Relevant evidence includes MMS
+studies, exact-equilibrium tests, grid and timestep sensitivity, CFL and
+subcriticality diagnostics, conservation records, positivity handling, and
+artifact provenance. A benchmark-stage completion row or backend-parity check can
+support implementation health, but it does not replace a manufactured-solution
+record or a rest-equilibrium preservation test for the selected stenosis solver.
+
+\subsection{Cross-Dimensional Observation Operators and Evidence Categories}
+\label{subsec:cross-dimensional-comparison-review}
+
+A 1D--3D comparison is meaningful only after both outputs have been mapped to a
+common observable. For the velocity comparison in this report, the declared
+plane--tetrahedron operator reduces the resolved 3D field to section area,
+physical flow, and area-mean axial velocity, while the 1D state supplies
+$Q_{1D}=\pi q$ and $\bar u_{1D}=q/a$. Agreement or discrepancy under this
+operator is not automatically agreement under another observable.
+
+The literature categories also need to stay separate. Implementation verification
+checks a code against its declared equations and reference tests. Diagnostic
+cross-model comparison reports discrepancies between two computational outputs
+under a declared operator. External validation would require an accepted target
+for the question, including matched geometry, wall and material assumptions,
+boundary histories, timing, and measurement or reference conventions. The C23/C40
+comparison in this report belongs to the second category.

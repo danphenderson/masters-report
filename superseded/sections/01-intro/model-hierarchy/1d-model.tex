@@ -1,0 +1,50 @@
+\subsubsection{1D Distributed Area--Flow Models}
+\label{subsubsec:1d-models}
+
+The selected one-dimensional area--flow model is specified in
+Section~\ref{subsec:methodology-problem-definition}. There the retained fields
+$A(z,t)$, $Q(z,t)$, $\bar u(z,t)=Q/A$, and $p_{\mathrm g}(z,t)$, the
+elastic-wall area--flow balance law, the stenosis reference geometry, the
+conservative flux/source notation, and the single-vessel boundary data are
+recorded in
+Definitions~\ref{def:section-averaged-1d-fields}--\ref{def:1d-single-vessel-boundary-data}
+\cite{FormaggiaEtAl2003OneDimensionalBloodFlow,KopplHelmig2023DimensionReducedModeling}.
+This subsection uses that notation only to identify the hierarchy role of the
+1D tier.
+
+In the hierarchy, the key point is that the 1D state is distributed but reduced.
+It retains axial area, flow, mean velocity, and gauge pressure; it does not
+retain the full three-dimensional velocity field, pressure field, secondary
+flow, separation, recirculation, or wall traction. Reduced shear and viscosity
+quantities therefore inherit the declared velocity-profile, wall-friction, and
+rheology closures. Tube-flow and hemorheology data caution that diameter,
+hematocrit, and shear-rate dependence cannot be promoted to resolved local
+physics without a declared closure map
+\cite{PriesEtAl1992BloodViscosityTubeFlow,GaldiEtAl2008HemodynamicalFlows}.
+Reduced shear proxies are not traction-based WSS unless a separate observation
+map declares how a reduced output is compared with a resolved wall-stress
+quantity.
+
+The closure contract remains part of the model definition. A 1D case must
+declare the momentum-flux/profile convention, friction law, rheology descriptor
+$\mathcal R$, wall descriptor $\mathcal W$, coupling descriptor $\mathcal C$,
+boundary data, numerical realization, and output operators. Stenosis enters
+through the reference geometry $R_0(z)$, $A_0(z)$, and $s(z)$, but resolved
+throat flow does not appear automatically; variable-radius corrections such as
+the Canic-style terms are additional closure choices
+\cite{CanicEtAl2024Extended1DStenosis}.
+The current implementation records this axis explicitly through the
+\texttt{canic-extended-1d} forward-model descriptor and the historical
+\texttt{classical-1d-no-slip} manifest token for the classical
+parabolic-profile baseline. Both use the selected
+\texttt{canic-koiter-thin-membrane} pressure--area wall law; the former adds
+the Canic variable-radius corrections, while the latter corresponds to the
+parabolic-profile baseline in
+Definition~\ref{def:classical-no-slip-1d-baseline}.
+
+The 1D model is the selected reduced forward map because it retains distributed
+pressure--flow structure at low computational cost, while its outputs remain
+reduced quantities with declared observation maps. In this report it is the
+selected single-vessel generator for the numerical study, not a
+clinical-validity claim, an independent-solver parity claim, or a
+resolved-3D-accuracy claim.

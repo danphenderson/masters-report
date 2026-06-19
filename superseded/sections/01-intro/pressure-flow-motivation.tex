@@ -1,0 +1,21 @@
+\subsection{Numerical Motivation and Anatomy--Function Boundary}
+\label{subsec:pressure-flow-motivation}
+
+The numerical problem in this report is to specify and audit a reduced stenosis
+solver, not to infer a patient outcome. A narrowed lumen changes the local flow
+field, but the same visible narrowing can have different flow consequences under
+different geometry, wall, rheology, and boundary assumptions. Coronary stenosis
+studies therefore distinguish anatomical descriptors from functional flow
+assessment, and lesion-imaging work likewise records geometry without by itself
+defining the reduced output
+\cite[p.~4401]{DerimayEtAl2021CoronaryStenosisObstruction}
+\cite[Abstract; Methods]{VanDenHoogenEtAl2022CoronaryLesionCTA}.
+
+This anatomy--function distinction motivates the discipline used here: the model
+state, closure choices, boundary approximation, and observation operator must be
+declared before a computed quantity can be interpreted. The completed study keeps
+that motivation at the level of numerical observables. It specifies an
+$R_{\max}$-normalized 1D area--flow solver, tests a manufactured-solution record,
+exposes the non-well-balanced geometry-rest drift, and compares velocity and physical
+flow against the available resolved 3D data through a declared plane-quadrature
+operator.
