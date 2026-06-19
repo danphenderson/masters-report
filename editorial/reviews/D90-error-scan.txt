@@ -1,6 +1,0 @@
-figures/static/static/tables/package-benchmark/package-benchmark-summary.tex:7:        Stage & Rows & OK & Skipped/error \\
-appendices/code-and-ai-use.tex:21:latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=/tmp/masters-report-build final-report.tex
-sections/04-verification/index.tex:97:The runner records cell-center discrete errors
-sections/04-verification/index.tex:133:integrated error behavior, while $L^\infty$ highlights localized boundary,
-figures/static/static/tables/verification/mms_verification.tex:4:    \caption{Manufactured-solution verification errors. The order columns use the $L^2$ errors.}
-figures/static/static/tables/verification/p_h_refinement_demo.tex:4:    \caption{Manufactured-solution p- and h-refinement demonstration. The h-refinement rows report observed order from adjacent grid spacings; the p-refinement rows report error reduction relative to the previous polynomial degree.}
