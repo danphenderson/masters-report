@@ -3,101 +3,44 @@
 
 \begin{notation}[Report mathematical notation]
 \label{not:global-mathematical-notation}
-This appendix collects the mathematical notation used throughout this report.
+This appendix records the shared mathematical shorthand that remains active in
+this report after the main text has been narrowed to the implemented 1D solver,
+verification records, and diagnostic velocity comparison. Elementary
+function-space definitions and compactness background are not repeated here.
 \end{notation}
 
 \noindent\begin{minipage}[t]{\textwidth}
 \begin{compactacronymtables}
 \setlength{\parskip}{0pt}
 \begin{tabular}{@{}
-    >{\raggedright\arraybackslash}p{0.36\linewidth}
+    >{\raggedright\arraybackslash}p{0.30\linewidth}
     @{\hspace{1em}}
-    >{\raggedright\arraybackslash}p{0.58\linewidth}
+    >{\raggedright\arraybackslash}p{0.64\linewidth}
     @{}}
     \toprule
     \textbf{Symbol} & \textbf{Meaning} \\
     \midrule
-        $\defined$                      & defines\\
-        $\equivto$                      & notational equivalence / identified with \\
-        $ \R$                           & real numbers \\
-        $ \R^{+}$                       & strictly positive real numbers \\
-        $ \R^{-}$                       & strictly negative real numbers \\
-        $ \R^{n}$                       & n-dimensional real vector space \\
-        $ \N$                           & natural numbers \\
-        $ \N_0$                         & nonnegative integers $\{0,1,2,\ldots\}$ \\
-        $ \generalbasis$                & general basis of $\R^{n}$ \\
-        $ \stdbasis$                    & standard basis of $\R^{n}$ \\
-        $ [n]$                          & index set $\{1,2,\ldots,n\}\subset\N$ for $n\in\N$ \\
-        $ I_T$
-            & open time interval $(0,T_{\mathrm{final}})$ for transient
-            interior-time arguments \\
-        $ \ITBar$
-            & closed time interval $[0,T_{\mathrm{final}}]$ for initial-time
-            data and flow maps \\
-        $K$
-            & compact space-time rectangle, such as
-            $[0,\ell]\times[0,T_{\mathrm{final}}]$, used for output-field
-            norms when locally stated \\
-        $ \Omg \subset \R^{n}$          & bounded domain \\
-        $ \OmgBar$                      & the closure of $\Omg$ \\
-        $ \pOmg$                        & the boundary of $\Omg$ \\
-        $ \OmgBt$                       & spatial blood domain at time $t$ \\
-        $ \mathcal{Q}_T$                & spatial-temporal domain $\{(t,\vx): t\in I_T,\ \vx\in\OmgBt\}$ \\
-        $C^{k}(\Omg)$                   & functions with continuous classical derivatives through order $k$ in $\Omg$ \\
-        $C^{k}(\OmgBar)$
-            & functions whose derivatives through order $k$ extend
-            continuously to $\OmgBar$ \\
-        $C^{k}_{c}(\Omg)$
-            & $k$ times continuously differentiable functions with compact
-            support in $\Omg$ \\
-        $C^{\infty}_{c}(\Omg)$          & smooth functions with compact support in $\Omg$ \\
-\bottomrule
-\end{tabular}
-\end{compactacronymtables}
-\end{minipage}
-\par
-
-\clearpage
-
-\noindent\begin{minipage}[t]{\textwidth}
-\begin{compactacronymtables}
-\setlength{\parskip}{0pt}
-\begin{tabular}{@{}
-    >{\raggedright\arraybackslash}p{0.36\linewidth}
-    @{\hspace{1em}}
-    >{\raggedright\arraybackslash}p{0.58\linewidth}
-    @{}}
-    \toprule
-    \textbf{Symbol} & \textbf{Meaning} \\
-    \midrule
-        $C(K)$                          & continuous functions on a stated compact set $K$ \\
-        $L^{p}(\Omg)$                   & Lebesgue space of $p$-integrable functions modulo equality a.e. \\
-        $ \dx $                           & Lebesgue volume element on $\R^n$ \\
-        $ \dSx $                          & surface measure element on $\pOmg\subset\R^n$ \\
-        $ dV $                            & 3D volume element on domain $\Omg \subset \R^3$ \\
-        $ dS $                            & 3D surface element on boundary $\pOmg \subset \R^3$ \\
-        $ \nabla $                        & gradient operator \\
-        $ \pd_{x_i} \phi$                 & partial derivative of $\phi$ with respect to coordinate $x_i$ \\
-        $ \pd_t \phi$, $\pd_z f$, $\pd_A p$
-            & compact partial derivatives with respect to named coordinates
-            $t$, $z$, and $A$ \\
-        $ \pd_r u$, $\pd_\theta u$
-            & compact partial derivatives in cylindrical coordinates \\
-        $ \del \phi=\nabla\cdot\nabla\phi$ & Laplacian of scalar field $\phi$ \\
-        $ \Div $                          & divergence of a vector field \\
-        $ \Divbf $                        & row-wise divergence of a tensor field \\
-        $ \vct{v}_i$                      & $i$-th component of vector $\vct{v}$ \\
-        $ \vct{S}:\vct{T}$              & Frobenius contraction $\sum_{i,j}S_{ij}T_{ij}$ for second-order tensors \\
-        $ \inp{\cdot}{\cdot}_X$ & inner product on vector space $X$ \\
-        $ \inp{\vu}{\vv} \equivto \inp{\vu}{\vv}_{\R^n}$ & inner product of vectors $\vu, \vv \in \R^n$ \\
-        $ \pd_{\nhat} \phi$
-            & normal derivative $\inp{\nabla\phi}{\nhat}$ of scalar field
-            $\phi$ on $\pOmg$ \\
-        $\norm{\cdot}_{X}$
-            & norm on a specified normed space $X$; bare $\norm{\cdot}$ is
-            local shorthand \\
-        $\norm{\cdot}_{\mathrm F}$        & Frobenius norm of a matrix or second-order tensor \\
-	\bottomrule
+        $\defined$ & defines \\
+        $\equivto$ & notational equivalence or identified-with relation \\
+        $\R$, $\R^+$, $\N$, $\N_0$ & real numbers, positive real numbers, natural numbers, and nonnegative integers \\
+        $[n]$ & index set $\{1,2,\ldots,n\}$ \\
+        $I_T$ & open time interval $(0,T_{\mathrm{final}})$ for transient interior-time statements \\
+        $\ITBar$ & closed time interval $[0,T_{\mathrm{final}}]$ for initial data and sampled outputs \\
+        $K$ & compact output rectangle, typically $[0,L]\times[0,T_{\mathrm{final}}]$, when a sampled norm is locally declared \\
+        $\Omg$, $\OmgBar$, $\pOmg$ & spatial domain, closure, and boundary \\
+        $\OmgBt$ & spatial blood domain at time $t$ when a continuum tier is being referenced \\
+        $\mathcal Q_T$ & space-time domain $\{(t,\vx):t\in I_T,\ \vx\in\OmgBt\}$ \\
+        $\dx$, $\dSx$, $dV$, $dS$ & volume and surface measure elements in the locally stated dimension \\
+        $\nabla$, $\Div$, $\Divbf$, $\del$ & gradient, vector divergence, row-wise tensor divergence, and scalar Laplacian \\
+        $\pd_t$, $\pd_z$, $\pd_A$, $\pd_r$, $\pd_\theta$ & compact partial-derivative notation with respect to the named coordinate \\
+        $\pd_{\nhat}\phi$ & normal derivative $\inp{\nabla\phi}{\nhat}$ on a boundary with unit normal $\nhat$ \\
+        $\vct v_i$ & $i$th component of a vector $\vct v$ \\
+        $\vct S:\vct T$ & Frobenius contraction of second-order tensors \\
+        $\inp{\cdot}{\cdot}_X$ & inner product on a stated vector space $X$ \\
+        $\norm{\cdot}_X$ & norm on a stated normed space $X$; a bare norm is local shorthand only \\
+        $\norm{\cdot}_{\mathrm F}$ & Frobenius norm of a matrix or second-order tensor \\
+        $(r,\theta,z)$, $(\vct e_r,\vct e_\theta,\vct e_z)$ & cylindrical coordinates and basis, used only when a retained continuum reference requires them \\
+    \bottomrule
 \end{tabular}
 \end{compactacronymtables}
 \end{minipage}
