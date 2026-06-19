@@ -1,0 +1,14 @@
+project_state: CORE_REWRITE
+source_commit: 371ba631f7cb24a3463e4923696218304bc6ff09
+active_dispatch: D11
+claim_lock: approved
+structure_approval: approved
+open_blockers: []
+open_majors: []
+completed_dispatches:
+  - D00-ORCHESTRATOR-INIT
+  - D01-BASELINE
+  - D02-CLAIM-LOCK
+  - D03-STRUCTURE
+  - D10
+next_dispatch: D11

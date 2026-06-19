@@ -1,0 +1,88 @@
+{
+  "patch_id": "D10",
+  "section": "Sections 1.4-1.7, sections/01-intro/index.tex",
+  "intent": "Rewrite the introduction close to use exactly the three approved research questions, state the bounded contribution, compress repeated evidential disclaimers, and keep the scope limited to the implemented-model, MMS/rest-state, and 1D-3D velocity-observation claims.",
+  "claim_ids": [
+    "C-MODEL",
+    "C-NUMERICS",
+    "C-MMS",
+    "C-REST",
+    "C-OPERATOR",
+    "C-COMPARISON",
+    "C-LIMITS"
+  ],
+  "evidence_anchors": [
+    "editorial/canonical_rq_answers.md:5-25",
+    "editorial/claim_evidence_ledger.yaml:13-60",
+    "editorial/numerical_ledger.yaml:37-144",
+    "editorial/numerical_ledger.yaml:145-321",
+    "editorial/terminology_ledger.yaml:5-25",
+    "editorial/section_plan.yaml:16-29",
+    "sections/03-methodology/index.tex:55-82",
+    "sections/03-methodology/index.tex:218-244",
+    "sections/03-methodology/index.tex:375-419",
+    "sections/04-verification/index.tex:253-308",
+    "sections/02-comparison/index.tex:227-233",
+    "sections/02-comparison/index.tex:345-357"
+  ],
+  "numbers_touched": [
+    {
+      "value": "t = 1 s",
+      "source": "editorial/canonical_rq_answers.md:13-15; editorial/claim_evidence_ledger.yaml:35-38; editorial/numerical_ledger.yaml:62-67",
+      "usage": "Carries forward the approved proportional statement that rest-state artificial flow at t = 1 s is the same order as the production comparison-flow scale."
+    }
+  ],
+  "number_policy": "No quantitative values are changed or invented. The only numeric value named in the replacement is the approved t = 1 s rest-state comparison time carried forward from the audit and ledgers. Case and method identifiers retained or introduced from approved anchors are 1D, 3D, 1D-3D, C23, C40, MMS, MUSCL, Rusanov, and SSPRK3.",
+  "equations_touched": [],
+  "labels_touched": {
+    "preserved_subsection_labels": [
+      "subsec:research-problem-questions",
+      "subsec:objectives-contributions",
+      "subsec:scope-limits",
+      "subsec:report-organization"
+    ],
+    "retained_cross_references": [
+      "sec:background-literature-review",
+      "sec:methodology",
+      "sec:numerical-verification",
+      "sec:resolved-3d-comparison",
+      "sec:discussion",
+      "sec:conclusions-limitations"
+    ]
+  },
+  "citations_added": [],
+  "citations_removed": [],
+  "replacement_tex": "\\subsection{Research Problem and Questions}\n\\label{subsec:research-problem-questions}\n\nThe research problem is to make the implemented stenosis solver auditable as a\nmathematical and numerical object. The report therefore asks three questions:\n\\begin{enumerate}\n    \\item What continuous model, solver-coordinate map, closure choices,\n    boundary approximation, and discrete operator define the implemented 1D\n    stenosis solver?\n    \\item Does the implementation converge on a smooth manufactured solution\n    and preserve the geometry-rest equilibrium?\n    \\item Under the declared plane-quadrature operator, what velocity\n    discrepancies are measured against the available resolved 3D data, and\n    which unmatched conditions limit interpretation?\n\\end{enumerate}\n\n\\subsection{Objectives and Contributions}\n\\label{subsec:objectives-contributions}\n\nThe contribution is deliberately narrow:\n\\begin{itemize}\n    \\item an authoritative implemented-model specification;\n    \\item bounded MMS-based verification evidence;\n    \\item exposure of a material rest-equilibrium failure;\n    \\item a declared 1D--3D velocity observation operator;\n    \\item descriptive C23/C40 discrepancy localization.\n\\end{itemize}\nTogether, these items define a numerical audit and diagnostic cross-model\nvelocity comparison. The report makes no broader validation, pressure-accuracy,\nFFR, physiological, clinical, predictive, or causal claim.\n\n\\subsection{Scope and Limits of the Study}\n\\label{subsec:scope-limits}\n\nThese closing subsections define the report's active claim boundary for the\ncompleted work. Section~\\ref{sec:methodology} is the implementation contract:\nit records the $R_{\\max}$-normalized Canic-derived area--flow model, the\nsolver-coordinate map, the closure choices, the fixed-area characteristic\nboundary approximation, and the active discrete operator. The principal\ncomparison realization is identified only at the level needed for the audit:\nparabolic-profile baseline, Newtonian rheology, MUSCL finite volume with minmod\nlimiting, Rusanov flux, source splitting, and native SSPRK3.\n\nSection~\\ref{sec:numerical-verification} treats MMS as bounded\nimplementation-verification evidence and treats the geometry-rest result as a\nmaterial failure of the current Rusanov/MUSCL realization. At $t=1$ s, the\nartificial flow retained by this realization is the same order as the production\ncomparison-flow scale, so the failure is a principal numerical limitation\nrather than a secondary caveat. Section~\\ref{sec:resolved-3d-comparison}\nuses the declared plane--tetrahedron quadrature operator to compare C23/C40\nsection velocities and reconstructed radial profiles. That comparison stops at\ndescriptive discrepancy localization because the available 3D wall, boundary,\nmaterial, history, and current/deformed geometry information is unmatched or not\npersisted; axial 3D flow variation and sample-time alignment remain evidential\ngates.\n\n\\subsection{Report Organization}\n\\label{subsec:report-organization}\n\n\\begin{itemize}\n    \\item Section~\\ref{sec:background-literature-review} reviews only the\n    background needed for stenosis-aware 1D closures, well-balanced behavior,\n    manufactured-solution verification, and declared cross-dimensional velocity\n    observables.\n    \\item Section~\\ref{sec:methodology} specifies the model variables,\n    solver-coordinate convention, closures, boundary approximation,\n    finite-volume/time-integration realization, comparison operator, metrics,\n    and provenance record.\n    \\item Section~\\ref{sec:numerical-verification} reports the positive MMS\n    evidence and the non-well-balanced geometry-rest drift that constrains the\n    later comparison.\n    \\item Section~\\ref{sec:resolved-3d-comparison} reports the C23/C40 velocity\n    discrepancies under the declared observation operator and localizes the\n    largest section and radial-profile differences.\n    \\item Sections~\\ref{sec:discussion} and\n    \\ref{sec:conclusions-limitations} answer the three research questions,\n    interpret the evidence gates, and close with the bounded contribution.\n\\end{itemize}",
+  "material_moved_to": "None. The old local claim table is compressed into Section 1.6 prose; detailed evidence remains in Sections 3-5 and the appendices.",
+  "before_word_count": 464,
+  "after_word_count": 429,
+  "removed_blocks": [
+    {
+      "source_lines": "sections/01-intro/index.tex:38-51",
+      "classification": "merge",
+      "summary": "Old research-problem paragraph and question list merged into the exactly three approved D10 research questions."
+    },
+    {
+      "source_lines": "sections/01-intro/index.tex:56-62",
+      "classification": "merge",
+      "summary": "Old contribution paragraph merged into the approved five-item contribution statement."
+    },
+    {
+      "source_lines": "sections/01-intro/index.tex:67-100",
+      "classification": "compress",
+      "summary": "Old scope paragraph and claim/evidence table compressed into prose that states the evidential boundary once."
+    },
+    {
+      "source_lines": "sections/01-intro/index.tex:102-105",
+      "classification": "delete",
+      "summary": "Out-of-scope convention pointer removed from the D10 block because Sections 1.4-1.7 are being scoped to the implemented solver, MMS/rest audit, and velocity observation operator."
+    },
+    {
+      "source_lines": "sections/01-intro/index.tex:110-127",
+      "classification": "compress",
+      "summary": "Old report-organization list rewritten around the three research questions and approved section roles."
+    }
+  ],
+  "risk": "Medium. Section 1 is structurally important, and this patch intentionally removes the local claim table and an out-of-scope convention pointer from Sections 1.4-1.7. Audit should confirm adjacent Sections 1.1-1.3 carry no conflicting scope language after integration.",
+  "open_questions": []
+}

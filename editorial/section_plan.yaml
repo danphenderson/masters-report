@@ -1,0 +1,235 @@
+version: 1
+dispatch_id: D03-STRUCTURE
+source_commit: 371ba631f7cb24a3463e4923696218304bc6ff09
+mode: read_only_manuscript_source
+assignment_unit: current top-level numbered sections and appendices from final-report.toc
+projected_main_text_pages: 40-50
+target_main_text_ranges:
+  introduction: 5-6 pages
+  focused_literature: 5-6 pages
+  methodology: 10-12 pages
+  verification_and_audit: 8-10 pages
+  diagnostic_comparison: 6-8 pages
+  discussion: 4-5 pages
+  conclusion: 2-3 pages
+items:
+  section_1:
+    current_heading: "1 Introduction"
+    current_pages: "5-19"
+    action: rewrite
+    destination: "Section 1: Introduction"
+    reason: "Move the research problem, questions, contributions, and limits into the opening pages; reduce pressure/FFR motivation to one compact paragraph; remove main-narrative continuum derivations and unused Figures 2-3."
+    required_claim_ids: [C-MODEL, C-MMS, C-REST, C-OPERATOR, C-COMPARISON, C-LIMITS]
+    target_length: "5-6 pages"
+    dependencies:
+      - "Use approved claim lock and numerical/terminology ledgers."
+      - "Keep only a compact motivation paragraph from current 1.1."
+      - "Delete current Figures 2 and 3 unless a later retained result explicitly depends on them."
+      - "Move or delete material derivative, Reynolds transport, continuum balance, Clay-problem, and generic Navier-Stokes detail from the main narrative."
+    risk: high
+  section_2:
+    current_heading: "2 Background and Literature Review"
+    current_pages: "20-24"
+    action: compress
+    destination: "Section 2: Focused Background and Literature"
+    reason: "Retain only literature needed for stenosis-aware 1D closures, well-balanced methods, verification practice, and declared cross-dimensional velocity observables."
+    required_claim_ids: [C-MODEL, C-NUMERICS, C-MMS, C-OPERATOR, C-COMPARISON, C-LIMITS]
+    target_length: "5-6 pages"
+    dependencies:
+      - "After Section 1 removes broad clinical motivation, avoid reintroducing pressure/FFR scope."
+      - "Use terminology ledger: validation and accuracy language only where bounded or negated."
+      - "Keep citation support for the operational research gap."
+    risk: medium
+  section_3:
+    current_heading: "3 Mathematical and Computational Methodology"
+    current_pages: "25-36"
+    action: rewrite
+    destination: "Section 3: Model and Computational Methodology"
+    reason: "Make Chapter 3 the authoritative implementation contract for solver variables, wall law, discretization, boundary approximation, comparison operator, metrics, provenance, and unresolved matching gates."
+    required_claim_ids: [C-MODEL, C-NUMERICS, C-OPERATOR, C-LIMITS]
+    target_length: "10-12 pages"
+    dependencies:
+      - "Preserve equations, labels, citation keys, and numerical values unless a later integrator task explicitly authorizes changes."
+      - "Resolve structure around D02 terminology conflicts without changing scientific claims."
+      - "Do not infer unresolved 3D geometry, displacement, wall, boundary, rheology, or history metadata."
+    risk: high
+  section_4:
+    current_heading: "4 Implementation Checks and Targeted Numerical Verification"
+    current_pages: "37-45"
+    action: rewrite
+    destination: "Section 4: Numerical Verification and Audit"
+    reason: "Foreground MMS as bounded positive implementation-verification evidence and make the geometry-rest failure the principal negative numerical result."
+    required_claim_ids: [C-NUMERICS, C-MMS, C-REST, C-LIMITS]
+    target_length: "8-10 pages"
+    dependencies:
+      - "Use numerical ledger rest-state values and qcomp normalization."
+      - "Keep Table 12 rest-state summary prominent and connect peak plus t=1 s values."
+      - "Move secondary DG, backend, rheology/profile, stationary-Stokes, and resolved-velocity benchmark context to appendix or compress in place."
+      - "Flag DG p=0,1,2 versus p=0,...,4 until a technical audit resolves it."
+    risk: high
+  section_5:
+    current_heading: "5 Cross-Model Velocity Comparison"
+    current_pages: "46-50"
+    action: rewrite
+    destination: "Section 5: Diagnostic 1D-3D Velocity Comparison"
+    reason: "Retitle and frame the chapter as a diagnostic velocity comparison; enforce discrepancy terminology and present unmatched 3D conditions before interpretation."
+    required_claim_ids: [C-OPERATOR, C-COMPARISON, C-LIMITS]
+    target_length: "6-8 pages"
+    dependencies:
+      - "Use numerical ledger section metrics, max discrepancy locations, axial 3D-flow variation, and time offset."
+      - "Address D02 radial-profile numerical conflict before final integration of Table 19 wording."
+      - "Do not call C23/C40 quantities validation, accuracy, or causal evidence."
+      - "Keep exact 0.9995 s 1D resampling as an unresolved gate unless evidence is added."
+    risk: high
+  section_6:
+    current_heading: "6 Discussion"
+    current_pages: "51-52"
+    action: rewrite
+    destination: "Section 6: Discussion"
+    reason: "Expand into a direct discussion organized around the three research questions and their evidence limits."
+    required_claim_ids: [C-MODEL, C-NUMERICS, C-MMS, C-REST, C-OPERATOR, C-COMPARISON, C-LIMITS]
+    target_length: "4-5 pages"
+    dependencies:
+      - "Use Section 3 implementation contract, Section 4 rest-state audit, and Section 5 diagnostic comparison."
+      - "State unmatched wall, boundary, geometry, and history gates before interpreting discrepancies."
+      - "Avoid repeated generic disclaimers once the section opening establishes scope."
+    risk: medium
+  section_7:
+    current_heading: "7 Conclusions and Limitations"
+    current_pages: "53-54"
+    action: rewrite
+    destination: "Section 7: Conclusion"
+    reason: "Answer the three research questions directly and close with the next required implementation step rather than another broad limitation inventory."
+    required_claim_ids: [C-MODEL, C-MMS, C-REST, C-OPERATOR, C-COMPARISON, C-LIMITS]
+    target_length: "2-3 pages"
+    dependencies:
+      - "Mirror the approved claim ledger and canonical research-question answers."
+      - "Keep rest-state failure central and quantified."
+      - "Do not broaden into pressure, FFR, clinical, physiological, or predictive claims."
+    risk: medium
+  appendix_A:
+    current_heading: "A Acronyms and Abbreviations"
+    current_pages: "55"
+    action: retain
+    destination: "Appendix A: Acronyms and Abbreviations"
+    reason: "Keep as a short reference appendix if all retained acronyms still appear after the structural rewrite."
+    required_claim_ids: []
+    target_length: "1 page or less"
+    dependencies:
+      - "Prune acronyms only after deleted pressure/FFR and derivation material is known."
+    risk: low
+  appendix_B:
+    current_heading: "B Mathematical Notation"
+    current_pages: "56-57"
+    action: retain
+    destination: "Appendix B: Mathematical Notation"
+    reason: "Retain as the shared notation reference for surviving mathematical symbols."
+    required_claim_ids: [C-MODEL, C-OPERATOR]
+    target_length: "2 pages or less"
+    dependencies:
+      - "Receive only essential notation salvaged from deleted Appendices D-F if needed."
+      - "Do not retain elementary definitions solely to preserve old derivation text."
+    risk: low
+  appendix_C:
+    current_heading: "C Domain Specific Notation"
+    current_pages: "58-66"
+    action: compress
+    destination: "Appendix C: Domain-Specific Notation"
+    reason: "Keep notation needed for solver/physical variables, pressure-output conventions, and report tables while removing unused output vocabulary."
+    required_claim_ids: [C-MODEL, C-NUMERICS, C-OPERATOR, C-LIMITS]
+    target_length: "3-4 pages"
+    dependencies:
+      - "Preserve Aphys, Qphys, a, q, and q/a conventions from the numerical ledger."
+      - "Keep pressure/FFR language explicitly scoped as future-output convention only if still referenced."
+    risk: medium
+  appendix_D:
+    current_heading: "D Mathematical Foundations"
+    current_pages: "67-71"
+    action: delete
+    destination: "Removed from manuscript; no standalone replacement appendix."
+    reason: "Elementary function-space and broad mathematical-foundations material is disproportionate to the numerical-audit contribution."
+    required_claim_ids: []
+    target_length: "0 pages"
+    dependencies:
+      - "If a surviving equation requires a symbol definition, move only that definition to Appendix B."
+      - "Do not retain Clay-problem or generic mathematical context."
+    risk: medium
+  appendix_E:
+    current_heading: "E Continuum Derivation Details"
+    current_pages: "72-74"
+    action: delete
+    destination: "Removed from manuscript; no standalone replacement appendix."
+    reason: "Material derivative, trajectory, Reynolds transport, and continuum balance derivations do not support a surviving central claim."
+    required_claim_ids: []
+    target_length: "0 pages"
+    dependencies:
+      - "If a surviving sentence needs a balance-law pointer, cite the retained governing-equation statement instead of preserving derivation pages."
+    risk: medium
+  appendix_F:
+    current_heading: "F Navier-Stokes Coordinate and Energy Details"
+    current_pages: "75-76"
+    action: delete
+    destination: "Removed from manuscript; no standalone replacement appendix."
+    reason: "Generic cylindrical Navier-Stokes and energy details are not used by the completed 1D numerical audit or diagnostic velocity comparison."
+    required_claim_ids: []
+    target_length: "0 pages"
+    dependencies:
+      - "Retain no cylindrical-coordinate formula unless a specific surviving result depends on it."
+    risk: medium
+  appendix_G:
+    current_heading: "G Numerical Methods Details"
+    current_pages: "77-85"
+    action: compress
+    destination: "Renumbered numerical-methods appendix after appendix deletions"
+    reason: "Retain exact discrete operator, time integration, boundary-state realization, residual caveats, and full rest-state grid while removing secondary material not needed for a claim."
+    required_claim_ids: [C-NUMERICS, C-MMS, C-REST, C-OPERATOR, C-LIMITS]
+    target_length: "5-6 pages"
+    dependencies:
+      - "Preserve equations and generated rest-state table unless a technical audit authorizes changes."
+      - "Keep boundary approximation language bounded."
+      - "Move or compress fixed-wall stationary-Stokes sensitivity if it remains only context."
+    risk: high
+  appendix_H:
+    current_heading: "H Code Availability and Build Statement"
+    current_pages: "86-90"
+    action: rewrite
+    destination: "Final appendix: Code Availability and Canonical Release Statement"
+    reason: "Replace overlong hash inventory with one concise code-availability statement, regeneration command, and final integrated release identifier."
+    required_claim_ids: [C-NUMERICS, C-LIMITS]
+    target_length: "1 page plus any mandatory institutional text"
+    dependencies:
+      - "Requires final integrated release commit or tag from the release gate."
+      - "Keep detailed hashes outside the main PDF unless required by policy."
+      - "Do not use code availability as a substitute for a clear release statement."
+    risk: medium
+required_structural_decisions:
+  research_questions_by_page_4:
+    decision: "Section 1 rewrite moves research problem, questions, contributions, and limits to the first approximately four pages of the main text."
+    assigned_item: section_1
+  pressure_ffr_compaction:
+    decision: "Clinical pressure/FFR motivation is reduced to one compact paragraph in Section 1."
+    assigned_item: section_1
+  figures_2_3:
+    decision: "Delete current Figures 2 and 3 unless a retained result directly uses them."
+    assigned_item: section_1
+  continuum_derivations:
+    decision: "Continuum derivations and generic Navier-Stokes details leave the main narrative; Appendices D-F are deleted unless a later integrator identifies a required symbol move."
+    assigned_items: [section_1, appendix_D, appendix_E, appendix_F]
+  chapter_3_contract:
+    decision: "Chapter 3 becomes the authoritative implementation contract."
+    assigned_item: section_3
+  chapter_4_foregrounding:
+    decision: "Chapter 4 foregrounds MMS and geometry-rest failure."
+    assigned_item: section_4
+  chapter_5_title_and_terms:
+    decision: "Chapter 5 becomes Diagnostic 1D-3D Velocity Comparison and uses discrepancy terminology."
+    assigned_item: section_5
+  chapters_6_7_rq_answers:
+    decision: "Chapters 6 and 7 answer the three research questions directly."
+    assigned_items: [section_6, section_7]
+  appendices_D_F:
+    decision: "Appendices D-F are deleted from the release structure unless a later approved edit moves a small required definition to Appendix B or C."
+    assigned_items: [appendix_D, appendix_E, appendix_F]
+  appendix_H_release:
+    decision: "Appendix H becomes a concise code-availability and canonical-release statement."
+    assigned_item: appendix_H

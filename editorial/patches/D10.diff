@@ -1,0 +1,154 @@
+diff --git a/sections/01-intro/index.tex b/sections/01-intro/index.tex
+--- a/sections/01-intro/index.tex
++++ b/sections/01-intro/index.tex
+@@ -35,93 +35,78 @@
+ \subsection{Research Problem and Questions}
+ \label{subsec:research-problem-questions}
+
+-The research problem is to define and check an auditable reduced-order model
+-for an idealized stenotic vessel without overstating what the current evidence
+-can show. The report is organized around three answerable questions:
++The research problem is to make the implemented stenosis solver auditable as a
++mathematical and numerical object. The report therefore asks three questions:
+ \begin{enumerate}
+-    \item Which variables, wall law, rheology/profile closures, source terms,
+-    and boundary-state approximation define the closed stenosis-aware 1D
+-    balance law?
+-    \item Under the recorded finite-volume solver, time integrators, descriptor
+-    checks, and benchmark norms, what implementation properties are supported
+-    by the reproducibility and self-convergence evidence?
+-    \item Under the declared \texttt{CrossSectionQuadratureOperator}, what
+-    section-wise velocity and physical-flow discrepancies separate the 1D
+-    solution from the available resolved 3D velocity data?
++    \item What continuous model, solver-coordinate map, closure choices,
++    boundary approximation, and discrete operator define the implemented 1D
++    stenosis solver?
++    \item Does the implementation converge on a smooth manufactured solution
++    and preserve the geometry-rest equilibrium?
++    \item Under the declared plane-quadrature operator, what velocity
++    discrepancies are measured against the available resolved 3D data, and
++    which unmatched conditions limit interpretation?
+ \end{enumerate}
+
+ \subsection{Objectives and Contributions}
+ \label{subsec:objectives-contributions}
+
+-The contribution is a consistent model-and-output specification for an
+-idealized stenotic vessel, an internally reproducible implementation and
+-benchmark suite for the selected extended 1D model, a targeted numerical audit
+-that exposes a geometry-rest preservation failure, and a bounded cross-model
+-velocity comparison against two resolved 3D computational datasets. The
+-comparison is diagnostic rather than clinical, experimental, or
+-production-accuracy validation.
++The contribution is deliberately narrow:
++\begin{itemize}
++    \item an authoritative implemented-model specification;
++    \item bounded MMS-based verification evidence;
++    \item exposure of a material rest-equilibrium failure;
++    \item a declared 1D--3D velocity observation operator;
++    \item descriptive C23/C40 discrepancy localization.
++\end{itemize}
++Together, these items define a numerical audit and diagnostic cross-model
++velocity comparison. The report makes no broader validation, pressure-accuracy,
++FFR, physiological, clinical, predictive, or causal claim.
+
+ \subsection{Scope and Limits of the Study}
+ \label{subsec:scope-limits}
+
+-The smooth geometry is a deliberate numerical device: one analytic radius
+-profile supplies controlled derivatives, wall normals, severity parameters, and
+-repeatable mesh families for the 1D, fixed-wall 3D Stokes, and later 3D/FSI
+-model tiers. The completed numerical record is correspondingly bounded:
+-pressure-ratio quantities are reduced model-output vocabulary, with no clinical
+-FFR or CT-FFR measurement relationship.
+-
+-\begin{center}
+-\footnotesize
+-\begin{tabularx}{\textwidth}{@{}
+-    >{\raggedright\arraybackslash}p{0.27\textwidth}
+-    >{\raggedright\arraybackslash}p{0.34\textwidth}
+-    >{\raggedright\arraybackslash}X@{}}
+-\toprule
+-\textbf{Claim} & \textbf{Evidence in this report} & \textbf{Permitted wording} \\
+-\midrule
+-Model formulation & Derivation, closure tables, and implementation map
+-& Defines a selected 1D model. \\
+-Smooth idealized geometry & Analytic $C^\infty$ stenosis profile and shared
+-finite-volume / finite-element geometry views
+-& Supports controlled numerical studies, not patient-specific morphology. \\
+-Code behavior & Tests, self-convergence, descriptor checks, cross-integrator
+-discrepancies, rest-state drift rows, and manifests
+-& Supports reported implementation properties and exposes the non-well-balanced
+-rest-state defect. \\
+-Resolved velocity comparison & Tetrahedral cross-section quadrature at
+-$t=1.0$ s, with production sensitivity still incomplete
+-& Reports single-realization diagnostic cross-model descriptors. \\
+-Pressure accuracy & No computed pressure comparison & Future work only. \\
+-Clinical validity & No experimental or clinical measurement comparison
+-& No clinical validation claim. \\
+-\bottomrule
+-\end{tabularx}
+-\end{center}
+-
+-Convention~\ref{conv:appendix-pressure-reference-ratio} records the
+-admissibility requirements for any later pressure-ratio output; the completed
+-numerical record here reports verification diagnostics and velocity-focused
+-cross-model comparison only.
++These closing subsections define the report's active claim boundary for the
++completed work. Section~\ref{sec:methodology} is the implementation contract:
++it records the $R_{\max}$-normalized Canic-derived area--flow model, the
++solver-coordinate map, the closure choices, the fixed-area characteristic
++boundary approximation, and the active discrete operator. The principal
++comparison realization is identified only at the level needed for the audit:
++parabolic-profile baseline, Newtonian rheology, MUSCL finite volume with minmod
++limiting, Rusanov flux, source splitting, and native SSPRK3.
++
++Section~\ref{sec:numerical-verification} treats MMS as bounded
++implementation-verification evidence and treats the geometry-rest result as a
++material failure of the current Rusanov/MUSCL realization. At $t=1$ s, the
++artificial flow retained by this realization is the same order as the production
++comparison-flow scale, so the failure is a principal numerical limitation
++rather than a secondary caveat. Section~\ref{sec:resolved-3d-comparison}
++uses the declared plane--tetrahedron quadrature operator to compare C23/C40
++section velocities and reconstructed radial profiles. That comparison stops at
++descriptive discrepancy localization because the available 3D wall, boundary,
++material, history, and current/deformed geometry information is unmatched or not
++persisted; axial 3D flow variation and sample-time alignment remain evidential
++gates.
+
+ \subsection{Report Organization}
+ \label{subsec:report-organization}
+
+ \begin{itemize}
+-    \item Section~\ref{sec:background-literature-review} reviews the
+-    hemodynamic modeling requirements, full-order and reduced-order model
+-    classes, stenosis-specific closure issues, and the distinction between
+-    verification, cross-model comparison, and validation.
+-    \item Section~\ref{sec:methodology} specifies the selected 1D model,
+-    solver-coordinate convention, stenosis geometry, boundary contract,
+-    finite-volume/time-integration realization, comparison operator, metrics,
++    \item Section~\ref{sec:background-literature-review} reviews only the
++    background needed for stenosis-aware 1D closures, well-balanced behavior,
++    manufactured-solution verification, and declared cross-dimensional velocity
++    observables.
++    \item Section~\ref{sec:methodology} specifies the model variables,
++    solver-coordinate convention, closures, boundary approximation,
++    finite-volume/time-integration realization, comparison operator, metrics,
+     and provenance record.
+-    \item Section~\ref{sec:numerical-verification} reports the implementation
+-    and numerical-verification evidence recorded by the benchmark suite, including
+-    the failed geometry-rest preservation check that limits the later comparison.
+-    \item Section~\ref{sec:resolved-3d-comparison} reports the resolved-3D
+-    velocity comparison and localizes the observed discrepancies.
++    \item Section~\ref{sec:numerical-verification} reports the positive MMS
++    evidence and the non-well-balanced geometry-rest drift that constrains the
++    later comparison.
++    \item Section~\ref{sec:resolved-3d-comparison} reports the C23/C40 velocity
++    discrepancies under the declared observation operator and localizes the
++    largest section and radial-profile differences.
+     \item Sections~\ref{sec:discussion} and
+-    \ref{sec:conclusions-limitations} interpret the evidence, state the
+-    limitations, and summarize the bounded contribution.
++    \ref{sec:conclusions-limitations} answer the three research questions,
++    interpret the evidence gates, and close with the bounded contribution.
+ \end{itemize}
