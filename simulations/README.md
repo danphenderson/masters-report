@@ -41,6 +41,10 @@ The public workflow is:
 The CLI follows the same protocol internally. The default command uses
 `NativeRK3Backend()` with finite-volume MUSCL reconstruction, the minmod TVD
 limiter, and SSPRK3 stepping unless options override that method stack.
+Finite-volume MUSCL and Lax-Wendroff methods accept limiter objects in the API
+and `--limiter minmod|van-leer` in the CLI. New limiters should implement
+`limiter_name`, `validate`, and `limited_slope` while leaving solver dispatch
+unchanged.
 The default initial condition is `StationaryStokesIC`, so CLI and API runs must
 provide a positive pressure drop with `--ic-pressure-drop-pa`,
 `--ic-pressure-drop-dyn-cm2`, or `StationaryStokesIC(pressure_drop_pa=...)`.

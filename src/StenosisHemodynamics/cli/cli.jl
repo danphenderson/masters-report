@@ -36,7 +36,7 @@ function print_simulate_usage(io::IO = stdout)
           --cfl VALUE             CFL limit, default 0.45
           --space VALUE           fv-first-order, fv-muscl, fv-weno3, fv-lax-wendroff, or dg
           --degree VALUE          DG polynomial degree 0, 1, or 2
-          --limiter VALUE         TVD limiter, default minmod
+          --limiter VALUE         TVD limiter: minmod or van-leer, default minmod
           --time-stepper VALUE    euler, ssprk2, ssprk3, or ssprk54
           --ic VALUE              stationary-stokes or geometry-rest, default stationary-stokes
           --ic-pressure-drop-pa VALUE Pressure drop for stationary Stokes IC in Pa
@@ -163,9 +163,10 @@ function parse_float_value(values::Dict{String,String}, key::String, default::Fl
 end
 
 function limiter_from_cli(values::Dict{String,String})
-    name = lowercase(strip(get(values, "limiter", "minmod")))
+    name = replace(lowercase(strip(get(values, "limiter", "minmod"))), "_" => "-")
     name == "minmod" && return MinmodLimiter()
-    throw(ArgumentError("unknown limiter '$name'; expected minmod"))
+    name in ("van-leer", "vanleer") && return VanLeerLimiter()
+    throw(ArgumentError("unknown limiter '$name'; expected minmod or van-leer"))
 end
 
 function spatial_method_from_cli(values::Dict{String,String})
@@ -549,8 +550,8 @@ function run_single_simulation(parsed)
     end
 
     params, output, backend = parsed
-    backend_label = backend isa NativeRK3Backend ? "native" : "sciml"
-    alg_label = backend isa SciMLTimeBackend ? algorithm_name(backend.solve.algorithm) : time_stepper_name(params.time_stepper)
+    backend_label = backend_name(backend)
+    alg_label = run_algorithm_name(params, backend)
     @info "running stenosis hemodynamics simulation" model=model_name(params) variable_radius_terms=variable_radius_terms_enabled(params) nx=params.nx tfinal=params.tfinal dt_cap=params.dt severity=params.severity velocity_profile=profile_name(params.velocity_profile) alpha=params.alpha shear_rate_factor=shear_rate_factor(params.velocity_profile) young=params.young space=spatial_method_name(params.space) time_stepper=time_stepper_name(params.time_stepper) rheology=rheology_name(params.rheology) initial_condition=initial_condition_name(params.initial_condition) backend=backend_label alg=alg_label
 
     result = simulate(params, backend; progress_every=output.progress_every)
@@ -913,6 +914,19 @@ function run_export_assets_cli(args::Vector{String})
     return export_stenosis_geometry_figures(opts)
 end
 
+const CLI_COMMAND_HANDLERS = Dict{String,Function}(
+    "simulate" => run_simulate_cli,
+    "openbf-run" => run_openbf_cli,
+    "study" => run_study_cli,
+    "stokes" => run_stokes_cli,
+    "verify" => run_verify_cli,
+    "compare-3d" => run_compare3d_cli,
+    "benchmark" => run_benchmark_cli,
+    "export-assets" => run_export_assets_cli,
+)
+
+const CLI_COMMAND_NAMES = join(sort!(collect(keys(CLI_COMMAND_HANDLERS))), ", ")
+
 function run_cli(args::Vector{String} = ARGS)
     if isempty(args) || args[1] in ("--help", "-h", "help")
         print_usage()
@@ -921,14 +935,8 @@ function run_cli(args::Vector{String} = ARGS)
 
     command = args[1]
     rest = args[2:end]
-    command == "simulate" && return run_simulate_cli(rest)
-    command == "openbf-run" && return run_openbf_cli(rest)
-    command == "study" && return run_study_cli(rest)
-    command == "stokes" && return run_stokes_cli(rest)
-    command == "verify" && return run_verify_cli(rest)
-    command == "compare-3d" && return run_compare3d_cli(rest)
-    command == "benchmark" && return run_benchmark_cli(rest)
-    command == "export-assets" && return run_export_assets_cli(rest)
+    handler = get(CLI_COMMAND_HANDLERS, command, nothing)
+    handler !== nothing && return handler(rest)
     startswith(command, "--") && throw(ArgumentError("missing command; use 'simulate' before simulation options"))
-    throw(ArgumentError("unknown command '$command'; expected simulate, openbf-run, study, stokes, compare-3d, benchmark, or export-assets"))
+    throw(ArgumentError("unknown command '$command'; expected one of: $CLI_COMMAND_NAMES"))
 end

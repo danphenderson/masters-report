@@ -1,3 +1,13 @@
+"""
+    AbstractStudySpec
+
+Workflow specification protocol for reusable research studies.
+
+Concrete study specs should define `workflow_kind(spec)`, `validate(spec)`, and
+`default_output_paths(spec)`. Public entrypoints should call
+`validate_workflow_spec(spec)` before running cases and should return typed
+result objects rather than raw file paths.
+"""
 abstract type AbstractStudySpec end
 
 """
@@ -69,6 +79,56 @@ function GridConvergenceStudySpec(;
     end
     return GridConvergenceStudySpec(base_params, nx_values, backend, summary_csv, overwrite, progress_every, parallel_workers)
 end
+
+"""
+    workflow_kind(spec) -> String
+
+Internal stable identifier for a workflow result family.
+"""
+workflow_kind(::SeveritySweepSpec) = "severity_sweep"
+workflow_kind(::GridConvergenceStudySpec) = "grid_convergence"
+
+function validate(spec::SeveritySweepSpec)
+    isempty(spec.severities) && throw(ArgumentError("severity sweep must include at least one severity"))
+    spec.progress_every >= 0 || throw(ArgumentError("progress_every must be nonnegative"))
+    spec.parallel_workers >= 0 || throw(ArgumentError("parallel_workers must be nonnegative"))
+    for severity in spec.severities
+        params = params_with(spec.base_params; severity=severity)
+        validate(params)
+        assert_backend_supported(params.space, spec.backend)
+    end
+    return spec
+end
+
+function validate(spec::GridConvergenceStudySpec)
+    isempty(spec.nxs) && throw(ArgumentError("grid convergence study must include at least one nx value"))
+    all(nx -> nx >= 3, spec.nxs) || throw(ArgumentError("all grid convergence sizes must be at least 3"))
+    spec.progress_every >= 0 || throw(ArgumentError("progress_every must be nonnegative"))
+    spec.parallel_workers >= 0 || throw(ArgumentError("parallel_workers must be nonnegative"))
+    for nx in spec.nxs
+        params = params_with(spec.base_params; nx=nx)
+        validate(params)
+        assert_backend_supported(params.space, spec.backend)
+    end
+    return spec
+end
+
+"""
+    validate_workflow_spec(spec)
+
+Validate a workflow spec through its local `validate` method. New workflow
+specs can specialize this when validation requires adapter-specific setup.
+"""
+validate_workflow_spec(spec) = validate(spec)
+
+"""
+    default_output_paths(spec) -> NamedTuple
+
+Return the output paths a workflow would use after applying default path rules.
+The named tuple shape is local to each workflow family.
+"""
+default_output_paths(spec::SeveritySweepSpec) = (summary_csv=study_summary_path(spec),)
+default_output_paths(spec::GridConvergenceStudySpec) = (summary_csv=study_summary_path(spec),)
 
 """One scalar diagnostic row from a study run."""
 struct StudyRunSummary
@@ -169,27 +229,31 @@ Execute a severity or grid study. Independent cases run in parallel when
 `parallel_workers` is greater than one.
 """
 function run_study(spec::SeveritySweepSpec)
+    validate_workflow_spec(spec)
+    kind = workflow_kind(spec)
     rows = parallel_case_map(spec.severities; parallel_workers=spec.parallel_workers) do severity
         params = params_with(spec.base_params; severity=severity)
         result = simulate(params, spec.backend; progress_every=spec.progress_every)
-        summarize_study_run("severity_sweep", params, spec.backend, result)
+        summarize_study_run(kind, params, spec.backend, result)
     end
 
-    path = study_summary_path(spec)
-    study = StudyResult("severity_sweep", rows, path)
+    path = default_output_paths(spec).summary_csv
+    study = StudyResult(kind, rows, path)
     write_study_csv(path, study; overwrite=spec.overwrite)
     return study
 end
 
 function run_study(spec::GridConvergenceStudySpec)
+    validate_workflow_spec(spec)
+    kind = workflow_kind(spec)
     rows = parallel_case_map(spec.nxs; parallel_workers=spec.parallel_workers) do nx
         params = params_with(spec.base_params; nx=nx)
         result = simulate(params, spec.backend; progress_every=spec.progress_every)
-        summarize_study_run("grid_convergence", params, spec.backend, result)
+        summarize_study_run(kind, params, spec.backend, result)
     end
 
-    path = study_summary_path(spec)
-    study = StudyResult("grid_convergence", rows, path)
+    path = default_output_paths(spec).summary_csv
+    study = StudyResult(kind, rows, path)
     write_study_csv(path, study; overwrite=spec.overwrite)
     return study
 end
@@ -208,7 +272,7 @@ function summarize_study_run(
         params.nx,
         params.length_cm / params.nx,
         backend_name(backend),
-        backend isa NativeRK3Backend ? time_stepper_name(params.time_stepper) : backend_algorithm_name(backend),
+        run_algorithm_name(params, backend),
         model_name(params),
         variable_radius_terms_enabled(params),
         wall_law_name(params.wall_law),

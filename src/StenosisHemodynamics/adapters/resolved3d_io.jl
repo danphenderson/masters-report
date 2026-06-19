@@ -2,7 +2,9 @@
     parse_xdmf_velocity(path) -> XDMFVelocityMetadata
 
 Parse the time, topology, geometry, and node-centered vector attribute HDF5
-references from a Canic upstream XDMF velocity file.
+references from a Canic upstream XDMF velocity file. XDMF/HDF5 assumptions are
+isolated in this adapter so resolved-3D workflow code consumes only
+`Resolved3DVelocityField` arrays and metadata.
 """
 function parse_xdmf_velocity(path::String)
     isfile(path) || throw(ArgumentError("XDMF file not found: $path"))

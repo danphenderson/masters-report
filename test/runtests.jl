@@ -15,6 +15,7 @@ using StenosisHemodynamics
 include("test_helpers.jl")
 include("test_public_api.jl")
 include("test_io_writers.jl")
+include("test_extension_contracts.jl")
 include("test_parallel.jl")
 include("test_core_model.jl")
 include("test_openbf_stokes.jl")

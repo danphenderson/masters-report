@@ -14,6 +14,13 @@ struct OpenBFRunSpec
     output::OutputSpec
 end
 
+"""
+    require_yaml()
+
+Load YAML.jl lazily for the OpenBF-style configuration adapter. YAML parsing
+must stay in this adapter; workflow and solver code consume `OpenBFRunSpec`,
+`Params`, and `OutputSpec`.
+"""
 function require_yaml()
     try
         return Base.require(Base.PkgId(YAML_UUID, "YAML"))

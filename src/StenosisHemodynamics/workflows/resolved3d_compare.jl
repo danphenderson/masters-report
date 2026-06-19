@@ -47,6 +47,8 @@ function resolved3d_run_fields(case::Resolved3DCaseSpec, params::Params, backend
 end
 
 function run_comparison(spec::ComparisonSpec)
+    validate_workflow_spec(spec)
+    paths = default_output_paths(spec)
     section_rows = SectionComparisonRow[]
     profile_rows = RadialProfileRow[]
     sensitivity_rows = NodeSlabSensitivityRow[]
@@ -85,17 +87,17 @@ function run_comparison(spec::ComparisonSpec)
         profile_rows,
         sensitivity_rows,
         summary_rows,
-        section_csv_paths(spec),
-        profile_csv_paths(spec),
-        sensitivity_csv_path(spec),
-        comparison_summary_path(spec),
+        paths.section_csvs,
+        paths.profile_csvs,
+        paths.sensitivity_csv,
+        paths.summary_csv,
         String[],
     )
     write_comparison_csvs(result; overwrite=spec.overwrite)
 
     svg_paths = String[]
     if spec.write_svg
-        path = joinpath(spec.output_dir, "section_quadrature_overlay.svg")
+        path = paths.overlay_svg
         write_section_comparison_svg(path, section_rows; overwrite=spec.overwrite)
         push!(svg_paths, path)
     end

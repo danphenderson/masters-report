@@ -1,3 +1,14 @@
+"""
+    AbstractTimeBackend
+
+Time-integration backend protocol.
+
+Backends choose how a validated `Params` object is advanced in time. New
+backends should define `backend_name`, `backend_algorithm_name` or
+`run_algorithm_name`, `supports_backend(method, backend)`, and
+`simulate(params, backend; progress_every=0)`. Backend compatibility must be
+expressed with trait dispatch rather than open-coded method checks.
+"""
 abstract type AbstractTimeBackend end
 
 """
@@ -24,8 +35,38 @@ end
 
 backend_name(::NativeRK3Backend) = "native"
 backend_name(::SciMLTimeBackend) = "sciml"
+backend_name(backend::AbstractTimeBackend) = string(nameof(typeof(backend)))
 backend_algorithm_name(::NativeRK3Backend) = "ssprk"
 backend_algorithm_name(backend::SciMLTimeBackend) = algorithm_name(backend.solve.algorithm)
+
+"""
+    supports_backend(method, backend) -> Bool
+
+Internal compatibility query between spatial methods and time backends. New
+methods or backends should specialize this method and the lower-level spatial
+method traits rather than adding `isa` checks to `simulate`.
+"""
+supports_backend(::AbstractSpatialMethod, ::NativeRK3Backend) = true
+supports_backend(method::AbstractSpatialMethod, ::SciMLTimeBackend) =
+    !requires_fixed_timestep(method) && !requires_native_modal_solver(method)
+supports_backend(::AbstractSpatialMethod, ::AbstractTimeBackend) = false
+
+unsupported_backend_message(method::AbstractSpatialMethod, backend::AbstractTimeBackend) =
+    "$(spatial_method_name(method)) does not support $(backend_name(backend)) backend"
+
+unsupported_backend_message(method::FVLaxWendroffMethod, ::SciMLTimeBackend) =
+    "$(spatial_method_name(method)) requires native fixed-step prediction and is not available with SciMLTimeBackend"
+
+unsupported_backend_message(method::DGMethod, ::SciMLTimeBackend) =
+    "DG degree $(method.degree) currently uses the native modal DG solver, not SciMLTimeBackend"
+
+function assert_backend_supported(method::AbstractSpatialMethod, backend::AbstractTimeBackend)
+    supports_backend(method, backend) || throw(ArgumentError(unsupported_backend_message(method, backend)))
+    return method
+end
+
+run_algorithm_name(params::Params, backend::NativeRK3Backend) = time_stepper_name(params.time_stepper)
+run_algorithm_name(::Params, backend::SciMLTimeBackend) = backend_algorithm_name(backend)
 
 """
     simulate(params, backend; progress_every=0) -> SimulationResult
@@ -34,7 +75,7 @@ backend_algorithm_name(backend::SciMLTimeBackend) = algorithm_name(backend.solve
 Advance one case through the selected backend and return the final state.
 """
 function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
-    p.space isa DGMethod && return simulate_dg(p, p.space; progress_every=progress_every)
+    method_family(p.space) == :discontinuous_galerkin && return simulate_dg(p, p.space; progress_every=progress_every)
 
     start_ns = telemetry_start_ns()
     @telemetry_info "simulation started" event="simulation_started" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="started"
@@ -80,10 +121,7 @@ function simulate(p::Params, backend::SciMLTimeBackend; progress_every::Int = 0)
     try
         _ = progress_every
         validate(p)
-        p.space isa FVLaxWendroffMethod &&
-            throw(ArgumentError("fv-lax-wendroff requires native fixed-step prediction and is not available with SciMLTimeBackend"))
-        p.space isa DGMethod && p.space.degree > 0 &&
-            throw(ArgumentError("DG degree $(p.space.degree) currently uses the native modal DG solver, not SciMLTimeBackend"))
+        assert_backend_supported(p.space, backend)
 
         sim = semidiscretize(p)
         initial = initial_state_result(p)

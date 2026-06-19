@@ -1,6 +1,6 @@
 using Printf
 
-Base.@kwdef struct RefinementStudySpec
+Base.@kwdef struct RefinementStudySpec <: AbstractStudySpec
     base_params::Params = Params(tfinal=1.0e-4, nx=50, initial_condition=GeometryRestIC())
     nxs::Vector{Int} = [50, 100, 200, 400]
     degrees::Vector{Int} = [0, 1, 2]
@@ -43,6 +43,8 @@ struct RefinementStudyResult
     tex_paths::Vector{String}
 end
 
+workflow_kind(::RefinementStudySpec) = "refinement"
+
 function validate(spec::RefinementStudySpec)
     validate(spec.base_params)
     length(spec.nxs) >= 2 || throw(ArgumentError("refinement study requires at least two grid sizes"))
@@ -51,6 +53,12 @@ function validate(spec::RefinementStudySpec)
     length(unique(spec.nxs)) == length(spec.nxs) || throw(ArgumentError("refinement grid sizes must be unique"))
     all(degree -> 0 <= degree <= 2, spec.degrees) || throw(ArgumentError("DG degrees must be in 0:2"))
     !isempty(spec.h_methods) || throw(ArgumentError("h refinement requires at least one spatial method"))
+    for method in spec.h_methods
+        assert_backend_supported(method, spec.backend)
+    end
+    for degree in spec.degrees
+        assert_backend_supported(DGMethod(degree), spec.backend)
+    end
     spec.progress_every >= 0 || throw(ArgumentError("progress_every must be nonnegative"))
     spec.parallel_workers >= 0 || throw(ArgumentError("parallel_workers must be nonnegative"))
     return spec
@@ -69,8 +77,22 @@ function refinement_output_dir(spec::RefinementStudySpec)
     return isempty(spec.output_dir) ? default_refinement_output_dir(spec) : spec.output_dir
 end
 
+function default_output_paths(spec::RefinementStudySpec)
+    outdir = refinement_output_dir(spec)
+    return (
+        csv_paths=[
+            joinpath(outdir, "h_refinement.csv"),
+            joinpath(outdir, "p_refinement.csv"),
+        ],
+        tex_paths=[
+            joinpath(outdir, "h_refinement.tex"),
+            joinpath(outdir, "p_refinement.tex"),
+        ],
+    )
+end
+
 function run_refinement_study(spec::RefinementStudySpec = RefinementStudySpec())
-    validate(spec)
+    validate_workflow_spec(spec)
     h_chunks = parallel_case_map(spec.h_methods; parallel_workers=spec.parallel_workers) do method
         refinement_rows_for_method("h_refinement", spec, method)
     end
@@ -82,21 +104,16 @@ function run_refinement_study(spec::RefinementStudySpec = RefinementStudySpec())
     end
     p_rows = reduce(vcat, p_chunks; init=RefinementStudyRow[])
 
-    outdir = refinement_output_dir(spec)
-    csv_paths = [
-        joinpath(outdir, "h_refinement.csv"),
-        joinpath(outdir, "p_refinement.csv"),
-    ]
-    tex_paths = [
-        joinpath(outdir, "h_refinement.tex"),
-        joinpath(outdir, "p_refinement.tex"),
-    ]
-    result = RefinementStudyResult(spec, h_rows, p_rows, csv_paths, tex_paths)
-    write_refinement_study_csv(csv_paths[1], h_rows; overwrite=spec.overwrite)
-    write_refinement_study_csv(csv_paths[2], p_rows; overwrite=spec.overwrite)
+    paths = default_output_paths(spec)
+    result = RefinementStudyResult(spec, h_rows, p_rows, paths.csv_paths, paths.tex_paths)
+    write_refinement_study_csv(paths.csv_paths[1], h_rows; overwrite=spec.overwrite)
+    write_refinement_study_csv(paths.csv_paths[2], p_rows; overwrite=spec.overwrite)
     write_refinement_latex_tables(result; overwrite=spec.overwrite)
     return result
 end
+
+refinement_method_degree(::AbstractSpatialMethod) = -1
+refinement_method_degree(method::DGMethod) = method.degree
 
 function refinement_rows_for_method(table_kind::String, spec::RefinementStudySpec, method::AbstractSpatialMethod)
     reference_nx = 2 * maximum(spec.nxs)
@@ -111,17 +128,16 @@ function refinement_rows_for_method(table_kind::String, spec::RefinementStudySpe
         result = simulate(params, spec.backend; progress_every=spec.progress_every)
         pressure_values = pressure(result, params)
         u_values = velocity(result)
-        degree = method isa DGMethod ? method.degree : -1
         push!(
             scratch,
             (
                 table_kind=table_kind,
                 method=spatial_method_name(method),
-                degree=degree,
+                degree=refinement_method_degree(method),
                 stepper=time_stepper_name(params.time_stepper),
                 nx=nx,
                 dx=params.length_cm / nx,
-                dofs=dg_degrees_of_freedom(nx, method),
+                dofs=degrees_of_freedom(nx, method),
                 expected_order=expected_refinement_order(method),
                 error_A_l2=l2_error_against_reference(result.z, result.area, reference.z, reference.area),
                 error_Q_l2=l2_error_against_reference(result.z, result.flow, reference.z, reference.flow),
@@ -161,14 +177,12 @@ function refinement_rows_for_method(table_kind::String, spec::RefinementStudySpe
     return rows
 end
 
-function expected_refinement_order(method::AbstractSpatialMethod)
-    method isa FVFirstOrderMethod && return 1.0
-    method isa FVMUSCLMethod && return 2.0
-    method isa FVWENO3Method && return 3.0
-    method isa FVLaxWendroffMethod && return 2.0
-    method isa DGMethod && return Float64(method.degree + 1)
-    return NaN
-end
+expected_refinement_order(::AbstractSpatialMethod) = NaN
+expected_refinement_order(::FVFirstOrderMethod) = 1.0
+expected_refinement_order(::FVMUSCLMethod) = 2.0
+expected_refinement_order(::FVWENO3Method) = 3.0
+expected_refinement_order(::FVLaxWendroffMethod) = 2.0
+expected_refinement_order(method::DGMethod) = Float64(method.degree + 1)
 
 function l2_error_against_reference(z::Vector{Float64}, values::Vector{Float64}, z_ref::Vector{Float64}, values_ref::Vector{Float64})
     length(z) == length(values) || throw(DimensionMismatch("sample coordinates and values must have the same length"))

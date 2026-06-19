@@ -75,6 +75,8 @@ struct StationaryStokesRefinementResult
     summary_csv::String
 end
 
+workflow_kind(::StationaryStokesRefinementSpec) = "stationary_stokes_refinement"
+
 function validate(spec::StationaryStokesRefinementSpec)
     !isempty(spec.severities) || throw(ArgumentError("stationary Stokes refinement requires at least one severity"))
     !isempty(spec.meshes) || throw(ArgumentError("stationary Stokes refinement requires at least one mesh"))
@@ -92,15 +94,16 @@ end
 function run_stationary_stokes_refinement(
     spec::StationaryStokesRefinementSpec = StationaryStokesRefinementSpec(),
 )
-    validate(spec)
+    validate_workflow_spec(spec)
     chunks = parallel_case_map(spec.severities; parallel_workers=spec.parallel_workers) do severity
         stationary_stokes_rows_for_severity(spec, severity)
     end
     rows = reduce(vcat, chunks; init=StationaryStokesRefinementRow[])
-    path = stationary_stokes_refinement_summary_path(spec)
+    paths = default_output_paths(spec)
+    path = paths.summary_csv
     result = StationaryStokesRefinementResult(spec, rows, path)
     write_stationary_stokes_refinement_csv(path, rows; overwrite=spec.overwrite)
-    write_stationary_stokes_refinement_tex(stationary_stokes_refinement_tex_path(path), rows; overwrite=spec.overwrite)
+    write_stationary_stokes_refinement_tex(paths.summary_tex, rows; overwrite=spec.overwrite)
     return result
 end
 
@@ -116,6 +119,14 @@ default_stationary_stokes_refinement_output_dir() =
 function stationary_stokes_refinement_tex_path(summary_csv::String)
     endswith(summary_csv, ".csv") && return summary_csv[begin:end-4] * ".tex"
     return summary_csv * ".tex"
+end
+
+function default_output_paths(spec::StationaryStokesRefinementSpec)
+    summary_csv = stationary_stokes_refinement_summary_path(spec)
+    return (
+        summary_csv=summary_csv,
+        summary_tex=stationary_stokes_refinement_tex_path(summary_csv),
+    )
 end
 
 function stationary_stokes_rows_for_severity(spec::StationaryStokesRefinementSpec, severity::Float64)

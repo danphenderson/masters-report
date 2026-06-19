@@ -190,6 +190,13 @@ function gridap_model(mesh::GeneratedStokesMesh, p::Params)
     return model, labels
 end
 
+"""
+    solve_stationary_stokes(params, ic) -> StationaryStokesSolution
+
+Solve the fixed-wall stationary-Stokes initialization problem through Gridap.
+Gridap objects are intentionally contained in this adapter; callers receive the
+projected 1D initial state through `initial_condition_values`.
+"""
 function solve_stationary_stokes(p::Params, ic::StationaryStokesIC)
     mesh = generated_stokes_mesh(p, ic)
     model, labels = gridap_model(mesh, p)

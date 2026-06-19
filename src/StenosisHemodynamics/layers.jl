@@ -32,6 +32,17 @@ The numerics layer may allocate per-solve caches and mutate those caches inside
 well-documented function barriers. It should not parse experiment
 configuration, write publication assets, or know about external resolved-3D
 data formats.
+
+Extension contract:
+
+- spatial methods subtype `AbstractSpatialMethod` and define
+  `spatial_method_name`, `validate`, `method_family`, `degrees_of_freedom`,
+  plus the relevant flux or dedicated solver entrypoint;
+- native steppers subtype `AbstractNativeTimeStepper` and define
+  `time_stepper_name`, `validate`, and `native_step!`;
+- time backends subtype `AbstractTimeBackend` and define `backend_name`,
+  `backend_algorithm_name` or `run_algorithm_name`, `supports_backend`, and a
+  `simulate(params, backend)` method.
 """
 struct NumericsLayer <: AbstractArchitectureLayer end
 
@@ -56,6 +67,11 @@ Adapter files translate package-native specs into external inputs or outputs:
 SciML problems, OpenBF-style YAML, Gridap stationary-Stokes initialization, and
 resolved-3D XDMF/HDF5 loading. Long-term, these files are candidates for Julia
 package extensions or weak-dependency modules.
+
+Adapter code is the boundary for optional dependencies. New adapters should
+depend on typed core/workflow specs, isolate package loading behind a narrow
+`require_*` function when possible, and return package-native data or specs
+rather than leaking external object graphs into solver kernels.
 """
 struct AdapterLayer <: AbstractArchitectureLayer end
 
@@ -68,6 +84,11 @@ and I/O layers.
 Workflow modules expose typed `Spec` and `Result` objects plus `run_*` and
 `write_*` functions. They may schedule cases, compare outputs, and publish
 derived artifacts, but they should not parse command-line arguments directly.
+
+Extension contract: workflow specs subtype `AbstractStudySpec` where practical
+and define `workflow_kind`, `validate` or `validate_workflow_spec`, and
+`default_output_paths`. Public `run_*` functions should preserve constructor
+compatibility and keep command-line concerns in the CLI layer.
 """
 struct WorkflowsLayer <: AbstractArchitectureLayer end
 
@@ -79,5 +100,8 @@ Owns command-line parsing and console-oriented command dispatch.
 The CLI layer should remain thin: parse flags or config files into typed specs,
 call workflow or simulation APIs, and print human-readable output locations. It
 must not own solver logic, publication semantics, or destructive cleanup policy.
+
+Command-specific parsing belongs in small `run_*_cli(args)` handlers registered
+behind `run_cli`; user-facing command names are the stable boundary.
 """
 struct CLILayer <: AbstractArchitectureLayer end

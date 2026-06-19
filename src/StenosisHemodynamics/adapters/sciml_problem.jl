@@ -1,6 +1,13 @@
 const SCIMLBASE_UUID = Base.UUID("0bca4576-84f4-4d90-8ffe-ffa030f20462")
 const ORDINARYDIFFEQ_UUID = Base.UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed")
 
+"""
+    require_scimlbase()
+
+Load SciMLBase lazily at the SciML adapter boundary. Core and numerics files
+should call package-native wrappers such as `ode_problem` rather than importing
+SciMLBase directly.
+"""
 function require_scimlbase()
     try
         return Base.require(Base.PkgId(SCIMLBASE_UUID, "SciMLBase"))
@@ -10,6 +17,12 @@ function require_scimlbase()
     end
 end
 
+"""
+    require_ordinarydiffeq()
+
+Load OrdinaryDiffEq lazily for `SciMLTimeBackend` solves. This keeps the backend
+extension point isolated from core solver types.
+"""
 function require_ordinarydiffeq()
     try
         return Base.require(Base.PkgId(ORDINARYDIFFEQ_UUID, "OrdinaryDiffEq"))

@@ -1,4 +1,13 @@
-Base.@kwdef struct PackageBenchmarkSpec
+"""
+    PackageBenchmarkSpec(; profile, output_dir, overwrite, include_resolved3d,
+        publish_report_assets, progress_every)
+
+Workflow spec for the package benchmark matrix. The benchmark participates in
+the internal workflow protocol through `workflow_kind`, `validate_workflow_spec`,
+and `default_output_paths`, but remains public only through
+`run_package_benchmark`.
+"""
+Base.@kwdef struct PackageBenchmarkSpec <: AbstractStudySpec
     profile::String = "smoke"
     output_dir::String = joinpath("simulations", "output", "package_benchmark", "smoke")
     overwrite::Bool = false
@@ -11,6 +20,29 @@ struct PackageBenchmarkResult
     output_dir::String
     manifest_path::String
     csv_paths::Vector{String}
+end
+
+workflow_kind(::PackageBenchmarkSpec) = "package_benchmark"
+
+function validate(spec::PackageBenchmarkSpec)
+    profile = lowercase(strip(spec.profile))
+    profile in ("smoke", "overnight") ||
+        throw(ArgumentError("profile must be smoke or overnight, got $(spec.profile)"))
+    spec.progress_every >= 0 || throw(ArgumentError("progress_every must be nonnegative"))
+    return spec
+end
+
+function default_output_paths(spec::PackageBenchmarkSpec)
+    return (
+        case_results=joinpath(spec.output_dir, "case_results.csv"),
+        refinement=joinpath(spec.output_dir, "refinement.csv"),
+        backend_parity=joinpath(spec.output_dir, "backend_parity.csv"),
+        stokes_ic=joinpath(spec.output_dir, "stokes_ic.csv"),
+        rheology_profile=joinpath(spec.output_dir, "rheology_profile.csv"),
+        boundary_openbf=joinpath(spec.output_dir, "boundary_openbf.csv"),
+        resolved3d=joinpath(spec.output_dir, "resolved3d.csv"),
+        manifest=joinpath(spec.output_dir, "manifest.json"),
+    )
 end
 
 const PACKAGE_BENCHMARK_DATA_DIR =
@@ -195,59 +227,51 @@ const RESOLVED3D_HEADER = [
 ]
 
 function run_package_benchmark(spec::PackageBenchmarkSpec=PackageBenchmarkSpec())
+    validate_workflow_spec(spec)
     profile = lowercase(strip(spec.profile))
-    profile in ("smoke", "overnight") ||
-        throw(ArgumentError("profile must be smoke or overnight, got $(spec.profile)"))
 
     start_ns = telemetry_start_ns()
-    @telemetry_info "package benchmark started" event="package_benchmark_started" stage="run_package_benchmark" backend="package-benchmark" method=profile nx="" tfinal="" status="started" output_dir=spec.output_dir
+    kind = workflow_kind(spec)
+    @telemetry_info "package benchmark started" event="package_benchmark_started" stage=kind backend="package-benchmark" method=profile nx="" tfinal="" status="started" output_dir=spec.output_dir
     try
         prepare_package_benchmark_output_dir(spec.output_dir; overwrite=spec.overwrite)
 
-        paths = Dict{String,String}(
-            "case_results" => joinpath(spec.output_dir, "case_results.csv"),
-            "refinement" => joinpath(spec.output_dir, "refinement.csv"),
-            "backend_parity" => joinpath(spec.output_dir, "backend_parity.csv"),
-            "stokes_ic" => joinpath(spec.output_dir, "stokes_ic.csv"),
-            "rheology_profile" => joinpath(spec.output_dir, "rheology_profile.csv"),
-            "boundary_openbf" => joinpath(spec.output_dir, "boundary_openbf.csv"),
-            "resolved3d" => joinpath(spec.output_dir, "resolved3d.csv"),
-        )
+        paths = default_output_paths(spec)
 
         csv_outputs = String[]
-        run_benchmark_stage!(csv_outputs, paths["case_results"], CASE_RESULTS_HEADER, "case_results", spec, profile) do
+        run_benchmark_stage!(csv_outputs, paths.case_results, CASE_RESULTS_HEADER, "case_results", spec, profile) do
             descriptor_health_rows(profile, spec)
         end
-        run_benchmark_stage!(csv_outputs, paths["refinement"], REFINEMENT_HEADER, "refinement", spec, profile) do
+        run_benchmark_stage!(csv_outputs, paths.refinement, REFINEMENT_HEADER, "refinement", spec, profile) do
             refinement_rows(profile, spec)
         end
-        run_benchmark_stage!(csv_outputs, paths["backend_parity"], BACKEND_PARITY_HEADER, "backend_parity", spec, profile) do
+        run_benchmark_stage!(csv_outputs, paths.backend_parity, BACKEND_PARITY_HEADER, "backend_parity", spec, profile) do
             backend_parity_rows(profile, spec)
         end
-        run_benchmark_stage!(csv_outputs, paths["stokes_ic"], STOKES_IC_HEADER, "stokes_ic", spec, profile) do
+        run_benchmark_stage!(csv_outputs, paths.stokes_ic, STOKES_IC_HEADER, "stokes_ic", spec, profile) do
             stokes_ic_rows(profile, spec)
         end
-        run_benchmark_stage!(csv_outputs, paths["rheology_profile"], RHEOLOGY_PROFILE_HEADER, "rheology_profile", spec, profile) do
+        run_benchmark_stage!(csv_outputs, paths.rheology_profile, RHEOLOGY_PROFILE_HEADER, "rheology_profile", spec, profile) do
             rheology_profile_rows(profile, spec)
         end
-        run_benchmark_stage!(csv_outputs, paths["boundary_openbf"], BOUNDARY_OPENBF_HEADER, "boundary_openbf", spec, profile) do
+        run_benchmark_stage!(csv_outputs, paths.boundary_openbf, BOUNDARY_OPENBF_HEADER, "boundary_openbf", spec, profile) do
             boundary_openbf_rows(profile, spec)
         end
-        run_benchmark_stage!(csv_outputs, paths["resolved3d"], RESOLVED3D_HEADER, "resolved3d", spec, profile) do
+        run_benchmark_stage!(csv_outputs, paths.resolved3d, RESOLVED3D_HEADER, "resolved3d", spec, profile) do
             resolved3d_rows(profile, spec)
         end
 
-        manifest_path = joinpath(spec.output_dir, "manifest.json")
+        manifest_path = paths.manifest
         write_manifest(manifest_path, spec, profile, csv_outputs)
 
         if spec.publish_report_assets
             publish_package_benchmark_assets(spec.output_dir, csv_outputs, manifest_path)
         end
 
-        @telemetry_info "package benchmark completed" event="package_benchmark_completed" stage="run_package_benchmark" backend="package-benchmark" method=profile nx="" tfinal="" status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(csv_outputs) output_dir=spec.output_dir
+        @telemetry_info "package benchmark completed" event="package_benchmark_completed" stage=kind backend="package-benchmark" method=profile nx="" tfinal="" status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(csv_outputs) output_dir=spec.output_dir
         return PackageBenchmarkResult(spec.output_dir, manifest_path, csv_outputs)
     catch err
-        @telemetry_error "package benchmark failed" event="package_benchmark_failed" stage="run_package_benchmark" backend="package-benchmark" method=profile nx="" tfinal="" status="error" elapsed_s=telemetry_elapsed_s(start_ns) output_dir=spec.output_dir reason=sprint(showerror, err)
+        @telemetry_error "package benchmark failed" event="package_benchmark_failed" stage=kind backend="package-benchmark" method=profile nx="" tfinal="" status="error" elapsed_s=telemetry_elapsed_s(start_ns) output_dir=spec.output_dir reason=sprint(showerror, err)
         rethrow()
     end
 end
@@ -565,8 +589,8 @@ function backend_parity_rows(profile::String, spec::PackageBenchmarkSpec)
             pressure_l2 = l2_error_against_reference(sciml.z, sciml_pressure, native.z, native_pressure)
             push!(rows, [
                 case_id,
-                method_name(method),
-                method_degree(method),
+                benchmark_method_name(method),
+                benchmark_method_degree(method),
                 nx,
                 tfinal,
                 algorithm,
@@ -582,8 +606,8 @@ function backend_parity_rows(profile::String, spec::PackageBenchmarkSpec)
         catch err
             push!(rows, [
                 case_id,
-                method_name(method),
-                method_degree(method),
+                benchmark_method_name(method),
+                benchmark_method_degree(method),
                 nx,
                 tfinal,
                 algorithm,
@@ -908,8 +932,8 @@ function case_result_row(stage::String, case_id::String, params, backend, spec::
             wall_law_name(params),
             backend_name(backend),
             "cpu",
-            method_name(params.space),
-            method_degree(params.space),
+            benchmark_method_name(params.space),
+            benchmark_method_degree(params.space),
             stepper_name(params.time_stepper),
             params.nx,
             params.severity,
@@ -951,8 +975,8 @@ function case_result_row(stage::String, case_id::String, params, backend, spec::
             wall_law_name(params),
             backend_name(backend),
             "cpu",
-            method_name(params.space),
-            method_degree(params.space),
+            benchmark_method_name(params.space),
+            benchmark_method_degree(params.space),
             stepper_name(params.time_stepper),
             params.nx,
             params.severity,
@@ -1068,16 +1092,17 @@ function sciml_policy(name::String)
     throw(ArgumentError("unsupported SciML algorithm: $name"))
 end
 
-method_name(method::FVFirstOrderMethod) = "fv-first-order"
-method_name(method::FVMUSCLMethod) = "fv-muscl"
-method_name(method::FVWENO3Method) = "fv-weno3"
-method_name(method::FVLaxWendroffMethod) = "fv-lax-wendroff"
-method_name(method::DGMethod) = "dg-p$(method.degree)"
-method_name(method) = string(typeof(method))
+benchmark_method_name(::FVFirstOrderMethod) = "fv-first-order"
+benchmark_method_name(::FVMUSCLMethod) = "fv-muscl"
+benchmark_method_name(::FVWENO3Method) = "fv-weno3"
+benchmark_method_name(::FVLaxWendroffMethod) = "fv-lax-wendroff"
+benchmark_method_name(method::DGMethod) = "dg-p$(method.degree)"
+benchmark_method_name(method) = string(typeof(method))
 
-method_slug(method) = replace(method_name(method), "_" => "-", "." => "p")
-method_degree(method::DGMethod) = method.degree
-method_degree(method) = ""
+method_slug(method) = replace(benchmark_method_name(method), "_" => "-", "." => "p")
+benchmark_method_degree(method::DGMethod) = method.degree
+benchmark_method_degree(method::AbstractSpatialMethod) = ""
+benchmark_method_degree(method) = ""
 
 stepper_name(stepper::ForwardEulerStepper) = "forward-euler"
 stepper_name(stepper::SSPRK2Stepper) = "ssprk2"

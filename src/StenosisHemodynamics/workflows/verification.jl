@@ -151,8 +151,13 @@ struct RestStateDriftResult
     summary_tex::String
 end
 
+workflow_kind(::ManufacturedVerificationSpec) = "manufactured_verification"
+workflow_kind(::PHRefinementDemoSpec) = "p_h_refinement_demo"
+workflow_kind(::RestStateDriftSpec) = "rest_state_drift"
+
 function validate(spec::ManufacturedVerificationSpec)
     validate(spec.base_params)
+    assert_backend_supported(spec.base_params.space, spec.backend)
     spec.base_params.forcing isa ManufacturedForcing ||
         throw(ArgumentError("manufactured verification requires base_params.forcing=ManufacturedForcing(...)"))
     spec.base_params.initial_condition isa ManufacturedSolutionIC ||
@@ -231,8 +236,24 @@ function rest_state_drift_tex_path(spec::RestStateDriftSpec)
     return joinpath(spec.output_dir, "rest_state_drift.tex")
 end
 
+default_output_paths(spec::ManufacturedVerificationSpec) = (
+    summary_csv=manufactured_verification_csv_path(spec),
+    summary_tex=manufactured_verification_tex_path(spec),
+)
+
+default_output_paths(spec::PHRefinementDemoSpec) = (
+    summary_csv=ph_refinement_demo_csv_path(spec),
+    summary_tex=ph_refinement_demo_tex_path(spec),
+)
+
+default_output_paths(spec::RestStateDriftSpec) = (
+    summary_csv=rest_state_drift_csv_path(spec),
+    summary_tex=rest_state_drift_tex_path(spec),
+    full_tex=rest_state_drift_full_tex_path(rest_state_drift_tex_path(spec)),
+)
+
 function run_manufactured_verification(spec::ManufacturedVerificationSpec = ManufacturedVerificationSpec())
-    validate(spec)
+    validate_workflow_spec(spec)
     spatial_rows = manufactured_group_rows(
         "spatial",
         spec,
@@ -244,15 +265,16 @@ function run_manufactured_verification(spec::ManufacturedVerificationSpec = Manu
         [(nx=maximum(spec.nxs), dt=dt) for dt in sort(spec.dt_values; rev=true)],
     )
     rows = vcat(spatial_rows, temporal_rows)
-    csv_path = manufactured_verification_csv_path(spec)
-    tex_path = manufactured_verification_tex_path(spec)
+    paths = default_output_paths(spec)
+    csv_path = paths.summary_csv
+    tex_path = paths.summary_tex
     write_manufactured_verification_csv(csv_path, rows; overwrite=spec.overwrite)
     write_manufactured_verification_tex(tex_path, rows; overwrite=spec.overwrite)
     return ManufacturedVerificationResult(spec, rows, csv_path, tex_path)
 end
 
 function run_ph_refinement_demo(spec::PHRefinementDemoSpec = PHRefinementDemoSpec())
-    validate(spec)
+    validate_workflow_spec(spec)
     h_rows = [
         ph_refinement_demo_case("h_refinement", spec, nx, spec.h_degree)
         for nx in spec.h_nxs
@@ -262,8 +284,9 @@ function run_ph_refinement_demo(spec::PHRefinementDemoSpec = PHRefinementDemoSpe
         for degree in spec.degrees
     ]
     rows = vcat(assign_ph_h_orders(h_rows), assign_ph_p_reductions(p_rows))
-    csv_path = ph_refinement_demo_csv_path(spec)
-    tex_path = ph_refinement_demo_tex_path(spec)
+    paths = default_output_paths(spec)
+    csv_path = paths.summary_csv
+    tex_path = paths.summary_tex
     write_ph_refinement_demo_csv(csv_path, rows; overwrite=spec.overwrite)
     write_ph_refinement_demo_tex(tex_path, rows; overwrite=spec.overwrite)
     return PHRefinementDemoResult(spec, rows, csv_path, tex_path)
@@ -279,7 +302,7 @@ function ph_refinement_demo_case(sweep::String, spec::PHRefinementDemoSpec, nx::
             degree=degree,
             nx=nx,
             dx=params.length_cm / nx,
-            dofs=dg_degrees_of_freedom(nx, DGMethod(degree)),
+            dofs=degrees_of_freedom(nx, DGMethod(degree)),
             dt=params.dt,
             tfinal=params.tfinal,
             completed_time=coefficients.completed_time,
@@ -310,7 +333,7 @@ function failed_ph_refinement_demo_row(sweep::String, params::Params, degree::In
         degree=degree,
         nx=params.nx,
         dx=params.length_cm / params.nx,
-        dofs=dg_degrees_of_freedom(params.nx, DGMethod(degree)),
+        dofs=degrees_of_freedom(params.nx, DGMethod(degree)),
         dt=params.dt,
         tfinal=params.tfinal,
         completed_time=NaN,
@@ -559,16 +582,17 @@ function check_error_vectors(values::AbstractVector{Float64}, references::Abstra
 end
 
 function run_rest_state_drift(spec::RestStateDriftSpec = RestStateDriftSpec())
-    validate(spec)
+    validate_workflow_spec(spec)
     rows = RestStateDriftRow[]
     for severity in spec.severities, nx in sort(spec.nxs), tfinal in sort(spec.elapsed_times)
         push!(rows, rest_state_drift_case(spec, Float64(severity), nx, Float64(tfinal)))
     end
-    csv_path = rest_state_drift_csv_path(spec)
-    tex_path = rest_state_drift_tex_path(spec)
+    paths = default_output_paths(spec)
+    csv_path = paths.summary_csv
+    tex_path = paths.summary_tex
     write_rest_state_drift_csv(csv_path, rows; overwrite=spec.overwrite)
     write_rest_state_drift_tex(tex_path, rows; overwrite=spec.overwrite)
-    write_rest_state_drift_full_tex(rest_state_drift_full_tex_path(tex_path), rows; overwrite=spec.overwrite)
+    write_rest_state_drift_full_tex(paths.full_tex, rows; overwrite=spec.overwrite)
     return RestStateDriftResult(spec, rows, csv_path, tex_path)
 end
 

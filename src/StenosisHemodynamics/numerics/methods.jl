@@ -1,9 +1,51 @@
+"""
+    AbstractLimiter
+
+Limiter protocol for slope-reconstructed finite-volume methods.
+
+To add a limiter, subtype `AbstractLimiter` and define:
+
+- `limiter_name(limiter) -> String`
+- `validate(limiter) -> limiter`
+- `limited_slope(values, i, limiter) -> Float64`
+
+Limiter implementations are intentionally small and allocation-free so they can
+be called inside reconstruction kernels.
+"""
 abstract type AbstractLimiter end
+
+"""
+    AbstractSpatialMethod
+
+Spatial discretization protocol for 1D stenosis simulations.
+
+To add a spatial method, subtype `AbstractSpatialMethod` and define
+`spatial_method_name`, `validate`, `method_family`, `degrees_of_freedom`, and a
+`fill_method_fluxes!` method when the method uses the cell-mean RHS path. Methods
+that need a dedicated solver should specialize `requires_fixed_timestep`,
+`requires_native_modal_solver`, and `supports_backend` rather than adding
+method-specific conditionals to backend code.
+"""
 abstract type AbstractSpatialMethod end
+
+"""
+    AbstractNativeTimeStepper
+
+Native fixed-step time-stepper protocol.
+
+Subtypes must define `time_stepper_name`, `validate`, and a `native_step!`
+method that advances `(A, Q)` in place using the existing cache objects.
+Steppers are intentionally separate from spatial methods: a spatial method
+describes flux/state layout, while a stepper owns only time integration over the
+native RHS.
+"""
 abstract type AbstractNativeTimeStepper end
 
 """Total-variation-diminishing minmod slope limiter."""
 struct MinmodLimiter <: AbstractLimiter end
+
+"""Smooth TVD Van Leer slope limiter for finite-volume reconstructions."""
+struct VanLeerLimiter <: AbstractLimiter end
 
 """Legacy first-order finite-volume Rusanov method."""
 struct FVFirstOrderMethod <: AbstractSpatialMethod end
@@ -52,6 +94,7 @@ struct SSPRK3Stepper <: AbstractNativeTimeStepper end
 struct SSPRK54Stepper <: AbstractNativeTimeStepper end
 
 limiter_name(::MinmodLimiter) = "minmod"
+limiter_name(::VanLeerLimiter) = "van-leer"
 
 spatial_method_name(::FVFirstOrderMethod) = "fv-first-order"
 spatial_method_name(method::FVMUSCLMethod) = "fv-muscl-$(limiter_name(method.limiter))"
@@ -65,6 +108,7 @@ time_stepper_name(::SSPRK3Stepper) = "ssprk3"
 time_stepper_name(::SSPRK54Stepper) = "ssprk54"
 
 validate(::MinmodLimiter) = MinmodLimiter()
+validate(::VanLeerLimiter) = VanLeerLimiter()
 validate(::FVFirstOrderMethod) = FVFirstOrderMethod()
 validate(method::FVMUSCLMethod) = (validate(method.limiter); method)
 validate(method::FVWENO3Method) = (method.epsilon > 0.0 || throw(ArgumentError("WENO epsilon must be positive")); method)
@@ -87,10 +131,60 @@ function minmod(a::Float64, b::Float64, c::Float64)
     return minmod(a, minmod(b, c))
 end
 
+function vanleer(a::Float64, b::Float64)
+    a * b > 0.0 || return 0.0
+    return 2.0 * a * b / (a + b)
+end
+
 function limited_slope(values::AbstractVector{Float64}, i::Int, ::MinmodLimiter)
     firstindex(values) < i < lastindex(values) || return 0.0
     return minmod(values[i] - values[i - 1], values[i + 1] - values[i])
 end
+
+function limited_slope(values::AbstractVector{Float64}, i::Int, ::VanLeerLimiter)
+    firstindex(values) < i < lastindex(values) || return 0.0
+    return vanleer(values[i] - values[i - 1], values[i + 1] - values[i])
+end
+
+"""
+    method_family(method) -> Symbol
+
+Internal trait identifying the broad spatial-method family. New spatial methods
+should return either an existing family symbol or a new symbol documented with
+their solver path.
+"""
+method_family(::FVFirstOrderMethod) = :finite_volume
+method_family(::FVMUSCLMethod) = :finite_volume
+method_family(::FVWENO3Method) = :finite_volume
+method_family(::FVLaxWendroffMethod) = :finite_volume
+method_family(::DGMethod) = :discontinuous_galerkin
+
+"""
+    requires_fixed_timestep(method) -> Bool
+
+Return `true` when a spatial method needs the native fixed-step time increment
+inside its flux construction and therefore cannot use generic SciML RHS solves.
+"""
+requires_fixed_timestep(::AbstractSpatialMethod) = false
+requires_fixed_timestep(::FVLaxWendroffMethod) = true
+
+"""
+    requires_native_modal_solver(method) -> Bool
+
+Return `true` when a method needs the package-native modal solver rather than the
+cell-mean RHS path used by SciML.
+"""
+requires_native_modal_solver(::AbstractSpatialMethod) = false
+requires_native_modal_solver(method::DGMethod) = method.degree > 0
+
+"""
+    degrees_of_freedom(nx, method) -> Int
+
+Return the number of scalar conserved-variable degrees of freedom for `nx`
+cells and a spatial method.
+"""
+degrees_of_freedom(nx::Int, ::AbstractSpatialMethod) = 2 * nx
+degrees_of_freedom(nx::Int, method::DGMethod) = 2 * nx * (method.degree + 1)
 
 function legendre_value(degree::Int, xi::Float64)
     0 <= degree <= MAX_DG_DEGREE || throw(ArgumentError("Legendre degree must be in 0:$MAX_DG_DEGREE"))
@@ -142,8 +236,4 @@ function dg_quadrature(degree::Int)
     return (-r2, -r1, 0.0, r1, r2), (w2, w1, 128.0 / 225.0, w1, w2)
 end
 
-function dg_degrees_of_freedom(nx::Int, method::DGMethod)
-    return 2 * nx * (method.degree + 1)
-end
-
-dg_degrees_of_freedom(nx::Int, ::AbstractSpatialMethod) = 2 * nx
+dg_degrees_of_freedom(nx::Int, method::AbstractSpatialMethod) = degrees_of_freedom(nx, method)

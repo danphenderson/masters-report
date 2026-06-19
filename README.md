@@ -85,6 +85,22 @@ This repository has separate Julia and Python environments.
 The Julia and Python environments are intentionally independent; installing one
 does not prepare the other.
 
+## Julia Extension Points
+
+The solver package is organized around explicit layers documented in
+`src/StenosisHemodynamics/layers.jl`. New numerical methods should enter
+through the numerics protocols: spatial methods subtype `AbstractSpatialMethod`,
+limiters subtype `AbstractLimiter`, and time backends subtype
+`AbstractTimeBackend`. Capability checks are expressed with internal trait
+queries such as `supports_backend` and `requires_fixed_timestep`; user-facing
+method size should use the exported `degrees_of_freedom(nx, method)`.
+
+Optional integrations belong behind adapter files rather than solver kernels:
+SciML/OrdinaryDiffEq in `adapters/sciml_problem.jl`, Gridap stationary-Stokes
+initialization in `adapters/stokes_ic.jl`, OpenBF-style YAML in
+`adapters/openbf_protocol.jl`, and resolved-3D XDMF/HDF5 in
+`adapters/resolved3d_io.jl`.
+
 ## Python Support Tooling
 
 Python remains in this repository only for auxiliary report tooling: TeX and

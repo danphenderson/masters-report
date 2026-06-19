@@ -87,9 +87,15 @@ operator_name(::CrossSectionQuadratureOperator) = "CrossSectionQuadratureOperato
 operator_name(::NodeSlabOperator) = "node-slab-arithmetic-mean"
 
 """
-Configuration for comparing one or more 3D reference cases against 1D runs.
+    ComparisonSpec(; cases, base_params, backend, operator, output_dir, ...)
+
+Workflow spec for comparing one or more resolved-3D reference cases against 1D
+runs. Resolved-3D extensions should provide a `Resolved3DCaseSpec`-like data
+descriptor, an `AbstractResolved3DOperator` implementation with `operator_name`,
+and loader functions that return package-native arrays before comparison code
+runs. HDF5/XDMF details should stay in adapter files.
 """
-struct ComparisonSpec
+struct ComparisonSpec <: AbstractStudySpec
     cases::Vector{Resolved3DCaseSpec}
     base_params::Params
     backend::AbstractTimeBackend
@@ -178,6 +184,37 @@ function ComparisonSpec(;
         overwrite,
         progress_every,
         write_svg,
+    )
+end
+
+workflow_kind(::ComparisonSpec) = "resolved3d_comparison"
+
+function validate(spec::ComparisonSpec)
+    isempty(spec.cases) && throw(ArgumentError("comparison spec must include at least one case"))
+    validate(spec.base_params)
+    assert_backend_supported(spec.base_params.space, spec.backend)
+    spec.section_count >= 2 || throw(ArgumentError("section_count must be at least 2"))
+    !isempty(spec.profile_slices) || throw(ArgumentError("profile_slices must include at least one z-location"))
+    all(z -> 0.0 <= z <= spec.base_params.length_cm, spec.profile_slices) ||
+        throw(ArgumentError("profile_slices must lie inside the base_params domain"))
+    !isempty(spec.radial_bin_counts) || throw(ArgumentError("radial_bin_counts must include at least one bin count"))
+    all(count -> count >= 1, spec.radial_bin_counts) || throw(ArgumentError("all radial bin counts must be positive"))
+    !isempty(spec.radial_radius_modes) || throw(ArgumentError("radial_radius_modes must include at least one mode"))
+    all(mode -> mode in ("current", "reference"), spec.radial_radius_modes) ||
+        throw(ArgumentError("radial_radius_modes must contain only current or reference"))
+    all(width -> width > 0.0, spec.node_slab_half_widths) ||
+        throw(ArgumentError("node-slab half widths must be positive"))
+    spec.progress_every >= 0 || throw(ArgumentError("progress_every must be nonnegative"))
+    return spec
+end
+
+function default_output_paths(spec::ComparisonSpec)
+    return (
+        section_csvs=section_csv_paths(spec),
+        profile_csvs=profile_csv_paths(spec),
+        sensitivity_csv=sensitivity_csv_path(spec),
+        summary_csv=comparison_summary_path(spec),
+        overlay_svg=joinpath(spec.output_dir, "section_quadrature_overlay.svg"),
     )
 end
 
