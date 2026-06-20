@@ -71,3 +71,4 @@ references/**/*.htm
 **/node_modules/
 **/.vite/
 *.tsbuildinfo
+IGNORE.md
