@@ -1,5 +1,11 @@
 # Executive Assessment
 
+This dated assessment is not the source of policy authority. Use
+`public/docs/policy-vocabulary.md` for shared terms,
+`public/docs/agent-workflows.md` for handoff rules,
+`public/docs/artifact-policy.md` for artifact decisions, and
+`public/docs/publication-readiness.md` for release checks.
+
 Assessment of the current June 19, 2026 manuscript after the repository
 restructure to `report/`, `packages/`, and `public/`.
 
@@ -24,7 +30,9 @@ manuscript and tracked report assets.
 - Julia package root: `packages/julia/Project.toml` and
   `packages/julia/src/StenosisHemodynamics.jl`.
 - Python support tooling: `packages/ops/`.
-- Stable reviewer commands: `pipenv run ops-build-report`, `packages/julia/bin/julia-release`, and
+- Stable reviewer commands: `pipenv run ops-build-report --outdir
+  /tmp/masters-report-build --no-sync-final-pdf`,
+  `packages/julia/bin/julia-release packages/julia/test/runtests.jl`, and
   `pipenv run ops-python-check`.
 
 The current report build gate passed in a fresh scratch output directory. The
@@ -92,9 +100,9 @@ The manuscript is defensible because it keeps the numerical claims bounded:
 - Missing resolved-data metadata for wall, boundary, material, geometry state,
   and transient history remain explicit interpretation limits.
 
-This is the right stance for final submission. Stronger language about
-predictive accuracy, clinical utility, or validation should not be introduced
-without a new matched-data evidence package.
+This is the right stance for final submission. Do not introduce stronger
+language about predictive accuracy, clinical utility, or validation without a
+new matched-data evidence package.
 
 ## Remaining Launch Risks
 
@@ -116,7 +124,7 @@ without a new matched-data evidence package.
 ## Final Recommendation
 
 Proceed with the final ChatGPT Pro polish pass using the current PDF and
-restructured source tree. The Pro agent should check prose flow, section
-alignment, notation consistency, and committee-facing clarity, but should not
+restructured source tree. Ask the Pro agent to check prose flow, section
+alignment, notation consistency, and committee-facing clarity. It must not
 expand the case study into clinical validation or request new numerical
 experiments unless the user explicitly opens that scope.

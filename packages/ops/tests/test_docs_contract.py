@@ -8,6 +8,25 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
+def write_minimal_docs_contract(root: Path) -> None:
+    (root / "public/docs").mkdir(parents=True)
+    command_lines = "\n".join(f"pipenv run ops-orchestrate {command}" for command in orchestrate.COMMANDS)
+    profile_lines = "\n".join(orchestrate.PROFILES)
+    contract_text = "\n".join(
+        [
+            command_lines,
+            profile_lines,
+            "No repo-managed commit hooks.",
+            "No background automation.",
+            "No persistent orchestration receipts.",
+        ]
+    )
+    for relative in orchestrate.DOC_CONTRACT_PATHS:
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(contract_text, encoding="utf-8")
+
+
 def test_orchestration_docs_contract_passes_current_tree() -> None:
     result = orchestrate.docs_contract(repo_root())
 
@@ -25,3 +44,41 @@ def test_agent_workflow_doc_names_every_public_command() -> None:
 
     for command in orchestrate.COMMANDS:
         assert f"ops-orchestrate {command}" in text
+
+
+def test_agent_workflow_doc_names_every_profile() -> None:
+    text = (repo_root() / "public/docs/agent-workflows.md").read_text(encoding="utf-8")
+
+    for profile in orchestrate.PROFILES:
+        assert profile in text
+
+
+def test_docs_contract_rejects_stale_active_paths(tmp_path: Path) -> None:
+    write_minimal_docs_contract(tmp_path)
+    (tmp_path / "README.md").write_text(
+        "\n".join(
+            [
+                "pipenv run ops-orchestrate status",
+                "No repo-managed commit hooks.",
+                "No background automation.",
+                "No persistent orchestration receipts.",
+                "Old command: tools/python/build_report.py",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = orchestrate.docs_contract(tmp_path)
+
+    assert result.status == "failed"
+    assert any("stale active path reference in README.md" in issue for issue in result.issues)
+
+
+def test_stale_path_check_allows_historical_archive_paths(tmp_path: Path) -> None:
+    archive_path = tmp_path / "report/archive/old-notes.md"
+    archive_path.parent.mkdir(parents=True)
+    archive_path.write_text("Historical command: tools/python/build_report.py\n", encoding="utf-8")
+
+    issues = orchestrate.stale_path_issues(tmp_path, ("report/archive/old-notes.md",))
+
+    assert issues == ()

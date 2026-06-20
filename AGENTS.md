@@ -63,6 +63,13 @@ inspect it instead of staging or deleting untracked consumed inputs. See
 `public/docs/artifact-policy.md` for artifact classes and cleanup guardrails,
 and `public/docs/agent-workflows.md` for the lightweight handoff contract.
 
+## Patch Discipline
+
+Implementation patches should land in small chunks: one coherent surface per
+patch, followed by the narrow validation for that surface. Do not mix source,
+artifact, and documentation churn unless the validation dependency requires the
+files to move together.
+
 ## Commit & Pull Request Guidelines
 
 Recent commits use short imperative subjects such as `Rename Julia solver
