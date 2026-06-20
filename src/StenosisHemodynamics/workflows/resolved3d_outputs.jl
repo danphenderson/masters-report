@@ -356,6 +356,136 @@ function write_node_slab_sensitivity_csv(
     write_csv_table(path, node_slab_sensitivity_header(), (node_slab_sensitivity_values(row) for row in rows); overwrite=overwrite)
 end
 
+function write_grid_sensitivity_outputs(result::GridSensitivityResult; overwrite::Bool = false)
+    write_grid_sensitivity_summary_csv(result.summary_csv, result.summary_rows; overwrite=overwrite)
+    write_grid_sensitivity_summary_tex(result.summary_tex, result.summary_rows; overwrite=overwrite)
+    return result
+end
+
+function write_grid_sensitivity_summary_csv(
+    path::String,
+    rows::Vector{GridSensitivitySummaryRow};
+    overwrite::Bool = false,
+)
+    return write_csv_table(
+        path,
+        grid_sensitivity_summary_header(),
+        (grid_sensitivity_summary_values(row) for row in rows);
+        overwrite=overwrite,
+    )
+end
+
+function grid_sensitivity_summary_header()
+    return [
+        "case_label",
+        "severity",
+        "operator",
+        "model",
+        "nx",
+        "dt_s",
+        "initial_condition",
+        "backend",
+        "run_status",
+        "target_time_s",
+        "section_count",
+        "valid_section_count",
+        "mean_physical_flow_bias_1d_minus_3d_cm3_s",
+        "mean_physical_flow_discrepancy_cm3_s",
+        "rms_physical_flow_discrepancy_cm3_s",
+        "mean_velocity_bias_1d_minus_3d_cm_s",
+        "mean_velocity_discrepancy_cm_s",
+        "rms_velocity_discrepancy_cm_s",
+        "max_velocity_discrepancy_cm_s",
+        "max_velocity_discrepancy_z_cm",
+        "relative_rms_velocity_discrepancy",
+        "adjacent_from_nx",
+        "adjacent_mean_abs_velocity_difference_cm_s",
+        "adjacent_rms_velocity_difference_cm_s",
+        "adjacent_max_abs_velocity_difference_cm_s",
+        "adjacent_relative_rms_velocity_difference",
+        "one_d_completed_time_s",
+        "cross_model_time_offset_s",
+        "comparison_summary_csv",
+        "section_csv",
+    ]
+end
+
+function grid_sensitivity_summary_values(row::GridSensitivitySummaryRow)
+    return Any[
+        row.case_label,
+        row.severity,
+        row.operator,
+        row.model,
+        row.nx,
+        row.dt_s,
+        row.initial_condition,
+        row.backend,
+        row.run_status,
+        row.target_time_s,
+        row.section_count,
+        row.valid_section_count,
+        row.mean_physical_flow_bias_cm3_s,
+        row.mean_physical_flow_discrepancy_cm3_s,
+        row.rms_physical_flow_discrepancy_cm3_s,
+        row.mean_velocity_bias_cm_s,
+        row.mean_velocity_discrepancy_cm_s,
+        row.rms_velocity_discrepancy_cm_s,
+        row.max_velocity_discrepancy_cm_s,
+        row.max_velocity_discrepancy_z_cm,
+        row.relative_rms_velocity_discrepancy,
+        row.adjacent_from_nx,
+        row.adjacent_mean_abs_velocity_difference_cm_s,
+        row.adjacent_rms_velocity_difference_cm_s,
+        row.adjacent_max_abs_velocity_difference_cm_s,
+        row.adjacent_relative_rms_velocity_difference,
+        row.one_d_completed_time_s,
+        row.cross_model_time_offset_s,
+        row.comparison_summary_csv,
+        row.section_csv,
+    ]
+end
+
+function write_grid_sensitivity_summary_tex(
+    path::String,
+    rows::Vector{GridSensitivitySummaryRow};
+    overwrite::Bool = false,
+)
+    ordered_rows = sort(collect(rows); by=row -> (row.severity, row.nx))
+    guarded_open_write(path, overwrite) do io
+        println(io, raw"\begin{tabular}{llrrrrrrr}")
+        println(io, raw"\toprule")
+        println(
+            io,
+            raw"Case & $N$ & $\overline{\Delta Q}$ & RMS $\Delta Q$ & $\overline{\Delta u}$ & RMS $\Delta u$ & max $|\Delta u|$ & rel. RMS $u$ & adj. RMS $u$ \\",
+        )
+        println(io, raw"\midrule")
+        for row in ordered_rows
+            values = [
+                report_case_token(row.severity),
+                string(row.nx),
+                tex_number(row.mean_physical_flow_bias_cm3_s),
+                tex_number(row.rms_physical_flow_discrepancy_cm3_s),
+                tex_number(row.mean_velocity_bias_cm_s),
+                tex_number(row.rms_velocity_discrepancy_cm_s),
+                tex_number(row.max_velocity_discrepancy_cm_s),
+                tex_number(row.relative_rms_velocity_discrepancy),
+                tex_number(row.adjacent_rms_velocity_difference_cm_s),
+            ]
+            println(io, join(values, " & "), raw" \\")
+        end
+        println(io, raw"\bottomrule")
+        println(io, raw"\end{tabular}")
+    end
+    return path
+end
+
+function tex_number(value)
+    value isa Real || return string(value)
+    number = Float64(value)
+    isfinite(number) || return "--"
+    return string(round(number; sigdigits=4))
+end
+
 function node_slab_sensitivity_header()
     return [
         "case_label",
@@ -547,6 +677,32 @@ function publish_resolved3d_report_assets(
         paths,
         write_report_production_diagnostics_dat(
             joinpath(output_dir, "production-diagnostics.dat"),
+            result.summary_rows;
+            overwrite=overwrite,
+        ),
+    )
+    return paths
+end
+
+function publish_resolved3d_grid_sensitivity_assets(
+    result::GridSensitivityResult;
+    output_dir::String = joinpath("figures", "static", "static", "data", "stenosis-comparison"),
+    overwrite::Bool = false,
+)
+    mkpath(output_dir)
+    paths = String[]
+    push!(
+        paths,
+        write_grid_sensitivity_summary_csv(
+            joinpath(output_dir, "grid-sensitivity-summary.csv"),
+            result.summary_rows;
+            overwrite=overwrite,
+        ),
+    )
+    push!(
+        paths,
+        write_grid_sensitivity_summary_tex(
+            joinpath(output_dir, "grid-sensitivity-summary.tex"),
             result.summary_rows;
             overwrite=overwrite,
         ),

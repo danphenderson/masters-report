@@ -10,22 +10,22 @@ report is \path{scripts/stenosis-hemodynamics}, which dispatches through
 \path{scripts/stenosis-hemodynamics.jl} and the root Julia project.
 
 \paragraph*{Source-control and archive record.}
-The latest committed source-control state available in the local
-submission-preparation checkout was:
+This supervised manuscript refresh was prepared on the local
+\texttt{master} branch. The exact source tree for a submitted PDF is the git
+commit containing this appendix and the refreshed report artifact. At the start
+of the refresh, the previous committed state was:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 branch: master
-head_commit: cd09357c98db75de9ba5c363eea15c8f4d3487d9
-head_subject: Polish executive assessment plan
-head_commit_date: 2026-06-19T18:39:50-07:00
+previous_head_commit: 3b77c8b99ed3939dff6e4e6998095d7211338a22
+previous_head_subject: Address executive assessment revisions
+previous_head_commit_date: 2026-06-19T18:49:58-07:00
 local_tag_available: masters-report-final-2026-06-19 -> 1a15a52d6e986f08d745c9e40ecbcd04d4475104
-tag_matches_head: no
 git_remote: none configured in the inspected checkout
 public_repository_url: not declared
 archival_doi: not declared
 \end{lstlisting}
-The working tree also contained uncommitted manuscript edits at inspection time,
-including this appendix revision. The local release manifest therefore remained
-the concrete source-access record rather than a final public archive record:
+The local release manifest remains the concrete source-access record rather
+than a final public archive record:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 reproducibility/release-manifest.json
 \end{lstlisting}
@@ -90,6 +90,43 @@ This command reproduces the currently tracked comparison assets; it accepts the
 available $0.9995$ s 3D velocity field and runs the 1D comparison to the same
 target time. The remaining timing limitation is transient-history matching, not
 the final timestamp.
+
+\paragraph*{Optional operator and grid-sensitivity evidence.}
+The synthetic cross-section operator validation table is regenerated without
+raw 3D inputs:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+./scripts/stenosis-hemodynamics operator-validation \
+  --output-dir figures/static/static/tables/stenosis-comparison \
+  --summary-csv figures/static/static/data/stenosis-comparison/cross-section-operator-validation.csv \
+  --summary-tex figures/static/static/tables/stenosis-comparison/cross_section_operator_validation.tex \
+  --overwrite
+\end{lstlisting}
+This run uses an in-memory tetrahedron with constant and affine axial fields.
+It verifies the synthetic plane-cut reduction used by the cross-section
+quadrature workflow and is independent of the optional HDF5/XDMF velocity
+fields.
+
+When the optional raw 3D inputs are available, the publication-scope grid
+sensitivity is:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+./scripts/stenosis-hemodynamics compare-3d \
+  --data-root simulations/data/3d/canic_case3 \
+  --output-dir simulations/output/3d_comparison/grid_sensitivity_C23_C40 \
+  --target-time 0.9995 \
+  --time-atol 1e-3 \
+  --nxs 200,400,800 \
+  --section-count 200 \
+  --radial-bins 20 \
+  --no-svg \
+  --overwrite \
+  --grid-summary-csv figures/static/static/data/stenosis-comparison/grid-sensitivity-summary.csv \
+  --grid-summary-tex figures/static/static/tables/stenosis-comparison/grid_sensitivity_summary.tex
+\end{lstlisting}
+The manuscript treats this as an output-sensitivity record for the retained
+C23/C40 section means and physical flows. It does not change the matched-data
+boundary: wall, boundary, material, current-geometry, and transient-history
+metadata for the resolved cases remain unmatched or unpersisted.
+
 Package-benchmark assets are regenerated separately from the PDF:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 ./scripts/stenosis-hemodynamics benchmark \

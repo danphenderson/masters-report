@@ -115,6 +115,13 @@
             @test basename(comparison_paths.summary_csv) == "comparison_summary.csv"
             @test basename(comparison_paths.overlay_svg) == "section_quadrature_overlay.svg"
 
+            operator_spec = StenosisHemodynamics.OperatorValidationSpec(output_dir=joinpath(dir, "operator-validation"))
+            operator_paths = StenosisHemodynamics.default_output_paths(operator_spec)
+            @test operator_spec isa StenosisHemodynamics.AbstractStudySpec
+            @test StenosisHemodynamics.workflow_kind(operator_spec) == "cross_section_operator_validation"
+            @test basename(operator_paths.summary_csv) == "cross_section_operator_validation.csv"
+            @test basename(operator_paths.summary_tex) == "cross_section_operator_validation.tex"
+
             benchmark_spec = StenosisHemodynamics.PackageBenchmarkSpec(output_dir=joinpath(dir, "benchmark"))
             benchmark_paths = StenosisHemodynamics.default_output_paths(benchmark_spec)
             @test benchmark_spec isa StenosisHemodynamics.AbstractStudySpec
@@ -154,6 +161,7 @@
             "stokes",
             "verify",
             "compare-3d",
+            "operator-validation",
             "benchmark",
             "export-assets",
         ])

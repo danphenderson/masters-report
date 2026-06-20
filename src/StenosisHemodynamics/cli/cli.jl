@@ -12,6 +12,7 @@ function print_usage(io::IO = stdout)
           stokes        Run stationary-Stokes workflows
           verify        Run MMS and rest-state verification workflows
           compare-3d    Compare available resolved-3D cases against 1D runs
+          operator-validation Validate cross-section quadrature on synthetic cuts
           benchmark     Run package benchmark profiles
           export-assets Export stenosis geometry/report CSV assets
 
@@ -503,15 +504,31 @@ const COMPARISON_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
     "output-dir",
     "target-time",
     "time-atol",
+    "nxs",
     "section-count",
     "radial-bins",
     "radial-bin-counts",
     "radial-radius-modes",
     "profile-slices",
     "node-slab-half-widths",
+    "grid-summary-csv",
+    "grid-summary-tex",
     "report-assets-dir",
 ]))
 const COMPARISON_FLAG_OPTIONS = union(FLAG_OPTIONS, Set(["overwrite", "publish-report-assets"]))
+
+const OPERATOR_VALIDATION_VALUE_OPTIONS = Set([
+    "output-dir",
+    "summary-csv",
+    "summary-tex",
+    "sample-z",
+    "plane-center",
+    "plane-shifts",
+    "constant-value",
+    "affine-coefficients",
+    "tolerance",
+])
+const OPERATOR_VALIDATION_FLAG_OPTIONS = Set(["help", "overwrite"])
 
 function parse_float_list(raw::AbstractString)
     values = [parse(Float64, strip(item)) for item in split(raw, ",") if !isempty(strip(item))]
@@ -861,6 +878,7 @@ function print_compare3d_usage()
     println("""
     Usage:
       ./scripts/stenosis-hemodynamics compare-3d [--data-root PATH] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--overwrite] [--publish-report-assets]
+      ./scripts/stenosis-hemodynamics compare-3d --nxs 200,400,800 [--data-root PATH] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--overwrite] [--publish-report-assets]
     """)
 end
 
@@ -875,6 +893,46 @@ function run_compare3d_cli(args::Vector{String})
     node_slab_half_widths = haskey(values, "node-slab-half-widths") ? parse_float_list(values["node-slab-half-widths"]) : nothing
     radial_bin_counts = haskey(values, "radial-bin-counts") ? parse_int_list(values["radial-bin-counts"]) : nothing
     radial_radius_modes = haskey(values, "radial-radius-modes") ? split(values["radial-radius-modes"], ",") : nothing
+    if haskey(values, "nxs")
+        result = run_available_resolved3d_grid_sensitivity(;
+            data_root=get(values, "data-root", default_resolved3d_data_root()),
+            target_time=parse(Float64, get(values, "target-time", "0.9995")),
+            time_atol=parse(Float64, get(values, "time-atol", "1.0e-3")),
+            base_params=params,
+            backend=backend,
+            output_dir=get(values, "output-dir", joinpath(DEFAULT_COMPARISON_OUTPUT_DIR, "grid_sensitivity")),
+            nxs=parse_int_list(values["nxs"]),
+            section_count=parse(Int, get(values, "section-count", "200")),
+            profile_slices=profile_slices,
+            radial_bins=parse(Int, get(values, "radial-bins", "20")),
+            radial_bin_counts=radial_bin_counts,
+            radial_radius_modes=radial_radius_modes,
+            node_slab_half_widths=node_slab_half_widths,
+            overwrite=("overwrite" in flags),
+            progress_every=progress_every,
+            write_svg=!("no-svg" in flags),
+            summary_csv=get(values, "grid-summary-csv", ""),
+            summary_tex=get(values, "grid-summary-tex", ""),
+        )
+        if result === nothing
+            println("compare_3d_status,skipped_missing_data")
+            return nothing
+        end
+        println("compare_3d_grid_summary_csv,$(result.summary_csv)")
+        println("compare_3d_grid_summary_tex,$(result.summary_tex)")
+        if "publish-report-assets" in flags
+            paths = publish_resolved3d_grid_sensitivity_assets(
+                result;
+                output_dir=get(values, "report-assets-dir", joinpath("figures", "static", "static", "data", "stenosis-comparison")),
+                overwrite=("overwrite" in flags),
+            )
+            for path in paths
+                println("compare_3d_report_asset,$path")
+            end
+        end
+        return result
+    end
+
     result = run_available_resolved3d_comparison(;
         data_root=get(values, "data-root", default_resolved3d_data_root()),
         target_time=parse(Float64, get(values, "target-time", "0.9995")),
@@ -911,6 +969,39 @@ function run_compare3d_cli(args::Vector{String})
     return result
 end
 
+function print_operator_validation_usage()
+    println("""
+    Usage:
+      ./scripts/stenosis-hemodynamics operator-validation [--output-dir PATH] [--summary-csv PATH] [--summary-tex PATH] [--sample-z LIST] [--plane-center CM] [--plane-shifts LIST] [--constant-value CM_PER_S] [--affine-coefficients C0,CX,CY,CZ] [--tolerance VALUE] [--overwrite]
+    """)
+end
+
+function run_operator_validation_cli(args::Vector{String})
+    values, flags = parse_cli_options(args, OPERATOR_VALIDATION_VALUE_OPTIONS, OPERATOR_VALIDATION_FLAG_OPTIONS)
+    if "help" in flags
+        print_operator_validation_usage()
+        return nothing
+    end
+    spec = OperatorValidationSpec(;
+        output_dir=get(values, "output-dir", DEFAULT_OPERATOR_VALIDATION_OUTPUT_DIR),
+        summary_csv=get(values, "summary-csv", ""),
+        summary_tex=get(values, "summary-tex", ""),
+        sample_z_cm=parse_float_list(get(values, "sample-z", join(DEFAULT_OPERATOR_VALIDATION_Z_SAMPLES, ","))),
+        plane_shift_center_cm=parse(Float64, get(values, "plane-center", "0.5")),
+        plane_shifts_cm=parse_float_list(get(values, "plane-shifts", join(DEFAULT_OPERATOR_VALIDATION_PLANE_SHIFTS, ","))),
+        constant_value_cm_s=parse(Float64, get(values, "constant-value", "12.25")),
+        affine_coefficients=parse_float_list(
+            get(values, "affine-coefficients", join(DEFAULT_OPERATOR_VALIDATION_AFFINE_COEFFICIENTS, ",")),
+        ),
+        tolerance=parse(Float64, get(values, "tolerance", "1.0e-11")),
+        overwrite=("overwrite" in flags),
+    )
+    result = run_operator_validation(spec)
+    println("operator_validation_csv,$(result.summary_csv)")
+    println("operator_validation_tex,$(result.summary_tex)")
+    return result
+end
+
 function run_export_assets_cli(args::Vector{String})
     opts = parse_export_args(args)
     opts === nothing && return nothing
@@ -924,6 +1015,7 @@ const CLI_COMMAND_HANDLERS = Dict{String,Function}(
     "stokes" => run_stokes_cli,
     "verify" => run_verify_cli,
     "compare-3d" => run_compare3d_cli,
+    "operator-validation" => run_operator_validation_cli,
     "benchmark" => run_benchmark_cli,
     "export-assets" => run_export_assets_cli,
 )

@@ -310,11 +310,80 @@ end
     end
 end
 
+@testset "StenosisHemodynamics resolved 3D grid sensitivity" begin
+    mktempdir() do dir
+        xdmf_path, _, _ = write_synthetic_xdmf_hdf5_case(joinpath(dir, "case77"); time=5.0e-5)
+        case_spec = StenosisHemodynamics.Resolved3DCaseSpec("77", 23.0, xdmf_path; target_time=5.0e-5)
+        output_dir = joinpath(dir, "grid")
+        spec = StenosisHemodynamics.GridSensitivitySpec(
+            cases=[case_spec],
+            base_params=Params(nx=6, tfinal=5.0e-5, severity=23.0, initial_condition=GeometryRestIC()),
+            output_dir=output_dir,
+            nxs=[6, 8],
+            section_count=3,
+            profile_slices=[0.0],
+            radial_bins=3,
+            overwrite=true,
+            write_svg=false,
+        )
+
+        result = StenosisHemodynamics.run_grid_sensitivity(spec)
+        @test result isa StenosisHemodynamics.GridSensitivityResult
+        @test length(result.comparison_results) == 2
+        @test length(result.summary_rows) == 2
+        @test isfile(result.summary_csv)
+        @test isfile(result.summary_tex)
+        @test all(isfile(comparison.summary_csv) for comparison in result.comparison_results)
+        @test all(isdir(joinpath(output_dir, "nx$(nx)")) for nx in spec.nxs)
+
+        header = split(readline(result.summary_csv), ",")
+        @test all(
+            in(header),
+            [
+                "mean_physical_flow_bias_1d_minus_3d_cm3_s",
+                "mean_physical_flow_discrepancy_cm3_s",
+                "rms_physical_flow_discrepancy_cm3_s",
+                "mean_velocity_bias_1d_minus_3d_cm_s",
+                "mean_velocity_discrepancy_cm_s",
+                "rms_velocity_discrepancy_cm_s",
+                "max_velocity_discrepancy_cm_s",
+                "max_velocity_discrepancy_z_cm",
+                "relative_rms_velocity_discrepancy",
+                "adjacent_from_nx",
+                "adjacent_rms_velocity_difference_cm_s",
+            ],
+        )
+
+        rows = sort(read_simple_csv(result.summary_csv); by=row -> parse(Int, row["nx"]))
+        @test [parse(Int, row["nx"]) for row in rows] == [6, 8]
+        @test parse(Int, rows[1]["adjacent_from_nx"]) == 0
+        @test parse(Int, rows[2]["adjacent_from_nx"]) == 6
+        @test all(parse(Int, row["valid_section_count"]) > 0 for row in rows)
+        @test all(isfinite(parse(Float64, row["mean_velocity_bias_1d_minus_3d_cm_s"])) for row in rows)
+        @test all(isfinite(parse(Float64, row["rms_velocity_discrepancy_cm_s"])) for row in rows)
+        @test all(isfinite(parse(Float64, row["relative_rms_velocity_discrepancy"])) for row in rows)
+        @test isfinite(parse(Float64, rows[2]["adjacent_rms_velocity_difference_cm_s"]))
+        @test 0.0 <= parse(Float64, rows[2]["max_velocity_discrepancy_z_cm"]) <= spec.base_params.length_cm
+
+        tex = read(result.summary_tex, String)
+        @test occursin("\\begin{tabular}", tex)
+        @test occursin("C23", tex)
+        @test occursin(" & 8 & ", tex)
+
+        @test_throws ArgumentError StenosisHemodynamics.GridSensitivitySpec(
+            cases=[case_spec],
+            nxs=[8, 6],
+            profile_slices=[0.0],
+        )
+    end
+end
+
 @testset "StenosisHemodynamics resolved 3D absent-data skip" begin
     mktempdir() do dir
         missing_root = joinpath(dir, "not_present")
         @test isempty(StenosisHemodynamics.available_resolved3d_cases(missing_root))
         @test StenosisHemodynamics.run_available_resolved3d_comparison(data_root=missing_root, write_svg=false) === nothing
+        @test StenosisHemodynamics.run_available_resolved3d_grid_sensitivity(data_root=missing_root, write_svg=false) === nothing
     end
 end
 

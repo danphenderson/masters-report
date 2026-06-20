@@ -566,9 +566,12 @@ Appendix~\ref{app:num-current-solver-operator}: the radius-squared state
 $(a,q)$ is advanced on a one-dimensional grid with MUSCL reconstruction,
 minmod-limited conservative states, Rusanov flux, source splitting for the
 wall/geometry and variable-radius terms, and native SSPRK3 time integration.
-The numerical comparison runs use $N=400$ cells on $0\le z\le6$ cm, a timestep
-cap of $10^{-5}$ s, and a CFL cap of 0.45. The boundary-state approximation is
-the fixed-area characteristic contract recorded in
+The principal numerical comparison uses $N=400$ cells on $0\le z\le6$ cm, a
+timestep cap of $10^{-5}$ s, and a CFL cap of 0.45. The optional
+output-sensitivity record reruns the same comparison protocol at
+$N=200,400,800$ cells and is interpreted only as a production-grid sensitivity
+check. The boundary-state approximation is the fixed-area characteristic
+contract recorded in
 Appendix~\ref{app:num-boundary-state-realization}. Other finite-volume, modal-DG,
 native time-stepper, and SciML/OrdinaryDiffEq surfaces are implementation-check
 or sensitivity context summarized in Table~\ref{tab:implemented-discretization-surface};
@@ -650,13 +653,15 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
 \end{center}
 
 The manuscript tables and figures use the tracked static report assets under
-\path{figures/static/static/data/stenosis-comparison/}, interpreted under
+\path{figures/static/static/data/stenosis-comparison/} and
+\path{figures/static/static/tables/stenosis-comparison/}, interpreted under
 Convention~\ref{conv:computed-realization-record}. The baseline regeneration
-command, source-path convention, and file-hash manifest pointer are listed in
-Appendix~\ref{app:code-and-ai-use}. Scratch sensitivity reruns live under
-\path{simulations/output/revision-*} or \path{tmp/revision-evidence/} and are
-not the manuscript assets used for the current tables and figures. The raw
-XDMF/HDF5 inputs remain local ignored files under
+command, optional grid-sensitivity command, source-path convention, and
+file-hash manifest pointer are listed in Appendix~\ref{app:code-and-ai-use}.
+Scratch reruns that are not published as tracked static assets live under
+\path{simulations/output/revision-*}, \path{simulations/output/3d_comparison/},
+or \path{tmp/revision-evidence/}. The raw XDMF/HDF5 inputs remain local ignored
+files under
 \path{simulations/data/3d/canic_case3/}; the report archives the generated CSV
 and PGFPlots-ready static data, not the raw fields.
 
@@ -769,12 +774,13 @@ and PGFPlots-ready static data, not the raw fields.
             & The final timestamps are matched, but phase/history matching is not
             established. \\
         Numerical resolution
-            & $N=400$ finite-volume cells.
+            & Principal $N=400$ finite-volume cells; optional output
+            sensitivity at $N=200,400,800$.
             & Node-centered velocity fields with loaded node counts reported.
-            & unresolved
-            & Scratch reruns provide diagnostic resolution checks, but the
-            manuscript tables remain single-realization descriptors unless a
-            dedicated output-sensitivity study is completed. \\
+            & sensitivity checked
+            & The grid record tests production-output sensitivity. It is not a
+            convergence proof because the same unmatched 3D metadata and model
+            differences remain present at every grid. \\
         Velocity observable
             & Section mean $\bar u=q/a$ and physical flow $\pi q$.
             & Plane--tetrahedron cross-section quadrature of axial velocity.
@@ -818,8 +824,9 @@ introduced.
         dyn/cm$^2$, $h=0.06$ cm, $\sigma=0.5$,
         $K=4.016\times10^5$ dyn/cm, $R_{\max}=0.18$ cm, and
         $p_{\mathrm{ext}}\equiv0$. \\
-        Discretization & $N=400$, $L=6$ cm, MUSCL finite volume with minmod
-        limiter, native SSPRK3 time integration. \\
+        Discretization & Principal $N=400$, $L=6$ cm, MUSCL finite volume with
+        minmod limiter, native SSPRK3 time integration; optional
+        grid-sensitivity rows repeat the output comparison at $N=200,400,800$. \\
         Time controls & $T=0.9995$ s from a start-up transient, timestep cap
         $10^{-5}$ s, CFL cap 0.45. \\
         Initial and boundary state & Geometry-rest initial state
@@ -828,12 +835,13 @@ introduced.
         approximation in Appendix~\ref{app:num-boundary-state-realization}. \\
         Section targets & 200 equally spaced axial planes on $0\le z\le 6$
         cm. \\
-        Radial targets & Slices $z=1.951$, 2.451, and 2.951 cm with principal
-        20-bin plots in $r/\sqrt{a(z,t)}$ plus supplemental $r/R_0(z)$ and
-        10/20/40-bin sensitivity rows. \\
+        Radial targets & Slices $z=1.951$, 2.451, and 2.951 cm are generated
+        as secondary rows, but radial-profile plots and interpretations are
+        quarantined from the retained evidence. \\
         Supplemental sensitivity & Node-slab arithmetic means are stored only
         to \path{node-slab-sensitivity.csv} for half-widths 0.0075,
-        0.0150753769, and 0.0301507538 cm. \\
+        0.0150753769, and 0.0301507538 cm; production-grid sensitivity is stored
+        to \path{grid-sensitivity-summary.csv}. \\
         \bottomrule
     \end{tabularx}
 \end{table}

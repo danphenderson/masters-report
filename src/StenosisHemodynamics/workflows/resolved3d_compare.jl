@@ -47,40 +47,25 @@ function resolved3d_run_fields(case::Resolved3DCaseSpec, params::Params, backend
 end
 
 function run_comparison(spec::ComparisonSpec)
+    return run_comparison_with_case_runs(spec).result
+end
+
+function run_comparison_with_case_runs(spec::ComparisonSpec)
     validate_workflow_spec(spec)
     paths = default_output_paths(spec)
     section_rows = SectionComparisonRow[]
     profile_rows = RadialProfileRow[]
     sensitivity_rows = NodeSlabSensitivityRow[]
     summary_rows = ComparisonSummaryRow[]
+    case_runs = []
 
     for case in spec.cases
-        field = load_resolved3d_velocity(case)
-        params = params_with(spec.base_params; severity=case.severity, tfinal=case.target_time)
-        result = simulate(params, spec.backend; progress_every=spec.progress_every)
-
-        case_sections = compare_section_means(field, result, params, spec)
-        case_profiles = compare_radial_profiles(field, result, params, spec)
-        case_sensitivity = compare_node_slab_sensitivity(field, result, params, spec)
-        diagnostics = characteristic_diagnostics(result, params)
-        production_diagnostics = comparison_production_diagnostics(result, params)
-        append!(section_rows, case_sections)
-        append!(profile_rows, case_profiles)
-        append!(sensitivity_rows, case_sensitivity)
-        push!(
-            summary_rows,
-            summarize_comparison(
-                case,
-                field.metadata,
-                params,
-                spec.backend,
-                case_sections,
-                case_profiles,
-                diagnostics,
-                production_diagnostics,
-                result.completed_time,
-            ),
-        )
+        case_run = run_comparison_case(case, spec)
+        push!(case_runs, case_run)
+        append!(section_rows, case_run.section_rows)
+        append!(profile_rows, case_run.profile_rows)
+        append!(sensitivity_rows, case_run.sensitivity_rows)
+        push!(summary_rows, case_run.summary_row)
     end
 
     result = ComparisonResult(
@@ -104,7 +89,7 @@ function run_comparison(spec::ComparisonSpec)
         push!(svg_paths, path)
     end
 
-    return ComparisonResult(
+    final_result = ComparisonResult(
         spec,
         section_rows,
         profile_rows,
@@ -116,6 +101,175 @@ function run_comparison(spec::ComparisonSpec)
         result.summary_csv,
         svg_paths,
     )
+    return (result=final_result, case_runs=case_runs)
+end
+
+function run_comparison_case(case::Resolved3DCaseSpec, spec::ComparisonSpec)
+    field = load_resolved3d_velocity(case)
+    params = params_with(spec.base_params; severity=case.severity, tfinal=case.target_time)
+    result = simulate(params, spec.backend; progress_every=spec.progress_every)
+
+    section_rows = compare_section_means(field, result, params, spec)
+    profile_rows = compare_radial_profiles(field, result, params, spec)
+    sensitivity_rows = compare_node_slab_sensitivity(field, result, params, spec)
+    diagnostics = characteristic_diagnostics(result, params)
+    production_diagnostics = comparison_production_diagnostics(result, params)
+    summary_row = summarize_comparison(
+        case,
+        field.metadata,
+        params,
+        spec.backend,
+        section_rows,
+        profile_rows,
+        diagnostics,
+        production_diagnostics,
+        result.completed_time,
+    )
+    return (
+        case=case,
+        field=field,
+        params=params,
+        simulation_result=result,
+        section_rows=section_rows,
+        profile_rows=profile_rows,
+        sensitivity_rows=sensitivity_rows,
+        summary_row=summary_row,
+    )
+end
+
+function run_grid_sensitivity(spec::GridSensitivitySpec)
+    validate_workflow_spec(spec)
+    comparison_results = ComparisonResult[]
+    summary_rows = GridSensitivitySummaryRow[]
+    previous_runs_by_case = Dict{String,Any}()
+
+    for nx in spec.nxs
+        comparison_spec = ComparisonSpec(;
+            cases=spec.cases,
+            base_params=params_with(spec.base_params; nx=nx),
+            backend=spec.backend,
+            operator=spec.operator,
+            output_dir=joinpath(spec.output_dir, "nx$(nx)"),
+            section_count=spec.section_count,
+            profile_slices=spec.profile_slices,
+            radial_bins=spec.radial_bins,
+            radial_bin_counts=spec.radial_bin_counts,
+            radial_radius_modes=spec.radial_radius_modes,
+            node_slab_half_widths=spec.node_slab_half_widths,
+            overwrite=spec.overwrite,
+            progress_every=spec.progress_every,
+            write_svg=spec.write_svg,
+        )
+        comparison_run = run_comparison_with_case_runs(comparison_spec)
+        push!(comparison_results, comparison_run.result)
+
+        for case_run in comparison_run.case_runs
+            previous_run = get(previous_runs_by_case, case_run.case.case_label, nothing)
+            push!(
+                summary_rows,
+                summarize_grid_sensitivity_case(
+                    case_run,
+                    comparison_run.result,
+                    previous_run,
+                ),
+            )
+            previous_runs_by_case[case_run.case.case_label] = case_run
+        end
+    end
+
+    paths = default_output_paths(spec)
+    result = GridSensitivityResult(spec, comparison_results, summary_rows, paths.summary_csv, paths.summary_tex)
+    write_grid_sensitivity_outputs(result; overwrite=spec.overwrite)
+    return result
+end
+
+function summarize_grid_sensitivity_case(case_run, comparison_result::ComparisonResult, previous_run)
+    section_rows = [
+        row for row in case_run.section_rows if row.area_valid &&
+        isfinite(row.flow_1d_cm3_s) &&
+        isfinite(row.flow_3d_cm3_s) &&
+        isfinite(row.mean_u1d_cm_s) &&
+        isfinite(row.mean_u3d_cm_s)
+    ]
+    flow_diffs = [row.flow_1d_cm3_s - row.flow_3d_cm3_s for row in section_rows]
+    velocity_diffs = [row.mean_u1d_cm_s - row.mean_u3d_cm_s for row in section_rows]
+    velocity_refs = [row.mean_u3d_cm_s for row in section_rows]
+    velocity_abs = abs.(velocity_diffs)
+    max_index = isempty(velocity_abs) ? 0 : argmax(velocity_abs)
+    adjacent = adjacent_velocity_difference_metrics(previous_run, case_run)
+    summary_row = case_run.summary_row
+
+    return GridSensitivitySummaryRow(
+        case_run.case.case_label,
+        case_run.case.severity,
+        operator_name(comparison_result.spec.operator),
+        summary_row.model,
+        case_run.params.nx,
+        case_run.params.dt,
+        summary_row.initial_condition,
+        summary_row.backend,
+        summary_row.run_status,
+        case_run.case.target_time,
+        length(case_run.section_rows),
+        length(section_rows),
+        mean_or_nan(flow_diffs),
+        mean_or_nan(abs.(flow_diffs)),
+        l2_mean_or_nan(flow_diffs),
+        mean_or_nan(velocity_diffs),
+        mean_or_nan(velocity_abs),
+        l2_mean_or_nan(velocity_diffs),
+        maximum_or_nan(velocity_abs),
+        max_index == 0 ? NaN : section_rows[max_index].z_cm,
+        relative_l2(velocity_diffs, velocity_refs),
+        adjacent.from_nx,
+        adjacent.mean_abs_velocity_difference_cm_s,
+        adjacent.rms_velocity_difference_cm_s,
+        adjacent.max_abs_velocity_difference_cm_s,
+        adjacent.relative_rms_velocity_difference,
+        summary_row.one_d_completed_time_s,
+        summary_row.cross_model_time_offset_s,
+        comparison_result.summary_csv,
+        section_csv_for_case(comparison_result, case_run.case),
+    )
+end
+
+function adjacent_velocity_difference_metrics(previous_run, current_run)
+    if previous_run === nothing
+        return (
+            from_nx=0,
+            mean_abs_velocity_difference_cm_s=NaN,
+            rms_velocity_difference_cm_s=NaN,
+            max_abs_velocity_difference_cm_s=NaN,
+            relative_rms_velocity_difference=NaN,
+        )
+    end
+
+    previous_result = previous_run.simulation_result
+    current_result = current_run.simulation_result
+    previous_velocity = velocity(previous_result)
+    current_velocity = velocity(current_result)
+    diffs = Float64[]
+    refs = Float64[]
+    for (z, u_current) in zip(current_result.z, current_velocity)
+        u_previous = interpolate_linear(previous_result.z, previous_velocity, z)
+        push!(diffs, u_current - u_previous)
+        push!(refs, u_current)
+    end
+    abs_diffs = abs.(diffs)
+    return (
+        from_nx=previous_run.params.nx,
+        mean_abs_velocity_difference_cm_s=mean_or_nan(abs_diffs),
+        rms_velocity_difference_cm_s=l2_mean_or_nan(diffs),
+        max_abs_velocity_difference_cm_s=maximum_or_nan(abs_diffs),
+        relative_rms_velocity_difference=relative_l2(diffs, refs),
+    )
+end
+
+function section_csv_for_case(result::ComparisonResult, case::Resolved3DCaseSpec)
+    for (candidate, path) in zip(result.spec.cases, result.section_csvs)
+        candidate.case_label == case.case_label && return path
+    end
+    return ""
 end
 
 function compare_section_means(

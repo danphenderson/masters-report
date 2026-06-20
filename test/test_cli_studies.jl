@@ -229,6 +229,7 @@ end
     help_text = read(`$(joinpath(pwd(), "scripts", "stenosis-hemodynamics")) --help`, String)
     @test occursin("simulate", help_text)
     @test occursin("benchmark", help_text)
+    @test occursin("operator-validation", help_text)
 
     mktempdir() do dir
         csv_path = joinpath(dir, "simulate.csv")
@@ -288,6 +289,26 @@ end
     end
 
     mktempdir() do dir
+        result = StenosisHemodynamics.run_cli([
+            "operator-validation",
+            "--output-dir",
+            dir,
+            "--sample-z",
+            "0.25,0.5",
+            "--plane-center",
+            "0.5",
+            "--plane-shifts",
+            "-0.02,0,0.02",
+            "--overwrite",
+        ])
+        @test result isa StenosisHemodynamics.OperatorValidationResult
+        @test length(result.rows) == 7
+        @test isfile(result.summary_csv)
+        @test isfile(result.summary_tex)
+        @test all(row -> row.status == "pass", result.rows)
+    end
+
+    mktempdir() do dir
         data_root = joinpath(dir, "resolved")
         write_synthetic_xdmf_hdf5_case(joinpath(data_root, "77"); time=5.0e-5)
         output_dir = joinpath(dir, "comparison")
@@ -325,6 +346,43 @@ end
         @test parse(Float64, row["target_time_s"]) ≈ 5.0e-5
         @test parse(Float64, row["time_atol_s"]) ≈ 0.0
         @test parse(Float64, row["xdmf_time_s"]) ≈ 5.0e-5
+    end
+
+    mktempdir() do dir
+        data_root = joinpath(dir, "resolved")
+        write_synthetic_xdmf_hdf5_case(joinpath(data_root, "77"); time=5.0e-5)
+        output_dir = joinpath(dir, "grid-comparison")
+        result = StenosisHemodynamics.run_cli([
+            "compare-3d",
+            "--data-root",
+            data_root,
+            "--output-dir",
+            output_dir,
+            "--target-time",
+            "5e-5",
+            "--time-atol",
+            "0",
+            "--nxs",
+            "6,8",
+            "--section-count",
+            "3",
+            "--radial-bins",
+            "3",
+            "--profile-slices",
+            "0",
+            "--progress-every",
+            "0",
+            "--no-svg",
+            "--overwrite",
+        ])
+        @test result isa StenosisHemodynamics.GridSensitivityResult
+        @test isfile(result.summary_csv)
+        @test isfile(result.summary_tex)
+        rows = sort(read_simple_csv(result.summary_csv); by=row -> parse(Int, row["nx"]))
+        @test [parse(Int, row["nx"]) for row in rows] == [6, 8]
+        @test parse(Int, rows[2]["adjacent_from_nx"]) == 6
+        @test isfinite(parse(Float64, rows[2]["adjacent_rms_velocity_difference_cm_s"]))
+        @test all(isfile(joinpath(output_dir, "nx$(row["nx"])", "comparison_summary.csv")) for row in rows)
     end
 
     mktempdir() do dir

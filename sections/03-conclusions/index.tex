@@ -102,10 +102,10 @@ resolved CFD/FSI, reduced and lumped models, clinical pressure-flow
 observables, open solver workflows, and learned surrogate maps: disagreement is
 not interpretable until the retained variables, closures, numerical evidence,
 and observation operator are stated together. The StenosisHemodynamics case
-study makes this concrete for an
-idealized stenosis: it specifies the reduced model, verifies the implemented
-operator, tests an equilibrium property, and compares reduced and resolved
-velocity information through a declared quadrature operator.
+study makes this concrete for an idealized stenosis: it specifies the reduced
+model, verifies the implemented solver and output operators, tests an
+equilibrium property, and compares reduced and resolved velocity information
+through a declared quadrature operator.
 
 The numerical findings are correspondingly bounded. The manufactured-solution
 record verifies the declared forced operator with zero forcing-audit mismatch in
@@ -113,7 +113,10 @@ the generated table and observed $L^2$ refinement rates of about 1.70 for the
 area coordinate and 1.50 for the flow coordinate over the reported grid range.
 The timestep rows are best read as timestep-insensitivity checks because the
 CFL-controlled accepted timestep can override the requested timestep. The
-geometry-rest audit is the principal numerical limitation: on the $N=400$
+synthetic cross-section operator validation verifies constant and affine
+plane-cut reductions at roundoff scale, so the retained 1D--3D comparison has a
+tested observation map. The geometry-rest audit is the principal numerical
+limitation: on the $N=400$
 production grid, the final zero-inlet solver-coordinate rest defects
 $\max_i |q_i|$ reach $0.03839$ and $0.06339\,\mathrm{cm}^3/\mathrm{s}$ for C23
 and C40, corresponding to physical-flow scales $\pi q$ of approximately
@@ -132,7 +135,13 @@ discrepancies 0.0277 and 0.0688 under the declared plane--tetrahedron
 observation operator. Because the resolved wall, boundary, material,
 geometry-state, and transient-history records are not fully matched, these
 quantities are descriptive cross-model discrepancies rather than validation
-errors.
+errors. The supplemental $N=200,400,800$ output-sensitivity record sharpens
+that interpretation without removing the bound: C23 RMS velocity discrepancies
+move from 0.900 to 0.664 to $0.706\,\mathrm{cm}/\mathrm{s}$, while C40 moves
+from 1.89 to 1.87 to $2.02\,\mathrm{cm}/\mathrm{s}$. The $N=400$ production
+rows are therefore not isolated coarse-grid artifacts, but the nonmonotone
+$N=800$ values prevent a formal convergence reading of the cross-model
+discrepancy.
 
 \paragraph*{Outlook.}
 The next mathematical step is an explicitly well-balanced reconstruction or

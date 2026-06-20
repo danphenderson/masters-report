@@ -298,6 +298,51 @@ $z=2.291$ cm for C23 and 9.92 cm/s at $z=2.261$ cm for C40.
     }
 \end{table}
 
+The optional production-grid sensitivity record repeats the same section-target
+comparison at $N=200$, $400$, and $800$ while keeping the resolved 3D cuts,
+target time, section count, model closures, and observation operator fixed.
+Define
+\begin{flalign*}
+    \quad
+    D_{Q,1}&=\left\langle |Q_{1D}-Q_{3D}| \right\rangle,&
+    D_{Q,2}&=\left\langle (Q_{1D}-Q_{3D})^2 \right\rangle^{1/2},&
+    D_{u,1}&=\left\langle |d_u| \right\rangle,&
+    D_{u,2}&=\left\langle d_u^2 \right\rangle^{1/2}. &&
+\end{flalign*}
+Table~\ref{tab:t1-grid-sensitivity-summary} reports these values together
+with the relative RMS velocity discrepancy and the adjacent-grid RMS difference
+between the current 1D section means and the previous grid's 1D section means.
+The C23 metrics improve from $N=200$ to $N=400$ and remain close at $N=800$.
+For C40, the mean and RMS flow discrepancies improve from $N=200$ to $N=400$,
+but the maximum and RMS velocity discrepancies increase on the $N=800$ grid.
+The record therefore supports a bounded statement: the principal $N=400$ rows
+are not isolated coarse-grid artifacts, but the resolved-comparison discrepancy
+is not a monotone grid-convergence result.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Optional production-grid sensitivity for the resolved-velocity
+    comparison. Flow discrepancies are in cm$^3$/s, velocity discrepancies are
+    in cm/s, and the adjacent column compares the current 1D section means to
+    the previous grid on the same 200 section targets. The first grid has no
+    adjacent predecessor.}
+    \label{tab:t1-grid-sensitivity-summary}
+    \resizebox{\textwidth}{!}{%
+    \IfFileExists{figures/static/static/tables/stenosis-comparison/grid_sensitivity_summary.tex}{%
+        \input{figures/static/static/tables/stenosis-comparison/grid_sensitivity_summary.tex}%
+    }{%
+        \begin{tabular}{ll}
+        \toprule
+        Status & Message \\
+        \midrule
+        missing & Run \texttt{compare-3d --nxs 200,400,800} to populate the table. \\
+        \bottomrule
+        \end{tabular}%
+    }%
+    }
+\end{table}
+
 Figure~\ref{fig:t1-section-mean-comparison} shows the same area-mean axial
 velocity comparison along the vessel. The 1D and quadrature-averaged 3D means
 are closest away from the largest acceleration zone, while the largest

@@ -22,6 +22,42 @@ rheology/profile sweeps, resolved-velocity benchmark stages, and nonselected DG
 rows are secondary implementation-health records and are kept in
 Appendix~\ref{app:num-secondary-implementation-health}.
 
+The observation operator has its own check because the retained 1D--3D
+comparison is only meaningful after the resolved field is mapped to section
+area, physical flow, and mean axial velocity. The synthetic record in
+Table~\ref{tab:t1-cross-section-operator-validation} verifies the declared
+plane--tetrahedron quadrature implementation on a single tetrahedron with
+constant and affine node-centered axial fields. It checks that constant fields
+return $\bar u=c$ and $Q=cA$, that affine triangle means integrate to the
+centroid value up to roundoff, and that shifted planes produce the expected
+area and mean-velocity changes. This is output-operator verification, not a
+matched-data validation of the available 3D cases.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Synthetic validation of the
+    \texttt{CrossSectionQuadratureOperator}. Errors are absolute differences
+    against analytic constant or affine references on the synthetic tetrahedron;
+    the plane-shift rows report changes relative to the $z=0.5$ affine cut.
+    The source table is
+    \texttt{cross-section-operator-validation.csv}.}
+    \label{tab:t1-cross-section-operator-validation}
+    \resizebox{\textwidth}{!}{%
+    \IfFileExists{figures/static/static/tables/stenosis-comparison/cross_section_operator_validation.tex}{%
+        \input{figures/static/static/tables/stenosis-comparison/cross_section_operator_validation.tex}%
+    }{%
+        \begin{tabular}{ll}
+        \toprule
+        Status & Message \\
+        \midrule
+        missing & Run \texttt{operator-validation} to populate the table. \\
+        \bottomrule
+        \end{tabular}%
+    }%
+    }
+\end{table}
+
 Standard finite-volume context is supplied by conservative hyperbolic
 discretization with consistent numerical fluxes and sources, CFL-controlled time
 stepping, limiter and Rusanov dissipation choices, and SSP Runge--Kutta time
