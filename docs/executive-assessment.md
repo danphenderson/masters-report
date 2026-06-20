@@ -1,251 +1,194 @@
-According to the June 19, 2026 revision, the manuscript has crossed the key structural threshold: it is now recognizably a review-led report on mathematical blood-flow simulation, with the idealized stenosis computation functioning as a worked example rather than defining the entire literature scope.  
+# Executive Assessment
 
-Provisional grade: B+ — 86/100
+Review of the June 19, 2026 manuscript.
 
-This is a strong master’s manuscript draft with a credible route to A-. It is not yet publication-ready because the literature-review method and synthesis remain thinner than the title promises, and several numerical-evidence items are still unresolved.
+## Verdict
 
-Category	Grade	Assessment
-Framing and organization	9/10	The title, abstract, research questions, chapter architecture, and case-study role are now coherent.
-Literature breadth and synthesis	20/25	Broad and relevant, but still closer to an advanced overview than a detailed literature review.
-Mathematical development	18/20	Clear continuum and reduced-model notation; the missing piece is a fuller continuum-to-1D derivational bridge.
-Numerical case study and verification	17/20	Transparent and substantially corrected, but MMS independence, production diagnostics, and exact-time matching remain open.
-Interpretation and evidential calibration	14/15	Excellent distinction among verification, comparison, and validation.
-Presentation and reproducibility	8/10	Generally professional, but some tables are undersized and the release record remains a working-draft record.
+This is now a strong, coherent master's report. It is in accept-after-targeted-revisions territory rather than in need of another structural rewrite. Its central contribution is appropriately framed as a review-led numerical audit, not as clinical validation or proof of predictive accuracy.
 
-What has improved substantially
+The remaining work should be prioritized in this order: first, fix claim language and notation that could misstate what was actually measured; second, decide which additional computations are feasible; third, trim or qualify secondary material that is not yet carrying its evidentiary weight.
 
-1. The manuscript now has the correct scholarly identity
+## What Is Already Strong
 
-The review is no longer limited to literature needed to audit one solver. Chapters 2–6 now cover:
+- The manuscript now has a clear intellectual spine. The research questions, two contributions, notation guide, and report organization appear early and make the transition from continuum mechanics to the case study much easier to follow.
+- The physical-to-solver mapping is stated before the detailed numerical results, so the reader is better prepared for the later comparisons.
+- Table 4's evidence hierarchy is one of the manuscript's strongest features because it keeps manufactured-solution verification, equilibrium preservation, run admissibility, cross-model comparison, and validation from being treated as interchangeable evidence.
+- Chapter 7 is now the strongest chapter. The source-to-implementation map, explicit `R_max`-normalized wall law, solver-coordinate formulation, boundary approximation, and principal numerical method are documented with unusual transparency.
+- The manuscript is commendably candid about the non-well-balanced method, unmatched three-dimensional metadata, unresolved transient history, and quarantined radial output.
+- The method-of-manufactured-solutions study is substantially stronger. It provides an independently audited forcing record, reports all three error norms, and avoids presenting the timestep-insensitivity rows as a temporal-order study.
+- The corrected zero-inlet rest experiment is an important improvement. It shows that the defect is localized, grid-decreasing, and not an imposed through-flow, while still acknowledging that it remains significant on the production grid.
+- The 1D-3D comparison is much more defensible. The timestamp is matched, the comparison observable is explicitly defined, the static cut-area audit is separated from the dynamic-area question, and the largest discrepancies are localized rather than summarized only through global norms.
+- The conclusion now reports the quantitative findings and gives a credible forward plan without overstating the case study as validation.
 
-* continuum mechanics and Navier–Stokes;
-* 3D CFD and FSI;
-* axisymmetric and 2D reductions;
-* distributed 1D models;
-* 0D networks and multiscale coupling;
-* rheology, wall mechanics, boundary data, and observables;
-* finite-element, finite-volume, DG, high-resolution, and well-balanced methods;
-* verification, validation, observation operators, reproducibility, and learned methods.
+## Submission Blockers
 
-The research questions are correspondingly field-oriented, and the “Illustration from the idealized stenosis study” passages link the review to the computation effectively. This is a major improvement.
+### 1. Correct solver-coordinate reporting and timestamp wording
 
-2. The prior rest-state blocker has been corrected
+**Issue.** The abstract reports the rest defects as values in `cm^3/s`, but the stated quantity is the solver coordinate `q = Q_phys / pi`, not the physical circular-area flow `Q_phys`.
 
-The revised test now records zero requested and applied inlet flow, signed solver-volume change, boundary-flux integrals, and balance residuals near roundoff. The profile figure demonstrates that the drift is localized near the stenosis rather than representing an imposed through-flow. On the production N=400 grid, final rest flows are approximately 0.0384 and 0.0634\ \mathrm{cm^3/s}; on N=800, they fall to 0.00973 and 0.01605\ \mathrm{cm^3/s}.  
+**Why it matters.** Many readers will interpret an unlabeled flow defect as `Q_phys`. The current wording blurs a distinction that the manuscript otherwise works hard to establish.
 
-That resolves the most serious factual problem in the preceding version.
+**Required revision.**
 
-3. The radial result is handled responsibly
+- Rewrite the abstract to say either `final solver-coordinate rest defects max_i |q_i| are ...`
+- Or report both representations: `final solver-coordinate defects are 0.0384 and 0.0634 cm^3/s, corresponding to physical-flow scales pi q of approximately 0.121 and 0.199 cm^3/s`
+- Replace `exact-time 0.9995 s comparison` with `timestamp-matched 0.9995 s final sample`
+- Keep the same `q` versus `Q_phys` distinction in the conclusion and in any standalone table caption
 
-The unreconciled radial summary is now quarantined. No radial figure, metric, or profile interpretation is used in the retained evidence chain. That is the correct publication decision until the reducer is independently reconciled.
+**Suggested abstract sentence.**
 
-4. The evidence language is disciplined
+> Because the resolved wall, boundary, material, geometry-state, and transient-history records are not fully matched, the reported differences are descriptive cross-model discrepancies rather than validation errors.
 
-The manuscript consistently distinguishes:
+**Minimum acceptable fallback.** If space is tight, keep only the solver-coordinate phrasing and the descriptive-discrepancy sentence, but do not leave the current wording in place.
 
-* implementation verification;
-* equilibrium preservation;
-* sensitivity;
-* diagnostic cross-model comparison;
-* external validation.
+### 2. Separate observed pressure from wall-law pressure
 
-The C23/C40 results are called discrepancies rather than errors, and the discussion avoids causal or clinical claims. The retained section metrics are also much clearer: signed bias, mean absolute discrepancy, RMS discrepancy, relative RMS discrepancy, and maximum discrepancy with location.  
+**Issue.** Definition 7.2 defines `p_g` as a cross-sectional mean of the resolved three-dimensional pressure, but later the same symbol is used for the pressure supplied by the reduced pressure-area wall law.
 
-Principal critique
+**Why it matters.** Those are not automatically identical. Their identification is a reduction or closure assumption, not a notational convenience.
 
-1. The review is now present, but it is not yet as detailed as the title suggests
+**Required revision.**
 
-The review-led material occupies roughly pages 5–24, while the case study occupies pages 25–45 and the numerical appendices extend through page 64. The case study and its implementation detail therefore still occupy more space than the field review.
+- Use separate notation for the observed cross-sectional pressure and the reduced wall-law pressure
+- Add one explicit sentence saying that the 1D model identifies the reduced pressure variable with a cross-sectional pressure representative and does not resolve radial pressure variation
 
-More importantly, some major review categories are handled in only a few paragraphs:
+**Suggested notation split.**
 
-* model hierarchy: about three pages;
-* rheology, wall, boundary, geometry, and observables: about two pages;
-* numerical methods: about four pages.
+> Observed three-dimensional cross-sectional pressure: `pbar_3D,g(z,t) = (1/A) int_{S(z,t)} p_3D,g dS`
+>
+> Reduced wall-law pressure: `p_W(A,z,t)`
 
-The bibliography is coherent and includes seminal and recent work, but it contains only 34 references across an exceptionally broad field: continuum mechanics, CFD, FSI, 1D and 0D modeling, multiscale coupling, rheology, numerical analysis, verification, validation, PINNs, and operator learning. For a report explicitly positioned as a detailed review, this is modest.
+**Minimum acceptable fallback.** At minimum, rename one of the quantities and state plainly that their identification is a model assumption.
 
-The strongest next revision would deepen the comparative synthesis, not merely add citations. For each model class, the review should answer:
+### 3. Finalize the reproducibility record and fix command typography
 
-* What equations and state variables are retained?
-* Which physical effects are resolved and which are closed?
-* What boundary and material data are required?
-* Which numerical methods are typical?
-* Which observables are native?
-* What forms of verification and validation are reported?
-* Where does the literature disagree?
+**Issue.** Appendix H is structurally strong, but it still reads as a release template, and the rendered command blocks are not copyable because punctuation is being spaced out in the PDF.
 
-The present tables classify model tiers well, but they rarely compare sources directly or identify competing formulations, consensus, and unresolved disagreements.
+**Why it matters.** The current text signals that the reproducibility section is not finalized, even though the appendix is close to being strong enough for submission.
 
-2. The review methodology is too opaque
+**Required revision.**
 
-Section 1.1 says that sources were selected from the “local source inventory and bibliography.” That is not sufficiently reproducible for a publication-facing narrative review.
+- Replace the placeholder language with the exact Git commit, release tag, immutable repository or archive URL, archival DOI where available, Julia version, operating-system and hardware summary, and SHA-256 manifest location
+- If no archival DOI or stable repository URL exists yet, say that directly and provide the strongest concrete substitute now available
+- Use a true verbatim, `lstlisting`, or `minted` environment so commands remain copyable in the rendered PDF
 
-A narrative review does not need a full systematic-review protocol, but it should record:
+**Minimum acceptable fallback.** If the archival surface is not fully ready, provide the exact commit, a frozen archive location, and the checksum manifest location, and remove the template language that reads as draft boilerplate.
 
-* databases or discovery sources;
-* approximate search period;
-* representative search strings;
-* publication-date range;
-* language restrictions;
-* inclusion and exclusion criteria;
-* how foundational versus recent sources were selected;
-* the number of records reviewed and retained.
+### 4. Correct the "near roundoff" statement in the conclusion
 
-The phrase “local source inventory” should not appear in the final scholarly methodology. It describes the author’s file system, not an academic search process.
+**Issue.** The rest-state balance residuals are around `10^-11` to `10^-12`, which supports near-roundoff language. The production area-flux balance values in Table 13 are around `10^-5` and should not be called roundoff without a normalization that justifies that interpretation.
 
-3. The crucial mathematical bridge from 3D to 1D is still mostly asserted
+**Why it matters.** The current wording overstates what the production residuals show.
 
-The continuum chapter explains material transport, mass, momentum, stress closure, and incompressible Navier–Stokes well. The case-study chapter then defines section area and flow and introduces the 1D balance law. What is missing is an explicit review-level derivation showing how the latter emerges from the former.
+**Required revision.**
 
-Add a concise two- or three-page section that:
+- Distinguish the rest-state balance claim from the production-run balance claim
+- If the production residual is retained in unnormalized form, describe it as small at the reported scale rather than as roundoff
+- If desired, add a normalized production residual instead of relying on the raw number alone
 
-1. Defines
-    A(z,t)=\int_{S(z,t)}1\,dS,
-    \qquad
-    Q(z,t)=\int_{S(z,t)}u_z\,dS.
-2. Integrates mass conservation over a moving cross-section to obtain
-    \partial_t A+\partial_z Q=0.
-3. Integrates axial momentum to obtain the area–flow momentum equation.
-4. Shows where the momentum-flux factor
-    \alpha=\frac{A}{Q^2}\int_S u_z^2\,dS
-    enters.
-5. Identifies exactly where wall, profile, friction, rheology, and nonuniform-geometry closures are introduced.
+**Suggested conclusion language.**
 
-That derivation would unify the continuum review and the case study far more effectively than additional introductory definitions.
+> The rest-state finite-volume balances close near roundoff. The production runs retain small area-flux balance residuals at the reported scale, positive area, and zero positivity projections.
 
-4. The numerical example still reads partly as a software audit rather than an illustration
+## Evidence Strengthening If Feasible
 
-Chapter 7 is approximately 21 pages, and Appendix E adds another nine pages of detailed numerical implementation. That weighting is understandable historically, but it conflicts somewhat with the stated role of the experiments as examples woven through the review.
+### 5. Add a production-output grid-sensitivity study
 
-A stronger review-led balance would be:
+**Issue.** The principal comparison uses `N = 400`, while the rest-state defect on that same grid is still materially sized relative to the solver-coordinate comparison-flow scale for C23 and C40. The manuscript does not yet show whether the reported 1D-3D discrepancy metrics are stable under refinement.
 
-* retain the model map and selected governing equations;
-* retain MMS, rest-state, and section-comparison results;
-* retain one table of production parameters;
-* move command lines, alternative solver surfaces, detailed ghost-state formulas, benchmark-stage counts, and secondary DG material to the reproducibility supplement.
+**Why it matters.** This is the highest-value numerical addition still available because it tests whether the descriptive comparison metrics are dominated by the chosen 1D grid.
 
-The main case-study chapter could then be reduced to approximately 12–15 pages without losing scientific substance.
+**Preferred revision.**
 
-5. The rest-state result is now slightly over-framed as a categorical “failure”
+- Run the C23 and C40 comparisons at `N = 200, 400, 800`
+- Use the same target time and section planes
+- Report, for each grid: mean physical-flow bias, RMS physical-flow discrepancy, mean velocity bias, RMS velocity discrepancy, maximum velocity discrepancy, location of the maximum, and differences between successive 1D solutions
 
-The corrected data show an important additional result: doubling the grid from N=400 to N=800 reduces the peak and final drift by factors close to four. That is consistent with approximately second-order reduction of the localized defect.
+**Fallback if not completed.** State prominently that the comparison values are single-grid descriptors, avoid presenting more than three significant figures, and do not imply grid-stable agreement that has not been checked.
 
-The manuscript should calculate and report the observed rest-drift rate explicitly. The most precise conclusion is not merely:
+### 6. Validate the plane-cut operator independently
 
-the method fails to preserve the equilibrium.
+**Issue.** The static cut-area audit is useful, but it does not fully test the velocity interpolation and integration components of the observation operator.
 
-It is:
+**Why it matters.** A dedicated operator test would separate operator error from the unresolved axial variation in the extracted three-dimensional flow and would materially strengthen the case study's measurement story.
 
-the method is not exactly well balanced; it produces a localized rest-state defect that decreases strongly under refinement but remains non-negligible on the N=400 production grid.
+**Preferred revision.**
 
-The production-grid final drift is about:
+- Add a constant-field test where the computed section mean equals `c` and `Q = cA`
+- Add an affine-field test where the triangle rule integrates the linearly interpolated field exactly over each cut triangle
+- Add a plane-location sensitivity test by moving target planes slightly relative to mesh nodes and faces
+- Add a mesh-refinement test that isolates the remaining error from the polygonal approximation of the analytic lumen boundary
+- Summarize the maximum area, flow, and mean-velocity errors in a compact appendix table
 
-\frac{0.03839}{0.7283}\approx5.3\%
-\quad\text{for C23},
-\qquad
-\frac{0.06339}{0.7283}\approx8.7\%
-\quad\text{for C40}.
+**Fallback if not completed.** At minimum, add the constant-field and affine-field exactness checks and state clearly that dynamic extraction uncertainty remains only partially isolated.
 
-Those percentages are more informative than simply saying the values are “below the production-flow scale.” They also provide a direct bridge between the rest audit and the comparison uncertainty.
+**Editorial note.** Continue excluding the radial results unless their reducer and summary values are reconciled. The current quarantine is the right decision.
 
-6. MMS remains only partly independent
+### 7. Diagnose or remove unresolved secondary diagnostics
 
-The manufactured forcing is still assembled using the selected point-flux and source functions. A shared sign, coefficient, or normalization defect could therefore be reproduced in both the production operator and the manufactured residual. The manuscript acknowledges that this checks the “declared manufactured record,” but the verification remains weaker than an independently generated MMS.  
+**Issue.** The modal-DG fixed-mesh `p`-sweep does not show meaningful improvement after `p = 1`, and several appendix figures still read as interesting records rather than fully interpreted evidence.
 
-For stronger verification:
+**Why it matters.** Unresolved secondary results can weaken confidence in otherwise strong primary verification if they are presented as demonstrations without a clear interpretation.
 
-* generate the forcing symbolically or through an independent automatic-differentiation implementation;
-* state exactly which production routines are reused;
-* add a mutation test in which a source sign or coefficient is deliberately changed and the MMS test fails;
-* run for a meaningful portion of T_{\mathrm{mms}}=0.02\ \mathrm{s}, rather than only 2\times10^{-4}\ \mathrm{s}, which is 1% of the manufactured period.
+**Preferred revision.**
 
-The temporal rows should also be separated from the spatial-order table. Their near-zero observed “orders” are not informative; call them timestep-insensitivity rows and report accepted timestep and maximum CFL.
+- Either diagnose the fixed-mesh `p`-sweep plateau and explain it explicitly, or remove that sweep from the manuscript
+- Apply the same standard to the other appendix diagnostics:
+  - Figure 7 should identify the pressure quantity as a legacy local-denominator diagnostic if it is kept
+  - Figure 8 needs an explicit reference solution, hardware specification, and interpretation threshold
+  - Figure 10 should be labeled as a descriptor-wiring or stress test, not as a calibrated physiological sensitivity study
+  - Table 21 should say what convergence claim, if any, follows from the stationary-Stokes rows
 
-7. Production-run diagnostics are still described rather than fully reported
+**Fallback if not completed.** Remove or sharply qualify any appendix item whose governing question and interpretation cannot be stated in one or two sentences.
 
-The manuscript states that the solver records accepted timestep, realized CFL, positivity activity, solver-volume behavior, and conservation information. For the actual C23/C40 comparison runs, however, the principal table still reports mainly characteristic-speed diagnostics.
+## Editorial Cleanup
 
-Add one compact production-diagnostics table containing:
+### Appendix scope
 
-* accepted \Delta t_{\min} and \Delta t_{\max};
-* realized maximum CFL;
-* minimum a and A_{\mathrm{phys}};
-* positivity-projection count and total correction;
-* signed solver-volume or physical-volume balance;
-* inlet/outlet numerical flux balance;
-* final-window stationarity measure.
+- Trim Appendix D down to notation and functional-analytic material that is actually needed to disambiguate the thesis
+- Remove the Heine-Borel discussion, generic Banach-space statements, and basic multi-index material unless a later argument depends on them directly
+- Remove Appendix F's brief Navier-Stokes well-posedness and continuation discussion unless it serves a specific argument later in the report
 
-This is particularly important because the case study is being used to demonstrate best practice from the numerical-method review.
+### Figures and tables
 
-8. The exact-time mismatch remains unnecessarily unresolved
+- Split Figure 3 into separate C23 and C40 panels
+- State explicitly in the Figure 4 caption that the vertical axis does not begin at zero
+- Keep Figure 5 as the clearest main-result figure
+- Split Table 7 into a physical or model matching table and a numerical or observation matching table
+- Rename `tmax |q|` in Table 11 to `time of peak max_i |q_i|`
+- Mark the radial targets in Table 8 as generated but excluded from retained evidence
 
-The 3D field is sampled at 0.9995\ \mathrm{s}, while the 1D state remains at 1.0\ \mathrm{s}. The reproducibility command explicitly targets 1.0 s with a 10^{-3} tolerance and therefore deliberately accepts the nearby 3D field.  
+### Bibliography cleanup
 
-Because the 1D solver is controlled locally, it should be sampled or interpolated at exactly 0.9995\ \mathrm{s}. This does not resolve the much larger transient-history mismatch, but it removes an avoidable objection at almost no scientific cost.
+- Remove internal workflow notes from the rendered bibliography, including phrases such as `Used as broad cardiovascular-modeling background`, `Poster`, `Infrastructure citation only`, and `Verification-resource citation only`
+- Use ISO access dates such as `2026-05-07`
+- Before submission, check whether recent arXiv records now have final journal metadata and update them where appropriate
 
-9. The observation operator still needs analytic verification
+### Copyediting
 
-The static cut-area audit is useful, but it verifies only the geometry component. Add tests showing that the plane–tetrahedron operator:
+- Change `manufactured solution method` in the acronym list to `method of manufactured solutions`
+- Replace `The case study is not the organizing limit of the literature review` with `The case study does not delimit the scope of the literature review`
+- Replace `The next modeling step is a boundary lane...` with `The next modeling study should compare...`
+- Check that open and closed time intervals remain visibly distinguishable in the rendered PDF
+- Ensure every table containing derivatives, integrals, or residuals gives units or states plainly that the quantities are in solver-coordinate units
+- Add a List of Figures and List of Tables if the graduate-school format requires them
 
-* exactly integrates a constant axial velocity field;
-* exactly integrates a linear finite-element field on a cut;
-* is invariant under alternative triangulation of the same polygon;
-* returns section flow consistent with direct triangle quadrature.
+## Recommended Revision Sequence
 
-Also persist A_{\mathrm{1D}} and A_{\mathrm{3D}} directly rather than reconstructing them through Q/\bar u.
+1. Correct abstract and conclusion claim language, `q` versus `Q_phys` reporting, and timestamp wording.
+2. Separate wall-law pressure notation from observed three-dimensional pressure.
+3. Replace reproducibility placeholders with concrete archival and environment information, and fix the command-block typography.
+4. Decide whether the grid-sensitivity study and plane-cut operator validation will be completed before submission.
+5. If those studies are not completed, narrow the claim language and reduce numerical precision accordingly.
+6. Diagnose or remove unresolved appendix diagnostics.
+7. Trim the general-analysis appendices and finish the figure, table, bibliography, and copyediting pass.
 
-In the model-matching matrix, “algebraically reconstructed” is not a matching status. The current-lumen-area row should read something like:
+## Time-Constrained Fallback
 
-unresolved — static cut geometry only
+If there is not enough time to run new computations before submission, the manuscript can still be made defensible by completing all submission blockers, removing or sharply qualifying unresolved appendix diagnostics, stating plainly that the 1D-3D comparison values are single-grid descriptors, and reducing any over-precise numerical reporting. In that form, the thesis still stands as a disciplined numerical audit and case study rather than a stronger evidence package for grid-stable cross-model agreement.
 
-10. The abstract does not report the actual findings
+## Final Judgment
 
-The abstract explains the scope and method clearly but contains almost no quantitative result. It should include, compactly:
+The manuscript is defensible as a master's thesis because it treats the implementation as an auditable numerical object and carefully limits its claims. It is not yet evidence of predictive stenosis accuracy, but it does not need to be. Its strongest contribution is the disciplined connection among model hierarchy, closure choices, verification, equilibrium preservation, and observation operators.
 
-* approximate MMS spatial rates;
-* corrected rest-state magnitude and refinement behavior;
-* C23/C40 RMS velocity discrepancies;
-* C23/C40 maximum section discrepancies;
-* the unresolved 3D-flow variation or matching limitation;
-* the fact that radial output is excluded pending reconciliation.
-
-A reader should be able to identify the principal mathematical and numerical findings without reaching Chapter 7.
-
-11. Several editorial and visual issues remain
-
-* Figure 1 on page 5 remains small and faint, especially the tetrahedral-mesh panel. A clearer continuum-to-reduced-model diagram would serve the review better.
-* The model-matching matrix and parameter tables around pages 33–35 are densely compressed.
-* The full rest-state table on page 64 is too small for normal reading; retain the CSV externally and show either a landscape table or a selected diagnostic subset.
-* The DG table and figure on page 57 are crowded. The figure should explicitly say that p>1 provides no improvement in the current implementation.
-* Appendix B begins with language saying the report was “narrowed to the implemented 1D solver,” which is a leftover from the previous audit-led version and now contradicts the review-led framing.
-* Internal source IDs such as 77 and 60 should be secondary provenance metadata rather than prominent case identifiers.
-* Verify Michigan Technological University front-matter requirements. The current PDF does not visibly include degree/program identification, committee or approval material, acknowledgments, or separate lists of figures and tables.
-
-Recommended next-step sequence
-
-Immediate substantive revision
-
-1. Expand Section 1.1 into a reproducible narrative-review methodology.
-2. Add the explicit 3D-to-1D averaging derivation.
-3. Deepen Chapters 3–5 through source-to-source comparison rather than additional taxonomy.
-4. Calculate and report the rest-drift refinement rate and production-grid percentages.
-5. Independently generate or mutation-test the MMS forcing.
-6. Add actual C23/C40 production diagnostics.
-7. Resample the 1D solution at exactly 0.9995\ \mathrm{s}.
-8. Rewrite the abstract with quantitative findings.
-
-Final publication revision
-
-9. Add analytic tests for the plane–tetrahedron operator.
-10. Change the current-lumen-area matching status.
-11. Move command lines and secondary solver details out of the main case-study narrative.
-12. Archive the final code state with a stable tag and repository or DOI; the current appendix explicitly remains a working draft without a stable public archive.  
-13. Enlarge dense tables and figures and complete institutional formatting review.
-14. Perform one final terminology scan for remnants of the former audit-led framing.
-
-Final assessment
-
-The literature review is no longer missing. It now provides a sound and defensible framework for the report. The remaining problem is depth rather than absence: the manuscript reviews many model classes, but it does not yet compare them in enough mathematical and evidential detail to fully earn the phrase “detailed review.”
-
-The numerical case study is now honest, useful, and substantially corrected. One focused revision that deepens the review methodology and continuum-to-reduced-model synthesis—while closing the remaining MMS, production-diagnostic, and exact-time issues—would place the manuscript in the A- range and make it defensible for final master’s submission.  
+After the targeted revisions above, I would regard it as ready for final submission. The strongest optional additions are the production-grid sensitivity study and the plane-cut operator validation. If those additions are not completed, final submission is still plausible provided the manuscript narrows claims, reduces precision where appropriate, and avoids overinterpreting single-grid or partially validated evidence.
