@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "masters-report-ops"
+version = "0.1.0"
+description = "Report, reference, and rendering operations for the masters-report repository."
+requires-python = ">=3.13"
+dependencies = [
+    "matplotlib",
+    "numpy",
+]
+
+[project.scripts]
+ops-audit-references = "ops.audit_references:main"
+ops-audit-tex-preamble = "ops.audit_tex_preamble:main"
+ops-build-lit-review-depth = "ops.build_lit_review_depth:main"
+ops-build-report = "ops.build_report:main"
+ops-extract-reference-claims = "ops.extract_reference_claims:main"
+ops-orchestrate = "ops.orchestrate:main"
+ops-python-check = "ops.python_check:main"
+ops-render-package-benchmark-figures = "ops.render_package_benchmark_figures:main"
+ops-render-ph-refinement-demo = "ops.render_ph_refinement_demo:main"
+ops-render-stenosis-geometry-figures = "ops.render_stenosis_geometry_figures:main"
+ops-summarize-revision-evidence = "ops.summarize_revision_evidence:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 120
+target-version = ["py313"]
+
+[tool.isort]
+profile = "black"

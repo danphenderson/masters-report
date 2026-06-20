@@ -1,0 +1,106 @@
+# Repository Artifact Policy
+
+This policy defines how repository artifacts should be treated before cleanup
+work begins. It is intentionally conservative because the report source,
+rendered figures, reference metadata, private local full-text mirrors, and
+scratch experiment outputs have different ownership and validation requirements.
+
+Cleanup should happen in scoped patches. Do not combine source moves,
+reference-metadata decisions, report-artifact refreshes, and ignore-rule
+changes in one sweep.
+
+For agent handoffs, use the lightweight workflow in `public/docs/agent-workflows.md`.
+`pipenv run ops-orchestrate status` is read-only and helps classify dirty paths
+before dispatching work. No repo-managed commit hooks, no background automation,
+and no persistent orchestration receipts are part of that layer.
+
+## Artifact Classes
+
+| Class | Current examples | Usually tracked? | May be regenerated? | May be deleted automatically? | Required validation before changing |
+| --- | --- | --- | --- | --- | --- |
+| Source code | `packages/julia/src/StenosisHemodynamics.jl`, `packages/julia/src/StenosisHemodynamics/**`, `packages/julia/bin/**`, `packages/julia/README.md`, `packages/julia/test/**`, `packages/julia/Project.toml`, `packages/julia/Manifest.toml`, `Pipfile`, `Pipfile.lock`, `packages/ops/**` | Yes. | Only by the language package or lockfile workflow that owns the file. | No. | Run targeted Julia or Python tests for the changed surface. Use `packages/julia/bin/julia-release packages/julia/test/runtests.jl` for Julia changes; use `pipenv run ops-python-check` for Python support-tooling changes. |
+| Manuscript/report source | `report/final-report.tex`, `report/frontmatter/**`, `report/sections/**`, `report/appendices/**`, `report/preamble/**`, `public/references/references.bib`, `report/assets/tikz/**` | Yes. | TeX source is edited, not regenerated, unless a file is explicitly documented as generated. | No. | Run `pipenv run ops-build-report --outdir /tmp/masters-report-build` when report structure, citations, figures, bibliography plumbing, or TeX policy changes. The wrapper runs the preamble audit, uses scratch `latexmk`, fails on untracked consumed report inputs, writes `report-build-summary.json` in the outdir, and refreshes `public/final-report.pdf` only after the gate passes. |
+| Manuscript-used static data and tables | `report/assets/data/**`, `report/assets/tables/package-benchmark/package-benchmark-summary.tex` | Yes, when the current report consumes the data or table. | Yes, through the documented simulation or rendering command that owns the asset. | No. | Check TeX references, appendix provenance text, and any recorded hashes before replacing. Rebuild the report in a scratch output directory after updates. |
+| Generated report outputs | `public/final-report.pdf`, `report/assets/rendered/*.pdf`, `report/assets/rendered/*.png` | Rendered figures are tracked when the report consumes them; `public/final-report.pdf` is an ignored local/release artifact, not a source-tree artifact. | Yes, but only through a passing `pipenv run ops-build-report` run or when the source change explicitly requires a synced artifact refresh. | No for report-consumed figures; yes for ignored local PDFs. | First validate with a scratch build or renderer output. Publish final PDFs through release artifacts rather than ordinary source commits. |
+| Simulation/benchmark outputs | `tmp/simulations/output/**`, `tmp/experiments/**`, per-run `manifest.json`, `series.csv`, `solution.npz`, summary CSVs, benchmark logs | No, except for deliberately published report assets copied under `report/assets/**`. | Yes. These are run outputs. | Yes, when they are ignored scratch outputs and are not being used as evidence for an active review. | Verify that equivalent published assets, manifests, or provenance records exist before discarding evidence-bearing outputs. For benchmark changes, rerun the relevant smoke or full command and inspect emitted summaries. |
+| Reference metadata and private full-text mirrors | `public/references/source-inventory.tsv`, `public/references/AGENTS.md`, `public/references/README.md`, `public/references/references.bib`, ignored `public/references/**/*.pdf`, ignored `public/references/**/*.html` | Metadata is tracked; third-party full-text files are private local mirrors and are not tracked in public GitHub releases. | No. Source records are edited deliberately; full-text mirrors are reacquired from external sources or private archives. | No automatic deletion of private mirrors. | Follow `public/references/AGENTS.md`. Run `pipenv run ops-audit-references`, `pipenv run pytest packages/ops/tests/test_references_inventory.py packages/ops/tests/test_tex_preamble_audit.py`, and `biber --tool --validate-datamodel --output-file /tmp/masters-report-references.bib public/references/references.bib` after moving, adding, or reclassifying reference records. |
+| Ignored local environments/caches | `.venv/`, `.julia_depot/`, `.pytest_cache/`, `.ruff_cache/`, `__pycache__/`, `*.egg-info/`, local editor files, `.DS_Store` | No. | Yes. They are local machine state. | Yes, if no command is actively using them. | `git status --short --ignored=matching` should show them as ignored, not untracked. Recreate environments through the documented Julia or Pipenv setup if needed. |
+| Large/raw data | `public/var/data/simulations/**`, local XDMF/HDF5 resolved-3D inputs, any future raw solver dumps or external datasets | No, unless the project owner explicitly chooses Git LFS, DVC, or another archival policy. | No for external raw inputs; yes for derived data when regeneration is documented. | No, unless the data is a disposable local copy and its source or archive pointer is known. | Record source, checksum, and expected local path before relying on the data. Keep raw data out of ordinary commits until an LFS or archive strategy is approved. |
+| Stale or review-only artifacts | Root review handbacks, historical review notes, superseded local notes, one-off audit exports | Usually no, unless intentionally retained as project documentation. | No. | No automatic deletion. Review provenance first. | Confirm the artifact is not referenced by TeX, README, AGENTS, appendix provenance, active review notes, or pending dirty work. Move or remove it in its own cleanup patch. |
+
+## Cleanup Safety Rules
+
+- Never delete manuscript-linked figures, tables, PDFs, or static data without
+  checking TeX references and appendix provenance tables first.
+- Never delete private reference mirrors solely because they appear duplicated.
+  The `public/references/AGENTS.md` policy governs `public/references/**` and explicitly
+  requires provenance-aware handling.
+- Do not commit `.venv/`, `.julia_depot/`, caches, LaTeX byproducts, `tmp/**`,
+  `tmp/simulations/output/**`, or raw 3D data under `public/var/data/simulations/**`.
+- Treat `public/final-report.pdf` as a local/release artifact. A passing
+  `pipenv run ops-build-report` run refreshes the ignored public copy from the validated
+  scratch PDF; use `--no-sync-final-pdf` only for validation-only builds. Keep
+  report-consumed rendered figures tracked unless the project owner changes this
+  policy.
+- Use `pipenv run ops-build-report --outdir /tmp/masters-report-build` as
+  the preferred report build gate. If it reports untracked consumed inputs, do
+  not stage or delete them automatically; inspect the summary and handle the
+  source/asset ownership deliberately.
+- Perform cleanup in scoped patches. Keep source edits, generated-artifact
+  refreshes, reference-metadata changes, and ignore-rule changes separate.
+- If the tree already contains active manuscript or PDF work, resolve or
+  explicitly set aside that work before moving or deleting artifacts.
+- Prefer scratch output directories such as `/tmp/masters-report-build` and
+  `tmp/**` for validation and experiments.
+
+## Recommended Cleanup Sequence
+
+1. Resolve the active manuscript dirty state, including any untracked live
+   section files and any local `public/final-report.pdf` drift.
+2. Establish or update this policy before moving artifacts.
+3. Handle stale root review handbacks or historical review notes in a small
+   documentation/provenance patch.
+4. Audit unused report assets by checking TeX inputs, `\includegraphics`,
+   `\figtikz`, appendix provenance text, and static hash records.
+5. Keep bibliography metadata public while keeping third-party full-text mirrors
+   ignored locally, or publish full text only through a rights-cleared archive.
+6. Tighten `.gitignore` only for confirmed gaps. Do not add broad patterns that
+   might hide manuscript source, published report assets, or provenance files.
+7. Validate build and tests after each cleanup patch rather than after a large
+   combined sweep.
+
+## Baseline Validation Commands
+
+Use the narrowest validation set that matches the patch. For policy-only
+changes, run:
+
+```sh
+git status --short
+git diff --check
+```
+
+For reference metadata changes, add:
+
+```sh
+pipenv run ops-audit-references
+pipenv run pytest packages/ops/tests/test_references_inventory.py packages/ops/tests/test_tex_preamble_audit.py
+biber --tool --validate-datamodel --output-file /tmp/masters-report-references.bib public/references/references.bib
+```
+
+For report source or published report-asset changes, add a scratch build:
+
+```sh
+pipenv run ops-build-report --outdir /tmp/masters-report-build
+```
+
+The wrapper calls `latexmk -g -pdf -interaction=nonstopmode -halt-on-error`
+underneath, leaves the PDF/log/FLS plus `report-build-summary.json` in the
+scratch output directory, and refreshes the ignored `public/final-report.pdf`
+after the full gate passes.
+
+For code changes, add the relevant test suite:
+
+```sh
+packages/julia/bin/julia-release packages/julia/test/runtests.jl
+pipenv run ops-python-check
+```

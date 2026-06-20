@@ -3,18 +3,18 @@
 
 This report is built from the \LaTeX{} sources rooted at
 \path{report/final-report.tex}. The solver package is the root Julia package
-\texttt{StenosisHemodynamics}, with package identity in \path{julia/Project.toml},
-resolved Julia dependencies in \path{julia/Manifest.toml}, and the package entry point
-at \path{julia/src/StenosisHemodynamics.jl}. The command-line surface used by the
-report is \path{bin/stenosis-hemodynamics}, which dispatches through
-\path{julia/bin/stenosis-hemodynamics.jl} and the Julia project under
-\path{julia/}.
+\texttt{StenosisHemodynamics}, with package identity in \path{packages/julia/Project.toml},
+resolved Julia dependencies in \path{packages/julia/Manifest.toml}, and the package entry point
+at \path{packages/julia/src/StenosisHemodynamics.jl}. The command-line surface used by the
+report is \path{packages/julia/bin/stenosis-hemodynamics}, which dispatches through
+\path{packages/julia/bin/stenosis-hemodynamics.jl} and the Julia project under
+\path{packages/julia/}.
 
 \paragraph*{Source-control and archive record.}
 This manuscript refresh was prepared from the local \texttt{master} branch.
 The exact source tree for a submitted PDF should be identified by the git
 commit or release tag that contains this appendix and the corresponding
-\path{final-report.pdf}. The local archive fields available in this checkout are:
+\path{public/final-report.pdf}. The local archive fields available in this checkout are:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 branch: master
 local_tag_available: masters-report-final-2026-06-19 -> 1a15a52d6e986f08d745c9e40ecbcd04d4475104
@@ -25,11 +25,11 @@ archival_doi: not declared
 The local release manifest remains the concrete source-access record rather
 than a final public archive record:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-reproducibility/release-manifest.json
+public/reproducibility/release-manifest.json
 \end{lstlisting}
 No stable public repository URL, immutable archive URL, or archival DOI was
 available from the local metadata in \path{CITATION.cff} or
-\path{reproducibility/release-manifest.json}. Unless a later public release adds
+\path{public/reproducibility/release-manifest.json}. Unless a later public release adds
 one, access to \texttt{StenosisHemodynamics} is by the repository owner's
 source-control policy.
 
@@ -61,20 +61,20 @@ context, 2 as background only, and 5 as deferred pending metadata review. Blank
 \paragraph*{Build command.}
 The report build command is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-bin/build-report --outdir /tmp/masters-report-build
+pipenv run ops-build-report --outdir /tmp/masters-report-build
 \end{lstlisting}
 Julia package tests are run through the repository launcher:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-bin/julia-release julia/test/runtests.jl
+packages/julia/bin/julia-release packages/julia/test/runtests.jl
 \end{lstlisting}
 
 \paragraph*{Comparison-asset regeneration command.}
 When the optional raw 3D inputs are restored locally, the tracked comparison
 assets are regenerated with:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-bin/stenosis-hemodynamics compare-3d \
-  --data-root julia/simulations/data/3d/canic_case3 \
-  --output-dir julia/simulations/output/3d_comparison/full_t1_native_nx400 \
+packages/julia/bin/stenosis-hemodynamics compare-3d \
+  --data-root public/var/data/simulations/canic_case3 \
+  --output-dir tmp/simulations/output/3d_comparison/full_t1_native_nx400 \
   --nx 400 \
   --target-time 0.9995 \
   --time-atol 1e-3 \
@@ -93,7 +93,7 @@ the final timestamp.
 The synthetic cross-section operator validation table is regenerated without
 raw 3D inputs:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-bin/stenosis-hemodynamics operator-validation \
+packages/julia/bin/stenosis-hemodynamics operator-validation \
   --output-dir report/assets/tables/stenosis-comparison \
   --summary-csv report/assets/data/stenosis-comparison/cross-section-operator-validation.csv \
   --summary-tex report/assets/tables/stenosis-comparison/cross_section_operator_validation.tex \
@@ -107,9 +107,9 @@ fields.
 When the optional raw 3D inputs are available, the publication-scope grid
 sensitivity is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-bin/stenosis-hemodynamics compare-3d \
-  --data-root julia/simulations/data/3d/canic_case3 \
-  --output-dir julia/simulations/output/3d_comparison/grid_sensitivity_C23_C40 \
+packages/julia/bin/stenosis-hemodynamics compare-3d \
+  --data-root public/var/data/simulations/canic_case3 \
+  --output-dir tmp/simulations/output/3d_comparison/grid_sensitivity_C23_C40 \
   --target-time 0.9995 \
   --time-atol 1e-3 \
   --nxs 200,400,800 \
@@ -127,15 +127,15 @@ metadata for the resolved cases remain unmatched or unpersisted.
 
 Package-benchmark assets are regenerated separately from the PDF:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-bin/stenosis-hemodynamics benchmark \
+packages/julia/bin/stenosis-hemodynamics benchmark \
   --profile overnight \
-  --output-dir julia/simulations/output/package_benchmark/overnight-YYYYMMDD \
+  --output-dir tmp/simulations/output/package_benchmark/overnight-YYYYMMDD \
   --overwrite \
   --include-resolved3d \
   --publish-report-assets
 
-PIPENV_PIPFILE=tools/python/Pipfile pipenv run python tools/python/scripts/render_package_benchmark_figures.py \
-  --benchmark-dir julia/simulations/output/package_benchmark/overnight-YYYYMMDD
+pipenv run ops-render-package-benchmark-figures \
+  --benchmark-dir tmp/simulations/output/package_benchmark/overnight-YYYYMMDD
 \end{lstlisting}
 Those rows are secondary implementation-health records, not the principal
 comparison method.
@@ -145,7 +145,7 @@ The raw upstream XDMF/HDF5 velocity inputs used for
 Section~\ref{sec:resolved-3d-comparison} are not archived in this report
 package. The expected local input root is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-julia/simulations/data/3d/canic_case3/
+public/var/data/simulations/canic_case3/
 \end{lstlisting}
 When available, that directory is restored from this upstream repository,
 commit, and subtree:
@@ -161,7 +161,7 @@ unresolved unless a later release record adds those data.
 
 The tracked release manifest is stored outside the thesis PDF:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-reproducibility/release-manifest.json
+public/reproducibility/release-manifest.json
 \end{lstlisting}
 That manifest records the build command, raw-input policy, upstream 3D input
 pointer, comparison-asset regeneration command, and the absence of a declared

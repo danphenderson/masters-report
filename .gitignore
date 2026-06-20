@@ -1,6 +1,7 @@
 # Local OS/editor state
 .DS_Store
-.vscode/
+.vscode/*
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
@@ -13,7 +14,6 @@
 
 # Python/Pipenv local state
 .venv/
-tools/python/.venv/
 venv/
 env/
 __pycache__/
@@ -55,17 +55,17 @@ LocalPreferences.toml
 # Generated report and simulation outputs
 output/
 tmp/
-julia/simulations/output/
-julia/simulations/data/3d/
+public/var/data/simulations/
 report/assets/generated/
 final-report.pdf
+public/final-report.pdf
 report/final-report.pdf
 
 # Private local full-text/reference mirrors. Public releases keep bibliography
 # metadata and source inventory only.
-references/**/*.pdf
-references/**/*.html
-references/**/*.htm
+public/references/**/*.pdf
+public/references/**/*.html
+public/references/**/*.htm
 
 # Local tool state
 .cache/

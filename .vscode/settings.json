@@ -1,0 +1,24 @@
+{
+    "latex-workshop.latex.build.fromFolder": ".",
+    "latex-workshop.latex.outDir": "%WORKSPACE_FOLDER%",
+    "latex-workshop.latex.recipe.default": "first",
+    "latex-workshop.latex.recipes": [
+        {
+            "name": "build-report",
+            "tools": [
+                "build-report"
+            ]
+        }
+    ],
+    "latex-workshop.latex.tools": [
+        {
+            "name": "build-report",
+            "command": "/bin/bash",
+            "args": [
+                "-lc",
+                "PYTHONPATH=packages/ops/src python3 -m ops.build_report --repo \"$PWD\" --outdir /tmp/masters-report-build"
+            ],
+            "env": {}
+        }
+    ]
+}
