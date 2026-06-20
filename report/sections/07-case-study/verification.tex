@@ -1,10 +1,12 @@
-\subsection{Numerical Verification and Audit}
+\subsection{Verification Record and Rest-State Limitation}
 \label{sec:numerical-verification}
 
-This section orders the numerical evidence for the implemented solver used in
-the worked example. The evidence is read through the review categories above:
-manufactured-solution verification, equilibrium preservation, boundary and CFL
-diagnostics, and secondary implementation-health records.
+This section applies the evidence standards from
+Section~\ref{sec:numerical-methods} to the worked example. The retained
+main-body evidence supports interpretation of the case: manufactured-solution
+verification, output-operator verification, geometry-rest preservation, and
+run-admissibility diagnostics. Secondary health records for implementation
+surfaces remain in Appendix~\ref{app:num-secondary-implementation-health}.
 
 \subsubsection{Evidence Hierarchy and Scope}
 \label{subsec:verification-scope-convergence-stability}
@@ -72,8 +74,8 @@ formal convergence theorem for the full nonlinear stenosis solver.
 \subsubsection{Manufactured-Solution Evidence}
 \label{subsec:mms-verification}
 
-The implementation exposes an opt-in manufactured forcing term. The production
-equations use \texttt{NoForcing()} by default. For verification only,
+The implementation exposes an opt-in manufactured forcing term. Production
+runs use the no-forcing path by default. For verification only,
 \texttt{ManufacturedForcing()} supplies a smooth exact state
 $(a^\star(z,t),q^\star(z,t))$, exact initial data, exact boundary states, and
 source terms inserted into the existing finite-volume right-hand side. In solver
@@ -288,7 +290,7 @@ characteristic-speed evidence for the runs later used in the velocity-output
 comparison. These diagnostics are admissibility and bookkeeping checks. They do
 not remove the non-well-balanced geometry-rest drift reported above.
 
-\subsubsection{Secondary Implementation-Health Checks}
+\subsubsection{Appendix-Held Implementation-Health Checks}
 \label{subsec:verification-summary}
 
 The fourth evidence tier is kept out of the main argument. Appendix~\ref{app:num-secondary-implementation-health}

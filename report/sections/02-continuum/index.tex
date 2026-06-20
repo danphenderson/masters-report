@@ -2,11 +2,12 @@
 \label{sec:continuum-description}
 \label{sec:continuum-description-blood-flow}
 
-This chapter fixes the continuum vocabulary used by the later reduced stenosis
-model. The aim is not to repeat a full mechanics derivation. It is to record the
-progression from material motion to transport identities, balance laws, stress
-closure, and the incompressible flow equations from which cross-sectional
-models inherit their variables and closure obligations.
+This chapter fixes the continuum vocabulary from which the later model
+hierarchy is read. The aim is not to repeat a full mechanics derivation. It is
+to record the progression from material motion to transport identities, balance
+laws, stress closure, and incompressible flow equations. Resolved, reduced,
+lumped, multiscale, and learned models differ in how much of this continuum
+description they retain, close, observe, or approximate.
 
 \subsection{Continuum Scale and Field Variables}
 \label{subsec:continuum-scale-and-fields}
@@ -300,8 +301,9 @@ variation of the reference radius or coordinate map, and inlet/outlet conditions
 close the finite vessel problem
 \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,CanicEtAl2024Extended1DStenosis}.
 Appendix~\ref{app:continuum-derivation-details} records the supporting
-transport identities, while Section~\ref{sec:case-study} states the selected
-solver-coordinate version used in the stenosis audit.
+transport identities. The model hierarchy in Section~\ref{sec:model-hierarchy}
+uses this cross-sectional bridge to explain why distributed 1D models inherit
+both conservation structure and closure obligations from the continuum tier.
 
 \subsection{Fixed and Moving Domains, Boundary Data, and Observables}
 \label{subsec:continuum-domains-observables}
@@ -359,16 +361,11 @@ model.
 \end{table}
 
 \begin{stenosisillustration}
-The idealized stenosis case study inherits the continuum description in four
-specific ways. First, the lumen is treated as a macroscopic blood domain
-carrying velocity, pressure, density, and stress fields; blood cells are not
-resolved individually. Second, the narrowing is represented through a declared
-smooth vessel geometry and a selected wall treatment, so any wall motion not
-solved at the continuum level must enter through the reduced wall law. Third,
-mass and momentum balance are retained as the source of the section area and
-flow equations, while discarded transverse velocity and stress information must
-be supplied by profile, friction, rheology, and wall closures. Fourth, the
-principal comparison quantities are continuum-derived observables: physical
-flow, section-mean axial velocity, pressure when a pressure output is declared,
-and velocity-profile descriptors.
+The idealized stenosis example later in the report uses this chapter only as a
+foundation. Its 1D state is meaningful because area, flow, mean velocity, and
+pressure are reductions of continuum fields. Its closure choices are necessary
+because transverse velocity, wall traction, wall motion, and rheological detail
+are not all solved directly. Its comparison quantities are continuum-derived
+observables: physical flow, section-mean axial velocity, pressure when a
+pressure output is declared, and velocity-profile descriptors.
 \end{stenosisillustration}

@@ -1,4 +1,4 @@
-\section{Numerical Methods, Verification, Validation, and Observation Operators}
+\section{Numerical Methods and Evidence Standards}
 \label{sec:numerical-methods}
 \label{sec:numerical-methods-review}
 
@@ -8,8 +8,10 @@ observe it. A resolved incompressible-flow or FSI computation, a distributed 1D
 area--flow network, and a diagnostic postprocessing map can all report velocity
 or flow, but they do so through different discrete spaces, stability
 constraints, conservation properties, and measurement conventions. This chapter
-therefore reviews the numerical-method and evidence standards needed to interpret
-the StenosisHemodynamics audit.
+therefore reviews numerical methods through the evidence standards needed to
+interpret blood-flow simulations: verification, validation, stability,
+positivity, conservation, well-balancing, reproducibility, and observation
+operators.
 
 \subsection{Finite-Element Incompressible Flow and FSI}
 \label{subsec:numerical-methods-fem-fsi}
@@ -160,20 +162,20 @@ In this report, the plane--tetrahedron quadrature operator plays that role for
 the available resolved 3D velocity data, while the 1D state is observed through
 physical flow and area-mean velocity.
 
-\subsection{Method Evidence Standards for the Present Audit}
+\subsection{Evidence Standard for the Present Report}
 \label{subsec:numerical-methods-evidence-standards}
 
 The review above gives a compact standard for reading the numerical record.
 Each reported result should identify its equation tier, discrete operator,
 boundary rule, timestep policy, stability and positivity diagnostics, reference
 data, and observation operator. Table~\ref{tab:numerical-methods-evidence-map}
-summarizes the roles used by the present manuscript.
+summarizes the evidence roles used by the present manuscript and later applied
+in the case study.
 
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Numerical-method evidence roles used to interpret the implemented
-    stenosis audit.}
+    \caption{Numerical-method evidence roles used in the report.}
     \label{tab:numerical-methods-evidence-map}
     \begin{tabularx}{\textwidth}{@{}p{0.23\textwidth}p{0.31\textwidth}X@{}}
         \toprule
@@ -208,16 +210,15 @@ summarizes the roles used by the present manuscript.
 \end{table}
 
 \begin{stenosisillustration}
-For the StenosisHemodynamics evidence record, the three central checks map
-directly onto the review concepts above. The MMS run is the manufactured-state
-verification problem: it checks whether the declared finite-volume operator,
-forcing residuals, boundary traces, and timestepper reproduce a known smooth
-area--flow solution. The rest-equilibrium run is the well-balanced test: it asks
-whether the discrete stenosis geometry, wall source, and numerical flux preserve
-the quiescent state that the continuous balance law admits. The
-plane--tetrahedron quadrature rule is the observation-operator test: it defines
-how a resolved 3D velocity field becomes section area, physical flow, mean axial
-velocity, and radial-bin data comparable to 1D outputs. These checks answer
-different numerical questions, so agreement in one cannot substitute for
-a limitation or ambiguity in another.
+The later case study applies three of these evidence categories. The MMS run is
+the manufactured-state verification problem: it checks whether the declared
+finite-volume operator, forcing residuals, boundary traces, and timestepper
+reproduce a known smooth area--flow solution. The rest-equilibrium run is the
+well-balanced test: it asks whether the discrete stenosis geometry, wall
+source, and numerical flux preserve the quiescent state that the continuous
+balance law admits. The plane--tetrahedron quadrature rule is the
+observation-operator test: it defines how a resolved 3D velocity field becomes
+section area, physical flow, and area-mean velocity comparable to 1D outputs.
+These checks answer different numerical questions, so agreement in one cannot
+substitute for a limitation or ambiguity in another.
 \end{stenosisillustration}

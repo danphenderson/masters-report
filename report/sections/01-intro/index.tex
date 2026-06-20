@@ -1,4 +1,4 @@
-\section{Introduction and Review Methodology}
+\section{Introduction and Report Methodology}
 \label{sec:intro}
 
 Blood-flow simulation sits between continuum mechanics, numerical analysis, and
@@ -16,12 +16,15 @@ lesion-imaging studies distinguish anatomy from functional assessment
 \cite[p.~4401]{DerimayEtAl2021CoronaryStenosisObstruction}
 \cite[Abstract; Methods]{VanDenHoogenEtAl2022CoronaryLesionCTA}.
 
-This report reviews the principal mathematical formulations used to simulate
-blood flow and uses an idealized stenosis computation as a worked example. The
-case study does not delimit the scope of the literature review. Instead, it
-provides a concrete place to see how continuum assumptions, model reduction,
-closure laws, boundary approximations, numerical verification, equilibrium
-preservation, and observation operators enter a reproducible computation.
+The primary purpose of this report is a mathematical and numerical review of
+blood-flow modeling. It organizes the literature around the questions a reader
+must answer before interpreting a computed hemodynamic quantity: what continuum
+description is being reduced or solved, what model tier is selected, which
+closures and data enter the equations, which observable is reported, and what
+numerical or empirical evidence supports the claim. An idealized stenosis
+computation appears later as a worked example of this review framework. It is
+not the organizing center of the report and does not delimit the literature
+scope.
 
 \begin{figure}[H]
     \centering
@@ -36,7 +39,7 @@ preservation, and observation operators enter a reproducible computation.
     \label{fig:stenosis-fem-fvm-meshes}
 \end{figure}
 
-\subsection{Narrative Review Scope}
+\subsection{Literature Review Scope}
 \label{subsec:narrative-review-scope}
 
 The review is narrative and scoping in style rather than systematic. Sources
@@ -72,32 +75,47 @@ computational hemodynamics.
 \subsection{Research Problem and Questions}
 \label{subsec:research-problem-questions}
 
-The research problem is to connect the mathematical simulation literature with
-a reproducible idealized stenosis example. The report asks three questions:
+The research problem is to synthesize how blood-flow models are formulated,
+closed, observed, and supported by numerical evidence. The report asks three
+review-oriented questions:
 \begin{enumerate}
     \item What mathematical model hierarchies are used to simulate blood flow,
-    and which physical assumptions and observables distinguish 3D CFD, FSI,
-    2D or axisymmetric, 1D, 0D, multiscale, and learned formulations?
-    \item How do rheology, wall mechanics, geometry, boundary conditions,
-    numerical discretization, and output operators affect the interpretation
-    and reliability of blood-flow simulations?
-    \item How does an idealized stenosis case study illustrate the practical
-    consequences of model reduction, numerical verification, equilibrium
-    preservation, and 1D--3D comparison?
+    and how do retained state, closure burden, coupling structure, and native
+    observables distinguish 3D CFD, FSI, 2D or axisymmetric, 1D, 0D,
+    multiscale, and learned formulations?
+    \item How do rheology, wall mechanics, geometry, inlet and outlet data,
+    numerical discretization, evidence standards, and observation operators
+    affect the interpretation of reported hemodynamic quantities?
+    \item What limitations remain across the literature when model fidelity,
+    computational cost, identifiability, validation status, reproducibility,
+    and uncertainty sources are compared?
 \end{enumerate}
 
-\subsection{Objectives and Contributions}
+\subsection{Literature Review and Report Roadmap}
 \label{subsec:objectives-contributions}
-
-The report has two linked contributions. First, it synthesizes the modeling
-and numerical choices that distinguish common blood-flow simulation tiers.
-Second, it documents an idealized stenosis case study in enough detail to show
-how those choices appear in a concrete computational record. The case study
-uses the Julia package \path{StenosisHemodynamics}; its role is illustrative
-and diagnostic within the review.
-
-\subsection{Notation Guide}
 \label{subsec:intro-notation-guide}
+\label{subsec:report-organization}
+
+The report's contribution is a structured review framework rather than a new
+clinical validation result. The first part establishes the modeling vocabulary:
+continuum fields, transport identities, balance laws, stress closures, fixed and
+moving domains, and boundary data. The second part organizes the model hierarchy
+by retained state and observation maps, then treats closure choices and
+hemodynamic observables as part of the mathematical model itself. The third
+part reviews numerical methods through evidence standards: stability,
+positivity, conservation, well-balancing, verification, validation,
+reproducibility, and cross-dimensional observation operators. The synthesis
+chapter then compares the literature across fidelity, cost, retained state,
+observables, identifiability, validation status, reproducibility, and
+uncertainty.
+
+Only after that review and synthesis does the report turn to the idealized
+stenosis case study. The case study uses the Julia package
+\path{StenosisHemodynamics} to illustrate how a reduced model contract, closure
+choices, evidence records, and a 1D--3D observation operator appear in one
+auditable example. Its role is methodological: it shows how the review concepts
+constrain interpretation without converting the report into a software or
+clinical-validation document.
 
 The main continuum symbols are used in their standard units unless a generated
 numerical table states otherwise: $\rho$ denotes density, $u_z$ axial velocity,
@@ -110,9 +128,6 @@ $A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and the section-mean
 velocity is $\bar u=q/a$. Appendix~\ref{app:domain-specific-notation} collects
 the full symbol and unit table used by the report.
 
-\subsection{Report Organization}
-\label{subsec:report-organization}
-
 Section~\ref{sec:continuum-description} introduces the continuum description of
 blood flow, from flow maps and balance laws to incompressible Navier--Stokes
 and principal observables. Section~\ref{sec:model-hierarchy} compares model
@@ -121,10 +136,7 @@ Section~\ref{sec:modeling-closures} reviews constitutive, geometric, wall,
 boundary, and observable conventions. Section~\ref{sec:numerical-methods}
 reviews discretization methods, verification, validation, convergence, and
 observation operators. Section~\ref{sec:literature-synthesis} synthesizes open
-challenges across these choices.
-
-Section~\ref{sec:case-study} then presents the idealized stenosis case study:
-model specification, numerical realization, verification evidence,
-geometry-rest testing, and the diagnostic 1D--3D velocity comparison. The final
-discussion and conclusion return from that example to the broader review
-questions.
+challenges across these choices before Section~\ref{sec:case-study} applies
+the framework to the idealized stenosis example. The final discussion answers
+the research questions directly, and the conclusion states the bounded review
+contribution.

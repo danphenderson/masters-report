@@ -1,4 +1,4 @@
-\subsection{Diagnostic 1D-3D Velocity Comparison}
+\subsection{Diagnostic 1D--3D Velocity Comparison}
 \label{sec:resolved-3d-comparison}
 
 \subsubsection{Available 3D Data and Matching Limits}
@@ -6,10 +6,13 @@
 
 This section reports the final-time resolved-velocity comparison whose protocol
 is defined in Section~\ref{subsec:numerical-experiments-metrics-provenance}. It
-is a cross-model comparison of velocity and physical-flow observables under the
-declared plane--tetrahedron quadrature operator. The zero-input rest-state test
-in Section~\ref{sec:numerical-verification} remains required context because it
-uses the same principal operator as the comparison runs.
+is included because it illustrates the observation-operator discipline reviewed
+in Sections~\ref{subsec:hemodynamic-observables} and
+\ref{subsec:numerical-methods-observation-operators}: a reduced 1D state and a
+resolved 3D velocity field can be compared only after both are mapped to common
+velocity and physical-flow observables. The zero-input rest-state test in
+Section~\ref{sec:numerical-verification} remains required context because it
+uses the same principal finite-volume operator as the comparison runs.
 
 The available resolved datasets are the two local velocity fields labelled C23
 and C40. The comparison record uses source ID 77 for C23 and source ID 60 for

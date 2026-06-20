@@ -1,15 +1,14 @@
-\subsection{Model and Computational Methodology}
+\subsection{Case-Study Role and Model Contract}
 \label{sec:methodology}
 
-This section is the implementation contract for the worked stenosis example. It
-fixes the physical variables, solver-coordinate map, stenosis geometry, wall
-law, source terms, boundary approximation, principal finite-volume realization,
-velocity observation operator, comparison design, and provenance record before
-any numerical result is interpreted. Secondary solver surfaces remain appendix
-and verification context unless a result table explicitly identifies them as the
-active method.
+This section applies the review framework to one controlled stenosis example.
+It identifies the model tier, native variables, closure choices, boundary
+approximation, principal numerical method, observation operator, and evidence
+contract before any result is interpreted. Dense operator formulas, secondary
+solver surfaces, and reproducibility commands remain in the appendices unless
+they are needed to understand a main-body claim.
 
-\subsubsection{Physical and Solver Variables}
+\subsubsection{Model Contract and Native Variables}
 \label{subsec:methodology-problem-definition}
 \label{subsec:selected-1d-forward-model}
 \label{subsec:cross-sectional-variables-governing-equations}
@@ -87,7 +86,7 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     Section~\ref{sec:resolved-3d-comparison} velocity and flow comparisons.
 \end{definition}
 
-\subsubsection{Geometry and Wall Law}
+\subsubsection{Closure Choices: Geometry and Wall Law}
 \label{subsec:stenosis-geometry-implemented-coordinates}
 \label{subsec:selected-wall-law-closure-model}
 
@@ -214,197 +213,25 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     not resolve radial pressure variation.
 \end{definition}
 
-\subsubsection[Implemented Rmax-Normalized Balance Law]{Implemented $R_{\max}$-Normalized Balance Law}
+\subsubsection{Reduced Balance Law and Rest-State Contract}
 \label{subsec:conservative-form-source-terms}
 
-\begin{definition}[Closed 1D area-flow model]
-    \label{def:closed-1d-area-flow-model}
-    For $\mathcal W=\mathcal W_{\mathrm{elastic1D}}$ and an incompressible
-    fluid with density $\rho$, the working compliant single-vessel model is
-    written with the composite axial pressure derivative
-    \begin{flalign*}
-        \quad
-        \frac{d}{dz}p_{\mathcal W,\mathrm g}(A(z,t),z,t)
-        =
-        \pd_A p_{\mathcal W,\mathrm g}(A,z,t) \pd_z A
-        +
-        \left.\pd_z p_{\mathcal W,\mathrm g}(A,z,t)\right|_A. &&
-    \end{flalign*}
-    The reduced balance law is
-    \begin{flalign*}
-        \quad \pd_t A
-        + \pd_z Q
-        &= 0, \numberthis\label{eq:1d-mass-aq} && \\
-        \quad \pd_t Q
-        + \pd_z
-            \left(\alpha \frac{Q^2}{A}\right)
-        + \frac{A}{\rho}\frac{d}{dz}p_{\mathcal W,\mathrm g}(A(z,t),z,t)
-        &= - C_f(z,A,Q) \frac{Q}{A}.
-        \numberthis\label{eq:1d-momentum-aq} &&
-    \end{flalign*}
-    The parameter $\alpha$ is the momentum-flux correction factor induced by
-    the selected cross-sectional velocity profile, $C_f$ is the wall-friction
-    closure, and $p_{\mathcal W,\mathrm g}(A,z,t)$ is the wall-law gauge
-    pressure closing the reduced system.
-\end{definition}
+The selected 1D model is an area--flow balance law closed by the profile,
+rheology, wall, geometry, and boundary choices stated above. In review terms,
+the important point is that the model retains only axial area and flow while
+moving transverse velocity, wall response, friction, rheology, and
+variable-radius effects into closures. Appendix~\ref{app:num-current-solver-operator}
+gives the corresponding semi-discrete operator in solver coordinates, including
+the $R_{\max}$-normalized wall potential, wall/geometry source, friction term,
+effective-alpha correction, and locally frozen $p_2$ derivative. The main-body
+case study uses that appendix as the implementation authority and records here
+only the model contract needed to interpret the evidence.
 
-\begin{assumption}[Velocity-profile and rheology closure]
-    \label{ass:1d-first-run-alpha-friction}
-    A closed 1D area-flow model must declare the momentum-flux correction
-    factor $\alpha$, the wall-friction closure $C_f$, any rheology descriptor
-    $\mathcal R$, and the pressure--area wall closure $\mathcal W$. These
-    choices determine how cross-sectional profile effects, wall friction,
-    viscosity or effective viscosity, and wall compliance enter the reduced
-    equations. Numerical-record details such as solver coordinates,
-    shear-rate proxies, and discrete source terms are deferred to
-    Appendix~\ref{app:numerical-methods-details}.
-\end{assumption}
-
-\begin{definition}[Conservative flux/source notation for the reduced wall law]
-    \label{def:1d-conservative-flux-source-notation}
-    For a reduced wall closure $\mathcal W$ admitting an elastic potential,
-    define
-    \begin{flalign*}
-        \quad
-        \mathbf U
-        &=
-        (A,Q)^\top, &&
-        \mathbf F_{\mathcal W}(\mathbf U,z,t)
-        =
-        \begin{pmatrix}
-            Q\\[2pt]
-            \alpha Q^2/A+\Psi_{\mathcal W}(A,z,t)
-        \end{pmatrix}, &&\\
-        \quad
-        \mathbf S_{\mathcal W,\mathcal R}(\mathbf U,z,t)
-        &=
-        \begin{pmatrix}
-            0\\[2pt]
-            S_{\mathrm{geom}}^{\mathcal W}(A,z,t)
-            +S_f^{\mathcal R}(A,Q,z)
-        \end{pmatrix}. &&
-    \end{flalign*}
-    The potential and sources are tied to the selected closure descriptors by
-    \begin{flalign*}
-        \quad
-        \pd_A \Psi_{\mathcal W}(A,z,t)
-        &=
-        \frac{A}{\rho} \pd_A p_{\mathcal W,\mathrm g}(A,z,t), &&\\
-        \quad
-        S_{\mathrm{geom}}^{\mathcal W}(A,z,t)
-        &=
-        \left.\pd_z \Psi_{\mathcal W}(A,z,t)\right|_A
-        -
-        \frac{A}{\rho}
-        \left.\pd_z p_{\mathcal W,\mathrm g}(A,z,t)\right|_A,
-        &&\\
-        \quad
-        S_f^{\mathcal R}(A,Q,z)
-        &=
-        -C_f^{\mathcal R}(z,A,Q)\frac{Q}{A}. &&
-    \end{flalign*}
-    For $\mathcal W_{\mathrm{elastic1D}}$,
-    $p_{\mathcal W,\mathrm g}$ is the wall law in
-    Definition~\ref{def:1d-elastic-wall-law}. In component form,
-    \begin{flalign*}
-        \quad \pd_t A + \pd_z Q &= 0,
-        \numberthis\label{eq:1d-conservative-mass} && \\
-        \quad \pd_t Q
-        + \pd_z \left(
-            \alpha\frac{Q^2}{A}+\Psi_{\mathcal W}(A,z,t)
-        \right)
-        &=
-        S_{\mathrm{geom}}^{\mathcal W}(A,z,t)
-        +S_f^{\mathcal R}(A,Q,z),
-        \numberthis\label{eq:1d-conservative-momentum} &&
-    \end{flalign*}
-    The displayed split records the balance-law objects needed by finite-volume
-    schemes, while a computed realization may still use a particular
-    well-balanced or source-split discretization
-    \cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems}
-    \cite[Summary; Secs.~2.1--2.3; Secs.~5--6]{BoileauEtAl2015Benchmark}
-    \cite{FormaggiaEtAl2007FSICoupling}.
-\end{definition}
-
-\begin{definition}[Selected implemented balance law]
-    \label{def:selected-implemented-balance-law}
-    The selected one-dimensional evolution model advanced by the finite-volume
-    solver is stated in solver coordinates:
-    \begin{flalign*}
-        \quad \pd_t a+\pd_z q &=0, &&\\
-        \quad \pd_t q
-        +\pd_z\left[
-            \alpha_{\mathrm{eff}}(z)\frac{q^2}{a}
-            +\Psi_h(a)
-        \right]
-        &=
-        S_{\mathrm{wall}}(a,z)
-        +S_{\mathrm{fric}}(a,q,z)
-        +S_{\alpha}(a,q,z)
-        +S_{p_2}(a,q,\pd_z a,\pd_z q,z). &&
-    \end{flalign*}
-    The terms are
-    \begin{flalign*}
-        \quad
-        \alpha_{\mathrm{eff}}(z)
-        &=
-        \alpha_{\mathcal P}
-        +\iota_{\mathcal M}\alpha_c(R_0'(z)),
-        &
-        \alpha_c(R_0')&=-\frac{2}{35}(R_0')^2, &&\\
-        \quad
-        \Psi_h(a)
-        &=
-        \frac{K}{3\rho R_{\max}^2}a^{3/2},
-        &
-        S_{\mathrm{wall}}(a,z)
-        &=
-        \frac{K}{\rho R_{\max}^2}aR_0'(z), &&\\
-        \quad
-        S_{\mathrm{fric}}(a,q,z)
-        &=
-        -2\nu_{\mathrm{eff}}^{\mathcal R}
-        g_{\mathcal P}\frac{q}{a},
-        &
-        S_{\alpha}(a,q,z)
-        &=
-        \iota_{\mathcal M}\frac{q^2}{a}\alpha_c'(z), &&\\
-        \quad
-        S_{p_2}(a,q,\pd_z a,\pd_z q,z)
-        &=
-        -\iota_{\mathcal M}a\,\partial_z^{\mathrm{frz}}p_{2,\mathrm g}(a,q,z).
-        &&
-    \end{flalign*}
-    The pressure correction $p_{2,\mathrm g}$ entering this frozen derivative
-    is defined in Section~\ref{subsec:source-to-implementation-variant}.
-    The indicator $\iota_{\mathcal M}=1$ gives the
-    \texttt{canic-extended-1d} member and $\iota_{\mathcal M}=0$ gives the
-    classical parabolic-profile baseline. The symbol
-    $\partial_z^{\mathrm{frz}}p_{2,\mathrm g}$ denotes the density-scaled
-    derivative of the Canic $p_2$ pressure correction with
-    $\nu_{\mathrm{eff}}^{\mathcal R}$ held locally fixed during the derivative,
-    \begin{flalign*}
-        \quad
-        \partial_z^{\mathrm{frz}}p_{2,\mathrm g}
-        \defined
-        \frac{1}{\rho}
-        \left.
-        \frac{d}{dz}p_{2,\mathrm g}
-        \right|_{\nu_{\mathrm{eff}}^{\mathcal R}\ \mathrm{held\ fixed}}.
-        &&
-    \end{flalign*}
-    The selected model therefore contains a derivative-dependent
-    nonconservative correction, realized discretely through $D_z^h a$ and
-    $D_z^h q$ in Appendix~\ref{app:num-current-solver-operator}, rather than a
-    purely local source $S(U,z)$. Thus the classical baseline is recovered by
-    setting
-    $\alpha_{\mathrm{eff}}=\alpha_{\mathcal P}$,
-    $S_\alpha=0$, and $S_{p_2}=0$.
-    The selected implemented comparison also assumes
-    $p_{\mathrm{ext}}\equiv0$; if $p_{\mathrm{ext}}$ varies with $z$, the
-    wall/geometry source would need the additional term
-    $-(a/\rho)\pd_z p_{\mathrm{ext}}$ in solver coordinates.
-\end{definition}
+The continuous selected member has a rest state that matters for the evidence
+standard. Under constant external pressure and compatible zero-flow boundary
+data, the reference geometry $a(z)=R_0(z)^2$ with $q(z)=0$ should remain at
+rest in the continuous source-balanced model. This property is the target of
+the geometry-rest verification test in Section~\ref{subsec:rest-state-drift}.
 
 \begin{proposition}[Rest-state compatibility of the selected wall source]
     \label{prop:selected-rest-state-compatibility}
@@ -415,7 +242,8 @@ follows standard compliant-artery and dimension-reduced modeling arguments
 \end{proposition}
 
 \begin{proof}
-    The mass equation gives $\pd_z q=0$. In the momentum equation, all terms
+    Using the operator definitions in Appendix~\ref{app:num-current-solver-operator},
+    the mass equation gives $\pd_z q=0$. In the momentum equation, all terms
     proportional to $q$ vanish, so
     $S_{\mathrm{fric}}=S_{\alpha}=S_{p_2}=0$. At $a=R_0^2$,
     \begin{flalign*}
@@ -652,17 +480,15 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
 \end{minipage}}
 \end{center}
 
-The manuscript tables and figures use the tracked static report assets under
-\path{report/assets/data/stenosis-comparison/} and
-\path{report/assets/tables/stenosis-comparison/}, interpreted under
-Convention~\ref{conv:computed-realization-record}. The baseline regeneration
-command, optional grid-sensitivity command, source-path convention, and
-file-hash manifest pointer are listed in Appendix~\ref{app:code-and-ai-use}.
-Scratch reruns that are not published as tracked static assets live under
-\path{julia/simulations/output/revision-*}, \path{julia/simulations/output/3d_comparison/},
-or \path{tmp/revision-evidence/}. The raw XDMF/HDF5 inputs remain local ignored
-files under
-\path{julia/simulations/data/3d/canic_case3/}; the report archives the generated CSV
+The manuscript tables and figures use tracked static report assets in the
+\path{stenosis-comparison/} subdirectories under \path{report/assets/data/} and
+\path{report/assets/tables/}, interpreted under
+Convention~\ref{conv:computed-realization-record}. The regeneration commands,
+source-path convention, and file-hash manifest pointer are listed in
+Appendix~\ref{app:code-and-ai-use}. Scratch reruns that are not published as
+tracked static assets live in ignored simulation or review-output paths. The raw
+XDMF/HDF5 inputs remain local ignored files under the documented
+\path{julia/simulations/data/3d/} input root. The report archives generated CSV
 and PGFPlots-ready static data, not the raw fields.
 
 Table~\ref{tab:t1-evidence-ledger} records the claim-to-evidence contract used

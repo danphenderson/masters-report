@@ -283,9 +283,17 @@ parameters. Componentwise,
 All divisions by $a$ use the positivity-regularized radius-squared coordinate.
 With $K=Eh/(1-\sigma^2)$, Canic conservative-form reference radius
 $R_0^*=R_{\max}$, velocity-profile momentum factor $\alpha_{\mathcal P}$, and
-$\alpha_c(R_0')=-2(R_0')^2/35$, define $\iota_{\mathcal M}=1$ for the
-\texttt{canic-extended-1d} descriptor and $\iota_{\mathcal M}=0$ for the
-\texttt{classical-1d-no-slip} baseline. The semi-discrete full-state flux is
+$\alpha_c(R_0')=-2(R_0')^2/35$, the model-family switch is
+\begin{flalign*}
+    \quad
+    \iota_{\mathcal M}
+    =
+    \begin{cases}
+        1, & \text{extended 1D descriptor},\\
+        0, & \text{classical parabolic-profile baseline}.
+    \end{cases} &&
+\end{flalign*}
+The semi-discrete full-state flux is
 \begin{flalign*}
     \quad
     \mathbf F(a,q,z)
@@ -451,11 +459,10 @@ The $\widehat{\pd_z p_2}_i$ term is the density-scaled discrete derivative of
 the Canic variable-radius viscous pressure correction and is inactive when
 $\iota_{\mathcal M}=0$.
 
-The implementation also exposes first-order finite volume, characteristic WENO3
-finite volume, Richtmyer/Lax--Wendroff finite volume, native modal Legendre DG
-for $p=0,\ldots,4$, and selected SciML time-backend wrappers. These are retained
-as secondary implementation-health surfaces unless a retained table or figure
-explicitly invokes them.
+Other implemented surfaces include lower-order finite volume, WENO3 finite
+volume, a Lax--Wendroff variant, modal Legendre DG with $p=0,\ldots,4$, and
+selected SciML time backends. They remain implementation-health context unless a
+retained table or figure explicitly invokes them.
 
 \subsection{Time-integration realization}
 \label{app:num-time-integration-realization}

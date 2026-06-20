@@ -2,64 +2,62 @@
 \label{sec:literature-synthesis}
 \label{sec:literature-synthesis-open-challenges}
 
-The literature on stenotic hemodynamics is best read as a set of coupled
-trade-offs rather than as a ladder from simple to complex models. Increasing
-dimensional fidelity can expose local velocity gradients, wall interaction, and
-geometry-specific flow features, but it also increases the number of boundary,
-material, geometric, and numerical assumptions that must be identified. Reduced
-models remove some of that burden and make system-level studies feasible, but
-they move physical effects into closure laws, coupling conditions, and
-observation maps. The open challenge is therefore not to choose one universal
-model tier. It is to decide which tier can answer a specified question with
-identifiable parameters, reproducible numerics, and a declared observable.
+The preceding chapters introduced the review axes one at a time: continuum
+fields, model hierarchy, closure choices, observables, numerical methods, and
+evidence standards. This chapter compares across those axes. Its purpose is not
+to add another catalog of sources, but to state what the landscape collectively
+shows. The central finding is that blood-flow models are interpretable only
+when model fidelity, retained state, data, closure choices, observables,
+numerical evidence, and validation status are aligned with the question being
+asked.
 
-The practical gap addressed here is correspondingly narrow. Stenosis-aware 1D
-models require explicit closure contracts; balance-law solvers require evidence
-for the implemented flux, source, boundary, and time-integration choices;
-well-balanced methods show that rest or equilibrium preservation is a discrete
-property that must be tested; and cross-dimensional comparisons require an
-observation operator before discrepancies can be interpreted. The worked
-example addresses that gap for one $R_{\max}$-normalized Canic-derived stenosis
-solver by specifying the coordinate map and closures, reporting bounded
-MMS-based verification evidence, exposing the non-well-balanced geometry-rest
-drift, declaring a plane--tetrahedron velocity operator, and reporting C23/C40
-discrepancy localization under the available matching limits. The contribution
-is an auditable numerical and comparison record, not a field-wide novelty or
-validation claim.
-
-\subsection{Fidelity, Identifiability, and Observables}
+\subsection{Fidelity, Cost, and Retained State}
 \label{subsec:synthesis-fidelity-identifiability-observables}
 
-Three-dimensional CFD and FSI formulations retain the most direct representation
-of local flow and wall kinematics, while 1D and 0D models deliberately compress
-that information into axial or lumped variables
+Increasing dimensional fidelity can expose local velocity gradients, wall
+interaction, and geometry-specific flow features, but it also increases the
+number of boundary, material, geometric, and numerical assumptions that must be
+identified. Three-dimensional CFD and FSI formulations retain the most direct
+representation of local flow and wall kinematics, while 1D and 0D models
+deliberately compress that information into axial or lumped variables
 \cite{FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale,ShiEtAl2011BloodFlowModelReview}.
-This compression is not only a numerical convenience. It is also an
-identifiability choice. A highly resolved forward model can depend on material
-properties, prestress, inlet histories, outflow impedances, geometry state, and
-wall motion that are rarely all observed with matching certainty. Conversely, a
-1D model may have fewer state variables but can still be underdetermined if wall,
-profile, friction, rheology, and boundary closures are treated as adjustable
-without independent evidence. Parameter-identifiability work for hemodynamics
-PDE models makes this tension explicit: adding modeling detail is valuable only
-when the data and outputs can distinguish the resulting parameters
+The reduced tiers are not weaker by definition. They are appropriate when the
+question concerns pulse propagation, network pressure--flow behavior, rapid
+screening, or parameter studies for which fully resolved data and boundary
+conditions are unavailable or unnecessary.
+
+The cost of that compression is interpretive. A 1D model may have fewer state
+variables than a 3D model, but it can still be underdetermined if wall, profile,
+friction, rheology, and boundary closures are treated as adjustable without
+independent evidence. Conversely, a highly resolved forward model can depend on
+material properties, prestress, inlet histories, outflow impedances, geometry
+state, and wall motion that are rarely all observed with matching certainty.
+Parameter-identifiability work for hemodynamics PDE models makes this tension
+explicit: adding modeling detail is valuable only when the data and outputs can
+distinguish the resulting parameters
 \cite{Colebank2025HemodynamicsIdentifiability}.
 
-This is why observation operators are part of the model, not post-processing
-decorations. A 1D area--flow solution does not natively contain the same
-observable as a resolved 3D velocity field, and a pressure-drop, flow-rate,
-section-mean velocity, wall-shear, or FFR-style quantity each imposes a different
-comparison contract. Multiscale coupling work already treats interface
-quantities and compatibility conditions as mathematical structure
+\subsection{Observables and Cross-Model Comparability}
+\label{subsec:synthesis-observables-comparability}
+
+Observation operators are part of the model, not post-processing decoration. A
+1D area--flow solution does not natively contain the same observable as a
+resolved 3D velocity field, and a pressure-drop, flow-rate, section-mean
+velocity, wall-shear, or FFR-style quantity each imposes a different comparison
+contract. Multiscale coupling work already treats interface quantities and
+compatibility conditions as mathematical structure
 \cite{FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale};
 diagnostic 1D--3D comparison needs the same discipline at the output side.
+
 The clinical FFR literature sharpens the point because it separates anatomical
 stenosis appearance from pressure-flow function
 \cite{ToninoEtAl2010FAMEAngioFunctional,TebaldiEtAl2015FFROverview}. CT-derived
 FFR and 1D--3D FFR comparison sources agree that the diagnostic scalar is not a
 raw geometry measurement; it is an output of an acquisition, modeling, boundary,
 and pressure-observation chain
-\cite{NorgaardEtAl2014NXTFFRCT,Blanco2018FFR1D3D,ShaikhEtAl2025CTFFR}.
+\cite{NorgaardEtAl2014NXTFFRCT,Blanco2018FFR1D3D,ShaikhEtAl2025CTFFR}. Thus a
+cross-model discrepancy is uninterpretable until the observed quantity is
+declared and matched.
 
 \subsection{Uncertainty in Boundaries, Walls, Rheology, and Geometry}
 \label{subsec:synthesis-closure-geometry-uncertainty}
@@ -67,9 +65,9 @@ and pressure-observation chain
 Boundary-condition uncertainty is one of the most persistent barriers to
 interpretable hemodynamics. Inlet waveforms, outlet impedances, terminal
 resistances, and coupled-domain histories can change the local solution as much
-as the internal discretization. In a multiscale setting, these quantities are not
-auxiliary inputs; they are the mechanism by which upstream and downstream
-vascular beds communicate with the modeled stenosis
+as the internal discretization. In a multiscale setting, these quantities are
+not auxiliary inputs; they are the mechanism by which upstream and downstream
+vascular beds communicate with the modeled region
 \cite{QuarteroniVeneziani2003GeometricalMultiscale,FormaggiaEtAl2007FSICoupling}.
 A reduced stenosis result that does not declare its boundary approximation
 therefore cannot be cleanly compared with a resolved result, even if both
@@ -77,22 +75,14 @@ models share a nominal geometry.
 
 Wall and rheology uncertainty create a second closure layer. Wall stiffness and
 thickness determine wave speed and area response; rheology and velocity-profile
-assumptions determine dissipative behavior and momentum transport. In 1D models,
-these effects enter through pressure--area laws, friction terms, effective
-viscosity choices, and momentum-flux correction factors
+assumptions determine dissipative behavior and momentum transport. In 1D
+models, these effects enter through pressure--area laws, friction terms,
+effective viscosity choices, and momentum-flux correction factors
 \cite{ShiEtAl2011BloodFlowModelReview}. In FSI models, they enter through wall
 material laws, structural boundary conditions, and the coupling algorithm. Both
 settings face the same interpretive problem: when the wall or rheology is not
 independently constrained, a discrepancy can be a physics signal, a closure
 signal, or a compensation between uncertain choices.
-Coronary distensibility measurements make that uncertainty concrete for wall
-closure: compliance is not only a solver parameter, but a physiological
-quantity that can vary with disease state and acquisition method
-\cite{KelleEtAl2011CoronaryDistensibility}. Rheology sources make the parallel
-point for viscosity: tube-scale effective-viscosity laws and stenosis rheology
-studies change the terms that dissipate momentum, not merely the wording of the
-model description
-\cite{PriesEtAl1992BloodViscosityTubeFlow,KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}.
 
 Geometry is similarly double-edged. Patient-specific geometry is attractive
 because it carries clinically meaningful morphology, but segmentation,
@@ -104,27 +94,20 @@ not realistic versus artificial. It is whether the geometry serves the claim:
 patient-specific geometry for patient-specific interpretation, and idealized
 geometry for isolating numerical, closure, and comparison behavior.
 
-\subsection{Consistency Across Scales and Discretizations}
+\subsection{Validation Status, Reproducibility, and Evidence Limits}
 \label{subsec:synthesis-consistency-verification-validation}
 
-Multiscale consistency requires more than matching units at an interface. The
-model tier, the boundary representation, the wall law, and the output operator
-must all describe compatible quantities. This is the lesson connecting
-geometrical multiscale models with 1D benchmark practice: numerical results are
-interpretable only when the mathematical problem, coupling assumptions, and
-solver realization are stated together
-\cite{QuarteroniVeneziani2003GeometricalMultiscale,BoileauEtAl2015Benchmark}.
-Open 1D solvers such as openBF further emphasize that reproducible workflows,
-transparent inputs, and inspectable finite-volume records are part of the
-scientific object, not merely software packaging
-\cite{BenemeritoEtAl2024OpenBF}.
-Resolved-flow platforms and model repositories extend that reproducibility
-lesson to 3D workflows by making geometry, meshing, solver, and repository
-records easier to inspect \cite{SimVascular2026Platform,SimVascular2026VascularModelRepository}.
-Across the retained model-hierarchy, verification, and multiscale-comparison
-sources, the same practical rule recurs: a cross-model comparison is only
-interpretable after the model tier, closure set, numerical diagnostics, and
-observation operator are all specified together.
+Verification, validation, and reproducibility should not be collapsed.
+Manufactured solutions and grid studies ask whether an implementation behaves
+as expected for a declared mathematical problem. Benchmarks and open solvers
+support reproducibility and comparison across workflows
+\cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}. Resolved-flow
+platforms and model repositories extend that reproducibility lesson to 3D
+workflows by making geometry, meshing, solver, and repository records easier to
+inspect
+\cite{SimVascular2026Platform,SimVascular2026VascularModelRepository}. None of
+these records is automatically a validation claim unless the model, data,
+observable, and accepted reference match the target question.
 
 Equilibrium preservation is a particularly sharp consistency test. A continuous
 stenotic balance law may admit a rest or steady state through cancellation
@@ -172,21 +155,19 @@ fit can be interpreted as hemodynamic evidence.
 \subsection{Role of the Idealized Stenosis Case Study}
 \label{subsec:synthesis-idealized-stenosis-case-study}
 
-An idealized stenosis case study is useful within this review because it turns
-the literature trade-offs into a worked audit. It fixes a geometry family,
-closure contract, boundary approximation, discretization, and observation
-operator tightly enough that the consequences can be inspected. The same setup
-can ask whether a reduced model preserves a rest equilibrium, whether a velocity
+The idealized stenosis case study is useful because it applies the review
+framework in one controlled setting. It fixes a geometry family, closure
+contract, boundary approximation, discretization, and observation operator
+tightly enough that the consequences can be inspected. The same setup can ask
+whether a reduced model preserves a rest equilibrium, whether a velocity
 comparison is being made through a declared cross-sectional operator, whether
 the recorded artifacts are sufficient to reproduce the numerical claim, and
 which uncertainties remain outside the case.
 
-The accompanying \texttt{StenosisHemodynamics} implementation therefore has a
-methodological role. The case removes segmentation and clinical-matching
-ambiguity so that closure dependence, boundary sensitivity, equilibrium
-preservation, verification evidence, and cross-dimensional observability can be
-examined in a controlled setting. That is exactly the role a worked example
-should play in a review-led manuscript: it demonstrates how the field's open
-challenges appear in one auditable stenosis problem, while patient-specific
+The case study is therefore not the destination of the literature review. It is
+one auditable example of the review standard. It removes segmentation and
+clinical-matching ambiguity so that closure dependence, boundary sensitivity,
+equilibrium preservation, verification evidence, and cross-dimensional
+observability can be examined in a controlled setting. Patient-specific
 interpretation remains the domain of studies with matched patient geometry,
 boundary data, wall state, and validation targets.

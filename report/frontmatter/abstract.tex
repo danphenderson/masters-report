@@ -14,29 +14,25 @@ tiers, the report separates the modeling choices that determine interpretation:
 rheology, wall mechanics, geometry, inlet and outlet data, numerical
 discretization, verification, validation, and observable definitions.
 
-An idealized stenosis computation is used as a worked example of those review
-principles. The case study uses the \path{StenosisHemodynamics} implementation
-of an $R_{\max}$-normalized Canic-derived one-dimensional area--flow model, with
-solver variables $a=R^2$ and $q=Q_{\mathrm{phys}}/\pi$. It records the model
-contract, finite-volume realization, manufactured-solution verification record,
+The synthesis compares model classes across fidelity, cost, retained state,
+observables, identifiability, validation status, reproducibility, and
+uncertainty. Its central conclusion is that no model tier is interpretable in
+isolation: equations, closure assumptions, data, numerical evidence, and
+observation maps must be matched to the question being asked. An idealized
+stenosis computation is then used as a worked example of those review
+principles. The case study uses an $R_{\max}$-normalized Canic-derived
+one-dimensional area--flow model with solver variables $a=R^2$ and
+$q=Q_{\mathrm{phys}}/\pi$. It records the model contract, closure choices,
+finite-volume realization, manufactured-solution verification record,
 geometry-rest equilibrium test, production diagnostics, and a
 plane--tetrahedron observation operator for comparing one-dimensional output
-with available resolved three-dimensional velocity data. The MMS record over
-$0\le t\le0.002$ s gives spatial $L^2$ rates near 1.70 for area and 1.50 for
-flow, with accepted timestep and CFL reported separately. The zero-inlet rest
-audit shows that the scheme is not exactly well balanced: final production-grid
-solver-coordinate rest defects $\max_i |q_i|$ are $0.0384$ and
-$0.0634\,\mathrm{cm}^3/\mathrm{s}$ for C23 and C40, corresponding to
-physical-flow scales $\pi q$ of approximately $0.121$ and
-$0.199\,\mathrm{cm}^3/\mathrm{s}$, and falling in solver coordinate to
-$0.00973$ and $0.01605\,\mathrm{cm}^3/\mathrm{s}$ on the $N=800$ audit grid.
-The timestamp-matched $0.9995$ s final sample for the 1D--3D section comparison
-gives RMS mean-velocity discrepancies of 0.664 and 1.87 cm/s, maximum
-discrepancies of 2.35 and 9.92 cm/s, and unresolved axial variation in
-extracted 3D flow of 7.7\% and 20.2\% of the case means. Because the resolved
-wall, boundary, material, geometry-state, and transient-history records are not
-fully matched, these differences are descriptive cross-model discrepancies
-rather than validation errors. Radial-profile output is excluded pending
-operator-test and reducer reconciliation. The case study illustrates how model
-reduction, closure choices, equilibrium preservation, and matched observation
-operators affect the meaning of computed blood-flow quantities.
+with available resolved three-dimensional velocity data. The MMS record gives
+bounded implementation-verification evidence; the zero-inlet rest audit shows
+that the scheme is not exactly well balanced; and the timestamp-matched
+1D--3D section comparison reports descriptive velocity discrepancies under the
+declared observation operator. Because the resolved wall, boundary, material,
+geometry-state, and transient-history records are not fully matched, those
+differences are not validation errors. Radial-profile output is excluded
+pending operator-test and reducer reconciliation. The case study illustrates
+how model reduction, closure choices, equilibrium preservation, and matched
+observation operators affect the meaning of computed blood-flow quantities.
