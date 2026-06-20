@@ -5,13 +5,12 @@ reviewable, and tied to a reproducible validation path.
 
 ## Development
 
-- Use `./scripts/julia-release test/runtests.jl` for Julia package changes.
-- Use `pipenv run pytest`, `pipenv run ruff check .`, and
-  `pipenv run black --check .` for Python support-tooling changes.
+- Use `bin/julia-release julia/test/runtests.jl` for Julia package changes.
+- Use `bin/python-check` for Python support-tooling changes.
 - Use a scratch LaTeX output directory for report builds:
 
   ```sh
-  latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=/tmp/masters-report-build final-report.tex
+  bin/build-report --outdir /tmp/masters-report-build
   ```
 
 ## Artifact Discipline
@@ -19,7 +18,7 @@ reviewable, and tied to a reproducible validation path.
 - Do not commit local caches, virtual environments, root LaTeX byproducts,
   simulation outputs, raw resolved-3D inputs, or private review notes.
 - Do not commit third-party full-text PDFs or HTML mirrors under `references/`.
-  Keep `references.bib` and `references/source-inventory.tsv` synchronized
+  Keep `references/references.bib` and `references/source-inventory.tsv` synchronized
   instead.
 - Keep generated report assets separate from source edits when practical.
 

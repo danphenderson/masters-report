@@ -12,11 +12,11 @@ kept out of ordinary source commits.
   or third-party full-text files have not been reviewed.
 - Do not commit root review/orchestration notes such as `executive-assessment.md`
   or manuscript workflow YAML files.
-- Keep `references.bib` and `references/source-inventory.tsv`; do not track
+- Keep `references/references.bib` and `references/source-inventory.tsv`; do not track
   `references/**/*.pdf` or `references/**/*.html` unless redistribution rights
   are confirmed for every file.
 - Publish `final-report.pdf` as a release artifact when a rendered PDF is
-  needed. The source of record remains `final-report.tex` plus tracked inputs.
+  needed. The source of record remains `report/final-report.tex` plus tracked inputs.
 - Keep raw resolved-3D inputs out of Git unless a separate data-release strategy
   with checksums is approved.
 
@@ -26,12 +26,10 @@ kept out of ordinary source commits.
 git status --short --ignored
 git ls-files | rg '(__pycache__|\.pyc$|\.aux$|\.log$|\.bbl$)'
 git ls-files references | rg '\.(pdf|html?)$'
-python3 scripts/audit_references.py
-./scripts/julia-release test/runtests.jl
-pipenv run pytest
-pipenv run ruff check .
-pipenv run black --check .
-python3 scripts/build_report.py --outdir /tmp/masters-report-build
+python3 tools/python/scripts/audit_references.py
+bin/julia-release julia/test/runtests.jl
+bin/python-check
+bin/build-report --outdir /tmp/masters-report-build
 ```
 
 Before a public push, also run a secret scan such as:

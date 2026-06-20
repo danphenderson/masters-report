@@ -3,24 +3,25 @@
 ## Project Structure & Module Organization
 
 This repo has three active surfaces. Report source starts at
-`final-report.tex`, with prose in `sections/`, appendices in `appendices/`,
-shared setup in `preamble/`, bibliography in `references.bib`, and assets in
-`figures/static/static/`. Julia solver code is the root package
-`StenosisHemodynamics`: `src/StenosisHemodynamics.jl` includes modules under
-`src/StenosisHemodynamics/`, `simulations/` holds drivers, and `test/*.jl` holds
-Julia tests. Python is auxiliary report/support tooling only: audit and render
-scripts live under `scripts/*.py`, with Python tests in `test/test_*.py`. The nested
+`report/final-report.tex`, with prose in `report/sections/`, appendices in `report/appendices/`,
+shared setup in `report/preamble/`, bibliography in `references/references.bib`, and assets in
+`report/assets/`. Julia solver code is the `julia/` package
+`StenosisHemodynamics`: `julia/src/StenosisHemodynamics.jl` includes modules under
+`julia/src/StenosisHemodynamics/`, `julia/simulations/` holds simulation guidance and
+local run data, and `julia/test/*.jl` holds Julia tests. Python is auxiliary
+report/support tooling only: audit and render scripts live under
+`tools/python/scripts/*.py`, with Python tests in `tools/python/test/test_*.py`.
+The nested
 `references/AGENTS.md` governs only `references/**`.
 
 ## Build, Test, and Development Commands
 
-- `./scripts/julia-release test/runtests.jl`: run the Julia test suite with the
+- `bin/julia-release julia/test/runtests.jl`: run the Julia test suite with the
   required Julia 1.12+ project environment.
-- `pipenv install --dev`: install Python report/support tooling.
-- `pipenv run pytest`: run Python audit/render tests.
-- `pipenv run ruff check .` and `pipenv run black --check .`: lint and verify
-  Python formatting.
-- `python3 scripts/build_report.py --outdir /tmp/masters-report-build`: run the
+- `PIPENV_PIPFILE=tools/python/Pipfile pipenv install --dev`: install Python
+  report/support tooling.
+- `bin/python-check`: run Python audit/render tests, Ruff, and Black.
+- `bin/build-report --outdir /tmp/masters-report-build`: run the
   agent-facing report build gate. The wrapper runs the TeX preamble audit,
   invokes `latexmk -pdf -interaction=nonstopmode -halt-on-error` in a scratch
   output directory, fails on untracked consumed report inputs, and writes
@@ -31,16 +32,16 @@ scripts live under `scripts/*.py`, with Python tests in `test/test_*.py`. The ne
 Use four-space indentation for Python. Black controls formatting with a
 120-column line length; Python support scripts and helpers use snake_case.
 Julia changes should enter through `using StenosisHemodynamics` and keep
-descriptive lower-snake-case file names under `src/StenosisHemodynamics/`. Keep
+descriptive lower-snake-case file names under `julia/src/StenosisHemodynamics/`. Keep
 reusable LaTeX packages, macros, theorem setup, colors, and TikZ/pgfplots
-styles in `preamble/`; section and appendix files should contain content, not
+styles in `report/preamble/`; section and appendix files should contain content, not
 shared command definitions.
 
 ## Testing Guidelines
 
-Add Julia tests to the focused `test/test_*.jl` file and include new files from
-`test/runtests.jl`. Add Python tests as `test/test_*.py`. For report or TeX
-policy changes, run `python3 scripts/build_report.py --outdir
+Add Julia tests to the focused `julia/test/test_*.jl` file and include new files from
+`julia/test/runtests.jl`. Add Python tests as `tools/python/test/test_*.py`. For report or TeX
+policy changes, run `bin/build-report --outdir
 /tmp/masters-report-build`; it covers the preamble audit, scratch LaTeX build,
 and consumed-input tracking gate. If PDF sync matters, compare rendered output
 before refreshing tracked artifacts. Optional resolved-3D data may be absent;

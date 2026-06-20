@@ -2,4 +2,4 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-exec "$repo_root/scripts/julia-release" "$repo_root/scripts/stenosis-hemodynamics.jl" "$@"
+exec "$repo_root/bin/stenosis-hemodynamics" "$@"

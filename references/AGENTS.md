@@ -4,7 +4,7 @@
 
 This directory tree stores public bibliography metadata and private/local path
 hints for literature and web-source artifacts used by or adjacent to the
-master's report. The report bibliography entrypoint remains `references.bib`;
+master's report. The report bibliography entrypoint remains `references/references.bib`;
 source provenance is tracked separately in `references/source-inventory.tsv`.
 Public GitHub releases do not track third-party full-text PDFs or HTML mirrors.
 
@@ -59,7 +59,7 @@ Use these status values only:
 - `duplicate-superseded`: the source is a duplicate or superseded local copy
   retained for a documented provenance reason.
 
-`current-cited` rows must have a `bib_key` present in `references.bib` and cited
+`current-cited` rows must have a `bib_key` present in `references/references.bib` and cited
 by the current TeX source. Rows may leave `bib_key` blank when a source has no
 BibLaTeX entry yet; record that gap in `notes`.
 
@@ -80,11 +80,11 @@ After moving, adding, reclassifying, or externalizing source records under
 `references/**`, run:
 
 ```text
-python3 scripts/audit_references.py
-pipenv run pytest test/test_references_inventory.py test/test_tex_preamble_audit.py
-biber --tool --validate-datamodel --output-file /tmp/masters-report-references.bib references.bib
+python3 tools/python/scripts/audit_references.py
+PIPENV_PIPFILE=tools/python/Pipfile pipenv run pytest tools/python/test/test_references_inventory.py tools/python/test/test_tex_preamble_audit.py
+biber --tool --validate-datamodel --output-file /tmp/masters-report-references.bib references/references.bib
 ```
 
-Run `pipenv run ruff check .` and `pipenv run black --check .` when Python audit
-or test files change. Use a scratch `latexmk` build only when `references.bib`,
+Run `bin/python-check` when Python audit
+or test files change. Use a scratch `latexmk` build only when `references/references.bib`,
 TeX citations, or bibliography plumbing changes.

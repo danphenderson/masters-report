@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PIPENV_PIPFILE="$repo_root/tools/python/Pipfile"
+export PIPENV_VENV_IN_PROJECT=1
+export RUFF_CACHE_DIR="$repo_root/tools/python/.ruff_cache"
+
+cd "$repo_root"
+pipenv run pytest tools/python/test
+pipenv run ruff check tools/python
+pipenv run black --check tools/python

@@ -1,0 +1,103 @@
+\subsection{Reduced-Order Blood-Flow Models}
+\label{subsec:model-hierarchy-comparison-boundary}
+
+Reduced hemodynamic models form a hierarchy of modeling roles rather than a
+scalar accuracy ranking. The governing equations above start from a
+three-dimensional continuum problem; the useful reduced-order sequence is then
+the distributed 1D reduction, the lumped 0D/network closure, and any
+intermediate 2D diagnostic tier. Dimension, wall treatment, rheology, boundary
+data, coupling laws, output operators, and numerical realization remain
+separate modeling choices. This report selects the 1D area--flow model as the
+reduced forward map; 3D, 0D, 2D, and multiscale models supply comparison,
+boundary-condition, diagnostic, and coupling vocabulary.
+
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{model-hierarchy}
+    \caption{Model hierarchy for reading comparison claims, ordered from the
+    three-dimensional continuum tier toward reduced and lumped closures. The
+    horizontal direction is a dimensional-reduction and closure-abstraction
+    axis, not a validation ranking. This report selects a 1D reduced forward
+    model; 3D fixed-wall, resolved FSI, clinical, and independent-solver
+    comparisons require separately matched assumptions, inputs, output
+    operators, and discrepancy metrics before they can support evidence claims.}
+    \label{fig:model-hierarchy-overview}
+\end{figure}
+
+\begin{definition}[Wall and coupling closure axes]
+    \label{def:wall-fsi-closure-catalog}
+    The wall descriptor $\mathcal W$ records how the wall or wall-reduced
+    mechanics are closed. The coupling descriptor $\mathcal C$ records whether
+    the single vessel is isolated or coupled to another model tier. Both are
+    independent of the rheology descriptor $\mathcal R$: $\mathcal R$ changes
+    the stress or effective-viscosity law, $\mathcal W$ changes the wall
+    mechanics, and $\mathcal C$ changes the interface or network contract.
+    \begin{center}
+    \footnotesize
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.17\textwidth}
+        >{\raggedright\arraybackslash}p{0.18\textwidth}
+        >{\raggedright\arraybackslash}X
+        >{\raggedright\arraybackslash}X
+        @{}}
+        \toprule
+        \textbf{Axis}
+            & \textbf{Descriptor}
+            & \textbf{Information retained}
+            & \textbf{Reading in this report} \\
+        \midrule
+        Wall
+            & $\mathcal W_{\mathrm{rigid}}$
+            & Fixed or prescribed wall geometry; no structural state is solved
+            & A fixed-wall continuum or rigid-tube reduced baseline. \\
+        Wall
+            & $\mathcal W_{\mathrm{elastic1D}}$
+            & Dynamic area $A(z,t)$, gauge pressure $p_{\mathrm g}(A,z,t)$,
+            reference area $A_0(z)$, wall stiffness $\beta(z)$, and external
+            pressure
+            & A pressure--area wall-law family. The selected 1D model below
+            uses its Canic--Koiter member; no separate structural PDE is
+            solved. \\
+        Wall
+            & $\mathcal W_{\mathrm{resolvedFSI}}$
+            & Fluid velocity and pressure plus wall displacement, wall velocity,
+            structural stress, and interface conditions
+            & A full moving-wall FSI PDE system, used here only as comparison
+            vocabulary. \\
+        Coupling
+            & $\mathcal C_{\mathrm{isolated}}$
+            & Inlet and outlet data close one vessel
+            & The baseline numerical study. \\
+        Coupling
+            & $\mathcal C_{\mathrm{network}}$ or $\mathcal C_{\mathrm{3D/1D}}$
+            & Interface pressure, flow, traction, impedance, or characteristic
+            data connecting 0D, 1D, and 3D tiers
+            & A separate boundary/interface contract, not a wall law. \\
+        \bottomrule
+    \end{tabularx}
+    \end{center}
+    This separation follows the standard distinction between reduced compliant
+    vessel models, geometrical multiscale coupling, and resolved FSI models
+    \cite[Sec.~2, pp.~253--257]{FormaggiaEtAl2003OneDimensionalBloodFlow}
+    \cite{QuarteroniVeneziani2003GeometricalMultiscale}
+    \cite{FormaggiaEtAl2007FSICoupling}.
+\end{definition}
+
+\input{report/sections/01-intro/model-hierarchy/1d-model}
+\input{report/sections/01-intro/model-hierarchy/0d-model}
+\input{report/sections/01-intro/model-hierarchy/2d-model}
+
+\subsection{Geometrical Multiscale Coupling}
+\label{subsec:geometrical-multiscale-coupling}
+
+\input{report/sections/01-intro/model-hierarchy/multiscale-model}
+
+A comparison claim requires matched assumptions and declared output operators:
+the continuum setting, geometry, rheology descriptor $\mathcal R$, wall
+descriptor $\mathcal W$, coupling descriptor $\mathcal C$, boundary data,
+numerical settings, observation maps, and discrepancy metrics must all be part
+of the comparison record. This report treats the selected 1D area--flow model
+as the forward map for the numerical study. Resolved-3D/FSI agreement, clinical
+calibration, and independent-solver parity are later evidence standards, not
+assumptions built into the model hierarchy.

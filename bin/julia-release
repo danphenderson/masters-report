@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+PROJECT_ROOT="$REPO_ROOT/julia"
+
+if [ "$#" -gt 0 ] && [ "${1#-}" = "$1" ] && [ -f "$REPO_ROOT/$1" ]; then
+    FIRST_ARG="$REPO_ROOT/$1"
+    shift
+    set -- "$FIRST_ARG" "$@"
+fi
+
+if command -v julia >/dev/null 2>&1; then
+    if julia +release --version >/dev/null 2>&1; then
+        exec julia +release --project="$PROJECT_ROOT" "$@"
+    fi
+
+    if julia -e 'exit(VERSION < v"1.12" ? 42 : 0)' >/dev/null 2>&1; then
+        exec julia --project="$PROJECT_ROOT" "$@"
+    fi
+fi
+
+printf >&2 '%s\n' "Julia 1.12 or newer is required. Prefer the juliaup release channel:"
+printf >&2 '%s\n' "  julia +release --project=$PROJECT_ROOT ..."
+exit 1

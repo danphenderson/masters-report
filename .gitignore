@@ -13,6 +13,7 @@
 
 # Python/Pipenv local state
 .venv/
+tools/python/.venv/
 venv/
 env/
 __pycache__/
@@ -54,10 +55,11 @@ LocalPreferences.toml
 # Generated report and simulation outputs
 output/
 tmp/
-simulations/output/
-simulations/data/3d/
-figures/static/static/generated/
+julia/simulations/output/
+julia/simulations/data/3d/
+report/assets/generated/
 final-report.pdf
+report/final-report.pdf
 
 # Private local full-text/reference mirrors. Public releases keep bibliography
 # metadata and source inventory only.

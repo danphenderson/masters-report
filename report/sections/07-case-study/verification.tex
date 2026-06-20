@@ -1,0 +1,304 @@
+\subsection{Numerical Verification and Audit}
+\label{sec:numerical-verification}
+
+This section orders the numerical evidence for the implemented solver used in
+the worked example. The evidence is read through the review categories above:
+manufactured-solution verification, equilibrium preservation, boundary and CFL
+diagnostics, and secondary implementation-health records.
+
+\subsubsection{Evidence Hierarchy and Scope}
+\label{subsec:verification-scope-convergence-stability}
+
+The hierarchy used below is explicit. The strongest positive evidence is the
+manufactured-solution record, because it compares the implemented forced
+operator with a declared smooth exact solution and an independently assembled
+forcing audit. The next and principal numerical limitation is the geometry-rest
+preservation test, because the selected comparison runs start from the same rest
+state and the current MUSCL/Rusanov realization does not exactly preserve it.
+Boundary, CFL, positivity, and conservation diagnostics then state whether
+accepted runs remained within the recorded numerical regime.
+Self-convergence, backend parity, stationary-Stokes projection, broad
+rheology/profile sweeps, resolved-velocity benchmark stages, and nonselected DG
+rows are secondary implementation-health records and are kept in
+Appendix~\ref{app:num-secondary-implementation-health}.
+
+The observation operator has its own check because the retained 1D--3D
+comparison is only meaningful after the resolved field is mapped to section
+area, physical flow, and mean axial velocity. The synthetic record in
+Table~\ref{tab:t1-cross-section-operator-validation} verifies the declared
+plane--tetrahedron quadrature implementation on a single tetrahedron with
+constant and affine node-centered axial fields. It checks that constant fields
+return $\bar u=c$ and $Q=cA$, that affine triangle means integrate to the
+centroid value up to roundoff, and that shifted planes produce the expected
+area and mean-velocity changes. This is output-operator verification, not a
+matched-data validation of the available 3D cases.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Synthetic validation of the
+    \texttt{CrossSectionQuadratureOperator}. Errors are absolute differences
+    against analytic constant or affine references on the synthetic tetrahedron;
+    the plane-shift rows report changes relative to the $z=0.5$ affine cut.
+    The source table is
+    \texttt{cross-section-operator-validation.csv}.}
+    \label{tab:t1-cross-section-operator-validation}
+    \resizebox{\textwidth}{!}{%
+    \IfFileExists{report/assets/tables/stenosis-comparison/cross_section_operator_validation.tex}{%
+        \input{report/assets/tables/stenosis-comparison/cross_section_operator_validation.tex}%
+    }{%
+        \begin{tabular}{ll}
+        \toprule
+        Status & Message \\
+        \midrule
+        missing & Run \texttt{operator-validation} to populate the table. \\
+        \bottomrule
+        \end{tabular}%
+    }%
+    }
+\end{table}
+
+Standard finite-volume context is supplied by conservative hyperbolic
+discretization with consistent numerical fluxes and sources, CFL-controlled time
+stepping, limiter and Rusanov dissipation choices, and SSP Runge--Kutta time
+integration \cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems}. In 1D
+blood-flow practice, MUSCL/Rusanov and Lax--Friedrichs-type discretizations are
+commonly assessed through exact-solution, benchmark, grid-refinement, and
+equilibrium tests
+\cite{Wang2014BloodFlowNetworks,BeckersKolbe2025LaxFriedrichsHemodynamics,BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF,LuccaEtAl2025FFRPrediction}.
+Here those records are read as empirical implementation evidence, not as a
+formal convergence theorem for the full nonlinear stenosis solver.
+
+\subsubsection{Manufactured-Solution Evidence}
+\label{subsec:mms-verification}
+
+The implementation exposes an opt-in manufactured forcing term. The production
+equations use \texttt{NoForcing()} by default. For verification only,
+\texttt{ManufacturedForcing()} supplies a smooth exact state
+$(a^\star(z,t),q^\star(z,t))$, exact initial data, exact boundary states, and
+source terms inserted into the existing finite-volume right-hand side. In solver
+coordinates, let
+\begin{flalign*}
+    \quad
+    s(z)&=\sin\!\left(\frac{\pi z}{L}\right),&
+    a_0(z)&=R_0(z)^2,&
+    \omega&=\frac{2\pi}{T_{\mathrm{mms}}}. &&
+\end{flalign*}
+The default manufactured record uses
+\begin{flalign*}
+    \quad
+    \epsilon_a&=0.02,&
+    U_{\mathrm{mms}}&=2.0\,\mathrm{cm}/\mathrm{s},&
+    T_{\mathrm{mms}}&=0.02\,\mathrm{s}, &&
+\end{flalign*}
+and defines
+\begin{flalign*}
+    \quad
+    a^\star(z,t)
+    &=
+    a_0(z)\left[1+\epsilon_a s(z)\cos(\omega t)\right], &&\\
+    \quad
+    q^\star(z,t)
+    &=
+    a_0(z)U_{\mathrm{mms}}s(z)^2\sin(\omega t). &&
+\end{flalign*}
+The tabulated run uses $0\le z\le L=6\,\mathrm{cm}$ and
+$0\le t\le2\times10^{-3}\,\mathrm{s}$, equal to 10\% of the manufactured
+period. Initial data are sampled from $(a^\star,q^\star)$ at $t=0$, and the
+boundary-state routine receives the exact traces at $z=0$ and $z=L$. The
+inserted forcing terms are the residuals required by the recorded flux and
+source realization,
+\begin{flalign*}
+    \quad
+    f_a(z,t)
+    &=
+    \pd_t a^\star+\pd_z F_a(a^\star,q^\star;z), &&\\
+    \quad
+    f_q(z,t)
+    &=
+    \pd_t q^\star+
+    \pd_z F_q(a^\star,q^\star;z)-S_q(a^\star,q^\star;z), &&
+\end{flalign*}
+where $F_a,F_q$ and $S_q$ are the selected discrete-model point flux and source
+functions. A separate residual-audit helper assembles the manufactured balance
+outside the production right-hand-side call path and reports the maximum
+absolute forcing mismatch in the generated table. The Julia test suite also
+includes a mutation gate that deliberately perturbs the manufactured momentum
+forcing and verifies that the MMS audit fails. The run therefore checks the
+implemented operator against a declared manufactured record with an independent
+forcing consistency audit; it remains an implementation-verification record, not
+a physical stenosis experiment.
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+bin/stenosis-hemodynamics verify mms \
+  --nxs 50,100,200,400 \
+  --dt-values 2e-5,1e-5,5e-6,2.5e-6 \
+  --tfinal 0.002 \
+  --output-dir report/assets/tables/verification \
+  --overwrite
+\end{lstlisting}
+
+The runner records cell-center discrete errors
+\begin{flalign*}
+    \quad
+    \|e\|_1&=\frac{1}{N}\sum_i |e_i|,&
+    \|e\|_2&=\left(\frac{1}{N}\sum_i e_i^2\right)^{1/2},&
+    \|e\|_\infty&=\max_i |e_i|, &&
+\end{flalign*}
+with observed orders computed from the $L^2$ rows as
+\begin{flalign*}
+    \quad
+    p_{\mathrm{obs}}
+    &=
+    \frac{\log(E_{\mathrm{coarse}}/E_{\mathrm{fine}})}
+         {\log(\Delta_{\mathrm{coarse}}/\Delta_{\mathrm{fine}})}. &&
+\end{flalign*}
+For spatial rows $\Delta$ is the grid spacing. For requested-timestep rows the
+native solver also records realized CFL diagnostics because the accepted
+timestep is $\min(\Delta t_{\mathrm{request}},\Delta t_{\mathrm{CFL}})$. The
+timestep-insensitivity rows in the generated MMS table are therefore read
+through accepted timestep and realized CFL, not as a clean temporal-order study.
+
+\IfFileExists{report/assets/tables/verification/mms_verification.tex}{%
+    \input{report/assets/tables/verification/mms_verification.tex}
+}{%
+    \begin{center}
+    \small
+    \emph{Manufactured-solution table unavailable in this checkout. Run
+    \texttt{verify mms} to populate
+    \path{report/assets/tables/verification/}.}
+    \end{center}
+}
+The spatial rows provide bounded, positive implementation-verification evidence
+for the declared forced operator. The observed $L^2$ rates are approximately
+1.70 for area and 1.50 for flow over this grid range, below the formal
+smooth-region MUSCL/SSPRK3 expectation, so this table is not reported as a
+formal-order result for every model variant. The $L^1$ history records
+integrated error behavior, while $L^\infty$ highlights localized boundary,
+limiter, or source-discretization effects.
+
+\subsubsection{Geometry-Rest Preservation Test}
+\label{subsec:rest-state-drift}
+
+The continuous selected source-balanced law admits the geometry-rest state
+$a_i=R_0(z_i)^2$, $q_i=0$ under compatible zero-flow boundary data
+(Proposition~\ref{prop:selected-rest-state-compatibility}). The current
+principal implementation is not exactly well balanced for that state. The
+Rusanov/MUSCL operator includes numerical viscosity in the mass flux, and for
+spatially varying $R_0$ this produces a nonzero discrete residual unless an
+equilibrium reconstruction or path-conservative flux is added.
+
+The zero-forcing rest runner starts the selected C23 and C40 geometries from the
+rest state with a zero-velocity inlet and reports
+\begin{flalign*}
+    \quad
+    &\max_i |q_i|,&
+    &\max_i |a_i-R_0(z_i)^2|,&
+    &\left|\sum_i a_i\Delta z-\sum_i a_i(0)\Delta z\right| &&
+\end{flalign*}
+as functions of grid size and elapsed time. This test is required context for
+any comparison run initialized from the same geometry-rest state.
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+bin/stenosis-hemodynamics verify rest \
+  --severities 23,40 \
+  --nxs 100,200,400,800 \
+  --elapsed-times 0,0.001,0.01,0.1,1.0 \
+  --output-dir report/assets/tables/verification \
+  --overwrite
+\end{lstlisting}
+
+\IfFileExists{report/assets/tables/verification/rest_state_drift.tex}{%
+    \begin{center}
+    \fbox{\begin{minipage}{0.92\linewidth}
+    \small
+    \textbf{Principal numerical limitation.} The zero-forcing geometry-rest
+    runs retain nonzero localized artificial solver flow despite zero requested
+    and applied inlet flow. The method is not exactly well balanced for this
+    geometry-rest state; the defect decreases strongly under refinement but
+    remains non-negligible on the production grid.
+    \end{minipage}}
+    \end{center}
+    \input{report/assets/tables/verification/rest_state_drift.tex}
+}{%
+    \begin{center}
+    \small
+    \emph{Rest-state drift table unavailable in this checkout. Run
+    \texttt{verify rest} to populate
+    \path{report/assets/tables/verification/}.}
+    \end{center}
+}
+
+The corrected rest-state run records zero requested and applied inlet flow, so
+the previously reported $q_{\mathrm{in}}t$ volume signature is not retained.
+The finite-volume balance
+$\Delta\!\int a\,dz+\int(\widehat F^a_{\mathrm{out}}-\widehat F^a_{\mathrm{in}})\,dt$
+closes to near roundoff in the generated CSV. The production comparison-flow
+scale remains
+$q_{\mathrm{comp}}\approx2.288/\pi=0.7283\,\mathrm{cm}^3/\mathrm{s}$ in the
+solver coordinate, corresponding to
+$Q_{\mathrm{comp}}\approx2.288\,\mathrm{cm}^3/\mathrm{s}$ in physical circular
+flow, as used in the axial-flow comparison
+(Figure~\ref{fig:t1-axial-flow-comparison}). On the $N=400$ production
+comparison grid, the final zero-inlet rest-flow values are $0.03839$ and
+$0.06339\,\mathrm{cm}^3/\mathrm{s}$ in solver $q$ for C23 and C40, equal to
+5.3\% and 8.7\% of $q_{\mathrm{comp}}$. The corresponding peak production-grid
+values are $0.04387$ and $0.07053\,\mathrm{cm}^3/\mathrm{s}$. On the finer
+$N=800$ audit grid, the $t=1$ s values fall to $0.00973$ and
+$0.01605\,\mathrm{cm}^3/\mathrm{s}$; the observed final-flow refinement rates
+from $N=400$ to $N=800$ are 1.98 for both severities. The defect is therefore
+strongly localized and strongly grid-decreasing, but it remains non-negligible
+on the production comparison grid.
+
+\begin{figure}[!htb]
+    \centering
+    \figtikz{rest-state-flow-profiles}
+    \caption{Zero-inlet rest-state solver-flow profiles on the $N=800$ grid.
+    The nonzero rest flow is localized near the stenosis throat rather than a
+    spatially coherent imposed through-flow.}
+    \label{fig:rest-state-flow-profiles}
+\end{figure}
+
+This geometry-rest result is the principal negative numerical finding of the
+chapter. The selected C23/C40 comparison runs are initialized from the same
+geometry-rest state and use the same operator. The corrected zero-inlet
+magnitude no longer supports a large through-flow interpretation, but the
+nonzero localized residual still prevents treating the comparison as a clean
+discretization-accuracy study.
+
+\subsubsection{Boundary, CFL, Positivity, and Conservation Diagnostics}
+\label{subsec:boundary-diagnostics}
+
+The native solver records accepted timestep extrema, realized CFL extrema,
+$\lambda_-$ and $\lambda_+$ extrema, the minimum subcriticality margin
+$\min(-\lambda_-,\lambda_+)$, solver-coordinate volume extrema and signed
+defect, positivity projection count, and total area correction from the
+positivity floor. The fixed-area characteristic boundary rule is used under the
+subcritical sign condition $\lambda_-<0<\lambda_+$. A positive characteristic
+radicand alone is not the boundary-regime evidence; the persisted sign extrema
+and subcriticality margin are the relevant diagnostics.
+
+In the rest-state table, the finest-grid C23/C40 $t=1$ s rows retain
+positive subcritical margins, zero requested and applied inlet flow, signed
+solver-volume defects, boundary-flux integrals, and near-roundoff finite-volume
+balance residuals. The generated rest CSV records zero positivity projection
+counts for these rest tests. The production C23/C40 comparison diagnostics in
+Table~\ref{tab:t1-alpha-radicand-diagnostics} provide the corresponding
+characteristic-speed evidence for the runs later used in the velocity-output
+comparison. These diagnostics are admissibility and bookkeeping checks. They do
+not remove the non-well-balanced geometry-rest drift reported above.
+
+\subsubsection{Secondary Implementation-Health Checks}
+\label{subsec:verification-summary}
+
+The fourth evidence tier is kept out of the main argument. Appendix~\ref{app:num-secondary-implementation-health}
+retains the package benchmark stage summary, sampled self-convergence figure,
+backend-parity figure, nonselected DG p/h demonstration, resolved-velocity
+benchmark stage, and broad rheology/profile sensitivity figure. Appendix~\ref{app:num-stationary-stokes-refinement}
+retains the fixed-wall stationary-Stokes projection and mesh-refinement record.
+Those records are useful implementation-health checks: they can reveal runnable
+surface regressions, boundedness problems, backend-policy discrepancies, or
+sensitivity to nonprincipal descriptors. They do not replace the MMS record, and
+they do not change the geometry-rest conclusion.
+
+\FloatBarrier

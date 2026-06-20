@@ -1,9 +1,6 @@
 #!/usr/bin/env julia
 
-if VERSION < v"1.12"
-    error("scripts/stenosis-hemodynamics.jl requires Julia 1.12 or newer.")
-end
-
-using StenosisHemodynamics
-
-StenosisHemodynamics.run_cli(ARGS)
+repo_root = normpath(joinpath(@__DIR__, ".."))
+pushfirst!(LOAD_PATH, joinpath(repo_root, "julia"))
+script = joinpath(repo_root, "julia", "bin", "stenosis-hemodynamics.jl")
+include(script)

@@ -1,0 +1,148 @@
+% ---------------------------------------------------------------
+% report/assets/tikz/compliant-vessel.tex
+% Two-panel notation map for the 1D compliant-vessel reduction.
+% Layout rules:
+%   - Labels sit in clear top / bottom gutters outside the wall fill
+%     or inside lumen patches that do not cross the dashed centerline.
+%   - Off-figure annotations use thin dashed leaders (helperLine).
+%   - The radius callout is drawn inside the lumen only and never
+%     crosses the wall outline.
+%   - The section-averages bridge is manually placed in the inter-panel
+%     top gutter so it does not compete with cap or pressure labels.
+%   - The cross-section inset is placed below panel (b) to keep it
+%     clear of the panel title and top-gutter bridge.
+% ---------------------------------------------------------------
+\begin{tikzpicture}[fig, scale=0.88, transform shape]
+
+  % =============== (a) physical compliant vessel =================
+  \begin{scope}[local bounding box=PHYS]
+    % Outer wall and lumen are mirrored about the centerline so the
+    % dashed centerline visually bisects the vessel.
+    \path[vesselWall]
+      (0,1.18) .. controls (1.4,1.45) and (2.8,1.10) .. (4.2,1.42)
+               .. controls (5.0,1.62) and (5.8,1.12) .. (6.4,0.98)
+      -- (6.4,-0.98)
+               .. controls (5.8,-1.12) and (5.0,-1.62) .. (4.2,-1.42)
+               .. controls (2.8,-1.10) and (1.4,-1.45) .. (0,-1.18)
+      -- cycle;
+    \path[lumen]
+      (0,0.88) .. controls (1.4,1.08) and (2.8,0.82) .. (4.2,1.05)
+               .. controls (5.0,1.20) and (5.8,0.82) .. (6.4,0.68)
+      -- (6.4,-0.68)
+               .. controls (5.8,-0.82) and (5.0,-1.20) .. (4.2,-1.05)
+               .. controls (2.8,-0.82) and (1.4,-1.08) .. (0,-0.88)
+      -- cycle;
+
+    \draw[mathblue, line width=0.8pt] (0,0.88) -- (0,-0.88);
+    \draw[mathblue, line width=0.8pt] (6.4,0.68) -- (6.4,-0.68);
+    \draw[centerline] (-0.15,0) -- (6.55,0);
+
+    \node[panelTitle] at (3.2,2.45)
+      {(a) physical domain $\OmgBt$};
+
+    % wall label in top gutter with leader to the wall
+    \node[labelW, anchor=south] at (1.20,1.80)
+      {$\Gamma_w(t)\subset\pOmgBt$};
+    \draw[helperLine] (1.20,1.78) -- (1.20,1.30);
+
+    % cap labels sit just outside the cap lines, off the centerline
+    \node[labelM, anchor=east] at (-0.12,0) {$S_{\mathrm{in}}(t)$};
+    \node[labelM, anchor=west] at (6.52,0) {$S_{\mathrm{out}}(t)$};
+
+    % domain label inside the lumen, below the centerline (clear band)
+    \node[labelM] at (1.30,-0.40) {$\OmgBt$};
+
+    % wall point + outward normal + off-figure point label with leader
+    \coordinate (Pw) at (4.55,1.18);
+    \fill[mathblue] (Pw) circle (1.1pt);
+    \draw[axisArrow] (Pw) -- ++(0.15,0.55)
+      node[above, labelM] {$\hat{\bm n}$};
+    \node[tagLabelM, anchor=south] at (5.10,1.95) {$\vx\in\Gamma_w(t)$};
+    \draw[helperLine] (5.10,1.94) -- (Pw);
+
+    % interior point + velocity arrow (label above the arrow);
+    % point name moved below with a white halo so the centerline does
+    % not strike through it
+    \coordinate (Px) at (2.6,0.32);
+    \fill[bloodred] (Px) circle (1.1pt);
+    \draw[flowArrowMain] (Px) -- ++(0.85,0.16);
+    \node[labelB, anchor=south] at (3.10,0.50) {$\vu(t,\vx)$};
+    \node[tagLabelB, anchor=north] at (2.60,0.18) {$\vx\in\OmgBt$};
+
+    % p_{3D} placed in a clear lumen patch below the centerline; no
+    % leader is drawn (the field acts on the whole lumen, not a point).
+    \node[tagLabelM, anchor=west] at (3.80,-0.30) {$p_{3D}(t,\vx)$};
+
+    % radius callout: dimension arrow only (no duplicate dashed leader)
+    \draw[measureBiArrow, line width=0.6pt] (5.65,0.04) -- (5.65,0.92);
+    \node[labelM, anchor=west, font=\scriptsize] at (5.72,0.55) {$R(z,t)$};
+
+    \draw[flowArrowMain] (1.0,-1.65) -- (5.6,-1.65)
+      node[midway, below, labelB] {flow direction};
+    \draw[axisArrow] (0.10,-2.05) -- (1.05,-2.05) node[right, labelM] {$z$};
+    \draw[axisArrow] (0.10,-2.05) -- (0.10,-1.25) node[above, labelM] {$r$};
+    \coordinate (physBridgeE) at (6.78,1.88);
+  \end{scope}
+
+  % =============== (b) reduced cylinder ==========================
+  \begin{scope}[shift={(8.75,0)}, local bounding box=RED]
+    \path[vesselWall] (0,0.92) -- (5.9,0.82) -- (5.9,1.12) -- (0,1.22) -- cycle;
+    \path[vesselWall] (0,-0.92) -- (5.9,-0.82) -- (5.9,-1.12) -- (0,-1.22) -- cycle;
+    \path[lumen] (0,0.92) -- (5.9,0.82) -- (5.9,-0.82) -- (0,-0.92) -- cycle;
+
+    \draw[mathblue, line width=0.8pt] (0,0.92) -- (0,-0.92);
+    \draw[mathblue, line width=0.8pt] (5.9,0.82) -- (5.9,-0.82);
+    \draw[centerline] (-0.10,0) -- (6.20,0);
+    \draw[axisArrow] (6.20,0) -- (6.65,0) node[right, labelM] {$z$};
+
+    \node[panelTitle] at (2.95,2.45) {(b) 1D averaged state};
+
+    % wall label in top gutter with leader to the outer wall
+    \node[labelW, anchor=south] at (2.15,1.70) {$\Gamma_w(t)$};
+    \draw[helperLine] (2.15,1.68) -- (2.15,1.22);
+
+    % cap section labels lifted into the bottom gutter, below the wall
+    % fill, with short dashed leaders to the cap lines
+    \node[labelM, anchor=north] at (0,-1.40) {$S_{\mathrm{in}}(t)$};
+    \draw[helperLine] (0,-1.22) -- (0,-1.36);
+    \node[labelM, anchor=north] at (5.9,-1.40) {$S_{\mathrm{out}}(t)$};
+    \draw[helperLine] (5.9,-1.18) -- (5.9,-1.36);
+
+    % mid-section line with label in the bottom gutter
+    \draw[mathblue, line width=0.8pt] (3.25,-0.86) -- (3.25,0.86);
+    \node[labelM, anchor=north] at (3.25,-1.40) {$S(z,t)$};
+    \draw[helperLine] (3.25,-0.86) -- (3.25,-1.36);
+
+    % R(z,t) callout placed RIGHT of the section line, in the clear
+    % lumen band between the section and the outlet cap.
+    \draw[measureBiArrow, line width=0.6pt] (4.10,0.04) -- (4.10,0.86);
+    \node[labelM, anchor=west, font=\scriptsize] at (4.18,0.50) {$R(z,t)$};
+
+    % Q(z,t) main flow arrow, single clean arrow on the centerline
+    \draw[flowArrowMain, line width=1.1pt] (0.50,0) -- (2.40,0);
+    \node[labelB, anchor=south] at (1.45,0.06) {$Q(z,t)$};
+
+    % mean gauge pressure label in top gutter with leader to lumen
+    \node[tagLabelM, anchor=south] at (4.55,1.70) {$p_{\mathrm{g}}(z,t)$};
+    \draw[helperLine] (4.55,1.68) -- (4.55,0.30);
+
+    % cross-section inset: moved to the bottom-right gutter so it is
+    % clear of the panel title and the ``section averages'' bridge
+    \begin{scope}[shift={(4.25,-1.95)}]
+      \path[lumen] (0,0) circle (0.32);
+      \draw[mathblue, line width=0.65pt] (0,0) circle (0.32);
+      \draw[measureBiArrow, line width=0.45pt] (0,0) -- (0.32,0);
+      \node[labelM, font=\scriptsize, above=0.5pt]
+        at (0.16,0.02) {$R$};
+    \end{scope}
+    \node[labelM, font=\scriptsize, anchor=west] at (4.70,-1.95)
+      {$A(z,t)=\pi R(z,t)^2$};
+    \coordinate (redBridgeW) at (-0.34,1.88);
+  \end{scope}
+
+  \draw[measureArrow, line width=0.9pt]
+    (physBridgeE) -- (redBridgeW)
+    node[midway, above=2pt, tagLabelM, font=\scriptsize, align=center]
+      {section\\averages};
+
+\end{tikzpicture}
