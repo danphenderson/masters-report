@@ -183,6 +183,75 @@ function run_grid_sensitivity(spec::GridSensitivitySpec)
     return result
 end
 
+function run_grid_sensitivity_from_summary_csv(
+    source_summary_csv::String;
+    base_params::Params = Params(tfinal=0.9995, initial_condition=GeometryRestIC()),
+    output_dir::String = joinpath(DEFAULT_COMPARISON_OUTPUT_DIR, "grid_sensitivity"),
+    nxs = DEFAULT_GRID_SENSITIVITY_NXS,
+    summary_csv::String = "",
+    summary_tex::String = "",
+    overwrite::Bool = false,
+)
+    rows = read_grid_sensitivity_summary_csv(source_summary_csv)
+    case_specs = grid_sensitivity_cases_from_summary_rows(rows)
+    spec = GridSensitivitySpec(;
+        cases=case_specs,
+        base_params=base_params,
+        output_dir=output_dir,
+        nxs=nxs,
+        summary_csv=summary_csv,
+        summary_tex=summary_tex,
+        overwrite=overwrite,
+        write_svg=false,
+    )
+    selected_rows = validate_reused_grid_sensitivity_rows(rows, spec, source_summary_csv)
+    result = GridSensitivityResult(spec, ComparisonResult[], selected_rows, spec.summary_csv, spec.summary_tex)
+    write_grid_sensitivity_outputs(result; overwrite=spec.overwrite)
+    return result
+end
+
+function grid_sensitivity_cases_from_summary_rows(rows::Vector{GridSensitivitySummaryRow})
+    by_label = Dict{String,GridSensitivitySummaryRow}()
+    for row in rows
+        previous = get(by_label, row.case_label, nothing)
+        if previous !== nothing && !isapprox(previous.severity, row.severity; atol=0.0, rtol=0.0)
+            throw(ArgumentError("grid sensitivity summary has inconsistent severity for case '$(row.case_label)'"))
+        end
+        by_label[row.case_label] = row
+    end
+    return [
+        Resolved3DCaseSpec(row.case_label, row.severity, ""; target_time=row.target_time_s)
+        for row in sort(collect(values(by_label)); by=row -> (row.severity, row.case_label))
+    ]
+end
+
+function validate_reused_grid_sensitivity_rows(
+    rows::Vector{GridSensitivitySummaryRow},
+    spec::GridSensitivitySpec,
+    source_summary_csv::String,
+)
+    expected_nxs = spec.nxs
+    observed_nxs = sort(unique(row.nx for row in rows))
+    observed_nxs == expected_nxs ||
+        throw(ArgumentError("grid sensitivity summary '$source_summary_csv' has nx values $(observed_nxs), expected $(expected_nxs)"))
+
+    expected_cases = sort([case.case_label for case in spec.cases])
+    observed_cases = sort(unique(row.case_label for row in rows))
+    observed_cases == expected_cases ||
+        throw(ArgumentError("grid sensitivity summary '$source_summary_csv' has cases $(observed_cases), expected $(expected_cases)"))
+
+    selected_rows = GridSensitivitySummaryRow[]
+    for nx in expected_nxs
+        for case_label in expected_cases
+            matches = [row for row in rows if row.nx == nx && row.case_label == case_label]
+            length(matches) == 1 ||
+                throw(ArgumentError("grid sensitivity summary '$source_summary_csv' must have exactly one row for case $case_label at nx=$nx"))
+            push!(selected_rows, only(matches))
+        end
+    end
+    return sort(selected_rows; by=row -> (row.severity, row.nx))
+end
+
 function summarize_grid_sensitivity_case(case_run, comparison_result::ComparisonResult, previous_run)
     section_rows = [
         row for row in case_run.section_rows if row.area_valid &&

@@ -665,6 +665,65 @@ files under
 \path{simulations/data/3d/canic_case3/}; the report archives the generated CSV
 and PGFPlots-ready static data, not the raw fields.
 
+Table~\ref{tab:t1-evidence-ledger} records the claim-to-evidence contract used
+for the retained case-study statements. A row in this ledger is not an
+additional result. It is the rule for reading the following tables and figures:
+the listed asset is the source for the retained statement, and the listed limit
+is part of the claim.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Evidence ledger for the retained C23/C40 case-study claims. The
+    ledger separates source artifacts, computational scope, and interpretation
+    limits so that later tables are read as bounded evidence rather than
+    standalone validation claims.}
+    \label{tab:t1-evidence-ledger}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.18\textwidth}
+        >{\raggedright\arraybackslash}p{0.27\textwidth}
+        >{\raggedright\arraybackslash}p{0.25\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Claim class}
+            & \textbf{Primary asset}
+            & \textbf{Computation scope}
+            & \textbf{Interpretation limit} \\
+        \midrule
+        Output-operator check
+            & \path{cross-section-operator-}\newline\path{validation.csv}
+            & Synthetic tetrahedron; constant and affine axial fields; shifted
+            plane cuts.
+            & Verifies the implemented quadrature map on known fields, not the
+            physical fidelity of the available 3D cases. \\
+        Run admissibility
+            & \path{production-diagnostics.dat} and
+            \path{rest_state_drift.tex}
+            & Native MUSCL/Rusanov/SSPRK3 runs, recorded CFL, positivity,
+            subcriticality, and finite-volume bookkeeping diagnostics.
+            & Establishes numerical regime and the rest-state limitation; it
+            does not validate a reduced model against resolved data. \\
+        Section discrepancy
+            & \path{section-quadrature.dat}
+            & 200 axial planes at $T=0.9995$ s for C23 and C40 under
+            \texttt{CrossSectionQuadratureOperator}.
+            & Descriptive final-time cross-model discrepancy with unmatched
+            wall, boundary, material, and history metadata. \\
+        Production-grid sensitivity
+            & \path{grid-sensitivity-summary.csv}
+            & Same section protocol at $N=200,400,800$ for the optional local
+            C23/C40 raw fields.
+            & Sensitivity evidence for the reported output, not a monotone
+            convergence theorem. \\
+        Excluded radial output
+            & \path{radial-quadrature-C23.dat} and
+            \path{radial-quadrature-C40.dat}
+            & Generated secondary rows at three axial slices.
+            & Quarantined from retained claims pending reducer reconciliation. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
 \begin{table}[!htb]
     \centering
     \scriptsize

@@ -505,6 +505,7 @@ const COMPARISON_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
     "target-time",
     "time-atol",
     "nxs",
+    "reuse-grid-summary",
     "section-count",
     "radial-bins",
     "radial-bin-counts",
@@ -879,6 +880,7 @@ function print_compare3d_usage()
     Usage:
       ./scripts/stenosis-hemodynamics compare-3d [--data-root PATH] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--overwrite] [--publish-report-assets]
       ./scripts/stenosis-hemodynamics compare-3d --nxs 200,400,800 [--data-root PATH] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--overwrite] [--publish-report-assets]
+      ./scripts/stenosis-hemodynamics compare-3d --nxs 200,400,800 --reuse-grid-summary PATH [--grid-summary-csv PATH] [--grid-summary-tex PATH] [--overwrite]
     """)
 end
 
@@ -894,6 +896,31 @@ function run_compare3d_cli(args::Vector{String})
     radial_bin_counts = haskey(values, "radial-bin-counts") ? parse_int_list(values["radial-bin-counts"]) : nothing
     radial_radius_modes = haskey(values, "radial-radius-modes") ? split(values["radial-radius-modes"], ",") : nothing
     if haskey(values, "nxs")
+        if haskey(values, "reuse-grid-summary")
+            result = run_grid_sensitivity_from_summary_csv(
+                values["reuse-grid-summary"];
+                base_params=params,
+                output_dir=get(values, "output-dir", joinpath(DEFAULT_COMPARISON_OUTPUT_DIR, "grid_sensitivity")),
+                nxs=parse_int_list(values["nxs"]),
+                summary_csv=get(values, "grid-summary-csv", ""),
+                summary_tex=get(values, "grid-summary-tex", ""),
+                overwrite=("overwrite" in flags),
+            )
+            println("compare_3d_grid_summary_csv,$(result.summary_csv)")
+            println("compare_3d_grid_summary_tex,$(result.summary_tex)")
+            if "publish-report-assets" in flags
+                paths = publish_resolved3d_grid_sensitivity_assets(
+                    result;
+                    output_dir=get(values, "report-assets-dir", joinpath("figures", "static", "static", "data", "stenosis-comparison")),
+                    overwrite=("overwrite" in flags),
+                )
+                for path in paths
+                    println("compare_3d_report_asset,$path")
+                end
+            end
+            return result
+        end
+
         result = run_available_resolved3d_grid_sensitivity(;
             data_root=get(values, "data-root", default_resolved3d_data_root()),
             target_time=parse(Float64, get(values, "target-time", "0.9995")),

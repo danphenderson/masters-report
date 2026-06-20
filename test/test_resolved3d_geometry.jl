@@ -343,6 +343,7 @@ end
                 "mean_physical_flow_bias_1d_minus_3d_cm3_s",
                 "mean_physical_flow_discrepancy_cm3_s",
                 "rms_physical_flow_discrepancy_cm3_s",
+                "case",
                 "mean_velocity_bias_1d_minus_3d_cm_s",
                 "mean_velocity_discrepancy_cm_s",
                 "rms_velocity_discrepancy_cm_s",
@@ -356,6 +357,8 @@ end
 
         rows = sort(read_simple_csv(result.summary_csv); by=row -> parse(Int, row["nx"]))
         @test [parse(Int, row["nx"]) for row in rows] == [6, 8]
+        @test all(row["case"] == "C23" for row in rows)
+        @test all(row["severity"] == "23" for row in rows)
         @test parse(Int, rows[1]["adjacent_from_nx"]) == 0
         @test parse(Int, rows[2]["adjacent_from_nx"]) == 6
         @test all(parse(Int, row["valid_section_count"]) > 0 for row in rows)
@@ -369,6 +372,31 @@ end
         @test occursin("\\begin{tabular}", tex)
         @test occursin("C23", tex)
         @test occursin(" & 8 & ", tex)
+        table_rows = [line for line in split(tex, '\n') if occursin(" & ", line)]
+        @test !isempty(table_rows)
+        @test all(line -> endswith(line, "\\\\"), table_rows)
+
+        reuse_csv = joinpath(output_dir, "reuse-summary.csv")
+        reuse_tex = joinpath(output_dir, "reuse-summary.tex")
+        reuse = StenosisHemodynamics.run_grid_sensitivity_from_summary_csv(
+            result.summary_csv;
+            output_dir=joinpath(output_dir, "reuse"),
+            nxs=spec.nxs,
+            summary_csv=reuse_csv,
+            summary_tex=reuse_tex,
+            overwrite=true,
+        )
+        @test isempty(reuse.comparison_results)
+        @test isfile(reuse.summary_csv)
+        @test isfile(reuse.summary_tex)
+        @test read(reuse.summary_csv, String) == read(result.summary_csv, String)
+        @test read(reuse.summary_tex, String) == tex
+        @test_throws ArgumentError StenosisHemodynamics.run_grid_sensitivity_from_summary_csv(
+            result.summary_csv;
+            output_dir=joinpath(output_dir, "bad-reuse"),
+            nxs=[6, 10],
+            overwrite=true,
+        )
 
         @test_throws ArgumentError StenosisHemodynamics.GridSensitivitySpec(
             cases=[case_spec],

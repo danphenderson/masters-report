@@ -311,7 +311,8 @@ Define
 \end{flalign*}
 Table~\ref{tab:t1-grid-sensitivity-summary} reports these values together
 with the relative RMS velocity discrepancy and the adjacent-grid RMS difference
-between the current 1D section means and the previous grid's 1D section means.
+between the current 1D grid velocity and the previous grid's 1D velocity
+interpolated onto the current grid.
 The C23 metrics improve from $N=200$ to $N=400$ and remain close at $N=800$.
 For C40, the mean and RMS flow discrepancies improve from $N=200$ to $N=400$,
 but the maximum and RMS velocity discrepancies increase on the $N=800$ grid.
@@ -324,8 +325,8 @@ is not a monotone grid-convergence result.
     \scriptsize
     \caption{Optional production-grid sensitivity for the resolved-velocity
     comparison. Flow discrepancies are in cm$^3$/s, velocity discrepancies are
-    in cm/s, and the adjacent column compares the current 1D section means to
-    the previous grid on the same 200 section targets. The first grid has no
+    in cm/s, and the adjacent column compares the current 1D velocity field to
+    the previous grid interpolated onto the current grid. The first grid has no
     adjacent predecessor.}
     \label{tab:t1-grid-sensitivity-summary}
     \resizebox{\textwidth}{!}{%
