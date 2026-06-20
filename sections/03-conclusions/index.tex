@@ -107,6 +107,48 @@ idealized stenosis: it specifies the reduced model, verifies the implemented
 operator, tests an equilibrium property, and compares reduced and resolved
 velocity information through a declared quadrature operator.
 
+The numerical findings are correspondingly bounded. The manufactured-solution
+record verifies the declared forced operator with zero forcing-audit mismatch in
+the generated table and observed $L^2$ refinement rates of about 1.70 for the
+area coordinate and 1.50 for the flow coordinate over the reported grid range.
+The timestep rows are best read as timestep-insensitivity checks because the
+CFL-controlled accepted timestep can override the requested timestep. The
+geometry-rest audit is the principal numerical limitation: on the $N=400$
+production grid, the final zero-inlet solver-coordinate rest defects
+$\max_i |q_i|$ reach $0.03839$ and $0.06339\,\mathrm{cm}^3/\mathrm{s}$ for C23
+and C40, corresponding to physical-flow scales $\pi q$ of approximately
+$0.121$ and $0.199\,\mathrm{cm}^3/\mathrm{s}$. These solver-coordinate values
+are about 5.3\% and 8.7\% of the comparison flow scale. Refining to $N=800$
+reduces them to $0.00973$ and $0.01605\,\mathrm{cm}^3/\mathrm{s}$ in solver
+coordinate, with observed final-flow refinement rates near 1.98 for both
+severities. The rest-state finite-volume balances close near roundoff. The
+production comparison diagnostics retain positive subcritical boundary margins,
+zero positivity projections, and small finite-volume bookkeeping residuals at
+the reported scale, but those admissibility checks do not remove the
+non-well-balanced rest defect. In the diagnostic 1D--3D velocity comparison, the
+mean absolute section-velocity discrepancies are $0.505\,\mathrm{cm}/\mathrm{s}$
+for C23 and $0.966\,\mathrm{cm}/\mathrm{s}$ for C40, with relative RMS
+discrepancies 0.0277 and 0.0688 under the declared plane--tetrahedron
+observation operator. Because the resolved wall, boundary, material,
+geometry-state, and transient-history records are not fully matched, these
+quantities are descriptive cross-model discrepancies rather than validation
+errors.
+
+\paragraph*{Outlook.}
+The next mathematical step is an explicitly well-balanced reconstruction or
+path-conservative flux/source treatment for the geometry-rest state
+\cite{PimentelGarciaEtAl2025HighOrderWellBalanced}. The next modeling study
+should compare the current fixed-area characteristic approximation with
+characteristic, impedance, and Windkessel-style terminal conditions under matched
+diagnostics. The next inference step is parameter-identifiability and
+surrogate screening for wall, profile, friction, and boundary parameters, using
+spectral-surrogate and learned-operator ideas only after the model inputs,
+training distribution, and validation observables are declared
+\cite{Colebank2025HemodynamicsIdentifiability,CsalaEtAl2025PCNDE,VelikorodnyEtAl2025DeepOperatorStenosed}.
+The next comparison step is a matched 3D record with persisted material,
+boundary, wall-motion, and transient-history metadata, plus a repaired or
+explicitly excluded radial-profile operator.
+
 The broader lesson is methodological. Review-led blood-flow simulation should
 not treat computation as a final figure alone. It should expose the model tier,
 state variables, closures, numerical evidence, and observation map that make the

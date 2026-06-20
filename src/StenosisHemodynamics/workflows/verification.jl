@@ -1196,7 +1196,7 @@ function write_rest_state_drift_tex(path::String, rows::Vector{RestStateDriftRow
         println(io, "    \\resizebox{\\textwidth}{!}{%")
         println(io, "    \\begin{tabular}{@{}rrrrrrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        Severity & \$N\$ & \$t_{\\max |q|}\$ & requested \$q_{\\mathrm{in}}\$ & applied \$q_{\\mathrm{in}}\$ & peak \$\\max |q_i|\$ & \$z_{\\max |q|}\$ & final \$\\max |q_i|\$ & final \$\\Delta\\!\\int a\\,dz\$ & final flux integral & final balance residual \\\\")
+        println(io, "        Severity & \$N\$ & time of peak \$\\max_i |q_i|\$ & requested \$q_{\\mathrm{in}}\$ & applied \$q_{\\mathrm{in}}\$ & peak \$\\max |q_i|\$ & \$z_{\\max |q|}\$ & final \$\\max |q_i|\$ & final \$\\Delta\\!\\int a\\,dz\$ & final flux integral & final balance residual \\\\")
         println(io, "        \\midrule")
         for row in rest_state_drift_summary_rows(rows)
             println(io, rest_state_drift_summary_latex_row(row))

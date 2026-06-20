@@ -33,9 +33,10 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     a boundary component of the open lumen.
 \end{assumption}
 
-\begin{definition}[Section-averaged 1D fields]
+\begin{definition}[Section-averaged fields and observed pressure]
     \label{def:section-averaged-1d-fields}
-    The retained reduced variables are
+    The retained reduced kinematic variables and observed pressure
+    representative are
     \begin{flalign*}
         \quad A_{\mathrm{phys}}(z,t) &\defined \int_{S(z,t)} 1 \, dS, &&
             \text{physical cross-sectional area}, \\
@@ -44,12 +45,14 @@ follows standard compliant-artery and dimension-reduced modeling arguments
         \quad \bar u(z,t) &\defined
             \frac{Q_{\mathrm{phys}}(z,t)}{A_{\mathrm{phys}}(z,t)}, &&
             \text{mean axial velocity}, \\
-        \quad p_{\mathrm g}(z,t) &\defined
+        \quad \bar p_{3D,\mathrm g}(z,t) &\defined
             \frac{1}{A_{\mathrm{phys}}(z,t)}
             \int_{S(z,t)} p_{3D,\mathrm g} \, dS, &&
-            \text{mean gauge pressure}.
+            \text{observed 3D cross-sectional mean gauge pressure}.
     \end{flalign*}
     Here $p_{3D,\mathrm g}$ is continuum pressure in the wall-law gauge frame.
+    The observed representative $\bar p_{3D,\mathrm g}$ is distinct from the
+    reduced wall-law pressure variable introduced below.
 \end{definition}
 
 \begin{definition}[Physical-to-solver map for the implemented 1D state]
@@ -158,9 +161,10 @@ follows standard compliant-artery and dimension-reduced modeling arguments
 \begin{definition}[Selected Canic--Koiter pressure--area wall law]
     \label{def:1d-elastic-wall-law}
     The selected elastic wall closure is the Canic--Koiter thin-wall
-    pressure--area law. In conventional area notation it may be written
+    pressure--area law for the reduced wall-law gauge pressure
+    $p_{\mathcal W,\mathrm g}$. In conventional area notation it may be written
     \begin{flalign*}
-        \quad p_{\mathrm g}(A,z,t)
+        \quad p_{\mathcal W,\mathrm g}(A,z,t)
         =
         p_{\mathrm{ext}}(z,t)
         + \frac{\beta(z)}{A_0(z)}
@@ -205,10 +209,12 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     implementation still report a local-denominator pressure diagnostic through
     \path{pressure(result, params)}; benchmark pressure extrema and
     pressure-diagnostic bars refer to that diagnostic, not to the selected
-    evolution wall law.
+    evolution wall law. The 1D model identifies $p_{\mathcal W,\mathrm g}$ with
+    a cross-sectional pressure representative as a closure assumption and does
+    not resolve radial pressure variation.
 \end{definition}
 
-\subsubsection{Implemented $R_{\max}$-Normalized Balance Law}
+\subsubsection[Implemented Rmax-Normalized Balance Law]{Implemented $R_{\max}$-Normalized Balance Law}
 \label{subsec:conservative-form-source-terms}
 
 \begin{definition}[Closed 1D area-flow model]
@@ -218,11 +224,11 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     written with the composite axial pressure derivative
     \begin{flalign*}
         \quad
-        \frac{d}{dz}p_{\mathrm g}(A(z,t),z,t)
+        \frac{d}{dz}p_{\mathcal W,\mathrm g}(A(z,t),z,t)
         =
-        \pd_A p_{\mathrm g}(A,z,t) \pd_z A
+        \pd_A p_{\mathcal W,\mathrm g}(A,z,t) \pd_z A
         +
-        \left.\pd_z p_{\mathrm g}(A,z,t)\right|_A. &&
+        \left.\pd_z p_{\mathcal W,\mathrm g}(A,z,t)\right|_A. &&
     \end{flalign*}
     The reduced balance law is
     \begin{flalign*}
@@ -232,14 +238,14 @@ follows standard compliant-artery and dimension-reduced modeling arguments
         \quad \pd_t Q
         + \pd_z
             \left(\alpha \frac{Q^2}{A}\right)
-        + \frac{A}{\rho}\frac{d}{dz}p_{\mathrm g}(A(z,t),z,t)
+        + \frac{A}{\rho}\frac{d}{dz}p_{\mathcal W,\mathrm g}(A(z,t),z,t)
         &= - C_f(z,A,Q) \frac{Q}{A}.
         \numberthis\label{eq:1d-momentum-aq} &&
     \end{flalign*}
     The parameter $\alpha$ is the momentum-flux correction factor induced by
     the selected cross-sectional velocity profile, $C_f$ is the wall-friction
-    closure, and $p_{\mathrm g}(A,z,t)$ is the wall-law gauge pressure closing
-    the reduced system.
+    closure, and $p_{\mathcal W,\mathrm g}(A,z,t)$ is the wall-law gauge
+    pressure closing the reduced system.
 \end{definition}
 
 \begin{assumption}[Velocity-profile and rheology closure]
@@ -283,14 +289,14 @@ follows standard compliant-artery and dimension-reduced modeling arguments
         \quad
         \pd_A \Psi_{\mathcal W}(A,z,t)
         &=
-        \frac{A}{\rho} \pd_A p_{\mathrm g}^{\mathcal W}(A,z,t), &&\\
+        \frac{A}{\rho} \pd_A p_{\mathcal W,\mathrm g}(A,z,t), &&\\
         \quad
         S_{\mathrm{geom}}^{\mathcal W}(A,z,t)
         &=
         \left.\pd_z \Psi_{\mathcal W}(A,z,t)\right|_A
         -
         \frac{A}{\rho}
-        \left.\pd_z p_{\mathrm g}^{\mathcal W}(A,z,t)\right|_A,
+        \left.\pd_z p_{\mathcal W,\mathrm g}(A,z,t)\right|_A,
         &&\\
         \quad
         S_f^{\mathcal R}(A,Q,z)
@@ -298,7 +304,7 @@ follows standard compliant-artery and dimension-reduced modeling arguments
         -C_f^{\mathcal R}(z,A,Q)\frac{Q}{A}. &&
     \end{flalign*}
     For $\mathcal W_{\mathrm{elastic1D}}$,
-    $p_{\mathrm g}^{\mathcal W}$ is the wall law in
+    $p_{\mathcal W,\mathrm g}$ is the wall law in
     Definition~\ref{def:1d-elastic-wall-law}. In component form,
     \begin{flalign*}
         \quad \pd_t A + \pd_z Q &= 0,
@@ -778,6 +784,12 @@ and PGFPlots-ready static data, not the raw fields.
     \end{tabularx}
 \end{table}
 \end{landscape}
+
+Table~\ref{tab:t1-parameter-matching} is the compact notation-and-parameter
+record for the principal comparison run. It consolidates the selected model
+descriptor, wall and rheology closures, physical constants, discretization,
+boundary convention, and observation targets before the discrepancy metrics are
+introduced.
 
 \begin{table}[!htb]
     \centering

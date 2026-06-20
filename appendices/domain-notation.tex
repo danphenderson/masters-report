@@ -99,7 +99,7 @@ traction outputs.
         $\mathcal W$ & wall descriptor; the selected report model uses the Canic--Koiter member & mixed \\
         $K=Eh/(1-\sigma^2)$ & wall stiffness coefficient used by the implemented wall law & force/length \\
         $\beta(z)$ & wall-law stiffness parameter; for the selected member $\beta=\sqrt\pi K R_0^2/R_{\max}^2$ & pressure\,$\cdot$\,length \\
-        $\Psi$ & elastic flux potential satisfying $\pd_A\Psi=(A/\rho)\pd_Ap_{\mathrm g}$ in the physical-area notation & length$^4$/time$^2$ \\
+        $\Psi$ & elastic flux potential satisfying $\pd_A\Psi=(A/\rho)\pd_Ap_{\mathcal W,\mathrm g}$ in the physical-area notation & length$^4$/time$^2$ \\
         $\mathbf U=(a,q)^\top$ & implemented finite-volume state in solver coordinates & mixed \\
         $\widehat{\mathbf F}_{i+1/2}$ & numerical flux at a finite-volume interface & mixed \\
         $\widehat S_i$ & cell-centered source term used by the implemented operator & mixed \\
@@ -107,7 +107,7 @@ traction outputs.
         $\dot\gamma_{1D}=g_{\mathcal P}|q|/(a\sqrt a)$ & reduced shear-rate proxy used for generalized-Newtonian descriptor rows & 1/time \\
         $\nu_{\mathrm{eff}}^{\mathcal R}$ & density-scaled effective kinematic viscosity used in reduced source terms & length$^2$/time \\
         $c$ or $c_{\mathrm{wave}}$ & 1D pulse-wave speed for the declared wall law & length/time \\
-        $p_{\mathrm g}$ & gauge pressure produced by the wall law & pressure \\
+        $p_{\mathcal W,\mathrm g}$ & reduced gauge pressure produced by the wall law & pressure \\
         $\tau_{w,z}^{1D}$ & signed 1D axial shear proxy after declaring closure and output convention & pressure \\
         $\mathcal G_{1D,h}^{r_h,e}$ & computed fixed-grid 1D map indexed by numerical and closure records & mixed \\
         \bottomrule

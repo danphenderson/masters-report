@@ -9,12 +9,56 @@ at \path{src/StenosisHemodynamics.jl}. The command-line surface used by the
 report is \path{scripts/stenosis-hemodynamics}, which dispatches through
 \path{scripts/stenosis-hemodynamics.jl} and the root Julia project.
 
-At release, the machine-readable manifest identifies the submitted Git state,
-release tag if one is assigned, and either a stable public repository/archive or
-the applicable source-access policy. This working draft does not declare a
-public archival DOI or stable repository URL; unless a later release adds one,
-access to \texttt{StenosisHemodynamics} is by the repository owner's
+\paragraph*{Source-control and archive record.}
+The latest committed source-control state available in the local
+submission-preparation checkout was:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+branch: master
+head_commit: cd09357c98db75de9ba5c363eea15c8f4d3487d9
+head_subject: Polish executive assessment plan
+head_commit_date: 2026-06-19T18:39:50-07:00
+local_tag_available: masters-report-final-2026-06-19 -> 1a15a52d6e986f08d745c9e40ecbcd04d4475104
+tag_matches_head: no
+git_remote: none configured in the inspected checkout
+public_repository_url: not declared
+archival_doi: not declared
+\end{lstlisting}
+The working tree also contained uncommitted manuscript edits at inspection time,
+including this appendix revision. The local release manifest therefore remained
+the concrete source-access record rather than a final public archive record:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+reproducibility/release-manifest.json
+\end{lstlisting}
+No stable public repository URL, immutable archive URL, or archival DOI was
+available from the local metadata in \path{CITATION.cff} or
+\path{reproducibility/release-manifest.json}. Unless a later public release adds
+one, access to \texttt{StenosisHemodynamics} is by the repository owner's
 source-control policy.
+
+\paragraph*{Computational environment.}
+The checked Julia environment and local hardware record were:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+manifest_julia_version: 1.12.6
+launcher_julia_version: julia version 1.12.6
+operating_system: macOS 26.5.1, Darwin 25.5.0, arm64
+hardware: Apple M1 Max, 10 logical CPUs, 32 GiB memory
+\end{lstlisting}
+The repository README states the intended portable execution surface as a macOS
+or Linux shell with Julia 1.12 or newer, Python/Pipenv for auxiliary tooling,
+and a TeX distribution with \texttt{latexmk} and \texttt{biber}.
+
+\paragraph*{Review provenance.}
+The narrative literature-hardening pass was completed on 19~June~2026 and
+considered English-language records from 1973--2026. Representative targeted
+queries were ``one-dimensional blood flow benchmark,'' ``well-balanced blood
+flow finite volume,'' ``3D 1D fractional flow reserve comparison,''
+``cardiovascular fluid structure interaction verification,'' and
+``hemodynamics identifiability surrogate.'' The working evidence base consisted
+of 68 BibLaTeX entries, 74 logged source records, a 132-row evidence matrix, and
+a derived review-depth matrix. After triage, 38 source records were treated as
+current cited evidence, 7 as report-adjacent scope checks, 22 as future-work
+context, 2 as background only, and 5 as deferred pending metadata review. Blank
+\texttt{bib\_key} records were not used for citation.
 
 \paragraph*{Build command.}
 The report build command is:
@@ -46,11 +90,20 @@ This command reproduces the currently tracked comparison assets; it accepts the
 available $0.9995$ s 3D velocity field and runs the 1D comparison to the same
 target time. The remaining timing limitation is transient-history matching, not
 the final timestamp.
-Package-benchmark assets are regenerated separately from the PDF. Use the
-\texttt{benchmark} subcommand of \path{./scripts/stenosis-hemodynamics}; render
-those assets with \path{scripts/render_package_benchmark_figures.py}. Those rows
-are secondary implementation-health records, not the principal comparison
-method.
+Package-benchmark assets are regenerated separately from the PDF:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+./scripts/stenosis-hemodynamics benchmark \
+  --profile overnight \
+  --output-dir simulations/output/package_benchmark/overnight-YYYYMMDD \
+  --overwrite \
+  --include-resolved3d \
+  --publish-report-assets
+
+pipenv run python scripts/render_package_benchmark_figures.py \
+  --benchmark-dir simulations/output/package_benchmark/overnight-YYYYMMDD
+\end{lstlisting}
+Those rows are secondary implementation-health records, not the principal
+comparison method.
 
 \paragraph*{Raw 3D inputs and manifest.}
 The raw upstream XDMF/HDF5 velocity inputs used for
@@ -71,9 +124,13 @@ fields. Current/deformed 3D geometry, displacement application before plane
 cuts, wall/boundary/material histories, and earlier transient histories remain
 unresolved unless a later release record adds those data.
 
-The file-hash record is stored outside the thesis PDF. Its manifest path is:
+The tracked release manifest is stored outside the thesis PDF:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 reproducibility/release-manifest.json
 \end{lstlisting}
-Detailed SHA-256 values live there or in another tracked manifest, not as large
-tables inside this appendix.
+That manifest records the build command, raw-input policy, upstream 3D input
+pointer, comparison-asset regeneration command, and the absence of a declared
+public repository URL or archival DOI. No populated standalone SHA-256
+file-hash manifest was present in the tracked source tree inspected for this
+revision; per-run workflow manifests record SHA-256 output hashes when those
+workflows are regenerated.

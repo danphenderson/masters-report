@@ -18,7 +18,7 @@ lesion-imaging studies distinguish anatomy from functional assessment
 
 This report reviews the principal mathematical formulations used to simulate
 blood flow and uses an idealized stenosis computation as a worked example. The
-case study is not the organizing limit of the literature review. Instead, it
+case study does not delimit the scope of the literature review. Instead, it
 provides a concrete place to see how continuum assumptions, model reduction,
 closure laws, boundary approximations, numerical verification, equilibrium
 preservation, and observation operators enter a reproducible computation.
@@ -40,27 +40,15 @@ preservation, and observation operators enter a reproducible computation.
 \label{subsec:narrative-review-scope}
 
 The review is narrative and scoping in style rather than systematic. Sources
-were identified from a curated bibliography, a structured source-provenance
-log, citation trails within retained sources, and a deliberately narrow
-targeted-search lane. The literature-hardening pass was completed on
-19~June~2026 and considered English-language records from 1973--2026. The
-representative search strings were ``one-dimensional blood flow benchmark,''
-``well-balanced blood flow finite volume,'' ``3D 1D fractional flow reserve
-comparison,'' ``cardiovascular fluid structure interaction verification,'' and
-``hemodynamics identifiability surrogate.'' Targeted search was used only to
-check for concrete gaps in model hierarchy, closure uncertainty,
-verification/validation, and observation operators; no broad citation expansion
-was attempted.
-
-The working evidence base consisted of 68 BibLaTeX entries, 74 logged source
-records, a 132-row evidence matrix, and a derived review-depth matrix.
-After triage, 38 source records are treated as current cited evidence, 7 remain
-report-adjacent scope checks, 22 are retained as future-work context, 2 remain
-background only, and 5 are deferred pending metadata review. Blank
-\texttt{bib\_key} records are not used for citation. The included sources span
-classical stenosis-loss studies, continuum and cardiovascular modeling
-references, clinical pressure-flow observables, benchmark and open-solver work,
-and compact learned-model context
+were identified from a curated bibliography, a source-provenance log, citation
+trails within retained sources, and targeted searches used to check concrete
+gaps in model hierarchy, closure uncertainty, verification/validation, learned
+surrogates, and observation operators. The detailed search strings, source
+counts, and triage categories are reproducibility metadata rather than part of
+the main argument; Appendix~\ref{app:code-and-ai-use} records the review
+provenance. The included sources span classical stenosis-loss studies, continuum
+and cardiovascular modeling references, clinical pressure-flow observables,
+benchmark and open-solver work, and compact learned-model context
 \cite{YoungTsai1973SteadyStenosis,YoungTsai1973UnsteadyStenosis,GaldiEtAl2008HemodynamicalFlows,
 QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2003OneDimensionalBloodFlow,
 ShiEtAl2011BloodFlowModelReview,BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF,
@@ -107,6 +95,20 @@ Second, it documents an idealized stenosis case study in enough detail to show
 how those choices appear in a concrete computational record. The case study
 uses the Julia package \path{StenosisHemodynamics}; its role is illustrative
 and diagnostic within the review.
+
+\subsection{Notation Guide}
+\label{subsec:intro-notation-guide}
+
+The main continuum symbols are used in their standard units unless a generated
+numerical table states otherwise: $\rho$ denotes density, $u_z$ axial velocity,
+$\eta$ dynamic viscosity, $\nu=\eta/\rho$ kinematic viscosity, $R$ radius,
+$A$ cross-sectional area, and $Q$ volumetric flow. The case study uses the
+physical variables $A_{\mathrm{phys}}$ and $Q_{\mathrm{phys}}$ when comparing
+with continuum quantities, but the implemented finite-volume state stores
+$a=R^2$ and $q=Q_{\mathrm{phys}}/\pi$. Thus
+$A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and the section-mean
+velocity is $\bar u=q/a$. Appendix~\ref{app:domain-specific-notation} collects
+the full symbol and unit table used by the report.
 
 \subsection{Report Organization}
 \label{subsec:report-organization}
