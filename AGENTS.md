@@ -20,8 +20,11 @@ scripts live under `scripts/*.py`, with Python tests in `test/test_*.py`. The ne
 - `pipenv run pytest`: run Python audit/render tests.
 - `pipenv run ruff check .` and `pipenv run black --check .`: lint and verify
   Python formatting.
-- `latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=/tmp/masters-report-build final-report.tex`:
-  validate the report in a scratch output directory.
+- `python3 scripts/build_report.py --outdir /tmp/masters-report-build`: run the
+  agent-facing report build gate. The wrapper runs the TeX preamble audit,
+  invokes `latexmk -pdf -interaction=nonstopmode -halt-on-error` in a scratch
+  output directory, fails on untracked consumed report inputs, and writes
+  `report-build-summary.json` in the outdir.
 
 ## Coding Style & Naming Conventions
 
@@ -37,10 +40,11 @@ shared command definitions.
 
 Add Julia tests to the focused `test/test_*.jl` file and include new files from
 `test/runtests.jl`. Add Python tests as `test/test_*.py`. For report or TeX
-policy changes, run the preamble audit and a scratch `latexmk` build. If PDF
-sync matters, compare rendered output before refreshing tracked artifacts.
-Optional resolved-3D data may be absent; record expected skips instead of
-treating them as failures.
+policy changes, run `python3 scripts/build_report.py --outdir
+/tmp/masters-report-build`; it covers the preamble audit, scratch LaTeX build,
+and consumed-input tracking gate. If PDF sync matters, compare rendered output
+before refreshing tracked artifacts. Optional resolved-3D data may be absent;
+record expected skips instead of treating them as failures.
 
 ## Artifact & Scratch Discipline
 
@@ -48,8 +52,9 @@ Write experiment, CLI, and build outputs to ignored scratch paths such as
 `tmp/**` or `/tmp/masters-report-build`. Do not refresh `final-report.pdf` or
 rendered figure assets unless the change explicitly requires those artifacts.
 Keep regenerated data/assets separate from unrelated source edits when
-practical. See `docs/artifact-policy.md` for artifact classes and cleanup
-guardrails.
+practical. The report wrapper writes its JSON summary into the scratch outdir;
+inspect it instead of staging or deleting untracked consumed inputs. See
+`docs/artifact-policy.md` for artifact classes and cleanup guardrails.
 
 ## Commit & Pull Request Guidelines
 

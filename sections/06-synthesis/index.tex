@@ -13,6 +13,20 @@ observation maps. The open challenge is therefore not to choose one universal
 model tier. It is to decide which tier can answer a specified question with
 identifiable parameters, reproducible numerics, and a declared observable.
 
+The practical gap addressed here is correspondingly narrow. Stenosis-aware 1D
+models require explicit closure contracts; balance-law solvers require evidence
+for the implemented flux, source, boundary, and time-integration choices;
+well-balanced methods show that rest or equilibrium preservation is a discrete
+property that must be tested; and cross-dimensional comparisons require an
+observation operator before discrepancies can be interpreted. The worked
+example addresses that gap for one $R_{\max}$-normalized Canic-derived stenosis
+solver by specifying the coordinate map and closures, reporting bounded
+MMS-based verification evidence, exposing the non-well-balanced geometry-rest
+drift, declaring a plane--tetrahedron velocity operator, and reporting C23/C40
+discrepancy localization under the available matching limits. The contribution
+is an auditable numerical and comparison record, not a field-wide novelty or
+validation claim.
+
 \subsection{Fidelity, Identifiability, and Observables}
 \label{subsec:synthesis-fidelity-identifiability-observables}
 
@@ -39,6 +53,13 @@ comparison contract. Multiscale coupling work already treats interface
 quantities and compatibility conditions as mathematical structure
 \cite{FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale};
 diagnostic 1D--3D comparison needs the same discipline at the output side.
+The clinical FFR literature sharpens the point because it separates anatomical
+stenosis appearance from pressure-flow function
+\cite{ToninoEtAl2010FAMEAngioFunctional,TebaldiEtAl2015FFROverview}. CT-derived
+FFR and 1D--3D FFR comparison sources agree that the diagnostic scalar is not a
+raw geometry measurement; it is an output of an acquisition, modeling, boundary,
+and pressure-observation chain
+\cite{NorgaardEtAl2014NXTFFRCT,Blanco2018FFR1D3D,ShaikhEtAl2025CTFFR}.
 
 \subsection{Uncertainty in Boundaries, Walls, Rheology, and Geometry}
 \label{subsec:synthesis-closure-geometry-uncertainty}
@@ -64,6 +85,14 @@ material laws, structural boundary conditions, and the coupling algorithm. Both
 settings face the same interpretive problem: when the wall or rheology is not
 independently constrained, a discrepancy can be a physics signal, a closure
 signal, or a compensation between uncertain choices.
+Coronary distensibility measurements make that uncertainty concrete for wall
+closure: compliance is not only a solver parameter, but a physiological
+quantity that can vary with disease state and acquisition method
+\cite{KelleEtAl2011CoronaryDistensibility}. Rheology sources make the parallel
+point for viscosity: tube-scale effective-viscosity laws and stenosis rheology
+studies change the terms that dissipate momentum, not merely the wording of the
+model description
+\cite{PriesEtAl1992BloodViscosityTubeFlow,KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}.
 
 Geometry is similarly double-edged. Patient-specific geometry is attractive
 because it carries clinically meaningful morphology, but segmentation,
@@ -89,6 +118,13 @@ Open 1D solvers such as openBF further emphasize that reproducible workflows,
 transparent inputs, and inspectable finite-volume records are part of the
 scientific object, not merely software packaging
 \cite{BenemeritoEtAl2024OpenBF}.
+Resolved-flow platforms and model repositories extend that reproducibility
+lesson to 3D workflows by making geometry, meshing, solver, and repository
+records easier to inspect \cite{SimVascular2026Platform,SimVascular2026VascularModelRepository}.
+Across the retained model-hierarchy, verification, and multiscale-comparison
+sources, the same practical rule recurs: a cross-model comparison is only
+interpretable after the model tier, closure set, numerical diagnostics, and
+observation operator are all specified together.
 
 Equilibrium preservation is a particularly sharp consistency test. A continuous
 stenotic balance law may admit a rest or steady state through cancellation
@@ -125,12 +161,13 @@ than a transparent solver detail
 \cite{WangEtAl2021PINNGradientPathologies}. Operator-learning methods such as
 DeepONet and Fourier neural operators shift the ambition from one solution to a
 map between function spaces \cite{LuEtAl2021DeepONet,LiEtAl2021FNO}, and recent
-stenosed-vessel work shows why such models are appealing for fast parameterized
-flow prediction \cite{VelikorodnyEtAl2025DeepOperatorStenosed}. Their open
-challenge is the same synthesis problem in a new form: the training distribution,
-geometry family, boundary inputs, wall and rheology assumptions, loss
-normalization, and validation observables must be declared before speed or fit
-can be interpreted as hemodynamic evidence.
+hemodynamics-specific neural differential and stenosed-vessel operator-learning
+work shows why such models are appealing for fast parameterized flow prediction
+\cite{CsalaEtAl2025PCNDE,VelikorodnyEtAl2025DeepOperatorStenosed}. Their open
+challenge is the same synthesis problem in a new form: the training
+distribution, geometry family, boundary inputs, wall and rheology assumptions,
+loss normalization, and validation observables must be declared before speed or
+fit can be interpreted as hemodynamic evidence.
 
 \subsection{Role of the Idealized Stenosis Case Study}
 \label{subsec:synthesis-idealized-stenosis-case-study}

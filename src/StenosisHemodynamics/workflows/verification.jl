@@ -1,6 +1,6 @@
 using Printf
 
-Base.@kwdef struct ManufacturedVerificationSpec <: AbstractStudySpec
+Base.@kwdef struct ManufacturedVerificationSpec{B<:AbstractTimeBackend} <: AbstractStudySpec
     base_params::Params = Params(;
         severity=0.0,
         nx=40,
@@ -13,7 +13,7 @@ Base.@kwdef struct ManufacturedVerificationSpec <: AbstractStudySpec
     )
     nxs::Vector{Int} = [20, 40, 80]
     dt_values::Vector{Float64} = [2.0e-5, 1.0e-5, 5.0e-6]
-    backend::AbstractTimeBackend = NativeRK3Backend()
+    backend::B = NativeRK3Backend()
     output_dir::String = joinpath("simulations", "output", "verification")
     summary_csv::String = ""
     summary_tex::String = ""
@@ -35,12 +35,17 @@ Base.@kwdef struct ManufacturedVerificationRow
     flow_l2_error::Float64
     flow_linf_error::Float64
     flow_observed_order::Float64
+    accepted_dt_min::Float64
+    accepted_dt_max::Float64
+    realized_cfl_max::Float64
+    independent_mass_forcing_max_abs_diff::Float64
+    independent_momentum_forcing_max_abs_diff::Float64
     status::String
     error_message::String
 end
 
-struct ManufacturedVerificationResult
-    spec::ManufacturedVerificationSpec
+struct ManufacturedVerificationResult{S<:ManufacturedVerificationSpec}
+    spec::S
     rows::Vector{ManufacturedVerificationRow}
     summary_csv::String
     summary_tex::String
@@ -101,7 +106,7 @@ struct PHRefinementDemoResult
     summary_tex::String
 end
 
-Base.@kwdef struct RestStateDriftSpec <: AbstractStudySpec
+Base.@kwdef struct RestStateDriftSpec{B<:AbstractTimeBackend} <: AbstractStudySpec
     base_params::Params = Params(;
         severity=23.0,
         nx=80,
@@ -116,7 +121,7 @@ Base.@kwdef struct RestStateDriftSpec <: AbstractStudySpec
     severities::Vector{Float64} = [23.0, 40.0]
     nxs::Vector{Int} = [50, 100, 200]
     elapsed_times::Vector{Float64} = [0.0, 1.0e-3, 5.0e-3]
-    backend::AbstractTimeBackend = NativeRK3Backend()
+    backend::B = NativeRK3Backend()
     output_dir::String = joinpath("simulations", "output", "verification")
     summary_csv::String = ""
     summary_tex::String = ""
@@ -160,8 +165,8 @@ Base.@kwdef struct RestStateDriftRow
     error_message::String
 end
 
-struct RestStateDriftResult
-    spec::RestStateDriftSpec
+struct RestStateDriftResult{S<:RestStateDriftSpec}
+    spec::S
     rows::Vector{RestStateDriftRow}
     summary_csv::String
     summary_tex::String
@@ -500,6 +505,7 @@ function manufactured_verification_case(study_kind::String, spec::ManufacturedVe
         result = simulate(params, spec.backend; progress_every=spec.progress_every)
         exact_A = [manufactured_area(params.forcing, zi, result.completed_time, params) for zi in result.z]
         exact_Q = [manufactured_flow(params.forcing, zi, result.completed_time, params) for zi in result.z]
+        forcing_audit = manufactured_forcing_residual_audit(params)
         return ManufacturedVerificationRow(
             study_kind=study_kind,
             nx=nx,
@@ -514,6 +520,11 @@ function manufactured_verification_case(study_kind::String, spec::ManufacturedVe
             flow_l2_error=l2_error(result.flow, exact_Q),
             flow_linf_error=linf_error(result.flow, exact_Q),
             flow_observed_order=NaN,
+            accepted_dt_min=result.diagnostics.dt_min,
+            accepted_dt_max=result.diagnostics.dt_max,
+            realized_cfl_max=result.diagnostics.cfl_max,
+            independent_mass_forcing_max_abs_diff=forcing_audit.mass_max_abs_diff,
+            independent_momentum_forcing_max_abs_diff=forcing_audit.momentum_max_abs_diff,
             status="ok",
             error_message="",
         )
@@ -532,6 +543,11 @@ function manufactured_verification_case(study_kind::String, spec::ManufacturedVe
             flow_l2_error=NaN,
             flow_linf_error=NaN,
             flow_observed_order=NaN,
+            accepted_dt_min=NaN,
+            accepted_dt_max=NaN,
+            realized_cfl_max=NaN,
+            independent_mass_forcing_max_abs_diff=NaN,
+            independent_momentum_forcing_max_abs_diff=NaN,
             status="error",
             error_message=sprint(showerror, err),
         )
@@ -552,6 +568,10 @@ function assign_manufactured_orders(rows::Vector{ManufacturedVerificationRow})
         end
         area_order = next_row === nothing ? NaN : observed_order_ratio(current.area_l2_error, next_row.area_l2_error, ratio)
         flow_order = next_row === nothing ? NaN : observed_order_ratio(current.flow_l2_error, next_row.flow_l2_error, ratio)
+        if current.study_kind != "spatial"
+            area_order = NaN
+            flow_order = NaN
+        end
         push!(
             output,
             ManufacturedVerificationRow(
@@ -568,6 +588,11 @@ function assign_manufactured_orders(rows::Vector{ManufacturedVerificationRow})
                 flow_l2_error=current.flow_l2_error,
                 flow_linf_error=current.flow_linf_error,
                 flow_observed_order=flow_order,
+                accepted_dt_min=current.accepted_dt_min,
+                accepted_dt_max=current.accepted_dt_max,
+                realized_cfl_max=current.realized_cfl_max,
+                independent_mass_forcing_max_abs_diff=current.independent_mass_forcing_max_abs_diff,
+                independent_momentum_forcing_max_abs_diff=current.independent_momentum_forcing_max_abs_diff,
                 status=current.status,
                 error_message=current.error_message,
             ),
@@ -863,6 +888,11 @@ manufactured_verification_header() = [
     "flow_l2_error",
     "flow_linf_error",
     "flow_l2_observed_order",
+    "accepted_dt_min",
+    "accepted_dt_max",
+    "realized_cfl_max",
+    "independent_mass_forcing_max_abs_diff",
+    "independent_momentum_forcing_max_abs_diff",
     "status",
     "error_message",
 ]
@@ -882,6 +912,11 @@ function manufactured_verification_values(row::ManufacturedVerificationRow)
         row.flow_l2_error,
         row.flow_linf_error,
         row.flow_observed_order,
+        row.accepted_dt_min,
+        row.accepted_dt_max,
+        row.realized_cfl_max,
+        row.independent_mass_forcing_max_abs_diff,
+        row.independent_momentum_forcing_max_abs_diff,
         row.status,
         row.error_message,
     ]
@@ -1047,15 +1082,33 @@ function write_manufactured_verification_tex(
         println(io, "\\begin{table}[!htb]")
         println(io, "    \\centering")
         println(io, "    \\scriptsize")
-        println(io, "    \\caption{Manufactured-solution verification errors. The order columns use the \$L^2\$ errors.}")
+        println(io, "    \\caption{Manufactured-solution spatial verification errors. The order columns use adjacent-grid \$L^2\$ errors; the final two columns audit the inserted forcing against an independently assembled residual.}")
         println(io, "    \\resizebox{\\textwidth}{!}{%")
-        println(io, "    \\begin{tabular}{@{}lrrrrrrrrrr@{}}")
+        println(io, "    \\begin{tabular}{@{}rrrrrrrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        Study & \$N\$ & \$\\Delta t\$ & \$\\|e_a\\|_1\$ & \$\\|e_a\\|_2\$ & \$\\|e_a\\|_\\infty\$ & \$p_a\$ & \$\\|e_q\\|_1\$ & \$\\|e_q\\|_2\$ & \$\\|e_q\\|_\\infty\$ & \$p_q\$ \\\\")
+        println(io, "        \$N\$ & \$\\Delta t_{\\min}\$ & CFL\$_{\\max}\$ & \$\\|e_a\\|_1\$ & \$\\|e_a\\|_2\$ & \$\\|e_a\\|_\\infty\$ & \$p_a\$ & \$\\|e_q\\|_1\$ & \$\\|e_q\\|_2\$ & \$\\|e_q\\|_\\infty\$ & \$p_q\$ & forcing audit \\\\")
         println(io, "        \\midrule")
         for row in rows
-            row.status == "ok" || continue
+            row.status == "ok" && row.study_kind == "spatial" || continue
             println(io, manufactured_verification_latex_row(row))
+        end
+        println(io, "        \\bottomrule")
+        println(io, "    \\end{tabular}%")
+        println(io, "    }")
+        println(io, "\\end{table}")
+        println(io)
+        println(io, "\\begin{table}[!htb]")
+        println(io, "    \\centering")
+        println(io, "    \\scriptsize")
+        println(io, "    \\caption{Manufactured-solution timestep-insensitivity rows on the finest MMS grid. These rows report accepted timestep and realized CFL rather than temporal order.}")
+        println(io, "    \\resizebox{\\textwidth}{!}{%")
+        println(io, "    \\begin{tabular}{@{}rrrrrrrr@{}}")
+        println(io, "        \\toprule")
+        println(io, "        \$N\$ & requested \$\\Delta t\$ & accepted \$\\Delta t_{\\min}\$ & accepted \$\\Delta t_{\\max}\$ & CFL\$_{\\max}\$ & \$\\|e_a\\|_2\$ & \$\\|e_q\\|_2\$ & forcing audit \\\\")
+        println(io, "        \\midrule")
+        for row in rows
+            row.status == "ok" && row.study_kind == "temporal" || continue
+            println(io, manufactured_timestep_latex_row(row))
         end
         println(io, "        \\bottomrule")
         println(io, "    \\end{tabular}%")
@@ -1067,9 +1120,9 @@ end
 
 function manufactured_verification_latex_row(row::ManufacturedVerificationRow)
     return join((
-        row.study_kind,
         string(row.nx),
-        latex_number(row.dt),
+        latex_number(row.accepted_dt_min),
+        latex_number(row.realized_cfl_max),
         latex_number(row.area_l1_error),
         latex_number(row.area_l2_error),
         latex_number(row.area_linf_error),
@@ -1078,6 +1131,20 @@ function manufactured_verification_latex_row(row::ManufacturedVerificationRow)
         latex_number(row.flow_l2_error),
         latex_number(row.flow_linf_error),
         latex_number(row.flow_observed_order),
+        latex_number(max(row.independent_mass_forcing_max_abs_diff, row.independent_momentum_forcing_max_abs_diff)),
+    ), " & ") * " \\\\"
+end
+
+function manufactured_timestep_latex_row(row::ManufacturedVerificationRow)
+    return join((
+        string(row.nx),
+        latex_number(row.dt),
+        latex_number(row.accepted_dt_min),
+        latex_number(row.accepted_dt_max),
+        latex_number(row.realized_cfl_max),
+        latex_number(row.area_l2_error),
+        latex_number(row.flow_l2_error),
+        latex_number(max(row.independent_mass_forcing_max_abs_diff, row.independent_momentum_forcing_max_abs_diff)),
     ), " & ") * " \\\\"
 end
 

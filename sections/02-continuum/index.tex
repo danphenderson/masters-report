@@ -176,6 +176,21 @@ viscosity to depend on a scalar shear-rate measure:
 The Newtonian model is recovered when
 $\eta_{\mathrm{eff}}$ is constant
 \cite[Part~I, Ch.~1, Secs.~2.7--3.1]{GaldiEtAl2008HemodynamicalFlows}.
+This large-vessel Newtonian baseline is a closure assumption for averaged
+macroscopic behavior, not a microscopic statement about cells suspended in
+plasma. The scale caveat matters: apparent viscosity can be nearly constant in
+some large-vessel operating ranges, while diameter-, hematocrit-, and
+shear-dependent behavior becomes more important in small-vessel or low-shear
+settings \cite[Sec.~1.1.3, Fig.~1.14]{KopplHelmig2023DimensionReducedModeling}
+\cite{PriesEtAl1992BloodViscosityTubeFlow}.
+
+The displayed generalized-Newtonian form records the constitutive stress law
+used in the review, not a theorem-level regularity statement for every scalar
+viscosity curve. Positivity of
+$\eta_{\mathrm{eff}}(\dot\gamma)$ alone is not used here as a standalone
+parabolicity claim; such a claim would require stated lower-bound, growth, and
+monotonicity hypotheses for
+$2\eta_{\mathrm{eff}}(\sqrt{2D:D})D$.
 
 \subsection{Incompressible Navier--Stokes Forms}
 \label{subsec:continuum-navier-stokes}
@@ -219,6 +234,74 @@ These equations are the full-order continuum reference for cardiovascular
 models; reduced arterial models inherit their conservation structure after
 geometric averaging and closure choices
 \cite[Sec.~6]{QuarteroniFormaggia2004CardiovascularModeling}.
+
+\subsection{Cross-Sectional Bridge to Area--Flow Models}
+\label{subsec:continuum-area-flow-bridge}
+
+The distributed 1D models reviewed later keep the axial conservation structure
+of the continuum equations but replace the full three-dimensional field by
+cross-sectional variables. Let $S(z,t)$ be the lumen section at axial coordinate
+$z$, with outward-moving wall already included in the moving section. The
+physical area and physical flow are
+\begin{flalign*}
+    \quad
+    A(z,t)
+    =
+    \int_{S(z,t)}1\,dA,
+    \qquad
+    Q(z,t)
+    =
+    \int_{S(z,t)}u_z(z,r,\theta,t)\,dA,
+    &&
+\end{flalign*}
+and the section mean velocity is $\bar u=Q/A$ when $A>0$. Applying mass
+conservation to a short vessel slice and accounting for the wall motion gives
+the reduced continuity law
+\begin{flalign*}
+    \quad
+    \pd_t A+\pd_z Q=0. &&
+\end{flalign*}
+
+The axial momentum equation is not closed by $A$ and $Q$ alone. Its convective
+term contains the second axial-velocity moment, commonly written through the
+momentum-flux correction factor
+\begin{flalign*}
+    \quad
+    \alpha(z,t)
+    =
+    \frac{A(z,t)}{Q(z,t)^2}
+    \int_{S(z,t)}u_z(z,r,\theta,t)^2\,dA,
+    &&
+\end{flalign*}
+with the usual limiting interpretation when $Q=0$. At review level, the
+section-averaged axial balance has the structure
+\begin{flalign*}
+    \quad
+    \pd_t Q
+    +
+    \pd_z\!\left(\alpha\frac{Q^2}{A}\right)
+    +
+    \frac{A}{\rho}\pd_z \bar p
+    =
+    \mathcal S_{\mathrm{wall}}
+    +
+    \mathcal S_{\mathrm{fric}}
+    +
+    \mathcal S_{\mathrm{geom}}
+    +
+    \mathcal S_{\mathrm{body}},
+    &&
+\end{flalign*}
+where $\bar p$ is a section pressure representative. The reduced model is
+therefore defined as much by its closures as by its conservation form:
+$\alpha$ and the friction term encode the assumed velocity profile and rheology,
+the pressure--area relation encodes wall mechanics, geometry terms record axial
+variation of the reference radius or coordinate map, and inlet/outlet conditions
+close the finite vessel problem
+\cite{FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,CanicEtAl2024Extended1DStenosis}.
+Appendix~\ref{app:continuum-derivation-details} records the supporting
+transport identities, while Section~\ref{sec:case-study} states the selected
+solver-coordinate version used in the stenosis audit.
 
 \subsection{Fixed and Moving Domains, Boundary Data, and Observables}
 \label{subsec:continuum-domains-observables}

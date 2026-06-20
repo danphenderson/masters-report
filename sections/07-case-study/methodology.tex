@@ -626,13 +626,11 @@ Quarantined radial rows are not part of the retained comparison metrics.
 \label{subsec:numerical-experiments-metrics-provenance}
 
 The resolved-velocity comparison evaluates the selected 1D solution against two
-available resolved 3D velocity comparison datasets at nominally aligned
-final-time samples: the 1D output is sampled at $1.0$ s and the XDMF velocity
-field records $0.9995$ s. The cases are labelled C23 and C40 by stenosis
-severity. The comparison is a diagnostic cross-model velocity comparison under
-the declared observation operator, and the model-matching matrix below states
-the evidence boundary for interpreting the retained C23/C40 section
-discrepancies.
+available resolved 3D velocity comparison datasets at the matched final-time
+sample $T=0.9995$ s. The cases are labelled C23 and C40 by stenosis severity.
+The comparison is a diagnostic cross-model velocity comparison under the
+declared observation operator, and the model-matching matrix below states the
+evidence boundary for interpreting the retained C23/C40 section discrepancies.
 
 \begin{center}
 \fbox{\begin{minipage}{0.90\linewidth}
@@ -661,23 +659,25 @@ and PGFPlots-ready static data, not the raw fields.
     \scriptsize
     \caption{Case matching for the resolved-velocity comparison. The case
     labels C23 and C40 are used in the main text and figures; the source ID
-    records the upstream local data directory.}
+    records the upstream local data directory, and the 1D target time is matched
+    to the available XDMF velocity sample.}
     \label{tab:t1-case-matching}
-    \begin{tabularx}{\textwidth}{@{}llXlrr@{}}
+    \begin{tabularx}{\textwidth}{@{}llXlrrr@{}}
         \toprule
         \textbf{Label}
             & \textbf{Source ID}
             & \textbf{Velocity metadata}
             & \textbf{Operator}
+            & \textbf{1D time (s)}
             & \textbf{3D time (s)}
             & \textbf{Time offset (s)} \\
         \midrule
         C23 & 77 & \path{77/velocity.xdmf}
             & \texttt{CrossSectionQuadratureOperator}
-            & 0.9994999999999453 & $5.0\times 10^{-4}$ \\
+            & 0.9995 & 0.9994999999999453 & $5.47\times10^{-14}$ \\
         C40 & 60 & \path{60/velocity.xdmf}
             & \texttt{CrossSectionQuadratureOperator}
-            & 0.9994999999999453 & $5.0\times 10^{-4}$ \\
+            & 0.9995 & 0.9994999999999453 & $5.47\times10^{-14}$ \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -718,9 +718,9 @@ and PGFPlots-ready static data, not the raw fields.
         Current lumen area
             & Dynamic 1D area is $A_{1D}=\pi a(z,t)$.
             & Fixed 3D cut area is $A_{3D}(z)$.
-            & algebraically reconstructed
-            & The tracked section asset supports the reported flow/area split,
-            but the split is bookkeeping rather than a wall-motion attribution. \\
+            & unresolved static cut
+            & The tracked section asset supports static cut-area auditing and the
+            reported flow/area split, but not a deformed-wall area attribution. \\
         Wall model
             & Compliant reduced Canic--Koiter wall law.
             & Velocity and displacement XDMF files expose one local snapshot;
@@ -757,10 +757,10 @@ and PGFPlots-ready static data, not the raw fields.
             & unknown
             & Reflections and downstream constraints remain unquantified. \\
         Time / transient history
-            & Evaluated at $T=1.0$ s from a start-up transient.
+            & Evaluated at $T=0.9995$ s from a start-up transient.
             & XDMF time is $0.9995$ s; earlier history is not recorded.
-            & unknown
-            & The final timestamps are close, but phase/history matching is not
+            & timestamp matched
+            & The final timestamps are matched, but phase/history matching is not
             established. \\
         Numerical resolution
             & $N=400$ finite-volume cells.
@@ -783,7 +783,7 @@ and PGFPlots-ready static data, not the raw fields.
     \centering
     \scriptsize
     \caption{Shared 1D realization and output-operator parameters for the
-    $t=1.0$ comparison. The generated comparison records characteristic-speed
+    $t=0.9995$ comparison. The generated comparison records characteristic-speed
     diagnostics, while realized CFL, mass, and positivity diagnostics are
     exposed by the solver and verification records.}
     \label{tab:t1-parameter-matching}
@@ -808,7 +808,7 @@ and PGFPlots-ready static data, not the raw fields.
         $p_{\mathrm{ext}}\equiv0$. \\
         Discretization & $N=400$, $L=6$ cm, MUSCL finite volume with minmod
         limiter, native SSPRK3 time integration. \\
-        Time controls & $T=1.0$ s from a start-up transient, timestep cap
+        Time controls & $T=0.9995$ s from a start-up transient, timestep cap
         $10^{-5}$ s, CFL cap 0.45. \\
         Initial and boundary state & Geometry-rest initial state
         $a=R_0^2$, $q=0$; inlet $\bar u_{\mathrm{in}}=22.5$ cm/s; outlet

@@ -73,6 +73,94 @@ function momentum_forcing(forcing::ManufacturedForcing, z::Float64, t::Float64, 
     return manufactured_flow_t(forcing, z, t, p) + flux_z - source
 end
 
+function independent_mass_forcing(forcing::ManufacturedForcing, z::Float64, t::Float64, p::Params)
+    flow_z = finite_difference_z(p, z) do zz
+        return manufactured_flow(forcing, zz, t, p)
+    end
+    return manufactured_area_t(forcing, z, t, p) + flow_z
+end
+
+function independent_momentum_flux(A::Float64, Q::Float64, z::Float64, p::Params)
+    Apos = positive_area(A)
+    _, r0z, _ = stenosis(z, p)
+    alpha_eff = momentum_alpha(p) + effective_alpha_c(p, r0z)
+    elastic_potential = wall_stiffness(p) / (3.0 * p.rho * wall_reference_radius(p)^2) * Apos^1.5
+    return alpha_eff * Q^2 / Apos + elastic_potential
+end
+
+function independent_momentum_source(
+    A::Float64,
+    Q::Float64,
+    z::Float64,
+    dA_dz::Float64,
+    dQ_dz::Float64,
+    p::Params,
+)
+    Ai = positive_area(A)
+    r0, r0z, r0zz = stenosis(z, p)
+    r0_safe = max(r0, sqrt(AREA_LIMITER_FLOOR))
+    gp2 = gamma_plus_two(p)
+    nu_eff = effective_kinematic_viscosity(Ai, Q, r0_safe, p)
+    partial_p2 = nu_eff * gp2 * (
+        Q / Ai / r0_safe * r0zz -
+        Q / Ai / r0_safe^2 * r0z^2 +
+        dQ_dz / Ai / r0_safe * r0z -
+        Q * dA_dz / Ai^2 / r0_safe * r0z
+    )
+    wall_source = wall_stiffness(p) / (p.rho * wall_reference_radius(p)^2) * Ai * r0z
+    alpha_c_source = Q^2 / Ai * effective_alpha_c_z(p, r0z, r0zz)
+    return -2.0 * nu_eff * gp2 * (Q / Ai) + wall_source - Ai * partial_p2 + alpha_c_source
+end
+
+function independent_momentum_forcing(forcing::ManufacturedForcing, z::Float64, t::Float64, p::Params)
+    A, Q = exact_manufactured_state(forcing, z, t, p)
+    dA_dz = finite_difference_z(p, z) do zz
+        return manufactured_area(forcing, zz, t, p)
+    end
+    dQ_dz = finite_difference_z(p, z) do zz
+        return manufactured_flow(forcing, zz, t, p)
+    end
+    flux_z = finite_difference_z(p, z) do zz
+        Az, Qz = exact_manufactured_state(forcing, zz, t, p)
+        return independent_momentum_flux(Az, Qz, zz, p)
+    end
+    source = independent_momentum_source(A, Q, z, dA_dz, dQ_dz, p)
+    return manufactured_flow_t(forcing, z, t, p) + flux_z - source
+end
+
+function manufactured_forcing_residual_audit(
+    p::Params;
+    z_values = range(0.0, p.length_cm; length=9),
+    t_values = nothing,
+    mass_scale::Float64 = 1.0,
+    momentum_scale::Float64 = 1.0,
+)
+    p.forcing isa ManufacturedForcing ||
+        throw(ArgumentError("manufactured forcing audit requires ManufacturedForcing"))
+    times = t_values === nothing ? range(0.0, min(p.tfinal, p.forcing.period_s / 4.0); length=3) : t_values
+    mass_max = 0.0
+    momentum_max = 0.0
+    for t in times, z in z_values
+        zf = Float64(z)
+        tf = Float64(t)
+        mass_max = max(
+            mass_max,
+            abs(mass_scale * mass_forcing(p.forcing, zf, tf, p) - independent_mass_forcing(p.forcing, zf, tf, p)),
+        )
+        momentum_max = max(
+            momentum_max,
+            abs(
+                momentum_scale * momentum_forcing(p.forcing, zf, tf, p) -
+                independent_momentum_forcing(p.forcing, zf, tf, p),
+            ),
+        )
+    end
+    return (
+        mass_max_abs_diff=mass_max,
+        momentum_max_abs_diff=momentum_max,
+    )
+end
+
 function characteristic_speeds(A::Float64, Q::Float64, z::Float64, p::Params)
     Apos = positive_area(A)
     _, r0z, _ = stenosis(z, p)

@@ -77,18 +77,18 @@
 
     @testset "workflow protocol helpers" begin
         mktempdir() do dir
-            severity_spec = SeveritySweepSpec(
+            severity_spec = StenosisHemodynamics.SeveritySweepSpec(
                 base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC()),
                 severities=[23.0],
                 summary_csv=joinpath(dir, "severity.csv"),
                 parallel_workers=0,
             )
-            @test severity_spec isa AbstractStudySpec
+            @test severity_spec isa StenosisHemodynamics.AbstractStudySpec
             @test StenosisHemodynamics.workflow_kind(severity_spec) == "severity_sweep"
             @test StenosisHemodynamics.default_output_paths(severity_spec).summary_csv == joinpath(dir, "severity.csv")
             @test StenosisHemodynamics.validate_workflow_spec(severity_spec) === severity_spec
 
-            refinement_spec = RefinementStudySpec(
+            refinement_spec = StenosisHemodynamics.RefinementStudySpec(
                 base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC()),
                 nxs=[8, 16],
                 degrees=[0, 1],
@@ -99,8 +99,8 @@
             @test StenosisHemodynamics.workflow_kind(refinement_spec) == "refinement"
             @test basename.(refinement_paths.csv_paths) == ["h_refinement.csv", "p_refinement.csv"]
 
-            case_spec = Resolved3DCaseSpec("77", 23.0, joinpath(dir, "velocity.xdmf"); target_time=5.0e-5)
-            comparison_spec = ComparisonSpec(
+            case_spec = StenosisHemodynamics.Resolved3DCaseSpec("77", 23.0, joinpath(dir, "velocity.xdmf"); target_time=5.0e-5)
+            comparison_spec = StenosisHemodynamics.ComparisonSpec(
                 cases=[case_spec],
                 base_params=Params(nx=8, tfinal=5.0e-5, initial_condition=GeometryRestIC()),
                 output_dir=joinpath(dir, "comparison"),
@@ -110,14 +110,14 @@
                 write_svg=true,
             )
             comparison_paths = StenosisHemodynamics.default_output_paths(comparison_spec)
-            @test comparison_spec isa AbstractStudySpec
+            @test comparison_spec isa StenosisHemodynamics.AbstractStudySpec
             @test StenosisHemodynamics.workflow_kind(comparison_spec) == "resolved3d_comparison"
             @test basename(comparison_paths.summary_csv) == "comparison_summary.csv"
             @test basename(comparison_paths.overlay_svg) == "section_quadrature_overlay.svg"
 
-            benchmark_spec = PackageBenchmarkSpec(output_dir=joinpath(dir, "benchmark"))
+            benchmark_spec = StenosisHemodynamics.PackageBenchmarkSpec(output_dir=joinpath(dir, "benchmark"))
             benchmark_paths = StenosisHemodynamics.default_output_paths(benchmark_spec)
-            @test benchmark_spec isa AbstractStudySpec
+            @test benchmark_spec isa StenosisHemodynamics.AbstractStudySpec
             @test StenosisHemodynamics.workflow_kind(benchmark_spec) == "package_benchmark"
             @test basename(benchmark_paths.case_results) == "case_results.csv"
             @test basename(benchmark_paths.manifest) == "manifest.json"
@@ -158,7 +158,7 @@
             "export-assets",
         ])
         @test handlers["simulate"] === StenosisHemodynamics.run_simulate_cli
-        @test_throws ArgumentError run_cli(["--tfinal", "1e-5"])
-        @test_throws ArgumentError run_cli(["not-a-command"])
+        @test_throws ArgumentError StenosisHemodynamics.run_cli(["--tfinal", "1e-5"])
+        @test_throws ArgumentError StenosisHemodynamics.run_cli(["not-a-command"])
     end
 end

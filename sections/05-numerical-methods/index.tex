@@ -112,6 +112,16 @@ multiple solvers on shared model cases, but a benchmark row does not by itself
 prove that a different stenosis geometry, wall law, or boundary rule is
 accurate \cite{BoileauEtAl2015Benchmark}.
 
+Open modeling platforms and model repositories occupy a related but distinct
+evidence role. A platform such as SimVascular supports inspectable model
+construction, meshing, simulation, and postprocessing workflows, while a
+vascular model repository provides reusable geometry and model records
+\cite{SimVascular2026Platform,SimVascular2026VascularModelRepository}. Those
+resources strengthen reproducibility and make reference cases easier to audit,
+but they are not themselves validation evidence unless the geometry, boundary
+data, material assumptions, numerical settings, and observable are matched to
+the claim being tested.
+
 Validation is a different evidence category. It requires comparison with an
 accepted reference for the target question, such as controlled experimental
 measurements, clinical measurements with known acquisition conventions, or a
@@ -140,6 +150,12 @@ closure used by the 1D reconstruction, and any azimuthal averaging. Multiscale
 and FSI literature treats such maps as part of the model interface rather than
 as after-the-fact plotting choices
 \cite{FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale}.
+Clinical FFR and CT-FFR sources show the same requirement in diagnostic form:
+the reported pressure-ratio observable is meaningful only after the imaging,
+model, boundary, and pressure-extraction conventions have been fixed
+\cite{TebaldiEtAl2015FFROverview,NorgaardEtAl2014NXTFFRCT,ShaikhEtAl2025CTFFR}.
+Comparisons of 1D and 3D FFR estimates make the cross-dimensional version of
+that requirement explicit \cite{Blanco2018FFR1D3D}.
 In this report, the plane--tetrahedron quadrature operator plays that role for
 the available resolved 3D velocity data, while the 1D state is observed through
 physical flow and area-mean velocity.
@@ -167,7 +183,9 @@ summarizes the roles used by the present manuscript.
             & Does the implemented forced operator reproduce a declared smooth exact
             state under refinement?
             & Implementation-verification evidence for flux, source, boundary, and
-            time-integration wiring. \\
+            time-integration wiring; strongest when the manufactured residual is
+            audited outside the production right-hand-side path or by mutation
+            tests. \\
         Geometry-rest equilibrium
             & Does the discrete flux/source operator preserve a selected rest state?
             & Well-balanced-property test for the stenosis geometry and wall-source
@@ -201,5 +219,5 @@ plane--tetrahedron quadrature rule is the observation-operator test: it defines
 how a resolved 3D velocity field becomes section area, physical flow, mean axial
 velocity, and radial-bin data comparable to 1D outputs. These checks answer
 different numerical questions, so agreement in one cannot substitute for
-failure or ambiguity in another.
+a limitation or ambiguity in another.
 \end{stenosisillustration}

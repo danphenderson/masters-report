@@ -63,6 +63,7 @@ function run_comparison(spec::ComparisonSpec)
         case_profiles = compare_radial_profiles(field, result, params, spec)
         case_sensitivity = compare_node_slab_sensitivity(field, result, params, spec)
         diagnostics = characteristic_diagnostics(result, params)
+        production_diagnostics = comparison_production_diagnostics(result, params)
         append!(section_rows, case_sections)
         append!(profile_rows, case_profiles)
         append!(sensitivity_rows, case_sensitivity)
@@ -76,6 +77,7 @@ function run_comparison(spec::ComparisonSpec)
                 case_sections,
                 case_profiles,
                 diagnostics,
+                production_diagnostics,
                 result.completed_time,
             ),
         )
@@ -635,6 +637,7 @@ function summarize_comparison(
     section_rows::Vector{SectionComparisonRow},
     profile_rows::Vector{RadialProfileRow},
     diagnostics,
+    production_diagnostics,
     one_d_completed_time::Real,
 )
     section_abs = finite_values(row.abs_velocity_error_cm_s for row in section_rows)
@@ -684,6 +687,20 @@ function summarize_comparison(
         diagnostics.lambda_plus_min,
         diagnostics.lambda_plus_max,
         diagnostics.subcritical_margin_min,
+        production_diagnostics.accepted_dt_min,
+        production_diagnostics.accepted_dt_max,
+        production_diagnostics.realized_cfl_max,
+        production_diagnostics.min_solver_area,
+        production_diagnostics.min_physical_area_cm2,
+        production_diagnostics.solver_volume_defect,
+        production_diagnostics.physical_volume_defect_cm3,
+        production_diagnostics.positivity_projection_count,
+        production_diagnostics.positivity_correction_total,
+        production_diagnostics.final_inlet_area_flux,
+        production_diagnostics.final_outlet_area_flux,
+        production_diagnostics.final_area_flux_balance,
+        production_diagnostics.final_rhs_area_max_abs,
+        production_diagnostics.final_rhs_flow_max_abs,
         metadata.time,
         time_fields.xdmf_target_time_error_s,
         time_fields.target_time_s,
@@ -692,6 +709,43 @@ function summarize_comparison(
         time_fields.one_d_terminal_time_error_s,
         time_fields.xdmf_target_time_error_s,
         time_fields.cross_model_time_offset_s,
+    )
+end
+
+function comparison_production_diagnostics(result::SimulationResult, params::Params)
+    dx = params.length_cm / params.nx
+    cache = RHSCache(length(result.area))
+    dA = similar(result.area)
+    dQ = similar(result.flow)
+    fill_rhs_dt!(dA, dQ, result.area, result.flow, result.z, dx, 0.0, result.completed_time, params, cache)
+    fill_method_fluxes!(
+        cache.area_flux,
+        cache.flow_flux,
+        result.area,
+        result.flow,
+        result.z,
+        dx,
+        0.0,
+        result.completed_time,
+        params.space,
+        params,
+        cache,
+    )
+    return (
+        accepted_dt_min=result.diagnostics.dt_min,
+        accepted_dt_max=result.diagnostics.dt_max,
+        realized_cfl_max=result.diagnostics.cfl_max,
+        min_solver_area=minimum(result.area),
+        min_physical_area_cm2=pi * minimum(result.area),
+        solver_volume_defect=result.diagnostics.mass_defect,
+        physical_volume_defect_cm3=pi * result.diagnostics.mass_defect,
+        positivity_projection_count=result.diagnostics.positivity_projection_count,
+        positivity_correction_total=result.diagnostics.positivity_correction_total,
+        final_inlet_area_flux=cache.area_flux[begin],
+        final_outlet_area_flux=cache.area_flux[end],
+        final_area_flux_balance=cache.area_flux[end] - cache.area_flux[begin],
+        final_rhs_area_max_abs=maximum(abs.(dA)),
+        final_rhs_flow_max_abs=maximum(abs.(dQ)),
     )
 end
 

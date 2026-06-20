@@ -40,21 +40,46 @@ preservation, and observation operators enter a reproducible computation.
 \label{subsec:narrative-review-scope}
 
 The review is narrative and scoping in style rather than systematic. Sources
-were selected from the local source inventory and bibliography to cover the
-mathematical model hierarchy, stenosis-specific reduced models, rheology,
-wall and boundary closures, numerical methods, verification and validation,
-cross-dimensional comparison, and emerging scientific machine-learning
-approaches. The included sources span classical stenosis-loss studies,
-continuum and cardiovascular modeling references, benchmark and open-solver
-work, and recent learned-model literature
-\cite{YoungTsai1973SteadyStenosis,YoungTsai1973UnsteadyStenosis,GaldiEtAl2008HemodynamicalFlows,QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF,CanicEtAl2024Extended1DStenosis,YuEtAl2026PINNHemodynamicsReview}.
+were identified from a curated bibliography, a structured source-provenance
+log, citation trails within retained sources, and a deliberately narrow
+targeted-search lane. The literature-hardening pass was completed on
+19~June~2026 and considered English-language records from 1973--2026. The
+representative search strings were ``one-dimensional blood flow benchmark,''
+``well-balanced blood flow finite volume,'' ``3D 1D fractional flow reserve
+comparison,'' ``cardiovascular fluid structure interaction verification,'' and
+``hemodynamics identifiability surrogate.'' Targeted search was used only to
+check for concrete gaps in model hierarchy, closure uncertainty,
+verification/validation, and observation operators; no broad citation expansion
+was attempted.
+
+The working evidence base consisted of 68 BibLaTeX entries, 74 logged source
+records, a 132-row evidence matrix, and a derived review-depth matrix.
+After triage, 38 source records are treated as current cited evidence, 7 remain
+report-adjacent scope checks, 22 are retained as future-work context, 2 remain
+background only, and 5 are deferred pending metadata review. Blank
+\texttt{bib\_key} records are not used for citation. The included sources span
+classical stenosis-loss studies, continuum and cardiovascular modeling
+references, clinical pressure-flow observables, benchmark and open-solver work,
+and compact learned-model context
+\cite{YoungTsai1973SteadyStenosis,YoungTsai1973UnsteadyStenosis,GaldiEtAl2008HemodynamicalFlows,
+QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2003OneDimensionalBloodFlow,
+ShiEtAl2011BloodFlowModelReview,BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF,
+CanicEtAl2024Extended1DStenosis,ToninoEtAl2010FAMEAngioFunctional,
+Blanco2018FFR1D3D,YuEtAl2026PINNHemodynamicsReview}.
 
 The inclusion criterion is relevance to the mathematical reading of blood-flow
 simulation: what equations are solved, which physics are retained or closed,
 what data are required, what observables are produced, and what evidence can
-support a comparison. Clinical pressure-ratio and wall-shear literature is used
-only where it clarifies model-dependent observables. The review does not claim
-exhaustive coverage of all clinical or computational hemodynamics.
+support a comparison. Sources were retained only when they supported at least
+one of those questions for the model hierarchy, closures, numerical evidence
+standard, or 1D--3D observation operator. Exclusion categories were sources with
+unresolved metadata, sources useful only for broad clinical burden or general
+background, low-value surrogate-learning references that did not clarify a
+hemodynamics-specific limitation, and sources whose claims did not affect the
+worked stenosis example. Clinical pressure-ratio, CT-FFR, distensibility, and
+wall-shear literature is used only where it clarifies model-dependent
+observables. The review does not claim exhaustive coverage of all clinical or
+computational hemodynamics.
 
 \subsection{Research Problem and Questions}
 \label{subsec:research-problem-questions}

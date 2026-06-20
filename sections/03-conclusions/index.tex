@@ -97,7 +97,12 @@ numerical methods, verification, validation, and observation operators.
 The central conclusion is that model interpretation depends on matched
 mathematical structure. A result is meaningful only relative to the equations,
 closures, boundary data, discretization, evidence standard, and observable that
-produced it. The StenosisHemodynamics case study makes this concrete for an
+produced it. The source-to-source review reinforces this conclusion across
+resolved CFD/FSI, reduced and lumped models, clinical pressure-flow
+observables, open solver workflows, and learned surrogate maps: disagreement is
+not interpretable until the retained variables, closures, numerical evidence,
+and observation operator are stated together. The StenosisHemodynamics case
+study makes this concrete for an
 idealized stenosis: it specifies the reduced model, verifies the implemented
 operator, tests an equilibrium property, and compares reduced and resolved
 velocity information through a declared quadrature operator.

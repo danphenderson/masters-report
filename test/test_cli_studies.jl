@@ -232,7 +232,7 @@ end
 
     mktempdir() do dir
         csv_path = joinpath(dir, "simulate.csv")
-        result = run_cli([
+        result = StenosisHemodynamics.run_cli([
             "simulate",
             "--ic", "geometry-rest",
             "--tfinal", "1e-5",
@@ -248,7 +248,7 @@ end
 
     mktempdir() do dir
         csv_path = joinpath(dir, "classical.csv")
-        result = run_cli([
+        result = StenosisHemodynamics.run_cli([
             "simulate",
             "--model", "classical-1d-no-slip",
             "--velocity-profile", "parabolic",
@@ -262,7 +262,7 @@ end
         @test result isa SimulationResult
         rows = readlines(csv_path)
         @test occursin("classical-1d-no-slip,false,canic-koiter-thin-membrane", rows[2])
-        @test_throws ArgumentError run_cli([
+        @test_throws ArgumentError StenosisHemodynamics.run_cli([
             "simulate",
             "--model", "classical-1d-no-slip",
             "--velocity-profile", "flat",
@@ -277,13 +277,13 @@ end
 
     mktempdir() do dir
         config_path, _ = write_openbf_fixture(dir; project_name="cli_openbf")
-        result = run_cli(["openbf-run", "--config", config_path])
+        result = StenosisHemodynamics.run_cli(["openbf-run", "--config", config_path])
         @test result isa SimulationResult
         @test isfile(joinpath(dir, "out", "cli_openbf.csv"))
     end
 
     mktempdir() do dir
-        result = run_cli(["compare-3d", "--data-root", joinpath(dir, "missing"), "--output-dir", joinpath(dir, "out"), "--overwrite"])
+        result = StenosisHemodynamics.run_cli(["compare-3d", "--data-root", joinpath(dir, "missing"), "--output-dir", joinpath(dir, "out"), "--overwrite"])
         @test result === nothing
     end
 
@@ -291,7 +291,7 @@ end
         data_root = joinpath(dir, "resolved")
         write_synthetic_xdmf_hdf5_case(joinpath(data_root, "77"); time=5.0e-5)
         output_dir = joinpath(dir, "comparison")
-        result = run_cli([
+        result = StenosisHemodynamics.run_cli([
             "compare-3d",
             "--data-root",
             data_root,
@@ -314,7 +314,7 @@ end
             "--no-svg",
             "--overwrite",
         ])
-        @test result isa ComparisonResult
+        @test result isa StenosisHemodynamics.ComparisonResult
         row = only(read_simple_csv(result.summary_csv))
         @test row["case_label"] == "77"
         @test row["model"] == "canic-extended-1d"
@@ -328,14 +328,14 @@ end
     end
 
     mktempdir() do dir
-        result = run_cli(["benchmark", "--profile", "smoke", "--output-dir", dir, "--overwrite"])
-        @test result isa PackageBenchmarkResult
+        result = StenosisHemodynamics.run_cli(["benchmark", "--profile", "smoke", "--output-dir", dir, "--overwrite"])
+        @test result isa StenosisHemodynamics.PackageBenchmarkResult
         @test isfile(joinpath(dir, "manifest.json"))
     end
 
     mktempdir() do dir
         zero_dir = joinpath(dir, "rest-zero")
-        result = run_cli([
+        result = StenosisHemodynamics.run_cli([
             "verify",
             "rest",
             "--output-dir",
@@ -350,7 +350,7 @@ end
             "0",
             "--overwrite",
         ])
-        @test result isa RestStateDriftResult
+        @test result isa StenosisHemodynamics.RestStateDriftResult
         @test result.spec.base_params.inlet_umax ≈ 0.0
         @test isfile(result.profile_csv)
         row = only(csv_row for csv_row in read_simple_csv(result.summary_csv) if csv_row["requested_time_s"] != "0.0")
@@ -358,7 +358,7 @@ end
         @test parse(Float64, row["applied_q_in"]) ≈ 0.0
 
         production_dir = joinpath(dir, "rest-production-inlet")
-        production_result = run_cli([
+        production_result = StenosisHemodynamics.run_cli([
             "verify",
             "rest",
             "--output-dir",
@@ -382,19 +382,19 @@ end
 end
 
 @testset "StenosisHemodynamics study output provenance" begin
-    parabolic_spec = SeveritySweepSpec(
+    parabolic_spec = StenosisHemodynamics.SeveritySweepSpec(
         base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC()),
         severities=[23.0, 50.0],
         progress_every=0,
         parallel_workers=1,
     )
-    legacy_power_spec = SeveritySweepSpec(
+    legacy_power_spec = StenosisHemodynamics.SeveritySweepSpec(
         base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC(), alpha=1.1),
         severities=[23.0, 50.0],
         progress_every=0,
         parallel_workers=1,
     )
-    flat_grid_spec = GridConvergenceStudySpec(
+    flat_grid_spec = StenosisHemodynamics.GridConvergenceStudySpec(
         base_params=Params(
             nx=8,
             tfinal=1.0e-5,
@@ -413,7 +413,7 @@ end
     @test occursin("_vp_flat_sf_8_", study_summary_path(flat_grid_spec))
 
     mktempdir() do dir
-        flat_spec = SeveritySweepSpec(
+        flat_spec = StenosisHemodynamics.SeveritySweepSpec(
             base_params=Params(
                 nx=8,
                 tfinal=1.0e-5,
@@ -426,7 +426,7 @@ end
             progress_every=0,
             parallel_workers=1,
         )
-        flat_result = run_study(flat_spec)
+        flat_result = StenosisHemodynamics.run_study(flat_spec)
         flat_row = only(flat_result.summaries)
         @test flat_row.model == "canic-extended-1d"
         @test flat_row.variable_radius_terms == true
@@ -447,7 +447,7 @@ end
         @test isnan(parse(Float64, flat_csv_row["profile_exponent"]))
         @test parse(Float64, flat_csv_row["shear_rate_factor"]) ≈ 8.0
 
-        power_spec = GridConvergenceStudySpec(
+        power_spec = StenosisHemodynamics.GridConvergenceStudySpec(
             base_params=Params(
                 nx=8,
                 tfinal=1.0e-5,
@@ -461,7 +461,7 @@ end
             progress_every=0,
             parallel_workers=1,
         )
-        power_result = run_study(power_spec)
+        power_result = StenosisHemodynamics.run_study(power_spec)
         power_row = only(power_result.summaries)
         @test power_row.velocity_profile == "power"
         @test power_row.alpha ≈ 1.1
@@ -477,7 +477,7 @@ end
 
 @testset "StenosisHemodynamics process-parallel studies" begin
     mktempdir() do dir
-        spec = SeveritySweepSpec(
+        spec = StenosisHemodynamics.SeveritySweepSpec(
             base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC()),
             severities=[23.0, 50.0],
             summary_csv=joinpath(dir, "parallel_severity.csv"),
@@ -485,7 +485,7 @@ end
             progress_every=0,
             parallel_workers=2,
         )
-        result = run_study(spec)
+        result = StenosisHemodynamics.run_study(spec)
 
         @test length(result.summaries) == 2
         @test [row.severity for row in result.summaries] == [23.0, 50.0]
@@ -501,7 +501,7 @@ end
 @testset "StenosisHemodynamics stationary Stokes refinement study" begin
     mktempdir() do dir
         base_params = Params(nx=4, tfinal=0.0, severity=0.0, initial_condition=GeometryRestIC())
-        spec = StationaryStokesRefinementSpec(
+        spec = StenosisHemodynamics.StationaryStokesRefinementSpec(
             base_params=base_params,
             severities=[0.0],
             meshes=[(2, 2, 8), (3, 2, 8), (0, 2, 8)],
@@ -509,7 +509,7 @@ end
             overwrite=true,
             parallel_workers=1,
         )
-        result = run_stationary_stokes_refinement(spec)
+        result = StenosisHemodynamics.run_stationary_stokes_refinement(spec)
 
         @test result.summary_csv == joinpath(dir, "summary.csv")
         @test isfile(result.summary_csv)
@@ -561,11 +561,11 @@ end
 
 @testset "StenosisHemodynamics refinement studies" begin
     mktempdir() do dir
-        @test SeveritySweepSpec(severities=[23.0]).base_params.initial_condition isa GeometryRestIC
-        @test GridConvergenceStudySpec(nxs=[8, 16]).base_params.initial_condition isa GeometryRestIC
-        @test RefinementStudySpec().base_params.initial_condition isa GeometryRestIC
+        @test StenosisHemodynamics.SeveritySweepSpec(severities=[23.0]).base_params.initial_condition isa GeometryRestIC
+        @test StenosisHemodynamics.GridConvergenceStudySpec(nxs=[8, 16]).base_params.initial_condition isa GeometryRestIC
+        @test StenosisHemodynamics.RefinementStudySpec().base_params.initial_condition isa GeometryRestIC
 
-        spec = RefinementStudySpec(
+        spec = StenosisHemodynamics.RefinementStudySpec(
             base_params=Params(nx=8, tfinal=1.0e-5, severity=30.0, initial_condition=GeometryRestIC()),
             nxs=[8, 16],
             degrees=[0, 1, 2],
@@ -575,7 +575,7 @@ end
             progress_every=0,
             parallel_workers=1,
         )
-        result = run_refinement_study(spec)
+        result = StenosisHemodynamics.run_refinement_study(spec)
 
         @test length(result.h_rows) == 2
         @test length(result.p_rows) == 6

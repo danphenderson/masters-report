@@ -10,9 +10,30 @@ track generated final PDFs, third-party full-text reference mirrors, private
 review notes, local caches, raw optional resolved-3D inputs, or ordinary
 simulation outputs.
 
+## Prerequisites
+
+- macOS or Linux shell environment.
+- Julia 1.12 or newer for package tests, simulations, and benchmarks.
+- Python 3 with Pipenv for auxiliary report audits and figure renderers.
+- A TeX distribution with `latexmk` and `biber` for report builds.
+
+Optional resolved-3D comparison workflows require local XDMF/HDF5 inputs that
+are not tracked in this repository.
+
+## What Reproduces from a Clean Clone?
+
+| Workflow | Clean public clone? | Notes |
+| --- | --- | --- |
+| Julia tests | Yes | Uses the repository-managed Julia launcher. |
+| Report build | Yes | Uses tracked TeX inputs and derived report assets; writes scratch outputs. |
+| Solver smoke simulation | Yes | Writes local output under the requested scratch path. |
+| Python audits and render helpers | Yes | Requires `pipenv install --dev` first. |
+| Figure rendering | Mostly | Analytic and package-benchmark figures use tracked or locally generated inputs; some resolved-3D assets require optional local data. |
+| Full resolved-3D comparison | No | Requires untracked XDMF/HDF5 inputs under `simulations/data/3d/canic_case3/`. |
+
 ## Reviewer Quick Start
 
-Run Julia package validation with the repository-managed Julia 1.12+ launcher:
+Run Julia package validation with the repository-managed Julia launcher:
 
 ```bash
 ./scripts/julia-release test/runtests.jl
@@ -21,8 +42,18 @@ Run Julia package validation with the repository-managed Julia 1.12+ launcher:
 Build the report from source in a scratch directory:
 
 ```bash
-latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=/tmp/masters-report-build final-report.tex
+python3 scripts/build_report.py --outdir /tmp/masters-report-build
 ```
+
+The report wrapper runs the TeX preamble audit, calls `latexmk -pdf
+-interaction=nonstopmode -halt-on-error` underneath, writes
+`report-build-summary.json` in the scratch outdir, and fails if the `.fls`
+recorder shows untracked report inputs consumed by the build.
+
+On success, the scratch directory contains `final-report.pdf`,
+`final-report.log`, `final-report.fls`, and `report-build-summary.json`. If the
+build fails, inspect the summary JSON and the `latexmk` log in the same scratch
+directory.
 
 Run a small solver smoke case:
 
@@ -47,12 +78,18 @@ Artifact classes, cleanup guardrails, and public-release checks are documented
 in [`docs/artifact-policy.md`](docs/artifact-policy.md) and
 [`docs/publication-readiness.md`](docs/publication-readiness.md).
 
+## Optional Resolved-3D Inputs
+
+Resolved-3D XDMF/HDF5 inputs under `simulations/data/3d/canic_case3/` are
+intentionally untracked. Workflows that depend on them either skip cleanly or
+emit skipped rows when the files are absent. Published report assets derived
+from available resolved-3D inputs are tracked only when consumed by the TeX
+source.
+
 ## Data and References
 
 Tracked report assets under `figures/static/static/` are derived artifacts used
-by the current TeX source. Optional raw resolved-3D inputs are intentionally not
-tracked; workflows that depend on them skip cleanly when the local files are
-absent.
+by the current TeX source.
 
 Bibliography metadata lives in `references.bib`; source provenance lives in
 [`references/source-inventory.tsv`](references/source-inventory.tsv). Public
@@ -75,15 +112,13 @@ Regenerate the analytic stenosis geometry CSVs and rendered report assets with:
 pipenv run python scripts/render_stenosis_geometry_figures.py
 ```
 
-The exporter also checks for optional resolved 3D data under
-`simulations/data/3d/canic_case3/` and writes node-envelope CSVs only when the
-local XDMF/HDF5 files are present.
+The exporter also checks for optional resolved-3D data under
+`simulations/data/3d/canic_case3/` when local inputs are available.
 
 ## Package Benchmark Pipeline
 
-Run the reproducible package benchmark through the Julia package
-wrapper. The smoke profile is a deterministic wiring check; the overnight
-profile expands the same output schemas to the full benchmark matrix.
+Run the reproducible package benchmark through the Julia package wrapper. The
+smoke profile is a deterministic wiring check:
 
 ```bash
 ./scripts/stenosis-hemodynamics benchmark \
@@ -92,24 +127,9 @@ profile expands the same output schemas to the full benchmark matrix.
   --overwrite
 ```
 
-Publish benchmark CSVs into the report asset tree and render report figures:
-
-```bash
-./scripts/stenosis-hemodynamics benchmark \
-  --profile overnight \
-  --output-dir simulations/output/package_benchmark/overnight-YYYYMMDD \
-  --overwrite \
-  --include-resolved3d \
-  --publish-report-assets
-
-pipenv run python scripts/render_package_benchmark_figures.py \
-  --benchmark-dir simulations/output/package_benchmark/overnight-YYYYMMDD
-```
-
-The benchmark writes `manifest.json`, `case_results.csv`, `refinement.csv`,
-`backend_parity.csv`, `stokes_ic.csv`, `rheology_profile.csv`,
-`boundary_openbf.csv`, and `resolved3d.csv`. Optional inputs such as local
-resolved-3D data produce skipped rows when absent rather than crashing the run.
+For the full overnight benchmark, report-asset publishing workflow, output
+schemas, and resolved-3D skip behavior, see
+[`docs/benchmark-pipeline.md`](docs/benchmark-pipeline.md).
 
 ## Environments
 
@@ -138,7 +158,8 @@ through the numerics protocols: spatial methods subtype `AbstractSpatialMethod`,
 limiters subtype `AbstractLimiter`, and time backends subtype
 `AbstractTimeBackend`. Capability checks are expressed with internal trait
 queries such as `supports_backend` and `requires_fixed_timestep`; user-facing
-method size should use the exported `degrees_of_freedom(nx, method)`.
+method-size calculations should use the exported
+`degrees_of_freedom(nx, method)`.
 
 Optional integrations belong behind adapter files rather than solver kernels:
 SciML/OrdinaryDiffEq in `adapters/sciml_problem.jl`, Gridap stationary-Stokes
@@ -154,7 +175,6 @@ summaries. It is not a hemodynamics solver surface, and there is no Python
 simulation CLI or editable package to install.
 
 ```bash
-pipenv install --dev
 pipenv run pytest
 pipenv run python scripts/render_package_benchmark_figures.py \
   --benchmark-dir simulations/output/package_benchmark/overnight-YYYYMMDD
@@ -169,5 +189,7 @@ pipenv run python scripts/summarize_revision_evidence.py \
   --data-root simulations/data/3d/canic_case3
 ```
 
-Run simulations and benchmarks with `./scripts/stenosis-hemodynamics` or
-programmatically through `using StenosisHemodynamics`.
+Run simulations and benchmarks with `./scripts/stenosis-hemodynamics`.
+Programmatic use through `using StenosisHemodynamics` exposes the core modeling
+and `simulate` API; report and benchmark workflow helpers remain available only
+as qualified names such as `StenosisHemodynamics.run_package_benchmark`.

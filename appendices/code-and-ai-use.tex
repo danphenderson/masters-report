@@ -19,7 +19,7 @@ source-control policy.
 \paragraph*{Build command.}
 The report build command is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=/tmp/masters-report-build final-report.tex
+python3 scripts/build_report.py --outdir /tmp/masters-report-build
 \end{lstlisting}
 Julia package tests are run through the repository launcher:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
@@ -34,7 +34,7 @@ assets are regenerated with:
   --data-root simulations/data/3d/canic_case3 \
   --output-dir simulations/output/3d_comparison/full_t1_native_nx400 \
   --nx 400 \
-  --target-time 1.0 \
+  --target-time 0.9995 \
   --time-atol 1e-3 \
   --overwrite \
   --publish-report-assets \
@@ -43,8 +43,9 @@ assets are regenerated with:
   --radial-radius-modes current,reference
 \end{lstlisting}
 This command reproduces the currently tracked comparison assets; it accepts the
-available $0.9995$ s 3D velocity field for the nominal $1.0$ s 1D comparison
-time and therefore does not eliminate the sample-time offset.
+available $0.9995$ s 3D velocity field and runs the 1D comparison to the same
+target time. The remaining timing limitation is transient-history matching, not
+the final timestamp.
 Package-benchmark assets are regenerated separately from the PDF. Use the
 \texttt{benchmark} subcommand of \path{./scripts/stenosis-hemodynamics}; render
 those assets with \path{scripts/render_package_benchmark_figures.py}. Those rows
@@ -67,8 +68,8 @@ case3_all_3d_results/
 \end{lstlisting}
 The report archives generated CSV and PGFPlots-ready static assets, not the raw
 fields. Current/deformed 3D geometry, displacement application before plane
-cuts, wall/boundary/material histories, and exact-time 0.9995 s resampling
-remain unresolved unless a later release record adds those data.
+cuts, wall/boundary/material histories, and earlier transient histories remain
+unresolved unless a later release record adds those data.
 
 The file-hash record is stored outside the thesis PDF. Its manifest path is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]

@@ -1,6 +1,6 @@
 @testset "package benchmark smoke profile" begin
     mktempdir() do dir
-        spec = PackageBenchmarkSpec(;
+        spec = StenosisHemodynamics.PackageBenchmarkSpec(;
             profile="smoke",
             output_dir=dir,
             overwrite=true,
@@ -8,7 +8,7 @@
             publish_report_assets=false,
         )
         result = @test_logs (:info, "package benchmark started") (:info, "package benchmark stage completed") (:info, "package benchmark completed") match_mode=:any begin
-            run_package_benchmark(spec)
+            StenosisHemodynamics.run_package_benchmark(spec)
         end
         @test result.output_dir == dir
         @test isfile(result.manifest_path)
@@ -30,7 +30,9 @@
         end
         manifest = read(result.manifest_path, String)
         @test occursin("\"synthetic_waveform.csv\"", manifest)
-        @test_throws ArgumentError run_package_benchmark(PackageBenchmarkSpec(; output_dir=dir))
+        @test_throws ArgumentError StenosisHemodynamics.run_package_benchmark(
+            StenosisHemodynamics.PackageBenchmarkSpec(; output_dir=dir),
+        )
     end
 end
 

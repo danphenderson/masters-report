@@ -24,14 +24,93 @@ Carreau--Yasuda and intracranial stenosis rheology illustrate why the selected
 rheology must be reported with the resulting hemodynamic observable
 \cite{KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}.
 
+\begin{definition}[Effective-viscosity closure catalog]
+\label{def:rheology-closure-catalog}
+A reduced realization that exposes a rheology descriptor $\mathcal R$ must state
+the scalar effective dynamic-viscosity law
+$\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma)$ before its friction, pressure,
+or shear diagnostics can be interpreted. The descriptor set used in this report
+is
+\[
+    \texttt{newtonian},\quad
+    \texttt{carreau},\quad
+    \texttt{carreau-yasuda},\quad
+    \texttt{casson},\quad
+    \texttt{power-law}.
+\]
+The reduced solver evaluates the selected law on a declared shear-rate proxy,
+then uses the density-scaled kinematic coefficient
+$\nu_{\mathrm{eff}}^{\mathcal R}
+=\eta_{\mathrm{eff}}^{\mathcal R}/\rho$ in its source terms. For computed
+non-Newtonian descriptor rows, singular or degenerate zero-shear behavior is
+regularized by
+\begin{flalign*}
+    \quad
+    \dot\gamma_\epsilon
+    \defined
+    \max\{|\dot\gamma|,\epsilon_\gamma\},
+    \qquad
+    \epsilon_\gamma>0,
+    &&
+\end{flalign*}
+and optional declared dynamic-viscosity bounds are applied through
+\begin{flalign*}
+    \quad
+    \Pi_{[\eta_{\min},\eta_{\max}]}(\xi)
+    \defined
+    \min\{\eta_{\max},\max\{\eta_{\min},\xi\}\},
+    \qquad
+    0\leq\eta_{\min}\leq\eta_{\max}\leq\infty.
+    &&
+\end{flalign*}
+Without declared bounds, this projection is the identity. The catalog laws are
+\begin{flalign*}
+    \quad
+    \eta_{\mathrm{eff}}^{\mathrm{newt}}
+    &\equiv \eta, &&\\
+    \quad
+    \eta_{\mathrm{eff}}^{\mathrm{carreau}}(\dot\gamma)
+    &=
+    \eta_\infty+(\eta_0-\eta_\infty)
+    \left(1+(\lambda_{\mathrm C}\dot\gamma_\epsilon)^2\right)^{(n_{\mathrm C}-1)/2}, &&\\
+    \quad
+    \eta_{\mathrm{eff}}^{\mathrm{CY}}(\dot\gamma)
+    &=
+    \eta_\infty+(\eta_0-\eta_\infty)
+    \left(1+(\lambda_{\mathrm{CY}}\dot\gamma_\epsilon)^{a_{\mathrm Y}}\right)^{(n_{\mathrm{CY}}-1)/a_{\mathrm Y}}, &&\\
+    \quad
+    \eta_{\mathrm{eff}}^{\mathrm{casson}}(\dot\gamma)
+    &=
+    \left(\sqrt{\tau_y/\dot\gamma_\epsilon}+\sqrt{\eta_p}\right)^2, &&\\
+    \quad
+    \eta_{\mathrm{eff}}^{\mathrm{power}}(\dot\gamma)
+    &=
+    K_{\mathrm{pl}}\dot\gamma_\epsilon^{n_{\mathrm{pl}}-1}. &&
+\end{flalign*}
+The Carreau and Carreau--Yasuda parameters satisfy
+$\eta_0>0$, $\eta_\infty\geq0$, $\eta_0\geq\eta_\infty$,
+$\lambda_{\mathrm C},\lambda_{\mathrm{CY}}\geq0$,
+$n_{\mathrm C},n_{\mathrm{CY}}>0$, and $a_{\mathrm Y}>0$; the Casson
+parameters satisfy $\tau_y\geq0$ and $\eta_p>0$; and the power-law parameters
+satisfy $K_{\mathrm{pl}}>0$ and $n_{\mathrm{pl}}>0$. The dynamic-viscosity
+parameters have viscosity units, $\tau_y$ has stress units, and
+$K_{\mathrm{pl}}$ has units $\mathrm{Pa}\cdot\mathrm{s}^{n_{\mathrm{pl}}}$ in
+SI. The listed families are implementation-facing descriptor options, not
+universal blood constants.
+\end{definition}
+
 Wall modeling is a separate closure axis. A fixed-wall model prescribes the
 lumen boundary and solves only the fluid problem. A reduced compliant-wall model
 uses an algebraic or differential pressure--area relation to close a 1D or
 network state. A resolved FSI model solves structural wall motion and couples it
 to the fluid at the interface
 \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,FormaggiaEtAl2007FSICoupling}.
-The same rheology can be paired with any of these wall choices, so rheology and
-wall mechanics should not be merged into a single modeling label.
+Clinical imaging work on coronary distensibility reinforces the same modeling
+distinction from the observable side: wall compliance can be a measured or
+estimated quantity rather than a hidden numerical constant
+\cite{KelleEtAl2011CoronaryDistensibility}. The same rheology can be paired
+with any of these wall choices, so rheology and wall mechanics should not be
+merged into a single modeling label.
 
 \subsection{Geometry, Boundary Data, and Observables}
 \label{subsec:geometry-boundary-observable-closures}
@@ -52,6 +131,14 @@ Windkessel, impedance, reflection, or characteristic conditions. In multiscale
 models, the same words also name interface contracts between tiers, not only
 external boundary conditions
 \cite{QuarteroniVeneziani2003GeometricalMultiscale,ShiEtAl2011BloodFlowModelReview}.
+For a single-vessel problem, this means the boundary is not just a geometric
+edge. A resolved 3D problem may prescribe velocity, flow, traction, pressure, or
+wall-coupling information on inlet, outlet, and wall portions, while a 1D model
+applies incoming information to area--flow or characteristic variables. The
+fixed-area characteristic rule used in Section~\ref{subsec:initial-boundary-conditions}
+is therefore part of the implemented model contract, and the subcritical
+diagnostics in Section~\ref{subsec:boundary-diagnostics} are boundary-regime
+evidence rather than optional bookkeeping.
 
 Observables should be named at the level where they are actually defined.
 Pressure may be an absolute pressure, gauge pressure, cross-sectional mean
@@ -64,6 +151,19 @@ name for any reduced shear proxy \cite{JohnEtAl2017WallShearStressVectorForm}.
 Displacement belongs to a wall or structural state, so it is native to resolved
 FSI or a structural model and only indirectly represented by a reduced
 pressure--area wall law.
+
+Clinical pressure-flow quantities add another observable layer. FFR literature
+separates anatomical stenosis severity from functional severity, while overview
+and trial sources define FFR as a pressure-ratio diagnostic rather than a
+generic flow-model output
+\cite{ToninoEtAl2010FAMEAngioFunctional,TebaldiEtAl2015FFROverview}. CT-derived
+FFR sources shift the same diagnostic into an image-derived computational
+pipeline, so the observable depends on segmentation, boundary assumptions,
+solver model, and pressure-ratio extraction
+\cite{NorgaardEtAl2014NXTFFRCT,ShaikhEtAl2025CTFFR}. The 1D--3D FFR comparison
+literature makes the cross-tier version of the point: a pressure-ratio scalar
+can be compared across model classes only after both states have been observed
+through compatible pressure and flow conventions \cite{Blanco2018FFR1D3D}.
 
 \begin{table}[!htb]
     \centering
@@ -105,7 +205,8 @@ pressure--area wall law.
             characteristic condition.
             & Controls wave reflection, terminal load, and pressure--flow phase. \\
         Observation map
-            & Pressure, flow, velocity, WSS, displacement, or derived diagnostic.
+            & Pressure, flow, velocity, WSS, displacement, FFR, or derived
+            diagnostic.
             & Separates native model states from reconstructed or cross-tier
             comparison quantities. \\
         \bottomrule

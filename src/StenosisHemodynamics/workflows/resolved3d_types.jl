@@ -7,7 +7,7 @@ const DEFAULT_COMPARISON_OUTPUT_DIR = joinpath("simulations", "output", "3d_comp
 const DEFAULT_NODE_SLAB_HALF_WIDTH_CM = 0.015
 
 """
-    Resolved3DCaseSpec(case_label, severity, velocity_xdmf; target_time=1.0, time_atol=1e-3)
+    Resolved3DCaseSpec(case_label, severity, velocity_xdmf; target_time=0.9995, time_atol=1e-3)
 
 Reference 3D velocity case to compare against a 1D run. `velocity_xdmf` points
 to the XDMF metadata file; the HDF5 paths referenced inside it are resolved
@@ -25,7 +25,7 @@ function Resolved3DCaseSpec(
     case_label,
     severity,
     velocity_xdmf;
-    target_time::Real = 1.0,
+    target_time::Real = 0.9995,
     time_atol::Real = 1.0e-3,
 )
     severity_value = Float64(severity)
@@ -95,11 +95,11 @@ descriptor, an `AbstractResolved3DOperator` implementation with `operator_name`,
 and loader functions that return package-native arrays before comparison code
 runs. HDF5/XDMF details should stay in adapter files.
 """
-struct ComparisonSpec <: AbstractStudySpec
+struct ComparisonSpec{B<:AbstractTimeBackend,O<:AbstractResolved3DOperator} <: AbstractStudySpec
     cases::Vector{Resolved3DCaseSpec}
     base_params::Params
-    backend::AbstractTimeBackend
-    operator::AbstractResolved3DOperator
+    backend::B
+    operator::O
     output_dir::String
     section_count::Int
     profile_slices::Vector{Float64}
@@ -114,9 +114,9 @@ end
 
 function ComparisonSpec(;
     cases = default_resolved3d_cases(),
-    base_params::Params = Params(tfinal=1.0, initial_condition=GeometryRestIC()),
-    backend::AbstractTimeBackend = NativeRK3Backend(),
-    operator::AbstractResolved3DOperator = CrossSectionQuadratureOperator(),
+    base_params::Params = Params(tfinal=0.9995, initial_condition=GeometryRestIC()),
+    backend = NativeRK3Backend(),
+    operator = CrossSectionQuadratureOperator(),
     output_dir::String = DEFAULT_COMPARISON_OUTPUT_DIR,
     section_count::Int = 200,
     profile_slices = nothing,
@@ -128,6 +128,8 @@ function ComparisonSpec(;
     progress_every::Int = 0,
     write_svg::Bool = true,
 )
+    backend isa AbstractTimeBackend || throw(ArgumentError("backend must subtype AbstractTimeBackend"))
+    operator isa AbstractResolved3DOperator || throw(ArgumentError("operator must subtype AbstractResolved3DOperator"))
     case_values = Resolved3DCaseSpec[case for case in cases]
     isempty(case_values) && throw(ArgumentError("comparison spec must include at least one case"))
     section_count >= 2 || throw(ArgumentError("section_count must be at least 2"))
@@ -169,7 +171,7 @@ function ComparisonSpec(;
     all(mode -> mode in ("current", "reference"), radius_modes) ||
         throw(ArgumentError("radial_radius_modes must contain only current or reference"))
 
-    return ComparisonSpec(
+    return ComparisonSpec{typeof(backend),typeof(operator)}(
         case_values,
         base_params,
         backend,
@@ -359,6 +361,20 @@ struct ComparisonSummaryRow
     lambda_plus_min::Float64
     lambda_plus_max::Float64
     subcritical_margin_min::Float64
+    accepted_dt_min::Float64
+    accepted_dt_max::Float64
+    realized_cfl_max::Float64
+    min_solver_area::Float64
+    min_physical_area_cm2::Float64
+    solver_volume_defect::Float64
+    physical_volume_defect_cm3::Float64
+    positivity_projection_count::Int
+    positivity_correction_total::Float64
+    final_inlet_area_flux::Float64
+    final_outlet_area_flux::Float64
+    final_area_flux_balance::Float64
+    final_rhs_area_max_abs::Float64
+    final_rhs_flow_max_abs::Float64
     xdmf_time_s::Float64
     time_error_s::Float64
     target_time_s::Float64
@@ -370,8 +386,8 @@ struct ComparisonSummaryRow
 end
 
 """Return value from `run_comparison`."""
-struct ComparisonResult
-    spec::ComparisonSpec
+struct ComparisonResult{S<:ComparisonSpec}
+    spec::S
     section_rows::Vector{SectionComparisonRow}
     profile_rows::Vector{RadialProfileRow}
     sensitivity_rows::Vector{NodeSlabSensitivityRow}
@@ -387,7 +403,7 @@ default_resolved3d_data_root() = DEFAULT_RESOLVED3D_DATA_ROOT
 
 function default_resolved3d_cases(
     data_root::String = default_resolved3d_data_root();
-    target_time::Real = 1.0,
+    target_time::Real = 0.9995,
     time_atol::Real = 1.0e-3,
 )
     return Resolved3DCaseSpec[
@@ -398,7 +414,7 @@ end
 
 function available_resolved3d_cases(
     data_root::String = default_resolved3d_data_root();
-    target_time::Real = 1.0,
+    target_time::Real = 0.9995,
     time_atol::Real = 1.0e-3,
 )
     cases = [
@@ -415,7 +431,7 @@ end
 
 function run_available_resolved3d_comparison(;
     data_root::String = default_resolved3d_data_root(),
-    target_time::Real = 1.0,
+    target_time::Real = 0.9995,
     time_atol::Real = 1.0e-3,
     kwargs...,
 )

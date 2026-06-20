@@ -14,7 +14,7 @@ changes in one sweep.
 | Class | Current examples | Usually tracked? | May be regenerated? | May be deleted automatically? | Required validation before changing |
 | --- | --- | --- | --- | --- | --- |
 | Source code | `src/StenosisHemodynamics.jl`, `src/StenosisHemodynamics/**`, `scripts/**`, `simulations/README.md`, `test/**`, `Project.toml`, `Manifest.toml`, `pyproject.toml`, `Pipfile`, `Pipfile.lock` | Yes. | Only by the language package or lockfile workflow that owns the file. | No. | Run targeted Julia or Python tests for the changed surface. Use `./scripts/julia-release test/runtests.jl` for Julia changes; use `pipenv run pytest`, `pipenv run ruff check .`, and `pipenv run black --check .` for Python support-tooling changes. |
-| Manuscript/report source | `final-report.tex`, `frontmatter/**`, `sections/**`, `appendices/**`, `preamble/**`, `references.bib`, `figures/static/static/tikz/**` | Yes. | TeX source is edited, not regenerated, unless a file is explicitly documented as generated. | No. | Run `pipenv run pytest test/test_tex_preamble_audit.py` for preamble or TeX-policy changes and a scratch `latexmk` build when report structure, citations, figures, or bibliography plumbing changes. |
+| Manuscript/report source | `final-report.tex`, `frontmatter/**`, `sections/**`, `appendices/**`, `preamble/**`, `references.bib`, `figures/static/static/tikz/**` | Yes. | TeX source is edited, not regenerated, unless a file is explicitly documented as generated. | No. | Run `python3 scripts/build_report.py --outdir /tmp/masters-report-build` when report structure, citations, figures, bibliography plumbing, or TeX policy changes. The wrapper runs the preamble audit, uses scratch `latexmk`, fails on untracked consumed inputs, and writes `report-build-summary.json` in the outdir. |
 | Manuscript-used static data and tables | `figures/static/static/data/**`, `figures/static/static/tables/package-benchmark/package-benchmark-summary.tex` | Yes, when the current report consumes the data or table. | Yes, through the documented simulation or rendering command that owns the asset. | No. | Check TeX references, appendix provenance text, and any recorded hashes before replacing. Rebuild the report in a scratch output directory after updates. |
 | Generated report outputs | `final-report.pdf`, `figures/static/static/rendered/*.pdf`, `figures/static/static/rendered/*.png` | Rendered figures are tracked when the report consumes them; `final-report.pdf` is a release artifact, not a source-tree artifact. | Yes, but only when the source change explicitly requires a synced artifact refresh. | No for report-consumed figures; yes for ignored local PDFs. | First validate with a scratch build or renderer output. Publish final PDFs through release artifacts rather than ordinary source commits. |
 | Simulation/benchmark outputs | `simulations/output/**`, `tmp/experiments/**`, per-run `manifest.json`, `series.csv`, `solution.npz`, summary CSVs, benchmark logs | No, except for deliberately published report assets copied under `figures/static/static/**`. | Yes. These are run outputs. | Yes, when they are ignored scratch outputs and are not being used as evidence for an active review. | Verify that equivalent published assets, manifests, or provenance records exist before discarding evidence-bearing outputs. For benchmark changes, rerun the relevant smoke or full command and inspect emitted summaries. |
@@ -34,6 +34,10 @@ changes in one sweep.
   `simulations/output/**`, or raw 3D data under `simulations/data/3d/**`.
 - Treat `final-report.pdf` as a local/release artifact. Keep report-consumed
   rendered figures tracked unless the project owner changes this policy.
+- Use `python3 scripts/build_report.py --outdir /tmp/masters-report-build` as
+  the preferred report build gate. If it reports untracked consumed inputs, do
+  not stage or delete them automatically; inspect the summary and handle the
+  source/asset ownership deliberately.
 - Perform cleanup in scoped patches. Keep source edits, generated-artifact
   refreshes, reference-metadata changes, and ignore-rule changes separate.
 - If the tree already contains active manuscript or PDF work, resolve or
@@ -78,8 +82,12 @@ biber --tool --validate-datamodel --output-file /tmp/masters-report-references.b
 For report source or published report-asset changes, add a scratch build:
 
 ```sh
-latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=/tmp/masters-report-build final-report.tex
+python3 scripts/build_report.py --outdir /tmp/masters-report-build
 ```
+
+The wrapper calls `latexmk -pdf -interaction=nonstopmode -halt-on-error`
+underneath and leaves the PDF/log/FLS plus `report-build-summary.json` in the
+scratch output directory.
 
 For code changes, add the relevant test suite:
 

@@ -45,7 +45,7 @@ def test_revision_evidence_summarizer_writes_gate_and_wall_status(tmp_path: Path
         "mean_abs_discrepancy_cm_s,l2_velocity_discrepancy_cm_s,max_abs_discrepancy_cm_s,"
         "mean_flow_abs_discrepancy_cm3_s\n"
         "77,23.0,CrossSectionQuadratureOperator,canic-extended-1d,400,1e-5,geometry-rest,native,ok,"
-        "1.0,0.001,0.9995,1.0,0.0005,0.2,0.3,0.4,0.05\n",
+        "0.9995,0.000001,0.9995,0.9995,0.0,0.2,0.3,0.4,0.05\n",
         encoding="utf-8",
     )
 
@@ -85,7 +85,7 @@ def test_revision_evidence_summarizer_writes_gate_and_wall_status(tmp_path: Path
     comparison_rows = read_csv(output_dir / "comparison_gate_summary.csv")
     assert comparison_rows[0]["evidence_status"] == "schema-ok"
     assert comparison_rows[0]["model"] == "canic-extended-1d"
-    assert comparison_rows[0]["target_time_s"] == "1.0"
+    assert comparison_rows[0]["target_time_s"] == "0.9995"
 
     wall_rows = read_csv(output_dir / "resolved3d_wall_status.csv")
     assert wall_rows[0]["wall_status"] == "single-displacement-snapshot"

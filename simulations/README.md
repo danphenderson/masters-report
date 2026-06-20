@@ -27,18 +27,20 @@ backend comparisons, and report figures.
 
 ## Simulation Protocol
 
-The public workflow is:
+The exported core workflow is:
 
 1. Define a case with `Params`.
-2. Build the semi-discrete finite-volume system with `semidiscretize(params)`.
-3. Choose a time backend:
+2. Choose a time backend:
    - `NativeRK3Backend()` for the built-in fixed-step SSP RK3 path.
    - `SciMLTimeBackend(solve=SolveSpec(...))` for SciML/OrdinaryDiffEq.
-4. Run `simulate(params, backend)` to obtain a `SimulationResult`.
-5. Derive diagnostics with `velocity(result)`, `pressure(result, params)`,
-   `write_csv`, `write_svg`, or study summaries from `run_study`.
+3. Run `simulate(params, backend)` to obtain a `SimulationResult`.
+4. Derive diagnostics with exported helpers such as `velocity(result)` and
+   `pressure(result, params)`.
 
-The CLI follows the same protocol internally. The default command uses
+The CLI follows the same protocol internally and owns ordinary CSV/SVG output
+writing. Study, benchmark, adapter, and report-asset helpers are intentionally
+qualified module internals, for example `StenosisHemodynamics.run_study(...)`.
+The default command uses
 `NativeRK3Backend()` with finite-volume MUSCL reconstruction, the minmod TVD
 limiter, and SSPRK3 stepping unless options override that method stack.
 Finite-volume MUSCL and Lax-Wendroff methods accept limiter objects in the API
@@ -143,7 +145,8 @@ drop, mesh size, FEM degrees of freedom, residual normalization, projected
 velocity/pressure ranges, and a reproducibility hash.
 
 The initializer remains a projection contract for the 1D state. For fixed-wall
-3D diagnostics, use `run_stationary_stokes_refinement`, which solves generated
+3D diagnostics, use the CLI or the qualified helper
+`StenosisHemodynamics.run_stationary_stokes_refinement`, which solves generated
 stationary-Stokes cases and writes FE section-average, projection-comparison,
 and sampled wall-traction/WSS metrics. It does not solve structural deformation
 or transient FSI.
@@ -275,8 +278,8 @@ Run the default comparison when the data root is present:
 
 ```bash
 ./scripts/stenosis-hemodynamics compare-3d \
-  --target-time 1.0 \
-  --time-atol 1e-3 \
+  --target-time 0.9995 \
+  --time-atol 1e-6 \
   --overwrite \
   --publish-report-assets
 ```
@@ -311,8 +314,8 @@ ensembles. `SolveSpec` owns SciML solver options such as `abstol`, `reltol`,
 
 - The RHS and caches are currently `Float64`-specialized. Stiff SciML solvers
   use finite-difference Jacobians (`AutoFiniteDiff`) rather than ForwardDiff.
-- A `SemiDiscreteSimulation` owns mutable RHS cache arrays. Do not share one
-  instance across concurrent solves.
+- Internal semi-discrete simulation objects own mutable RHS cache arrays. Do not
+  share one instance across concurrent solves.
 - Studies run sequentially. SciML ensemble execution is a future adapter-layer
   addition.
 - Study summary CSVs use simple scalar fields and minimal CSV escaping.

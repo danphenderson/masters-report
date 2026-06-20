@@ -14,31 +14,31 @@ const parse_xdmf_velocity = StenosisHemodynamics.parse_xdmf_velocity
         @test metadata.velocity_path == "/VisualisationVector/0"
         @test metadata.velocity_dims == (size(velocity_values, 1), 3)
 
-        case_spec = Resolved3DCaseSpec("synthetic", 23.0, xdmf_path; target_time=5.0e-5)
-        field = load_resolved3d_velocity(case_spec)
+        case_spec = StenosisHemodynamics.Resolved3DCaseSpec("synthetic", 23.0, xdmf_path; target_time=5.0e-5)
+        field = StenosisHemodynamics.load_resolved3d_velocity(case_spec)
         @test size(field.coordinates) == size(coords)
         @test size(field.velocity) == size(velocity_values)
         @test minimum(field.topology) == 1
         @test maximum(field.topology) <= size(coords, 1)
         @test field.metadata.time ≈ 5.0e-5
 
-        mismatched_time = Resolved3DCaseSpec("synthetic", 23.0, xdmf_path; target_time=1.0, time_atol=1.0e-8)
-        @test_throws ArgumentError load_resolved3d_velocity(mismatched_time)
+        mismatched_time = StenosisHemodynamics.Resolved3DCaseSpec("synthetic", 23.0, xdmf_path; target_time=1.0, time_atol=1.0e-8)
+        @test_throws ArgumentError StenosisHemodynamics.load_resolved3d_velocity(mismatched_time)
 
         missing_xdmf_path, _, _ = write_synthetic_xdmf_hdf5_case(
             joinpath(dir, "missing_velocity");
             omit_velocity_dataset=true,
         )
-        missing_velocity = Resolved3DCaseSpec("missing", 23.0, missing_xdmf_path; target_time=5.0e-5)
-        @test_throws ArgumentError load_resolved3d_velocity(missing_velocity)
+        missing_velocity = StenosisHemodynamics.Resolved3DCaseSpec("missing", 23.0, missing_xdmf_path; target_time=5.0e-5)
+        @test_throws ArgumentError StenosisHemodynamics.load_resolved3d_velocity(missing_velocity)
     end
 end
 
 @testset "StenosisHemodynamics cross-section quadrature" begin
     mktempdir() do dir
         xdmf_path, _, _ = write_single_tetra_xdmf_hdf5_case(joinpath(dir, "tetra"))
-        case_spec = Resolved3DCaseSpec("tetra", 0.0, xdmf_path; target_time=5.0e-5)
-        field = load_resolved3d_velocity(case_spec)
+        case_spec = StenosisHemodynamics.Resolved3DCaseSpec("tetra", 0.0, xdmf_path; target_time=5.0e-5)
+        field = StenosisHemodynamics.load_resolved3d_velocity(case_spec)
 
         mid = StenosisHemodynamics.quadrature_section_observation(field, 0.5)
         @test mid.area_valid
@@ -62,7 +62,13 @@ end
         @test !tangent.area_valid
         @test tangent.cut_status == "degenerate-cut"
 
-        radial = StenosisHemodynamics.radial_profile_observations(field, 0.5, 1.0, 4, CrossSectionQuadratureOperator())
+        radial = StenosisHemodynamics.radial_profile_observations(
+            field,
+            0.5,
+            1.0,
+            4,
+            StenosisHemodynamics.CrossSectionQuadratureOperator(),
+        )
         @test sum(row.area_valid ? row.area_cm2 : 0.0 for row in radial) ≈ mid.area_cm2
         @test any(row.intersection_count > 0 for row in radial)
 
@@ -70,8 +76,8 @@ end
             joinpath(dir, "constant");
             velocity_function=coord -> 12.25,
         )
-        constant_field = load_resolved3d_velocity(
-            Resolved3DCaseSpec("constant", 0.0, constant_path; target_time=5.0e-5),
+        constant_field = StenosisHemodynamics.load_resolved3d_velocity(
+            StenosisHemodynamics.Resolved3DCaseSpec("constant", 0.0, constant_path; target_time=5.0e-5),
         )
         constant_mid = StenosisHemodynamics.quadrature_section_observation(constant_field, 0.5)
         @test constant_mid.area_valid
@@ -82,8 +88,8 @@ end
             joinpath(dir, "linear");
             velocity_function=coord -> 2.0 + 3.0 * coord[1] + 5.0 * coord[2] + 7.0 * coord[3],
         )
-        linear_field = load_resolved3d_velocity(
-            Resolved3DCaseSpec("linear", 0.0, linear_path; target_time=5.0e-5),
+        linear_field = StenosisHemodynamics.load_resolved3d_velocity(
+            StenosisHemodynamics.Resolved3DCaseSpec("linear", 0.0, linear_path; target_time=5.0e-5),
         )
         linear_mid = StenosisHemodynamics.quadrature_section_observation(linear_field, 0.5)
         exact_linear_mean = 2.0 + 3.0 * (1.0 / 6.0) + 5.0 * (1.0 / 6.0) + 7.0 * 0.5
@@ -102,8 +108,8 @@ end
             ];
             velocity_function=coord -> 4.0 + coord[1] - coord[2] + 2.0 * coord[3],
         )
-        vertex_field = load_resolved3d_velocity(
-            Resolved3DCaseSpec("vertex", 0.0, vertex_path; target_time=5.0e-5),
+        vertex_field = StenosisHemodynamics.load_resolved3d_velocity(
+            StenosisHemodynamics.Resolved3DCaseSpec("vertex", 0.0, vertex_path; target_time=5.0e-5),
         )
         vertex_cut = StenosisHemodynamics.quadrature_section_observation(vertex_field, 0.0)
         @test vertex_cut.area_valid
@@ -120,8 +126,8 @@ end
                 0.0 0.0 1.0
             ],
         )
-        edge_field = load_resolved3d_velocity(
-            Resolved3DCaseSpec("edge", 0.0, edge_path; target_time=5.0e-5),
+        edge_field = StenosisHemodynamics.load_resolved3d_velocity(
+            StenosisHemodynamics.Resolved3DCaseSpec("edge", 0.0, edge_path; target_time=5.0e-5),
         )
         edge_cut = StenosisHemodynamics.quadrature_section_observation(edge_field, 0.0)
         @test !edge_cut.area_valid
@@ -133,9 +139,9 @@ end
 @testset "StenosisHemodynamics resolved 3D comparison diagnostics" begin
     mktempdir() do dir
         xdmf_path, _, _ = write_synthetic_xdmf_hdf5_case(joinpath(dir, "case77"); time=4.5e-5)
-        case_spec = Resolved3DCaseSpec("77", 23.0, xdmf_path; target_time=5.0e-5)
+        case_spec = StenosisHemodynamics.Resolved3DCaseSpec("77", 23.0, xdmf_path; target_time=5.0e-5)
         output_dir = joinpath(dir, "out")
-        spec = ComparisonSpec(
+        spec = StenosisHemodynamics.ComparisonSpec(
             cases=[case_spec],
             base_params=Params(nx=8, tfinal=5.0e-5, severity=23.0, initial_condition=GeometryRestIC()),
             output_dir=output_dir,
@@ -145,8 +151,11 @@ end
             overwrite=true,
             write_svg=false,
         )
+        expected_spec_type =
+            StenosisHemodynamics.ComparisonSpec{NativeRK3Backend,StenosisHemodynamics.CrossSectionQuadratureOperator}
+        @test typeof(spec) <: expected_spec_type
 
-        result = run_comparison(spec)
+        result = StenosisHemodynamics.run_comparison(spec)
         @test length(result.section_rows) == 3
         @test length(result.profile_rows) == 5
         @test length(result.sensitivity_rows) == 9
@@ -171,11 +180,26 @@ end
             "backend",
             "run_status",
         ]
+        production_columns = [
+            "accepted_dt_min",
+            "accepted_dt_max",
+            "realized_cfl_max",
+            "min_solver_area",
+            "min_physical_area_cm2",
+            "solver_volume_defect",
+            "positivity_projection_count",
+            "final_area_flux_balance",
+            "final_rhs_area_max_abs",
+            "final_rhs_flow_max_abs",
+        ]
         for path in (result.section_csvs[1], result.profile_csvs[1], result.sensitivity_csv, result.summary_csv)
             header = split(readline(path), ",")
             @test "time_offset_s" in header
             @test all(in(header), time_columns)
             @test all(in(header), provenance_columns)
+            if path == result.summary_csv
+                @test all(in(header), production_columns)
+            end
             csv_row = first(read_simple_csv(path))
             xdmf_time = parse(Float64, csv_row["xdmf_time_s"])
             target_time = parse(Float64, csv_row["target_time_s"])
@@ -193,16 +217,21 @@ end
         end
 
         report_dir = joinpath(dir, "report-assets")
-        report_paths = publish_resolved3d_report_assets(result; output_dir=report_dir, overwrite=true)
+        report_paths = StenosisHemodynamics.publish_resolved3d_report_assets(result; output_dir=report_dir, overwrite=true)
         area_audit_path = joinpath(report_dir, "area-audit.dat")
         node_slab_report_path = joinpath(report_dir, "node-slab-sensitivity.csv")
+        production_report_path = joinpath(report_dir, "production-diagnostics.dat")
         @test area_audit_path in report_paths
         @test isfile(area_audit_path)
         @test node_slab_report_path in report_paths
         @test isfile(node_slab_report_path)
+        @test production_report_path in report_paths
+        @test isfile(production_report_path)
         node_slab_report_header = split(readline(node_slab_report_path), ",")
         @test "time_offset_s" in node_slab_report_header
         @test all(in(node_slab_report_header), time_columns)
+        production_report_header = split(readline(production_report_path))
+        @test all(in(production_report_header), ["case", "dt_min", "cfl_max", "rhs_flow_max"])
 
         valid_sections = [row for row in result.section_rows if row.area_valid]
         @test !isempty(valid_sections)
@@ -222,6 +251,15 @@ end
         @test isfinite(only(result.summary_rows).flow_l2_error_cm3_s)
         @test isfinite(only(result.summary_rows).profile_l2_error_cm_s)
         @test isfinite(only(result.summary_rows).characteristic_radicand_min)
+        @test only(result.summary_rows).accepted_dt_min > 0.0
+        @test only(result.summary_rows).accepted_dt_max > 0.0
+        @test only(result.summary_rows).realized_cfl_max > 0.0
+        @test only(result.summary_rows).min_solver_area > 0.0
+        @test only(result.summary_rows).min_physical_area_cm2 > 0.0
+        @test only(result.summary_rows).positivity_projection_count == 0
+        @test isfinite(only(result.summary_rows).final_area_flux_balance)
+        @test isfinite(only(result.summary_rows).final_rhs_area_max_abs)
+        @test isfinite(only(result.summary_rows).final_rhs_flow_max_abs)
         for rows in (result.section_rows, result.profile_rows, result.sensitivity_rows, result.summary_rows)
             @test !isempty(rows)
             for row in rows
@@ -275,14 +313,14 @@ end
 @testset "StenosisHemodynamics resolved 3D absent-data skip" begin
     mktempdir() do dir
         missing_root = joinpath(dir, "not_present")
-        @test isempty(available_resolved3d_cases(missing_root))
-        @test run_available_resolved3d_comparison(data_root=missing_root, write_svg=false) === nothing
+        @test isempty(StenosisHemodynamics.available_resolved3d_cases(missing_root))
+        @test StenosisHemodynamics.run_available_resolved3d_comparison(data_root=missing_root, write_svg=false) === nothing
     end
 end
 
 @testset "stenosis geometry figure trajectory exports" begin
     mktempdir() do dir
-        default_opts = GeometryExportOptions()
+        default_opts = StenosisHemodynamics.GeometryExportOptions()
         @test isabspath(default_opts.output_dir)
         @test isabspath(default_opts.data_root)
         @test StenosisHemodynamics.portable_project_path(joinpath(StenosisHemodynamics.PROJECT_ROOT, "figures", "out.csv")) ==
@@ -302,7 +340,7 @@ end
         @test parsed_opts.theta_samples == 12
         @test parsed_opts.overwrite == true
 
-        opts = GeometryExportOptions(output_dir=dir, z_samples=31, theta_samples=12, overwrite=true)
+        opts = StenosisHemodynamics.GeometryExportOptions(output_dir=dir, z_samples=31, theta_samples=12, overwrite=true)
         StenosisHemodynamics.export_analytic_summary(opts)
         summary_rows = read_simple_csv(joinpath(dir, "analytic_summary.csv"))
         sev73 = only(row for row in summary_rows if parse(Float64, row["severity"]) == 73.0)
@@ -348,7 +386,7 @@ end
 
         resolved_root = joinpath(dir, "resolved")
         _, coords, velocity_values = write_synthetic_xdmf_hdf5_case(joinpath(resolved_root, "77"); time=1.0)
-        resolved_opts = GeometryExportOptions(
+        resolved_opts = StenosisHemodynamics.GeometryExportOptions(
             output_dir=dir,
             data_root=resolved_root,
             z_samples=31,

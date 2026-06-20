@@ -29,6 +29,19 @@ quantity, for example, is not just a scalar label: it requires a stress tensor,
 wall normal, tangent projection convention, and surface output map
 \cite{JohnEtAl2017WallShearStressVectorForm}.
 
+The resolved tier also contains distinct uses of ``three-dimensional'' data.
+Classical numerical analysis of blood flow in the heart already treated the
+geometry and moving-boundary representation as part of the mathematical problem
+\cite{Peskin1977NumericalAnalysisBloodFlowHeart}. Continuum cardiovascular
+models and 3D--1D FSI coupling sources then make the interface and wall state
+explicit \cite{QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2007FSICoupling}.
+By contrast, a fixed-wall resolved stenosis computation used to estimate a
+pressure or velocity diagnostic may retain the same local velocity and pressure
+fields while closing wall motion and downstream circulation differently. The
+source-to-source contrast is therefore not simply 3D versus reduced. It is
+which local fields are retained, which wall and boundary variables are closed,
+and which observable is extracted from the resulting field.
+
 Axisymmetric and two-dimensional models occupy an intermediate role. They retain
 more geometry and local velocity information than a one-dimensional area--flow
 model, but they remove at least one spatial direction or impose symmetry. This
@@ -70,6 +83,10 @@ impedance, or characteristic information
 \cite{QuarteroniVeneziani2003GeometricalMultiscale,FormaggiaEtAl2007FSICoupling}.
 The mathematical issue is not only that two solvers are coupled; it is that the
 interface variables must have compatible meanings across dimensions.
+Coronary FFR comparisons between 1D and 3D models show the same issue on the
+output side: the reduced and resolved states must be mapped to a common
+pressure-ratio observable before agreement or disagreement has a mathematical
+meaning \cite{Blanco2018FFR1D3D}.
 
 Surrogate and scientific-ML models add a second axis to the hierarchy. A PINN
 uses residual, boundary, data, and regularization terms to constrain an
@@ -77,12 +94,14 @@ approximate solution or inverse map
 \cite{RaissiEtAl2019PhysicsInformedNeuralNetworks,YuEtAl2026PINNHemodynamicsReview}.
 Operator-learning models, such as DeepONet and Fourier neural operators, learn
 maps between functions or parameterized fields
-\cite{LuEtAl2021DeepONet,LiEtAl2021FNO}. In stenosed-vessel applications, deep
-operator learning can target flow-model maps directly
-\cite{VelikorodnyEtAl2025DeepOperatorStenosed}. These learned categories do not
-remove the need to state the underlying model tier: a neural surrogate of a 1D
-model has different native outputs from a neural surrogate trained on resolved
-3D velocity fields.
+\cite{LuEtAl2021DeepONet,LiEtAl2021FNO}. Hemodynamics-specific neural
+differential and deep-operator examples target reduced blood-flow or
+stenosed-vessel maps directly
+\cite{CsalaEtAl2025PCNDE,VelikorodnyEtAl2025DeepOperatorStenosed}. These
+learned categories do not remove the need to state the underlying model tier: a
+neural surrogate of a 1D model has different native outputs from a neural
+surrogate trained on resolved 3D velocity fields, and its validation observable
+must match the map it was trained to approximate.
 
 \begin{table}[!htb]
     \centering

@@ -769,7 +769,7 @@ function run_verify_cli(args::Vector{String})
     if subcommand == "mms"
         base_params = Params(;
             nx=parse(Int, get(values, "nx", "40")),
-            tfinal=parse(Float64, get(values, "tfinal", "2e-4")),
+            tfinal=parse(Float64, get(values, "tfinal", "2e-3")),
             dt=parse(Float64, get(values, "dt", "5e-6")),
             severity=parse(Float64, get(values, "severity", "0")),
             initial_condition=ManufacturedSolutionIC(),
@@ -877,7 +877,7 @@ function run_compare3d_cli(args::Vector{String})
     radial_radius_modes = haskey(values, "radial-radius-modes") ? split(values["radial-radius-modes"], ",") : nothing
     result = run_available_resolved3d_comparison(;
         data_root=get(values, "data-root", default_resolved3d_data_root()),
-        target_time=parse(Float64, get(values, "target-time", "1.0")),
+        target_time=parse(Float64, get(values, "target-time", "0.9995")),
         time_atol=parse(Float64, get(values, "time-atol", "1.0e-3")),
         base_params=params,
         backend=backend,

@@ -13,9 +13,10 @@ uses the same principal operator as the comparison runs.
 
 The available resolved datasets are the two local velocity fields labelled C23
 and C40. The comparison record uses source ID 77 for C23 and source ID 60 for
-C40, each with an XDMF velocity sample at $0.9995$ s, while the corresponding
-1D run completes at $1.0$ s. The $5\times10^{-4}$ s sample-time offset is
-reported, not eliminated. The current/deformed 3D geometry status also remains
+C40, each with an XDMF velocity sample at $0.9995$ s. The regenerated 1D
+comparison runs now stop at the same target time; the recorded cross-model time
+offset is $5.47\times10^{-14}$ s for both cases. This removes the previous
+sample-time mismatch, but the current/deformed 3D geometry status remains
 unresolved: the tracked assets support the static cut-area audit below, but they
 do not establish whether a deformed-wall geometry or displacement application
 should be used for the final-time plane cuts. The 3D wall model, wall-motion
@@ -54,6 +55,56 @@ history are likewise not persisted in the tracked report artifact.
 The entries in Table~\ref{tab:t1-alpha-radicand-diagnostics} are used as the
 subcritical-boundary gate for the paired C23/C40 comparison runs; they do not
 widen the velocity comparison beyond the declared observation operator.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \pgfplotstableread[col sep=space]{figures/static/static/data/stenosis-comparison/production-diagnostics.dat}\TOneProductionDiagnostics
+    \caption{Production diagnostics from the actual C23/C40 1D comparison runs
+    completed at $T=0.9995$ s. The values are written to the tracked
+    \texttt{production-diagnostics.dat} report asset.}
+    \label{tab:t1-production-diagnostics}
+    \resizebox{\textwidth}{!}{%
+    \pgfplotstabletypeset[
+        columns={
+            case,
+            target_time,
+            completed_time,
+            cross_model_time_offset,
+            dt_min,
+            dt_max,
+            cfl_max,
+            min_Aphys,
+            volume_defect,
+            positivity_count,
+            area_flux_balance,
+            rhs_area_max,
+            rhs_flow_max
+        },
+        every head row/.style={before row=\toprule, after row=\midrule},
+        every last row/.style={after row=\bottomrule},
+        columns/case/.style={string type,column type=l,column name=\textbf{Case}},
+        columns/target_time/.style={fixed,precision=4,column name=$\boldsymbol{T_{\mathrm{target}}}$},
+        columns/completed_time/.style={fixed,precision=4,column name=$\boldsymbol{T_{\mathrm{done}}}$},
+        columns/cross_model_time_offset/.style={sci,precision=2,column name=$\boldsymbol{|\Delta t_{\mathrm{1D--3D}}|}$},
+        columns/dt_min/.style={sci,precision=2,column name=$\boldsymbol{\Delta t_{\min}}$},
+        columns/dt_max/.style={sci,precision=2,column name=$\boldsymbol{\Delta t_{\max}}$},
+        columns/cfl_max/.style={fixed,precision=2,column name=\textbf{CFL$_{\max}$}},
+        columns/min_Aphys/.style={fixed,precision=5,column name=$\boldsymbol{\min \pi a}$},
+        columns/volume_defect/.style={sci,precision=2,column name=$\boldsymbol{\Delta\!\int a\,dz}$},
+        columns/positivity_count/.style={int detect,column name=\textbf{pos. count}},
+        columns/area_flux_balance/.style={sci,precision=2,column name=\textbf{area-flux balance}},
+        columns/rhs_area_max/.style={sci,precision=2,column name=$\boldsymbol{\max|\dot a|}$},
+        columns/rhs_flow_max/.style={fixed,precision=5,column name=$\boldsymbol{\max|\dot q|}$}
+    ]\TOneProductionDiagnostics
+    }
+\end{table}
+
+The production rows show that the selected runs reached the CFL cap, retained
+positive physical area, used no positivity projection, closed the final
+area-flux bookkeeping at the listed scale, and completed at the matched final
+timestamp. These diagnostics are run admissibility evidence; they do not by
+themselves establish cross-model validation.
 
 \FloatBarrier
 
@@ -218,8 +269,8 @@ $z=2.291$ cm for C23 and 9.92 cm/s at $z=2.261$ cm for C40.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Quadrature-backed section-mean velocity discrepancy summary at
-    nominally aligned final-time samples. These are single-realization
+    \caption{Quadrature-backed section-mean velocity discrepancy summary at the
+    matched $0.9995$ s final-time sample. These are single-realization
     descriptors in cm/s except for the final axial-location column in cm. Angle
     brackets denote axial sample means over the 200 retained comparison
     sections, not temporal averages or inner products.}
@@ -263,7 +314,7 @@ operator-sensitive.
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{section-mean-comparison}
-    \caption{Area-mean axial velocity comparison at $t=1.0$ s. Solid curves are
+    \caption{Area-mean axial velocity comparison at $t=0.9995$ s. Solid curves are
     tetrahedral cross-section quadrature means from the resolved 3D velocity
     field; dashed curves are interpolated 1D means
     $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$. The shaded band marks the
@@ -319,6 +370,6 @@ comparison localizes the largest C40 discrepancy upstream of the displayed
 throat-centered band. This observation is bounded by the matching limits stated
 at the start of the chapter: unmatched or unpersisted 3D wall, boundary,
 material, history, and current/deformed geometry information; unresolved axial
-variation in extracted 3D flow; and the $1.0$ s versus $0.9995$ s sample-time
-offset. The flow/area decomposition is bookkeeping, and the displayed
-differences do not identify a unique mechanism.
+variation in extracted 3D flow; and unmatched transient history before the
+common final timestamp. The flow/area decomposition is bookkeeping, and the
+displayed differences do not identify a unique mechanism.

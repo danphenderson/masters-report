@@ -31,7 +31,7 @@ python3 scripts/audit_references.py
 pipenv run pytest
 pipenv run ruff check .
 pipenv run black --check .
-latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=/tmp/masters-report-build final-report.tex
+python3 scripts/build_report.py --outdir /tmp/masters-report-build
 ```
 
 Before a public push, also run a secret scan such as:

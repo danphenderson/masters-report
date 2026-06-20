@@ -261,6 +261,20 @@ function comparison_summary_header()
         "lambda_plus_min",
         "lambda_plus_max",
         "subcritical_margin_min",
+        "accepted_dt_min",
+        "accepted_dt_max",
+        "realized_cfl_max",
+        "min_solver_area",
+        "min_physical_area_cm2",
+        "solver_volume_defect",
+        "physical_volume_defect_cm3",
+        "positivity_projection_count",
+        "positivity_correction_total",
+        "final_inlet_area_flux",
+        "final_outlet_area_flux",
+        "final_area_flux_balance",
+        "final_rhs_area_max_abs",
+        "final_rhs_flow_max_abs",
         "xdmf_time_s",
         "time_offset_s",
         "target_time_s",
@@ -309,6 +323,20 @@ function comparison_summary_values(row::ComparisonSummaryRow)
         row.lambda_plus_min,
         row.lambda_plus_max,
         row.subcritical_margin_min,
+        row.accepted_dt_min,
+        row.accepted_dt_max,
+        row.realized_cfl_max,
+        row.min_solver_area,
+        row.min_physical_area_cm2,
+        row.solver_volume_defect,
+        row.physical_volume_defect_cm3,
+        row.positivity_projection_count,
+        row.positivity_correction_total,
+        row.final_inlet_area_flux,
+        row.final_outlet_area_flux,
+        row.final_area_flux_balance,
+        row.final_rhs_area_max_abs,
+        row.final_rhs_flow_max_abs,
         row.xdmf_time_s,
         row.time_error_s,
         row.target_time_s,
@@ -515,6 +543,14 @@ function publish_resolved3d_report_assets(
             overwrite=overwrite,
         ),
     )
+    push!(
+        paths,
+        write_report_production_diagnostics_dat(
+            joinpath(output_dir, "production-diagnostics.dat"),
+            result.summary_rows;
+            overwrite=overwrite,
+        ),
+    )
     return paths
 end
 
@@ -579,6 +615,64 @@ function write_report_section_dat(path::String, rows::Vector{SectionComparisonRo
             println(io, join(report_fmt.(values), " "))
         end
     end
+end
+
+function write_report_production_diagnostics_dat(
+    path::String,
+    rows::Vector{ComparisonSummaryRow};
+    overwrite::Bool = false,
+)
+    guarded_open_write(path, overwrite) do io
+        println(
+            io,
+            join(
+                [
+                    "case",
+                    "dt_min",
+                    "dt_max",
+                    "cfl_max",
+                    "min_a",
+                    "min_Aphys",
+                    "volume_defect",
+                    "positivity_count",
+                    "positivity_correction",
+                    "area_flux_balance",
+                    "rhs_area_max",
+                    "rhs_flow_max",
+                    "completed_time",
+                    "target_time",
+                    "cross_model_time_offset",
+                ],
+                " ",
+            ),
+        )
+        for row in rows
+            println(
+                io,
+                join(
+                    report_fmt.([
+                        report_case_token(row.severity),
+                        row.accepted_dt_min,
+                        row.accepted_dt_max,
+                        row.realized_cfl_max,
+                        row.min_solver_area,
+                        row.min_physical_area_cm2,
+                        row.solver_volume_defect,
+                        row.positivity_projection_count,
+                        row.positivity_correction_total,
+                        row.final_area_flux_balance,
+                        row.final_rhs_area_max_abs,
+                        row.final_rhs_flow_max_abs,
+                        row.one_d_completed_time_s,
+                        row.target_time_s,
+                        row.cross_model_time_offset_s,
+                    ]),
+                    " ",
+                ),
+            )
+        end
+    end
+    return path
 end
 
 function write_report_radial_dat_files(output_dir::String, rows::Vector{RadialProfileRow}; overwrite::Bool = false)

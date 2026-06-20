@@ -3,8 +3,8 @@ const generated_stokes_mesh = StenosisHemodynamics.generated_stokes_mesh
 @testset "StenosisHemodynamics OpenBF protocol adapter" begin
     mktempdir() do dir
         config_path, inlet_path = write_openbf_fixture(dir)
-        spec = load_openbf_config(config_path)
-        params, output, backend, returned_spec = params_from_openbf_config(config_path)
+        spec = StenosisHemodynamics.load_openbf_config(config_path)
+        params, output, backend, returned_spec = StenosisHemodynamics.params_from_openbf_config(config_path)
 
         @test returned_spec.project_name == spec.project_name
         @test spec.inlet_file == inlet_path
@@ -31,7 +31,7 @@ const generated_stokes_mesh = StenosisHemodynamics.generated_stokes_mesh
 
     mktempdir() do dir
         config_path, _ = write_openbf_fixture(dir; project_name="smoke")
-        result = run_simulation(config_path; save_stats=true)
+        result = StenosisHemodynamics.run_simulation(config_path; save_stats=true)
         @test result.completed_time ≈ 2.0e-5
         @test isfile(joinpath(dir, "out", "smoke.csv"))
         @test isfile(joinpath(dir, "out", "smoke.svg"))
@@ -40,12 +40,12 @@ const generated_stokes_mesh = StenosisHemodynamics.generated_stokes_mesh
 
     mktempdir() do dir
         config_path, _ = write_openbf_fixture(dir; include_canic=false)
-        @test_throws ArgumentError load_openbf_config(config_path)
+        @test_throws ArgumentError StenosisHemodynamics.load_openbf_config(config_path)
     end
 
     mktempdir() do dir
         config_path, _ = write_openbf_fixture(dir; extra_vessel="R1: 1.0e7")
-        @test_throws ArgumentError load_openbf_config(config_path)
+        @test_throws ArgumentError StenosisHemodynamics.load_openbf_config(config_path)
     end
 
     mktempdir() do dir

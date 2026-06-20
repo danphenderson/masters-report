@@ -22,12 +22,30 @@ struct RestStateFailingBackend <: AbstractTimeBackend end
     @test length(mms_state.area) == 8
     @test all(isfinite, mms_state.area)
     @test all(isfinite, mms_state.flow)
+    forcing_audit = StenosisHemodynamics.manufactured_forcing_residual_audit(mms_params)
+    @test forcing_audit.mass_max_abs_diff < 1.0e-7
+    @test forcing_audit.momentum_max_abs_diff < 1.0e-3
+    mutated_audit = StenosisHemodynamics.manufactured_forcing_residual_audit(mms_params; momentum_scale=-1.0)
+    @test mutated_audit.momentum_max_abs_diff > forcing_audit.momentum_max_abs_diff + 1.0
 end
 
 @testset "StenosisHemodynamics verification runners" begin
     mktempdir() do dir
-        mms = run_manufactured_verification(ManufacturedVerificationSpec(;
+        default_mms_spec = StenosisHemodynamics.ManufacturedVerificationSpec()
+        default_drift_spec = StenosisHemodynamics.RestStateDriftSpec()
+        @test typeof(default_mms_spec) <: StenosisHemodynamics.ManufacturedVerificationSpec{NativeRK3Backend}
+        @test typeof(default_drift_spec) <: StenosisHemodynamics.RestStateDriftSpec{NativeRK3Backend}
+
+        mms = StenosisHemodynamics.run_manufactured_verification(StenosisHemodynamics.ManufacturedVerificationSpec(;
             output_dir=dir,
+            base_params=Params(
+                nx=8,
+                tfinal=1.0e-5,
+                dt=1.0e-5,
+                severity=0.0,
+                initial_condition=ManufacturedSolutionIC(),
+                forcing=ManufacturedForcing(),
+            ),
             nxs=[8, 12],
             dt_values=[2.0e-5, 1.0e-5],
             overwrite=true,
@@ -42,13 +60,25 @@ end
         @test all(isfinite(row.area_linf_error) for row in mms.rows)
         @test all(isfinite(row.flow_l1_error) for row in mms.rows)
         @test all(isfinite(row.flow_linf_error) for row in mms.rows)
+        @test all(isfinite(row.accepted_dt_min) for row in mms.rows)
+        @test all(isfinite(row.accepted_dt_max) for row in mms.rows)
+        @test all(isfinite(row.realized_cfl_max) for row in mms.rows)
+        @test all(row.independent_mass_forcing_max_abs_diff < 1.0e-7 for row in mms.rows)
+        @test all(row.independent_momentum_forcing_max_abs_diff < 1.0e-3 for row in mms.rows)
+        @test all(isnan(row.area_observed_order) for row in mms.rows if row.study_kind == "temporal")
+        @test all(isnan(row.flow_observed_order) for row in mms.rows if row.study_kind == "temporal")
         csv_text = read(mms.summary_csv, String)
         @test occursin("area_l1_error", csv_text)
         @test occursin("area_linf_error", csv_text)
         @test occursin("flow_l1_error", csv_text)
         @test occursin("flow_linf_error", csv_text)
+        @test occursin("accepted_dt_min", csv_text)
+        @test occursin("independent_momentum_forcing_max_abs_diff", csv_text)
+        tex_text = read(mms.summary_tex, String)
+        @test occursin("spatial verification", tex_text)
+        @test occursin("timestep-insensitivity", tex_text)
 
-        ph_demo = run_ph_refinement_demo(PHRefinementDemoSpec(;
+        ph_demo = StenosisHemodynamics.run_ph_refinement_demo(StenosisHemodynamics.PHRefinementDemoSpec(;
             output_dir=joinpath(dir, "ph-demo"),
             h_nxs=[6, 8],
             h_degree=2,
@@ -75,7 +105,7 @@ end
         @test occursin("flow_log10_l2_error", ph_csv_text)
         @test occursin("flow_l2_reduction", ph_csv_text)
 
-        cli_demo = run_cli([
+        cli_demo = StenosisHemodynamics.run_cli([
             "verify",
             "ph-refinement",
             "--output-dir",
@@ -94,10 +124,10 @@ end
             "1e-5",
             "--overwrite",
         ])
-        @test cli_demo isa PHRefinementDemoResult
+        @test cli_demo isa StenosisHemodynamics.PHRefinementDemoResult
         @test isfile(cli_demo.summary_csv)
 
-        drift = run_rest_state_drift(RestStateDriftSpec(;
+        drift = StenosisHemodynamics.run_rest_state_drift(StenosisHemodynamics.RestStateDriftSpec(;
             output_dir=dir,
             severities=[23.0],
             nxs=[8, 12],
@@ -146,7 +176,7 @@ end
         @test occursin("\\Delta\\!\\int a\\,dz", read(drift.summary_tex, String))
         @test occursin("\\Delta\\!\\int a\\,dz", read(replace(drift.summary_tex, r"\\.tex$" => "_full.tex"), String))
 
-        failing_drift = run_rest_state_drift(RestStateDriftSpec(;
+        failing_drift = StenosisHemodynamics.run_rest_state_drift(StenosisHemodynamics.RestStateDriftSpec(;
             output_dir=joinpath(dir, "failing-rest-state"),
             severities=[23.0],
             nxs=[8],
