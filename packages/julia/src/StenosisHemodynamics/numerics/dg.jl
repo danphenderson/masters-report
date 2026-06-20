@@ -8,6 +8,50 @@ struct DGSimulationCoefficients
     initial_condition::Union{Nothing,InitialConditionSummary}
 end
 
+struct DGRHSCache
+    dA::Matrix{Float64}
+    dQ::Matrix{Float64}
+    area_flux::Vector{Float64}
+    flow_flux::Vector{Float64}
+end
+
+function DGRHSCache(nx::Int, degree::Int)
+    nx > 0 || throw(ArgumentError("nx must be positive"))
+    0 <= degree <= MAX_DG_DEGREE || throw(ArgumentError("DG degree must be in 0:$MAX_DG_DEGREE"))
+    modes = degree + 1
+    return DGRHSCache(
+        zeros(Float64, nx, modes),
+        zeros(Float64, nx, modes),
+        zeros(Float64, nx + 1),
+        zeros(Float64, nx + 1),
+    )
+end
+
+struct DGStepCache
+    rhs::DGRHSCache
+    A1::Matrix{Float64}
+    Q1::Matrix{Float64}
+    A2::Matrix{Float64}
+    Q2::Matrix{Float64}
+    A3::Matrix{Float64}
+    Q3::Matrix{Float64}
+end
+
+function DGStepCache(nx::Int, degree::Int)
+    nx > 0 || throw(ArgumentError("nx must be positive"))
+    0 <= degree <= MAX_DG_DEGREE || throw(ArgumentError("DG degree must be in 0:$MAX_DG_DEGREE"))
+    modes = degree + 1
+    return DGStepCache(
+        DGRHSCache(nx, degree),
+        zeros(Float64, nx, modes),
+        zeros(Float64, nx, modes),
+        zeros(Float64, nx, modes),
+        zeros(Float64, nx, modes),
+        zeros(Float64, nx, modes),
+        zeros(Float64, nx, modes),
+    )
+end
+
 function dg_initial_coefficients(p::Params, method::DGMethod)
     z, Acoef, Qcoef, dx, _ = dg_initial_coefficients_with_summary(p, method)
     return z, Acoef, Qcoef, dx
@@ -52,7 +96,7 @@ end
 
 function dg_value(coeffs::AbstractMatrix{Float64}, i::Int, xi::Float64, degree::Int)
     value = 0.0
-    for m in 0:degree
+    @inbounds for m in 0:degree
         value += coeffs[i, m + 1] * legendre_value(m, xi)
     end
     return value
@@ -60,7 +104,7 @@ end
 
 function dg_derivative(coeffs::AbstractMatrix{Float64}, i::Int, xi::Float64, degree::Int, dx::Float64)
     value = 0.0
-    for m in 0:degree
+    @inbounds for m in 0:degree
         value += coeffs[i, m + 1] * legendre_derivative(m, xi)
     end
     return 2.0 * value / dx
@@ -77,15 +121,42 @@ function dg_rhs(
 )
     degree = method.degree
     nx = size(Acoef, 1)
-    dA = zeros(Float64, nx, degree + 1)
-    dQ = zeros(Float64, nx, degree + 1)
-    FA = zeros(Float64, nx + 1)
-    FQ = zeros(Float64, nx + 1)
-    means_A = vec(Acoef[:, 1])
-    means_Q = vec(Qcoef[:, 1])
-    Ain, Qin, Aout, Qout = boundary_states(means_A, means_Q, p, t)
+    cache = DGRHSCache(nx, degree)
+    fill_dg_rhs!(cache.dA, cache.dQ, Acoef, Qcoef, z, dx, p, method, t, cache)
+    return cache.dA, cache.dQ
+end
 
-    for iface in 1:(nx + 1)
+function fill_dg_rhs!(
+    dA::AbstractMatrix{Float64},
+    dQ::AbstractMatrix{Float64},
+    Acoef::AbstractMatrix{Float64},
+    Qcoef::AbstractMatrix{Float64},
+    z::AbstractVector{Float64},
+    dx::Float64,
+    p::Params,
+    method::DGMethod,
+    t::Float64,
+    cache::DGRHSCache,
+)
+    degree = method.degree
+    nx = size(Acoef, 1)
+    modes = degree + 1
+    size(Acoef) == size(Qcoef) || throw(DimensionMismatch("DG area and flow coefficient sizes must match"))
+    size(Acoef, 2) == modes || throw(DimensionMismatch("DG coefficient mode count does not match method degree"))
+    size(dA) == size(Acoef) || throw(DimensionMismatch("DG area derivative size mismatch"))
+    size(dQ) == size(Qcoef) || throw(DimensionMismatch("DG flow derivative size mismatch"))
+    length(z) == nx || throw(DimensionMismatch("DG grid and coefficient lengths must match"))
+
+    FA = cache.area_flux
+    FQ = cache.flow_flux
+    length(FA) == nx + 1 || throw(DimensionMismatch("DG area flux cache length mismatch"))
+    length(FQ) == nx + 1 || throw(DimensionMismatch("DG flow flux cache length mismatch"))
+    @inbounds begin
+        Ain, Qin, Aout, Qout =
+            boundary_states_from_values(Acoef[begin, 1], Qcoef[begin, 1], Acoef[end, 1], Qcoef[end, 1], p, t)
+    end
+
+    @inbounds for iface in 1:(nx + 1)
         if iface == 1
             AL, QL = Ain, Qin
             AR = max(dg_value(Acoef, 1, -1.0, degree), AREA_LIMITER_FLOOR)
@@ -112,16 +183,19 @@ function dg_rhs(
     xis, weights = dg_quadrature(degree)
     gp2 = gamma_plus_two(p)
 
-    for i in 1:nx
+    @inbounds for i in 1:nx
         for m in 0:degree
-            boundary_A = FA[i + 1] * legendre_value(m, 1.0) - FA[i] * legendre_value(m, -1.0)
-            boundary_Q = FQ[i + 1] * legendre_value(m, 1.0) - FQ[i] * legendre_value(m, -1.0)
+            left_test = isodd(m) ? -1.0 : 1.0
+            boundary_A = FA[i + 1] - FA[i] * left_test
+            boundary_Q = FQ[i + 1] - FQ[i] * left_test
             volume_A = 0.0
             volume_Q = 0.0
             source_A = 0.0
             source_Q = 0.0
 
-            for (xi, w) in zip(xis, weights)
+            for q in eachindex(xis)
+                xi = xis[q]
+                w = weights[q]
                 zq = z[i] + 0.5 * dx * xi
                 Aq = max(dg_value(Acoef, i, xi, degree), AREA_LIMITER_FLOOR)
                 Qq = dg_value(Qcoef, i, xi, degree)
@@ -152,12 +226,15 @@ function limit_dg_coefficients!(Acoef::Matrix{Float64}, Qcoef::Matrix{Float64}, 
     degree = method.degree
     degree == 0 && return Acoef, Qcoef
     nx = size(Acoef, 1)
-    xis = (-1.0, dg_quadrature(degree)[1]..., 1.0)
+    quadrature_xis, _ = dg_quadrature(degree)
 
-    for i in 1:nx
+    @inbounds for i in 1:nx
         mean_A = max(Acoef[i, 1], AREA_LIMITER_FLOOR)
         Acoef[i, 1] = mean_A
-        min_A = minimum(dg_value(Acoef, i, xi, degree) for xi in xis)
+        min_A = min(dg_value(Acoef, i, -1.0, degree), dg_value(Acoef, i, 1.0, degree))
+        for q in eachindex(quadrature_xis)
+            min_A = min(min_A, dg_value(Acoef, i, quadrature_xis[q], degree))
+        end
         if min_A < AREA_LIMITER_FLOOR
             theta = min(1.0, (mean_A - AREA_LIMITER_FLOOR) / max(mean_A - min_A, eps()))
             for m in 1:degree
@@ -223,10 +300,10 @@ function dg_step(
     p::Params,
     method::DGMethod,
 )
-    dA, dQ = dg_rhs(Acoef, Qcoef, z, dx, p, method, t)
-    Anew = Acoef .+ dt .* dA
-    Qnew = Qcoef .+ dt .* dQ
-    return limit_dg_coefficients!(Anew, Qnew, method)
+    Anew = copy(Acoef)
+    Qnew = copy(Qcoef)
+    cache = DGStepCache(size(Acoef, 1), method.degree)
+    return dg_step!(Anew, Qnew, z, dx, dt, t, ForwardEulerStepper(), p, method, cache)
 end
 
 function dg_step(
@@ -240,15 +317,10 @@ function dg_step(
     p::Params,
     method::DGMethod,
 )
-    dA1, dQ1 = dg_rhs(Acoef, Qcoef, z, dx, p, method, t)
-    A1 = Acoef .+ dt .* dA1
-    Q1 = Qcoef .+ dt .* dQ1
-    limit_dg_coefficients!(A1, Q1, method)
-
-    dA2, dQ2 = dg_rhs(A1, Q1, z, dx, p, method, t + dt)
-    Anew = 0.5 .* Acoef .+ 0.5 .* (A1 .+ dt .* dA2)
-    Qnew = 0.5 .* Qcoef .+ 0.5 .* (Q1 .+ dt .* dQ2)
-    return limit_dg_coefficients!(Anew, Qnew, method)
+    Anew = copy(Acoef)
+    Qnew = copy(Qcoef)
+    cache = DGStepCache(size(Acoef, 1), method.degree)
+    return dg_step!(Anew, Qnew, z, dx, dt, t, SSPRK2Stepper(), p, method, cache)
 end
 
 function dg_step(
@@ -262,20 +334,10 @@ function dg_step(
     p::Params,
     method::DGMethod,
 )
-    dA1, dQ1 = dg_rhs(Acoef, Qcoef, z, dx, p, method, t)
-    A1 = Acoef .+ dt .* dA1
-    Q1 = Qcoef .+ dt .* dQ1
-    limit_dg_coefficients!(A1, Q1, method)
-
-    dA2, dQ2 = dg_rhs(A1, Q1, z, dx, p, method, t + dt)
-    A2 = 0.75 .* Acoef .+ 0.25 .* (A1 .+ dt .* dA2)
-    Q2 = 0.75 .* Qcoef .+ 0.25 .* (Q1 .+ dt .* dQ2)
-    limit_dg_coefficients!(A2, Q2, method)
-
-    dA3, dQ3 = dg_rhs(A2, Q2, z, dx, p, method, t + 0.5 * dt)
-    Anew = (Acoef .+ 2.0 .* (A2 .+ dt .* dA3)) ./ 3.0
-    Qnew = (Qcoef .+ 2.0 .* (Q2 .+ dt .* dQ3)) ./ 3.0
-    return limit_dg_coefficients!(Anew, Qnew, method)
+    Anew = copy(Acoef)
+    Qnew = copy(Qcoef)
+    cache = DGStepCache(size(Acoef, 1), method.degree)
+    return dg_step!(Anew, Qnew, z, dx, dt, t, SSPRK3Stepper(), p, method, cache)
 end
 
 function dg_step(
@@ -289,48 +351,179 @@ function dg_step(
     p::Params,
     method::DGMethod,
 )
-    dA1, dQ1 = dg_rhs(Acoef, Qcoef, z, dx, p, method, t)
-    A1 = Acoef .+ 0.391752226571890 .* dt .* dA1
-    Q1 = Qcoef .+ 0.391752226571890 .* dt .* dQ1
-    limit_dg_coefficients!(A1, Q1, method)
+    Anew = copy(Acoef)
+    Qnew = copy(Qcoef)
+    cache = DGStepCache(size(Acoef, 1), method.degree)
+    return dg_step!(Anew, Qnew, z, dx, dt, t, SSPRK54Stepper(), p, method, cache)
+end
 
-    dA2, dQ2 = dg_rhs(A1, Q1, z, dx, p, method, t + 0.391752226571890 * dt)
-    A2 = 0.444370493651235 .* Acoef .+
-         0.555629506348765 .* A1 .+
-         0.368410593050371 .* dt .* dA2
-    Q2 = 0.444370493651235 .* Qcoef .+
-         0.555629506348765 .* Q1 .+
-         0.368410593050371 .* dt .* dQ2
-    limit_dg_coefficients!(A2, Q2, method)
+function dg_step!(
+    Acoef::Matrix{Float64},
+    Qcoef::Matrix{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    p::Params,
+    method::DGMethod,
+    cache::DGStepCache,
+)
+    return dg_step!(Acoef, Qcoef, z, dx, dt, t, p.time_stepper, p, method, cache)
+end
 
-    dA3, dQ3 = dg_rhs(A2, Q2, z, dx, p, method, t + 0.586079688967798 * dt)
-    A3 = 0.620101851488403 .* Acoef .+
-         0.379898148511597 .* A2 .+
-         0.251891774271694 .* dt .* dA3
-    Q3 = 0.620101851488403 .* Qcoef .+
-         0.379898148511597 .* Q2 .+
-         0.251891774271694 .* dt .* dQ3
-    limit_dg_coefficients!(A3, Q3, method)
+function dg_step!(
+    Acoef::Matrix{Float64},
+    Qcoef::Matrix{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    ::ForwardEulerStepper,
+    p::Params,
+    method::DGMethod,
+    cache::DGStepCache,
+)
+    fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, Acoef, Qcoef, z, dx, p, method, t, cache.rhs)
+    @inbounds for i in eachindex(Acoef)
+        Acoef[i] += dt * cache.rhs.dA[i]
+        Qcoef[i] += dt * cache.rhs.dQ[i]
+    end
+    return limit_dg_coefficients!(Acoef, Qcoef, method)
+end
 
-    dA4, dQ4 = dg_rhs(A3, Q3, z, dx, p, method, t + 0.474542363026872 * dt)
-    A4 = 0.178079954393132 .* Acoef .+
-         0.821920045606868 .* A3 .+
-         0.544974750228521 .* dt .* dA4
-    Q4 = 0.178079954393132 .* Qcoef .+
-         0.821920045606868 .* Q3 .+
-         0.544974750228521 .* dt .* dQ4
-    limit_dg_coefficients!(A4, Q4, method)
+function dg_step!(
+    Acoef::Matrix{Float64},
+    Qcoef::Matrix{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    ::SSPRK2Stepper,
+    p::Params,
+    method::DGMethod,
+    cache::DGStepCache,
+)
+    fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, Acoef, Qcoef, z, dx, p, method, t, cache.rhs)
+    @inbounds for i in eachindex(Acoef)
+        cache.A1[i] = Acoef[i] + dt * cache.rhs.dA[i]
+        cache.Q1[i] = Qcoef[i] + dt * cache.rhs.dQ[i]
+    end
+    limit_dg_coefficients!(cache.A1, cache.Q1, method)
 
-    dA5, dQ5 = dg_rhs(A4, Q4, z, dx, p, method, t + 0.935010630967653 * dt)
-    Anew = 0.517231671970585 .* A2 .+
-           0.096059710526147 .* A3 .+
-           0.386708617503269 .* A4 .+
-           0.063692468666290 .* dt .* dA5
-    Qnew = 0.517231671970585 .* Q2 .+
-           0.096059710526147 .* Q3 .+
-           0.386708617503269 .* Q4 .+
-           0.063692468666290 .* dt .* dQ5
-    return limit_dg_coefficients!(Anew, Qnew, method)
+    fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A1, cache.Q1, z, dx, p, method, t + dt, cache.rhs)
+    @inbounds for i in eachindex(Acoef)
+        Acoef[i] = 0.5 * Acoef[i] + 0.5 * (cache.A1[i] + dt * cache.rhs.dA[i])
+        Qcoef[i] = 0.5 * Qcoef[i] + 0.5 * (cache.Q1[i] + dt * cache.rhs.dQ[i])
+    end
+    return limit_dg_coefficients!(Acoef, Qcoef, method)
+end
+
+function dg_step!(
+    Acoef::Matrix{Float64},
+    Qcoef::Matrix{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    ::SSPRK3Stepper,
+    p::Params,
+    method::DGMethod,
+    cache::DGStepCache,
+)
+    fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, Acoef, Qcoef, z, dx, p, method, t, cache.rhs)
+    @inbounds for i in eachindex(Acoef)
+        cache.A1[i] = Acoef[i] + dt * cache.rhs.dA[i]
+        cache.Q1[i] = Qcoef[i] + dt * cache.rhs.dQ[i]
+    end
+    limit_dg_coefficients!(cache.A1, cache.Q1, method)
+
+    fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A1, cache.Q1, z, dx, p, method, t + dt, cache.rhs)
+    @inbounds for i in eachindex(Acoef)
+        cache.A2[i] = 0.75 * Acoef[i] + 0.25 * (cache.A1[i] + dt * cache.rhs.dA[i])
+        cache.Q2[i] = 0.75 * Qcoef[i] + 0.25 * (cache.Q1[i] + dt * cache.rhs.dQ[i])
+    end
+    limit_dg_coefficients!(cache.A2, cache.Q2, method)
+
+    fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A2, cache.Q2, z, dx, p, method, t + 0.5 * dt, cache.rhs)
+    @inbounds for i in eachindex(Acoef)
+        Acoef[i] = (Acoef[i] + 2.0 * (cache.A2[i] + dt * cache.rhs.dA[i])) / 3.0
+        Qcoef[i] = (Qcoef[i] + 2.0 * (cache.Q2[i] + dt * cache.rhs.dQ[i])) / 3.0
+    end
+    return limit_dg_coefficients!(Acoef, Qcoef, method)
+end
+
+function dg_step!(
+    Acoef::Matrix{Float64},
+    Qcoef::Matrix{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    ::SSPRK54Stepper,
+    p::Params,
+    method::DGMethod,
+    cache::DGStepCache,
+)
+    fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, Acoef, Qcoef, z, dx, p, method, t, cache.rhs)
+    @inbounds for i in eachindex(Acoef)
+        cache.A1[i] = Acoef[i] + 0.391752226571890 * dt * cache.rhs.dA[i]
+        cache.Q1[i] = Qcoef[i] + 0.391752226571890 * dt * cache.rhs.dQ[i]
+    end
+    limit_dg_coefficients!(cache.A1, cache.Q1, method)
+
+    fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A1, cache.Q1, z, dx, p, method, t + 0.391752226571890 * dt, cache.rhs)
+    @inbounds for i in eachindex(Acoef)
+        cache.A1[i] =
+            0.444370493651235 * Acoef[i] +
+            0.555629506348765 * cache.A1[i] +
+            0.368410593050371 * dt * cache.rhs.dA[i]
+        cache.Q1[i] =
+            0.444370493651235 * Qcoef[i] +
+            0.555629506348765 * cache.Q1[i] +
+            0.368410593050371 * dt * cache.rhs.dQ[i]
+    end
+    limit_dg_coefficients!(cache.A1, cache.Q1, method)
+
+    fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A1, cache.Q1, z, dx, p, method, t + 0.586079688967798 * dt, cache.rhs)
+    @inbounds for i in eachindex(Acoef)
+        cache.A2[i] =
+            0.620101851488403 * Acoef[i] +
+            0.379898148511597 * cache.A1[i] +
+            0.251891774271694 * dt * cache.rhs.dA[i]
+        cache.Q2[i] =
+            0.620101851488403 * Qcoef[i] +
+            0.379898148511597 * cache.Q1[i] +
+            0.251891774271694 * dt * cache.rhs.dQ[i]
+    end
+    limit_dg_coefficients!(cache.A2, cache.Q2, method)
+
+    fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A2, cache.Q2, z, dx, p, method, t + 0.474542363026872 * dt, cache.rhs)
+    @inbounds for i in eachindex(Acoef)
+        cache.A3[i] =
+            0.178079954393132 * Acoef[i] +
+            0.821920045606868 * cache.A2[i] +
+            0.544974750228521 * dt * cache.rhs.dA[i]
+        cache.Q3[i] =
+            0.178079954393132 * Qcoef[i] +
+            0.821920045606868 * cache.Q2[i] +
+            0.544974750228521 * dt * cache.rhs.dQ[i]
+    end
+    limit_dg_coefficients!(cache.A3, cache.Q3, method)
+
+    fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A3, cache.Q3, z, dx, p, method, t + 0.935010630967653 * dt, cache.rhs)
+    @inbounds for i in eachindex(Acoef)
+        Acoef[i] =
+            0.517231671970585 * cache.A1[i] +
+            0.096059710526147 * cache.A2[i] +
+            0.386708617503269 * cache.A3[i] +
+            0.063692468666290 * dt * cache.rhs.dA[i]
+        Qcoef[i] =
+            0.517231671970585 * cache.Q1[i] +
+            0.096059710526147 * cache.Q2[i] +
+            0.386708617503269 * cache.Q3[i] +
+            0.063692468666290 * dt * cache.rhs.dQ[i]
+    end
+    return limit_dg_coefficients!(Acoef, Qcoef, method)
 end
 
 function choose_dt_dg(Acoef::Matrix{Float64}, Qcoef::Matrix{Float64}, z::Vector{Float64}, dx::Float64, p::Params, method::DGMethod)
@@ -347,12 +540,13 @@ function simulate_dg_coefficients(p::Params, method::DGMethod; progress_every::I
     validate(p)
     z, Acoef, Qcoef, dx, initial_summary = dg_initial_coefficients_with_summary(p, method)
     limit_dg_coefficients!(Acoef, Qcoef, method)
+    step_cache = DGStepCache(size(Acoef, 1), method.degree)
     t = 0.0
     step = 0
 
     while t < p.tfinal - 1.0e-14
         dt = min(choose_dt_dg(Acoef, Qcoef, z, dx, p, method), p.tfinal - t)
-        Acoef, Qcoef = dg_step(Acoef, Qcoef, z, dx, dt, t, p, method)
+        dg_step!(Acoef, Qcoef, z, dx, dt, t, p, method, step_cache)
         t += dt
         step += 1
 

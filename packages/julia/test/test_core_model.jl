@@ -217,6 +217,48 @@ end
     StenosisHemodynamics.native_step!(A_mutating, Q_mutating, z, dx, dt, 0.0, params, StenosisHemodynamics.NativeStepCache(length(A)))
     @test A_mutating ≈ A_reference
     @test Q_mutating ≈ Q_reference
+
+    dg_method = DGMethod(2)
+    dg_params = Params(nx=8, tfinal=1.0e-5, severity=30.0, space=dg_method, initial_condition=GeometryRestIC())
+    z_dg, Acoef, Qcoef, dx_dg = StenosisHemodynamics.dg_initial_coefficients(dg_params, dg_method)
+    StenosisHemodynamics.limit_dg_coefficients!(Acoef, Qcoef, dg_method)
+    dt_dg = min(StenosisHemodynamics.choose_dt_dg(Acoef, Qcoef, z_dg, dx_dg, dg_params, dg_method), dg_params.tfinal)
+    dA_dg, dQ_dg = StenosisHemodynamics.dg_rhs(Acoef, Qcoef, z_dg, dx_dg, dg_params, dg_method, 0.0)
+    dg_rhs_cache = StenosisHemodynamics.DGRHSCache(size(Acoef, 1), dg_method.degree)
+    dA_cached = similar(Acoef)
+    dQ_cached = similar(Qcoef)
+    StenosisHemodynamics.fill_dg_rhs!(
+        dA_cached,
+        dQ_cached,
+        Acoef,
+        Qcoef,
+        z_dg,
+        dx_dg,
+        dg_params,
+        dg_method,
+        0.0,
+        dg_rhs_cache,
+    )
+    @test dA_cached ≈ dA_dg
+    @test dQ_cached ≈ dQ_dg
+
+    A_dg_reference, Q_dg_reference =
+        StenosisHemodynamics.dg_step(copy(Acoef), copy(Qcoef), z_dg, dx_dg, dt_dg, 0.0, dg_params, dg_method)
+    A_dg_mutating = copy(Acoef)
+    Q_dg_mutating = copy(Qcoef)
+    StenosisHemodynamics.dg_step!(
+        A_dg_mutating,
+        Q_dg_mutating,
+        z_dg,
+        dx_dg,
+        dt_dg,
+        0.0,
+        dg_params,
+        dg_method,
+        StenosisHemodynamics.DGStepCache(size(Acoef, 1), dg_method.degree),
+    )
+    @test A_dg_mutating ≈ A_dg_reference
+    @test Q_dg_mutating ≈ Q_dg_reference
 end
 
 function write_openbf_fixture(dir::String; project_name::String = "strict_one", extra_vessel::String = "", include_canic::Bool = true)
