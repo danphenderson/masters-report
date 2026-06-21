@@ -29,17 +29,24 @@ report build only when preparing a release artifact or intentionally refreshing
 
 ## Release Checks
 
-Run these checks before public export:
+Run patch validation during ordinary Codex or development work, including dirty
+trees:
 
 ```sh
-git status --short --ignored
-git ls-files | rg '(__pycache__|\.pyc$|\.aux$|\.log$|\.bbl$)'
-git ls-files public/references | rg '\.(pdf|html?)$'
-pipenv run ops-audit-references
-packages/julia/bin/julia-release packages/julia/test/runtests.jl
-pipenv run ops-python-check
-pipenv run ops-build-report --outdir /tmp/masters-report-build
+pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-build
 ```
+
+Run release validation before public export:
+
+```sh
+pipenv run ops-release-check --mode release --report-outdir /tmp/masters-report-build
+```
+
+Release mode enforces a clean `git status --short --branch
+--untracked-files=all` result and scans for tracked LaTeX byproducts, caches,
+private reference mirrors, final PDFs, and unclassified `public/var/**`
+artifacts. `public/var/logs/.gitkeep` is the only trackable file under
+`public/var/logs/`; JSON and JSONL logs remain ignored run artifacts.
 
 Before a public push, also run a secret scan:
 
@@ -49,13 +56,22 @@ rg -n '(token|secret|password|api[_-]?key|BEGIN .*PRIVATE)'
 
 Use `pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf`
 instead of the full build when release-PDF refresh is not in scope.
+Use `pipenv run ops-release-check --mode release --sync-final-pdf` only when the
+release PDF refresh is explicitly in scope.
 
 ## Related Policies
 
+- Use `public/docs/index.md` for the full documentation map.
 - Use `public/docs/policy-vocabulary.md` for shared terms and modal verbs.
 - Use `public/docs/agent-workflows.md` for bounded dispatch and review before
   publication work.
 - Use `public/docs/artifact-policy.md` before moving, deleting, regenerating, or
   publishing artifacts.
+- Use `public/docs/report-builds.md` for report build gates and release PDF
+  refresh behavior.
+- Use `public/docs/report-assets-and-provenance.md` before publishing generated
+  report assets.
+- Use `public/docs/resolved3d-workflows.md` before relying on optional local
+  resolved-3D data.
 - Use `public/docs/benchmark-pipeline.md` before publishing benchmark-generated
   report assets.

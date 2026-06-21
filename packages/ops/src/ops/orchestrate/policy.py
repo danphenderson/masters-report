@@ -10,7 +10,7 @@ from .models import ReviewLaneSpec
 SURFACES = ("report", "julia", "ops", "references", "assets", "release")
 MODES = ("inspect", "bounded-edit", "hard-review", "artifact-refresh")
 PROFILES = ("generic", "editorial-readiness", "claim-boundary", "citation-evidence", "pdf-sync", "source-polish")
-COMMANDS = ("status", "dispatch", "review", "handback-check", "packet-check", "docs-contract")
+COMMANDS = ("status", "sessions", "dispatch", "review", "handback-check", "packet-check", "docs-contract")
 REVIEW_LANES = ("layout", "artifacts", "orchestration", "docs")
 REQUIRED_HANDBACK_SECTIONS = ("Status", "Scope", "Files", "Validation", "Risks")
 PROFILE_HANDBACK_SECTIONS: dict[str, tuple[str, ...]] = {
@@ -58,7 +58,7 @@ ALL_HANDBACK_SECTIONS = tuple(
 )
 
 SURFACE_PREFIXES: dict[str, tuple[str, ...]] = {
-    "assets": ("report/assets/", "public/var/data/simulations/"),
+    "assets": ("report/assets/", "public/var/data/simulations/", "public/var/logs/"),
     "report": (
         "report/final-report.tex",
         "report/frontmatter/",
@@ -103,7 +103,7 @@ SURFACE_PREFIXES: dict[str, tuple[str, ...]] = {
 
 VALIDATION_COMMANDS: dict[str, tuple[str, ...]] = {
     "report": ("pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf",),
-    "julia": ("packages/julia/bin/julia-release packages/julia/test/runtests.jl",),
+    "julia": ("pipenv run ops-julia-check",),
     "ops": ("pipenv run ops-python-check",),
     "references": (
         "pipenv run ops-audit-references",
@@ -114,22 +114,16 @@ VALIDATION_COMMANDS: dict[str, tuple[str, ...]] = {
         "Run the owning renderer or Julia workflow for the changed asset.",
         "pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf",
     ),
-    "release": (
-        "git status --short --ignored",
-        "pipenv run ops-audit-references",
-        "packages/julia/bin/julia-release packages/julia/test/runtests.jl",
-        "pipenv run ops-python-check",
-        "pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf",
-    ),
+    "release": ("pipenv run ops-release-check --mode release",),
 }
 
 VALIDATION_MARKERS: dict[str, tuple[str, ...]] = {
     "report": ("ops-build-report",),
-    "julia": ("julia-release", "runtests.jl"),
+    "julia": ("ops-julia-check",),
     "ops": ("ops-python-check",),
     "references": ("ops-audit-references",),
     "assets": ("ops-build-report",),
-    "release": ("ops-python-check", "ops-build-report"),
+    "release": ("ops-release-check",),
 }
 
 DOC_CONTRACT_PATHS = (
@@ -181,8 +175,12 @@ PACKET_STALE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("stale report build wrapper; use pipenv run ops-build-report", re.compile(r"(?<![\w./-])bin/build-report\b")),
     ("stale Python check wrapper; use pipenv run ops-python-check", re.compile(r"(?<![\w./-])bin/python-check\b")),
     (
-        "stale Julia test wrapper; use packages/julia/bin/julia-release",
+        "stale Julia test wrapper; use pipenv run ops-julia-check",
         re.compile(r"(?<![\w./-])bin/julia-release\b"),
+    ),
+    (
+        "raw Julia validation command; use pipenv run ops-julia-check",
+        re.compile(r"packages/julia/bin/julia-release\s+packages/julia/test/runtests\.jl"),
     ),
     (
         "stale Julia CLI wrapper; use packages/julia/bin/stenosis-hemodynamics",
@@ -193,7 +191,8 @@ PACKET_VALIDATION_NEEDLES = (
     "pipenv run ops-build-report",
     "pipenv run ops-python-check",
     "pipenv run ops-audit-references",
-    "packages/julia/bin/julia-release",
+    "pipenv run ops-julia-check",
+    "pipenv run ops-release-check",
 )
 OVERBROAD_PACKET_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"(?is)\bregenerate\s+experiments?\b"),
@@ -240,7 +239,7 @@ REVIEW_LANE_SPECS: dict[str, ReviewLaneSpec] = {
             "deleted bin/ and scripts/ wrappers via git history/status",
         ),
         validation=(
-            "packages/julia/bin/julia-release packages/julia/test/runtests.jl",
+            "pipenv run ops-julia-check",
             "pipenv run ops-python-check",
         ),
         blocker_rules=("Return BLOCKED if any documented command still points to removed root wrapper paths.",),
@@ -315,6 +314,7 @@ def blocked_artifacts_for(surface: str, mode: str) -> tuple[str, ...]:
         "report/assets/rendered/** unless listed in Allowed Files with --mode artifact-refresh",
         "public/references/**/*.pdf|html|htm",
         "public/var/data/simulations/**",
+        "public/var/logs/*.json|jsonl",
         "tmp/simulations/output/** except scratch run outputs",
     ]
     if mode == "artifact-refresh":

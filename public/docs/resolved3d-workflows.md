@@ -1,0 +1,129 @@
+# Resolved-3D Workflows
+
+Resolved-3D workflows are optional because the XDMF/HDF5 inputs are not tracked
+in public Git releases. Missing inputs must produce skipped evidence or skipped
+commands, not false failures.
+
+## Local Data Root
+
+The default optional data root is:
+
+```text
+public/var/data/simulations/canic_case3/
+```
+
+Expected local case files include:
+
+```text
+public/var/data/simulations/canic_case3/77/velocity.xdmf
+public/var/data/simulations/canic_case3/77/velocity.h5
+public/var/data/simulations/canic_case3/60/velocity.xdmf
+public/var/data/simulations/canic_case3/60/velocity.h5
+```
+
+Keep raw resolved-3D files ignored. Record source, checksum, and expected local
+path before relying on them for evidence.
+
+## Comparison Workflow
+
+Run the default comparison only when local data is available:
+
+```sh
+packages/julia/bin/stenosis-hemodynamics compare-3d \
+  --target-time 0.9995 \
+  --time-atol 1e-6 \
+  --overwrite
+```
+
+The command prints `compare_3d_status,skipped_missing_data` when required local
+inputs are absent. Treat that as an expected skip for public-clone validation.
+
+Use `--publish-report-assets` only when the task intentionally promotes outputs
+into `report/assets/data/stenosis-comparison/**`:
+
+```sh
+packages/julia/bin/stenosis-hemodynamics compare-3d \
+  --target-time 0.9995 \
+  --time-atol 1e-6 \
+  --overwrite \
+  --publish-report-assets
+```
+
+After publishing report assets, run a validation-only report build.
+
+## Grid Sensitivity
+
+Run grid sensitivity with explicit grid sizes:
+
+```sh
+packages/julia/bin/stenosis-hemodynamics compare-3d \
+  --nxs 200,400,800 \
+  --target-time 0.9995 \
+  --time-atol 1e-6 \
+  --overwrite
+```
+
+Use `--reuse-grid-summary` when the task needs to reformat or republish an
+already reviewed summary without rerunning the full comparison:
+
+```sh
+packages/julia/bin/stenosis-hemodynamics compare-3d \
+  --nxs 200,400,800 \
+  --reuse-grid-summary tmp/simulations/output/3d_comparison/grid_sensitivity/summary.csv \
+  --grid-summary-csv report/assets/data/stenosis-comparison/grid-sensitivity-summary.csv \
+  --grid-summary-tex report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex \
+  --overwrite
+```
+
+Do not treat grid sensitivity as physical validation. It is output sensitivity
+for the declared comparison workflow.
+
+## Operator Validation
+
+Run synthetic cross-section operator validation when operator evidence or report
+tables are in scope:
+
+```sh
+packages/julia/bin/stenosis-hemodynamics operator-validation \
+  --output-dir tmp/simulations/output/operator_validation \
+  --overwrite
+```
+
+Publish to report assets only with explicit paths:
+
+```sh
+packages/julia/bin/stenosis-hemodynamics operator-validation \
+  --output-dir report/assets/tables/stenosis-comparison \
+  --summary-csv report/assets/data/stenosis-comparison/cross-section-operator-validation.csv \
+  --summary-tex report/assets/tables/stenosis-comparison/cross_section_operator_validation.tex \
+  --overwrite
+```
+
+## Resolved Flow Rendering
+
+Use `export-assets` and the geometry renderer for resolved envelopes and
+resolved velocity field figures:
+
+```sh
+packages/julia/bin/stenosis-hemodynamics export-assets --overwrite
+pipenv run ops-render-stenosis-geometry-figures
+```
+
+The renderer skips resolved-flow figures when no complete resolved velocity node
+CSV set is present. Treat skipped renders as expected when optional local data is
+absent.
+
+## Publication Boundaries
+
+- Do not track raw XDMF/HDF5 inputs.
+- Do not publish report assets unless the current TeX source consumes them.
+- Do not refresh `public/final-report.pdf` unless release publication is
+  explicitly in scope.
+- Record skipped optional inputs in handbacks and PR summaries.
+
+## Related Policies
+
+- Use `public/docs/artifact-policy.md` before moving or publishing artifacts.
+- Use `public/docs/report-assets-and-provenance.md` for asset ownership.
+- Use `public/docs/julia-cli-workflows.md` for general Julia command usage.
+- Use `public/docs/report-builds.md` after publishing report-consumed assets.

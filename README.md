@@ -24,7 +24,7 @@ are not tracked in this repository.
 
 | Workflow | Clean public clone? | Notes |
 | --- | --- | --- |
-| Julia tests | Yes | Uses the repository-managed Julia launcher. |
+| Julia tests | Yes | Uses the ops validation wrapper around the repository-managed Julia launcher; requires the Pipenv environment. |
 | Report build | Yes | Uses tracked TeX inputs and derived report assets; writes scratch outputs. |
 | Solver smoke simulation | Yes | Writes local output under the requested scratch path. |
 | Python audits and render helpers | Yes | Requires `PIPENV_VENV_IN_PROJECT=1 pipenv install --dev` first. |
@@ -33,16 +33,22 @@ are not tracked in this repository.
 
 ## Reviewer Quick Start
 
-Run Julia package validation with the repository-managed Julia launcher:
+Install the ops command surface:
 
 ```bash
-packages/julia/bin/julia-release packages/julia/test/runtests.jl
+PIPENV_VENV_IN_PROJECT=1 pipenv install --dev
+```
+
+Run Julia package validation through the agent-facing ops wrapper:
+
+```bash
+pipenv run ops-julia-check
 ```
 
 Build the report from source in a scratch directory:
 
 ```bash
-pipenv run ops-build-report --outdir /tmp/masters-report-build
+pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
 ```
 
 The report wrapper runs the TeX preamble audit, calls `latexmk -g -pdf
@@ -51,35 +57,52 @@ The report wrapper runs the TeX preamble audit, calls `latexmk -g -pdf
 recorder shows untracked report inputs consumed by the build.
 
 On success, the scratch directory contains `final-report.pdf`,
-`final-report.log`, `final-report.fls`, and `report-build-summary.json`; the
-validated scratch PDF is also synced to the ignored local artifact
-`public/final-report.pdf`. If the build fails, inspect the summary JSON and the
-`latexmk` log in the same scratch directory. Use `--no-sync-final-pdf` only when
-you explicitly need a validation-only build.
+`final-report.log`, `final-report.fls`, and `report-build-summary.json`. If the
+build fails, inspect the summary JSON and the `latexmk` log in the same scratch
+directory. Omit `--no-sync-final-pdf` only when the task explicitly refreshes
+the ignored local release artifact `public/final-report.pdf`.
 
 Run a small solver smoke case:
 
 ```bash
-packages/julia/bin/stenosis-hemodynamics simulate \
+pipenv run ops-experiment simulate \
   --nx 32 \
   --tfinal 1e-5 \
+  --ic geometry-rest \
   --output tmp/smoke/simulate.csv
 ```
 
-Install and validate Python support tooling only when report audits or figure
-renderers are needed:
+Validate Python support tooling when report audits or figure renderers are
+needed:
 
 ```bash
-PIPENV_VENV_IN_PROJECT=1 pipenv install --dev
+pipenv run ops-julia-check
 pipenv run ops-python-check
-pipenv run ops-orchestrate status
+pipenv run ops-orchestrate status --json
+pipenv run ops-orchestrate sessions --source codex-jsonl --date YYYY-MM-DD --json
+pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-build
 ```
 
-Artifact classes, cleanup guardrails, and public-release checks are documented
-in [`public/docs/artifact-policy.md`](public/docs/artifact-policy.md) and
-[`public/docs/publication-readiness.md`](public/docs/publication-readiness.md).
-For bounded agent handoffs, see
-[`public/docs/agent-workflows.md`](public/docs/agent-workflows.md).
+## Documentation Map
+
+- [`public/docs/index.md`](public/docs/index.md): task-oriented map for public
+  docs.
+- [`public/docs/report-builds.md`](public/docs/report-builds.md): report build
+  modes, summary JSON, and failure handling.
+- [`public/docs/julia-cli-workflows.md`](public/docs/julia-cli-workflows.md):
+  Julia command families and artifact posture.
+- [`public/docs/ops-tooling.md`](public/docs/ops-tooling.md): Python support
+  commands, renderers, and evidence summaries.
+- [`public/docs/report-assets-and-provenance.md`](public/docs/report-assets-and-provenance.md):
+  report asset ownership, TeX consumers, and refresh gates.
+- [`public/docs/resolved3d-workflows.md`](public/docs/resolved3d-workflows.md):
+  optional resolved-3D data, skip behavior, and publication boundaries.
+- [`public/docs/artifact-policy.md`](public/docs/artifact-policy.md):
+  artifact classes and cleanup guardrails.
+- [`public/docs/agent-workflows.md`](public/docs/agent-workflows.md): bounded
+  agent handoffs.
+- [`public/docs/publication-readiness.md`](public/docs/publication-readiness.md):
+  public export and release checks.
 
 ## Optional Resolved-3D Inputs
 
@@ -120,11 +143,13 @@ The exporter also checks for optional resolved-3D data under
 
 ## Package Benchmark Pipeline
 
-Run the reproducible package benchmark through the Julia package wrapper. The
-smoke profile is a deterministic wiring check:
+Run the reproducible package benchmark through the Python ops experiment runner.
+The runner streams the underlying Julia CLI output in the terminal and records
+JSONL/session-summary logs under `public/var/logs/`. The smoke profile is a
+deterministic wiring check:
 
 ```bash
-packages/julia/bin/stenosis-hemodynamics benchmark \
+pipenv run ops-experiment benchmark \
   --profile smoke \
   --output-dir tmp/simulations/output/package_benchmark/smoke \
   --overwrite
@@ -150,7 +175,9 @@ This repository has separate Julia and Python environments.
 - Python report/support tooling uses the root `Pipfile`, which installs
   `packages/ops` as an editable package. Install it with
   `PIPENV_VENV_IN_PROJECT=1 pipenv install --dev` when audit or
-  render utilities are needed.
+  render utilities are needed. Agent validation commands are exposed as
+  `pipenv run ops-*` scripts, including the Julia validation wrapper
+  `pipenv run ops-julia-check`.
 
 The Julia and Python environments are intentionally independent; installing one
 does not prepare the other.
@@ -174,12 +201,16 @@ initialization in `adapters/stokes_ic.jl`, OpenBF-style YAML in
 
 ## Python Support Tooling
 
-Python remains in this repository only for auxiliary report tooling: TeX and
-reference audits, figure/table rendering commands, and compact
-revision-evidence summaries. It is packaged as `masters-report-ops`; it is not
-a hemodynamics solver surface and has no Python simulation CLI.
+Python remains in this repository for report tooling and experiment operations:
+TeX and reference audits, figure/table rendering commands, compact
+revision-evidence summaries, and the `ops-experiment` runner. It is packaged as
+`masters-report-ops`; it does not reimplement hemodynamics solvers, but it is
+the reviewer-facing simulation experiment runner over the Julia CLI.
 
 ```bash
+pipenv run ops-experiment benchmark --profile smoke \
+  --output-dir tmp/simulations/output/package_benchmark/smoke --overwrite
+pipenv run ops-julia-check
 pipenv run ops-python-check
 pipenv run ops-orchestrate status
 pipenv run ops-render-package-benchmark-figures \
@@ -195,7 +226,10 @@ pipenv run ops-summarize-revision-evidence \
   --data-root public/var/data/simulations/canic_case3
 ```
 
-Run simulations and benchmarks with `packages/julia/bin/stenosis-hemodynamics`.
-Programmatic use through `using StenosisHemodynamics` exposes the core modeling
-and `simulate` API; report and benchmark workflow helpers remain available only
-as qualified names such as `StenosisHemodynamics.run_package_benchmark`.
+Run simulation experiments and benchmarks with `pipenv run ops-experiment ...`
+so terminal output and JSON logs are captured together. Direct Julia CLI usage
+through `packages/julia/bin/stenosis-hemodynamics` remains available for solver
+development. Programmatic use through `using StenosisHemodynamics` exposes the
+core modeling and `simulate` API; report and benchmark workflow helpers remain
+available only as qualified names such as
+`StenosisHemodynamics.run_package_benchmark`.

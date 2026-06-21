@@ -44,6 +44,7 @@ from .policy import (
     review_spec,
     validate_dispatch_request,
 )
+from .session_sources import CodexJsonlSessionSource, SessionSource, SessionSummary, session_source
 from .status import (
     classify_path,
     is_protected_path,
@@ -102,6 +103,9 @@ __all__ = [
     "ReviewLaneSpec",
     "StatusEntry",
     "StatusReport",
+    "CodexJsonlSessionSource",
+    "SessionSource",
+    "SessionSummary",
     "blocked_artifacts_for",
     "build_parser",
     "check_handback",
@@ -128,6 +132,7 @@ __all__ = [
     "review_packet",
     "review_payload",
     "review_spec",
+    "session_source",
     "run_git_status",
     "section_body",
     "section_present",

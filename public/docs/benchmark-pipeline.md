@@ -1,7 +1,9 @@
 # Package Benchmark Pipeline
 
-Run package benchmarks through the Julia package wrapper. Use the smoke profile
-for wiring checks and reviewer validation. Use the overnight profile only when
+Run package benchmarks through the Python ops experiment runner. The runner
+streams the underlying Julia package wrapper in the terminal and stores JSONL
+plus summary JSON logs under `public/var/logs/`. Use the smoke profile for
+wiring checks and reviewer validation. Use the overnight profile only when
 refreshing the full benchmark matrix or report-consumed benchmark assets.
 
 Read `public/docs/artifact-policy.md` before publishing benchmark outputs into
@@ -14,7 +16,7 @@ Use `--profile smoke` when checking CLI wiring, schema emission, or CI-style
 review readiness.
 
 ```sh
-packages/julia/bin/stenosis-hemodynamics benchmark \
+pipenv run ops-experiment benchmark \
   --profile smoke \
   --output-dir tmp/simulations/output/package_benchmark/smoke \
   --overwrite
@@ -26,7 +28,7 @@ current TeX source consumes them and the task explicitly authorizes
 artifact-refresh scope.
 
 ```sh
-packages/julia/bin/stenosis-hemodynamics benchmark \
+pipenv run ops-experiment benchmark \
   --profile overnight \
   --output-dir tmp/simulations/output/package_benchmark/overnight-YYYYMMDD \
   --overwrite \
@@ -34,16 +36,20 @@ packages/julia/bin/stenosis-hemodynamics benchmark \
   --publish-report-assets
 ```
 
-Keep ordinary run outputs under `tmp/simulations/output/**`. The benchmark
+Keep ordinary run outputs under `tmp/simulations/output/**` and run logs under
+ignored `public/var/logs/*.jsonl` and `public/var/logs/*.json`. The benchmark
 copies CSVs and `manifest.json` into `report/assets/data/package-benchmark/`
 only when `--publish-report-assets` is present.
 
 ## Post-Run Checks
 
-After each benchmark run, inspect `manifest.json` as the provenance anchor. It
-records the package, profile, output directory, UTC timestamp, Git SHA, Julia
-version, resolved-3D inclusion flag, report-asset publication flag, command, and
-output hashes.
+After each benchmark run, inspect both provenance files: the benchmark
+`manifest.json` in the output directory and the `ops-experiment` summary JSON in
+`public/var/logs/`. The benchmark manifest records the package, profile, output
+directory, UTC timestamp, Git SHA, Julia version, resolved-3D inclusion flag,
+report-asset publication flag, command, and output hashes. The ops summary
+records the foreground command session, return code, elapsed time, log path, and
+artifact lines streamed by the Julia CLI.
 
 Treat these files as required after a successful run:
 
@@ -92,9 +98,17 @@ refresh unless the task explicitly opens all three scopes.
 
 ## Related Policies
 
+- Use `public/docs/index.md` for the full documentation map.
 - Use `public/docs/policy-vocabulary.md` for shared terms and modal verbs.
 - Use `public/docs/artifact-policy.md` before moving, deleting, regenerating, or
   publishing artifacts.
+- Use `public/docs/report-builds.md` after publishing report-consumed benchmark
+  assets.
+- Use `public/docs/ops-tooling.md` for benchmark renderer details.
+- Use `public/docs/julia-cli-workflows.md` for general Julia command usage.
+- Use `public/docs/report-assets-and-provenance.md` for benchmark asset
+  ownership.
+- Use `public/docs/resolved3d-workflows.md` for optional resolved-3D rows.
 - Use `public/docs/agent-workflows.md` for bounded handoffs involving benchmark
   review or artifact refresh.
 - Use `public/docs/publication-readiness.md` before publishing a release PDF or

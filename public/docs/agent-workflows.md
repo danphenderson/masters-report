@@ -22,6 +22,7 @@ for shared terms and modal verbs.
 
 ```sh
 pipenv run ops-orchestrate status
+pipenv run ops-orchestrate sessions --source codex-jsonl --date YYYY-MM-DD --json
 pipenv run ops-orchestrate dispatch --surface report --mode inspect --objective "Review section scope"
 pipenv run ops-orchestrate review --commit 786e8f9 --lane orchestration
 pipenv run ops-orchestrate handback-check --path /tmp/handback.md --surface report --mode inspect
@@ -34,14 +35,21 @@ It classifies dirty paths by surface and flags protected/generated artifact
 drift. Add `--strict` when protected artifacts or unclassified paths must fail a
 readiness check.
 
+Run `sessions` when auditing local Codex work. The `codex-jsonl` source reads
+date-sharded logs under `~/.codex/sessions`, filters by repository cwd, and
+normalizes rollout filename id, session id, timestamps, prompt headline, final
+status, command count, validation commands, and child/fork markers. Keep default
+output in the terminal or JSON; write markdown only to ignored `tmp/**` or
+`/tmp`.
+
 Run `dispatch` to print a copy-paste-ready task packet. Treat the packet as
 handoff text, not execution. Name exact files with `--files` before allowing
 edits. Mutating modes `bounded-edit` and `artifact-refresh` require `--files`.
 
 Run `review` to print a read-only delegated review packet for one named lane.
-Start reviewers from `git status --short --branch`, cite the reviewed commit,
-forbid mutations, list allowed inspection files, and require the standard
-handback sections.
+Start reviewers from `git status --short --branch --untracked-files=all`, cite
+the reviewed commit, forbid mutations, list allowed inspection files, and
+require the standard handback sections.
 
 Run `handback-check` on worker handbacks. Require `Status`, `Scope`, `Files`,
 `Validation`, and `Risks`. Require the expected validation command, or a
@@ -108,14 +116,13 @@ context and leave them intact.
 ## Validation Defaults
 
 - `report`: `pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf`
-- `julia`: `packages/julia/bin/julia-release packages/julia/test/runtests.jl`
+- `julia`: `pipenv run ops-julia-check`
 - `ops`: `pipenv run ops-python-check`
 - `references`: `pipenv run ops-audit-references`, targeted reference/preamble
   tests, and `biber --tool --validate-datamodel`
 - `assets`: the owning renderer or Julia workflow, followed by
   `pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf`
-- `release`: publication-readiness checks plus Julia, Python, reference, and
-  validation-only report gates
+- `release`: `pipenv run ops-release-check --mode release`
 
 Use validation-only report builds for ordinary source review. Use the full
 report build only for `artifact-refresh` tasks that explicitly include
@@ -123,7 +130,14 @@ report build only for `artifact-refresh` tasks that explicitly include
 
 ## Related Policies
 
+- Use `public/docs/index.md` for the full documentation map.
 - Use `public/docs/policy-vocabulary.md` for shared terms and modal verbs.
+- Use `public/docs/report-builds.md` for validation-only and artifact-refresh
+  report builds.
+- Use `public/docs/ops-tooling.md` for packaged Python support commands.
+- Use `public/docs/julia-cli-workflows.md` for Julia command workflows.
+- Use `public/docs/report-assets-and-provenance.md` before report asset refresh.
+- Use `public/docs/resolved3d-workflows.md` before optional resolved-3D work.
 - Use `public/docs/artifact-policy.md` before moving, deleting, regenerating, or
   publishing artifacts.
 - Use `public/docs/benchmark-pipeline.md` when generating package benchmark

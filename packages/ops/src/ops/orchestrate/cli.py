@@ -20,6 +20,7 @@ from .models import CheckResult, StatusReport
 from .packet_check import packet_check
 from .packets import dispatch_packet, dispatch_payload, review_packet, review_payload
 from .policy import MODES, PROFILES, REVIEW_LANES, SURFACES
+from .session_sources import SessionSummary, session_source
 from .status import repo_root, status_report
 
 
@@ -31,6 +32,7 @@ ReviewLaneChoice = Enum(
     {value.replace("-", "_"): value for value in REVIEW_LANES},
     type=str,
 )
+SessionSourceChoice = Enum("SessionSourceChoice", {"codex_jsonl": "codex-jsonl"}, type=str)
 
 JsonOption = Annotated[bool, typer.Option("--json", help="Emit machine-readable JSON.")]
 RepoOption = Annotated[
@@ -129,6 +131,45 @@ def write_raw(text: str, output: Console | None = None) -> None:
     target.file.flush()
 
 
+def _is_ignored_markdown_export(root: Path, path: Path) -> bool:
+    resolved = path.expanduser().resolve(strict=False)
+    try:
+        relative = resolved.relative_to(root.resolve(strict=False))
+    except ValueError:
+        return resolved.is_relative_to(Path("/tmp"))
+    return bool(relative.parts) and relative.parts[0] == "tmp"
+
+
+def _markdown_sessions(summaries: list[SessionSummary], *, source: str, date: str, repo: Path) -> str:
+    lines = [
+        f"# Codex Session Summary {date}",
+        "",
+        f"- Source: `{source}`",
+        f"- Repo: `{repo.as_posix()}`",
+        f"- Sessions: {len(summaries)}",
+        "",
+    ]
+    for summary in summaries:
+        headline = summary.prompt_headline or "<no prompt headline>"
+        validations = ", ".join(summary.validation_commands) if summary.validation_commands else "none detected"
+        lines.extend(
+            [
+                f"## {summary.session_id}",
+                "",
+                f"- Rollout file id: `{summary.rollout_filename_id}`",
+                f"- Started: `{summary.started_at_utc or '<unknown>'}`",
+                f"- Status: `{summary.final_status}`",
+                f"- Commands: {summary.command_count}",
+                f"- Validation commands: {validations}",
+                f"- Child/fork marker: `{summary.child_or_fork}`",
+                f"- Prompt: {headline}",
+                f"- Path: `{summary.path}`",
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def build_parser() -> typer.Typer:
     return app
 
@@ -145,6 +186,68 @@ def status_command(ctx: typer.Context, json_output: JsonOption = False, strict: 
         dump_json(asdict(report))
         return 1 if strict and (report.protected_paths or report.unclassified_paths) else 0
     return print_status(report, strict=strict)
+
+
+@app.command("sessions", help="Summarize local Codex sessions for one date.")
+def sessions_command(
+    ctx: typer.Context,
+    source: Annotated[SessionSourceChoice, typer.Option("--source", help="Session source adapter.")] = (
+        SessionSourceChoice.codex_jsonl
+    ),
+    date: Annotated[str, typer.Option("--date", help="Local session date, formatted YYYY-MM-DD.")] = "",
+    sessions_root: Annotated[
+        Optional[Path],
+        typer.Option("--sessions-root", help="Override the source root, mainly for tests or imported logs."),
+    ] = None,
+    markdown_out: Annotated[
+        Optional[Path],
+        typer.Option("--markdown-out", help="Optional markdown export path under tmp/** or /tmp."),
+    ] = None,
+    json_output: JsonOption = False,
+) -> int:
+    if not date:
+        raise typer.BadParameter("--date is required")
+
+    root = _root_from_context(ctx)
+    source_value = _choice_value(source)
+    summaries = session_source(source_value, root=sessions_root).load_sessions(date=date, repo=root)
+    if markdown_out is not None:
+        output_path = markdown_out if markdown_out.is_absolute() else root / markdown_out
+        if not _is_ignored_markdown_export(root, output_path):
+            raise typer.BadParameter("--markdown-out must point under tmp/** or /tmp")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(
+            _markdown_sessions(summaries, source=source_value, date=date, repo=root), encoding="utf-8"
+        )
+
+    payload = {
+        "source": source_value,
+        "date": date,
+        "repo": root.as_posix(),
+        "sessions": [asdict(summary) for summary in summaries],
+    }
+    if json_output:
+        dump_json(payload)
+        return 0
+
+    table = Table(title=f"Codex sessions {date}", show_header=True)
+    table.add_column("Session", overflow="fold")
+    table.add_column("Status")
+    table.add_column("Cmds", justify="right")
+    table.add_column("Validations", justify="right")
+    table.add_column("Prompt", overflow="fold")
+    for summary in summaries:
+        table.add_row(
+            summary.session_id,
+            summary.final_status,
+            str(summary.command_count),
+            str(len(summary.validation_commands)),
+            summary.prompt_headline or "<no prompt headline>",
+        )
+    console.print(table)
+    if markdown_out is not None:
+        console.print(f"Markdown export: {output_path}")
+    return 0
 
 
 @app.command("dispatch", help="Print a bounded dispatch packet.")

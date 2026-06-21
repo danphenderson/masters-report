@@ -32,7 +32,7 @@ manuscript and tracked report assets.
 - Python support tooling: `packages/ops/`.
 - Stable reviewer commands: `pipenv run ops-build-report --outdir
   /tmp/masters-report-build --no-sync-final-pdf`,
-  `packages/julia/bin/julia-release packages/julia/test/runtests.jl`, and
+  `pipenv run ops-julia-check`, and
   `pipenv run ops-python-check`.
 
 The current report build gate passed in a fresh scratch output directory. The

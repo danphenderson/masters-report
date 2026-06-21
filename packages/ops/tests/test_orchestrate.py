@@ -16,6 +16,8 @@ def test_parse_status_classifies_surfaces_and_protected_artifacts() -> None:
                 " M report/sections/01-intro/index.tex",
                 " M report/assets/rendered/mesh.pdf",
                 " M public/var/data/simulations/canic_case3/77/velocity.xdmf",
+                "?? public/var/logs/.gitkeep",
+                "?? public/var/logs/run.jsonl",
                 "R  tools/python/scripts/build_report.py -> packages/ops/src/ops/build_report.py",
                 " M .gitignore",
                 "A  .vscode/settings.json",
@@ -26,13 +28,14 @@ def test_parse_status_classifies_surfaces_and_protected_artifacts() -> None:
 
     assert report.branch == "master"
     assert report.dirty_by_surface["report"] == 1
-    assert report.dirty_by_surface["assets"] == 2
+    assert report.dirty_by_surface["assets"] == 4
     assert report.dirty_by_surface["ops"] == 1
     assert report.dirty_by_surface["release"] == 2
     assert report.dirty_by_surface["unknown"] == 1
     assert report.protected_paths == (
         "report/assets/rendered/mesh.pdf",
         "public/var/data/simulations/canic_case3/77/velocity.xdmf",
+        "public/var/logs/run.jsonl",
     )
     assert report.unclassified_paths == ("odd/local.txt",)
 
@@ -152,7 +155,7 @@ def test_review_packet_prints_read_only_lane_contract(monkeypatch) -> None:
 
     packet = orchestrate.review_packet(Path("/repo"), "786e8f9", "orchestration")
 
-    assert "Start with: `git status --short --branch`" in packet
+    assert "Start with: `git status --short --branch --untracked-files=all`" in packet
     assert "Review commit: 786e8f9" in packet
     assert "Lane: orchestration" in packet
     assert "Mode: hard-review" in packet
@@ -183,6 +186,7 @@ def test_review_payload_matches_lane_spec(monkeypatch) -> None:
     assert payload["surfaces"] == ["julia", "ops"]
     assert payload["mode"] == "hard-review"
     assert "packages/julia/bin/*" in payload["allowed_files"]
+    assert "pipenv run ops-julia-check" in payload["validation"]
     assert "pipenv run ops-python-check" in payload["validation"]
 
 
@@ -452,6 +456,71 @@ def test_cli_json_subcommands_smoke(tmp_path: Path, capsys) -> None:
         orchestrate.main(["--repo", str(root), "review", "--commit", "HEAD", "--lane", "orchestration", "--json"]) == 0
     )
     assert json.loads(capsys.readouterr().out)["lane"] == "orchestration"
+
+    sessions_root = tmp_path / "sessions"
+    session_dir = sessions_root / "2026/06/20"
+    session_dir.mkdir(parents=True)
+    session_path = session_dir / "rollout-2026-06-20T12-00-00-019ee000-0000-7000-8000-000000000001.jsonl"
+    session_path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "timestamp": "2026-06-20T19:00:00.000Z",
+                        "type": "session_meta",
+                        "payload": {
+                            "id": "019ee000-0000-7000-8000-000000000001",
+                            "timestamp": "2026-06-20T19:00:00.000Z",
+                            "cwd": root.as_posix(),
+                        },
+                    }
+                ),
+                json.dumps(
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "message",
+                            "role": "user",
+                            "content": [{"type": "input_text", "text": "Run validation"}],
+                        },
+                    }
+                ),
+                json.dumps(
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "function_call",
+                            "name": "exec_command",
+                            "arguments": json.dumps({"cmd": "pipenv run ops-python-check"}),
+                        },
+                    }
+                ),
+                json.dumps({"type": "event_msg", "payload": {"type": "task_complete"}}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    assert (
+        orchestrate.main(
+            [
+                "--repo",
+                str(root),
+                "sessions",
+                "--source",
+                "codex-jsonl",
+                "--date",
+                "2026-06-20",
+                "--sessions-root",
+                str(sessions_root),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    sessions_payload = json.loads(capsys.readouterr().out)
+    assert sessions_payload["sessions"][0]["command_count"] == 1
+    assert sessions_payload["sessions"][0]["validation_commands"] == ["pipenv run ops-python-check"]
 
     handback_path = tmp_path / "handback.md"
     handback_path.write_text(

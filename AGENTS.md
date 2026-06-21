@@ -19,18 +19,30 @@ The nested
 
 ## Build, Test, and Development Commands
 
-- `packages/julia/bin/julia-release packages/julia/test/runtests.jl`: run the Julia test suite with the
-  required Julia 1.12+ project environment.
 - `PIPENV_VENV_IN_PROJECT=1 pipenv install --dev`: create the root `.venv/`
   and install Python report/support tooling.
+- `pipenv run ops-julia-check`: run the Julia test suite through the
+  agent-facing Python ops validation surface. The wrapper uses the required
+  Julia 1.12+ project launcher underneath.
 - `pipenv run ops-python-check`: run Python audit/render tests, Ruff, and Black.
+- `pipenv run ops-release-check --mode patch`: run the aggregate validation
+  gates on a dirty development tree. Use `--mode release` only for clean
+  publication readiness.
+- `pipenv run ops-experiment <julia-command> [options]`: run Julia simulation,
+  study, verification, comparison, or benchmark workflows through the Python
+  experiment runner with live terminal streaming and JSON/JSONL logs under
+  `public/var/logs/`.
 - `pipenv run ops-orchestrate status`: summarize the live dirty tree by
   handoff surface before planning or delegation.
-- `pipenv run ops-build-report --outdir /tmp/masters-report-build`: run the
-  agent-facing report build gate. The wrapper runs the TeX preamble audit,
+- `pipenv run ops-orchestrate sessions --source codex-jsonl --date YYYY-MM-DD --json`:
+  summarize local Codex JSONL sessions for this repository when auditing agent
+  work.
+- `pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf`: run the
+  validation-only report build gate. The wrapper runs the TeX preamble audit,
   invokes `latexmk -pdf -interaction=nonstopmode -halt-on-error` in a scratch
   output directory, fails on untracked consumed report inputs, and writes
-  `report-build-summary.json` in the outdir.
+  `report-build-summary.json` in the outdir. Omit `--no-sync-final-pdf` only
+  for explicitly scoped artifact-refresh or publication work.
 
 ## Coding Style & Naming Conventions
 
@@ -44,24 +56,31 @@ shared command definitions.
 
 ## Testing Guidelines
 
-Add Julia tests to the focused `packages/julia/test/test_*.jl` file and include new files from
-`packages/julia/test/runtests.jl`. Add Python tests as `packages/ops/tests/test_*.py`. For report or TeX
+Add Julia tests to the focused `packages/julia/test/test_*.jl` file and include
+new files from `packages/julia/test/runtests.jl`; run them with `pipenv run
+ops-julia-check` for agent validation. Add Python tests as
+`packages/ops/tests/test_*.py`. For report or TeX
 policy changes, run `pipenv run ops-build-report --outdir
-/tmp/masters-report-build`; it covers the preamble audit, scratch LaTeX build,
-and consumed-input tracking gate. If PDF sync matters, compare rendered output
-before refreshing tracked artifacts. Optional resolved-3D data may be absent;
-record expected skips instead of treating them as failures.
+/tmp/masters-report-build --no-sync-final-pdf`; it covers the preamble audit,
+scratch LaTeX build, and consumed-input tracking gate without refreshing the
+local release PDF. If PDF sync matters, compare rendered output before
+refreshing tracked artifacts. Optional resolved-3D data may be absent; record
+expected skips instead of treating them as failures.
 
 ## Artifact & Scratch Discipline
 
 Write experiment, CLI, and build outputs to ignored scratch paths such as
-`tmp/**`, `tmp/simulations/output/**`, or `/tmp/masters-report-build`. Do not refresh `public/final-report.pdf` or
+`tmp/**`, `tmp/simulations/output/**`, `public/var/logs/*.jsonl`, or
+`/tmp/masters-report-build`. Do not refresh `public/final-report.pdf` or
 rendered figure assets unless the change explicitly requires those artifacts.
 Keep regenerated data/assets separate from unrelated source edits when
 practical. The report wrapper writes its JSON summary into the scratch outdir;
 inspect it instead of staging or deleting untracked consumed inputs. See
+`public/docs/index.md` for the documentation map,
 `public/docs/artifact-policy.md` for artifact classes and cleanup guardrails,
-and `public/docs/agent-workflows.md` for the lightweight handoff contract.
+`public/docs/report-builds.md` for build modes,
+`public/docs/report-assets-and-provenance.md` for report asset ownership, and
+`public/docs/agent-workflows.md` for the lightweight handoff contract.
 
 ## Patch Discipline
 
@@ -69,6 +88,16 @@ Implementation patches should land in small chunks: one coherent surface per
 patch, followed by the narrow validation for that surface. Do not mix source,
 artifact, and documentation churn unless the validation dependency requires the
 files to move together.
+
+## Recommended Codex Sequence
+
+Start substantial Codex work with `pipenv run ops-orchestrate status --json`.
+Run experiments through `pipenv run ops-experiment --dirty-policy warn ...` so
+the handback can cite the summary JSON under `public/var/logs/`. For ordinary
+dirty-tree validation, use `pipenv run ops-release-check --mode patch
+--report-outdir /tmp/masters-report-build`. Reserve `pipenv run
+ops-release-check --mode release` for clean publication readiness or final
+artifact refresh lanes.
 
 ## Commit & Pull Request Guidelines
 

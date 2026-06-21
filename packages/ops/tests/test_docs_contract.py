@@ -39,6 +39,19 @@ def test_ops_orchestrate_entrypoint_is_packaged() -> None:
     assert pyproject["project"]["scripts"]["ops-orchestrate"] == "ops.orchestrate:main"
 
 
+def test_validation_entrypoints_are_packaged_and_declared_in_pipfile() -> None:
+    root = repo_root()
+    pyproject = tomllib.loads((root / "packages/ops/pyproject.toml").read_text(encoding="utf-8"))
+    pipfile = tomllib.loads((root / "Pipfile").read_text(encoding="utf-8"))
+
+    assert pyproject["project"]["scripts"]["ops-experiment"] == "ops.experiment_runner:main"
+    assert pyproject["project"]["scripts"]["ops-julia-check"] == "ops.julia_check:main"
+    assert pyproject["project"]["scripts"]["ops-release-check"] == "ops.release_check:main"
+    assert pipfile["scripts"]["ops-experiment"] == "python -m ops.experiment_runner"
+    assert pipfile["scripts"]["ops-julia-check"] == "python -m ops.julia_check"
+    assert pipfile["scripts"]["ops-release-check"] == "python -m ops.release_check"
+
+
 def test_agent_workflow_doc_names_every_public_command() -> None:
     text = (repo_root() / "public/docs/agent-workflows.md").read_text(encoding="utf-8")
 

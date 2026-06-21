@@ -21,6 +21,19 @@ packages/julia/bin/julia-release packages/julia/test/runtests.jl
 packages/julia/bin/stenosis-hemodynamics simulate --help
 ```
 
+Agent-facing validation should use the Python ops wrapper:
+
+```bash
+pipenv run ops-julia-check
+```
+
+Reviewer-facing simulation experiments should use the Python experiment runner,
+which delegates to this CLI and records JSONL/session-summary logs:
+
+```bash
+pipenv run ops-experiment simulate --help
+```
+
 ## Model Scope
 
 The default forward model is `canic-extended-1d`, the historical manifest token
@@ -61,10 +74,10 @@ uses the same core protocol and owns ordinary CSV/SVG output writing.
 
 ## CLI Examples
 
-Small native smoke run:
+Small native smoke run through the experiment runner:
 
 ```bash
-packages/julia/bin/stenosis-hemodynamics simulate \
+pipenv run ops-experiment simulate \
   --tfinal 0.01 \
   --nx 120 \
   --ic-pressure-drop-pa 40 \
@@ -79,7 +92,7 @@ packages/julia/bin/stenosis-hemodynamics simulate \
 Default 50% stenosis run:
 
 ```bash
-packages/julia/bin/stenosis-hemodynamics simulate \
+pipenv run ops-experiment simulate \
   --tfinal 1.0 \
   --nx 400 \
   --severity 50 \
@@ -90,16 +103,16 @@ packages/julia/bin/stenosis-hemodynamics simulate \
 Validation suite:
 
 ```bash
-packages/julia/bin/julia-release packages/julia/test/runtests.jl
+pipenv run ops-julia-check
 ```
 
 Run small studies through the dispatcher:
 
 ```bash
-packages/julia/bin/stenosis-hemodynamics study severity --severities 23,50 --nx 40 --tfinal 0.001 --ic geometry-rest --overwrite
-packages/julia/bin/stenosis-hemodynamics study grid --nxs 40,80 --severity 50 --tfinal 0.001 --ic geometry-rest --overwrite
-packages/julia/bin/stenosis-hemodynamics study refinement --nxs 50,100,200,400 --severity 40 --tfinal 0.001 --ic geometry-rest --overwrite
-packages/julia/bin/stenosis-hemodynamics stokes refine --nx 80 --parallel-workers 1 --overwrite
+pipenv run ops-experiment study severity --severities 23,50 --nx 40 --tfinal 0.001 --ic geometry-rest --overwrite
+pipenv run ops-experiment study grid --nxs 40,80 --severity 50 --tfinal 0.001 --ic geometry-rest --overwrite
+pipenv run ops-experiment study refinement --nxs 50,100,200,400 --severity 40 --tfinal 0.001 --ic geometry-rest --overwrite
+pipenv run ops-experiment stokes refine --nx 80 --parallel-workers 1 --overwrite
 ```
 
 Generated simulation, verification, benchmark, and comparison outputs default

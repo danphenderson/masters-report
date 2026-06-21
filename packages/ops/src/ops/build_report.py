@@ -6,10 +6,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -106,6 +108,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--no-sync-final-pdf",
         action="store_true",
         help="skip refreshing the local public/final-report.pdf artifact after a passing build",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="replay captured preamble and LaTeX process output even when commands pass",
     )
     return parser.parse_args(argv)
 
@@ -235,9 +242,35 @@ def run_command(command: list[str], repo: Path) -> subprocess.CompletedProcess[s
 
 def print_process_output(result: subprocess.CompletedProcess[str]) -> None:
     if result.stdout:
-        print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
+        write_process_output(sys.stdout, result.stdout)
     if result.stderr:
-        print(result.stderr, end="" if result.stderr.endswith("\n") else "\n", file=sys.stderr)
+        write_process_output(sys.stderr, result.stderr)
+
+
+def maybe_print_process_output(result: subprocess.CompletedProcess[str], *, verbose: bool) -> None:
+    if verbose or result.returncode != 0:
+        print_process_output(result)
+
+
+def write_process_output(stream: Any, text: str) -> None:
+    payload = text if text.endswith("\n") else f"{text}\n"
+    try:
+        fd = stream.fileno()
+    except (AttributeError, OSError):
+        stream.write(payload)
+        stream.flush()
+        return
+
+    data = payload.encode(getattr(stream, "encoding", None) or "utf-8", errors="replace")
+    offset = 0
+    while offset < len(data):
+        try:
+            written = os.write(fd, data[offset : offset + 16384])
+            if written == 0:
+                raise RuntimeError("process output stream accepted zero bytes")
+            offset += written
+        except BlockingIOError:
+            time.sleep(0.05)
 
 
 def should_rerun_for_stabilization(
@@ -284,6 +317,7 @@ def build_initial_summary(
     preamble_command: list[str],
     latexmk_command: list[str],
     paths: dict[str, Path],
+    verbose: bool,
 ) -> dict[str, Any]:
     return {
         "command": {
@@ -304,6 +338,7 @@ def build_initial_summary(
         "warning_counts": {},
         "status": "not_started",
         "failure_reasons": [],
+        "verbose": verbose,
     }
 
 
@@ -325,10 +360,19 @@ def main(argv: list[str] | None = None) -> int:
         f"-outdir={outdir.as_posix()}",
         entrypoint,
     ]
-    summary = build_initial_summary(repo, entrypoint, outdir, final_pdf, preamble_command, latexmk_command, paths)
+    summary = build_initial_summary(
+        repo,
+        entrypoint,
+        outdir,
+        final_pdf,
+        preamble_command,
+        latexmk_command,
+        paths,
+        args.verbose,
+    )
 
     preamble_result = run_command(preamble_command, repo)
-    print_process_output(preamble_result)
+    maybe_print_process_output(preamble_result, verbose=args.verbose)
     if preamble_result.returncode != 0:
         summary["status"] = "failed"
         summary["failure_reasons"] = ["preamble_audit_failed"]
@@ -336,11 +380,11 @@ def main(argv: list[str] | None = None) -> int:
         return preamble_result.returncode
 
     latex_result = run_command(latexmk_command, repo)
-    print_process_output(latex_result)
+    maybe_print_process_output(latex_result, verbose=args.verbose)
     if should_rerun_for_stabilization(latex_result, paths["pdf"], paths["fls"]):
         print("First latexmk pass reported cross-reference stabilization only; rerunning once.", flush=True)
         latex_result = run_command(latexmk_command, repo)
-        print_process_output(latex_result)
+        maybe_print_process_output(latex_result, verbose=args.verbose)
 
     if paths["fls"].exists():
         summary["consumed_inputs"] = parse_fls_inputs(paths["fls"], repo)
@@ -380,6 +424,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {issue}", file=sys.stderr)
     if summary["synced_pdf"] is not None:
         print(f"Synced final PDF: {summary['synced_pdf']['path']}")
+    print(f"Report build status: {summary['status']}")
+    if summary["failure_reasons"]:
+        print(f"Failure reasons: {', '.join(summary['failure_reasons'])}", file=sys.stderr)
     print(f"Report build summary: {paths['summary']}")
 
     if summary["failure_reasons"]:

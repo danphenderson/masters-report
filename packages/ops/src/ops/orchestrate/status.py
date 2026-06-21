@@ -5,6 +5,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from ops.git_state import git_status_short
+
 from .models import StatusEntry, StatusReport
 from .policy import SURFACE_PREFIXES, SURFACES
 
@@ -25,16 +27,7 @@ def repo_root(repo: Path | None = None) -> Path:
 
 
 def run_git_status(repo: Path) -> str:
-    result = subprocess.run(
-        ["git", "status", "--short", "--branch"],
-        cwd=repo,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or "git status failed")
-    return result.stdout
+    return git_status_short(repo)
 
 
 def normalize_status_path(raw: str) -> tuple[str, str]:
@@ -107,6 +100,7 @@ def is_protected_path(path: str) -> bool:
         or normalized.startswith("report/assets/rendered/")
         or (normalized.startswith("public/references/") and suffix in {".pdf", ".html", ".htm"})
         or normalized.startswith("public/var/data/simulations/")
+        or (normalized.startswith("public/var/logs/") and suffix in {".json", ".jsonl"})
         or normalized.startswith("tmp/simulations/output/")
     )
 

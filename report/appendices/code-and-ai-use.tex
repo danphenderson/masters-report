@@ -61,11 +61,11 @@ context, 2 as background only, and 5 as deferred pending metadata review. Blank
 \paragraph*{Build command.}
 The report build command is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-pipenv run ops-build-report --outdir /tmp/masters-report-build
+pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
 \end{lstlisting}
-Julia package tests are run through the repository launcher:
+Julia package tests are run through the Python ops validation wrapper:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-packages/julia/bin/julia-release packages/julia/test/runtests.jl
+pipenv run ops-julia-check
 \end{lstlisting}
 
 \paragraph*{Comparison-asset regeneration command.}

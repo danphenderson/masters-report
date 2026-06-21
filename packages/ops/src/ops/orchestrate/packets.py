@@ -42,7 +42,7 @@ def dispatch_packet(
         *[f"- {path}" for path in blocked_artifacts_for(surface, mode)],
         "",
         "## Operating Rules",
-        "- Re-anchor with `git status --short --branch` before making claims about the tree.",
+        "- Re-anchor with `git status --short --branch --untracked-files=all` before making claims about the tree.",
         "- Use repository files and local validation outputs as evidence; do not infer from stale summaries.",
         "- Keep edits path-scoped and preserve unrelated dirty work.",
         "- Do not install hooks, spawn background automation, or create persistent orchestration receipts.",
@@ -96,7 +96,7 @@ def review_packet(repo: Path, commit: str, lane: str) -> str:
     lines = [
         "# Ops Review Packet",
         "",
-        "Start with: `git status --short --branch`",
+        "Start with: `git status --short --branch --untracked-files=all`",
         f"Review commit: {commit}",
         f"Branch: {report.branch or '<unknown>'}",
         f"Lane: {lane}",
