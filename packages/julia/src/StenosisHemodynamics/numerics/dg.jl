@@ -6,6 +6,7 @@ struct DGSimulationCoefficients
     completed_time::Float64
     steps::Int
     initial_condition::Union{Nothing,InitialConditionSummary}
+    diagnostics::SimulationDiagnostics
 end
 
 struct DGRHSCache
@@ -541,14 +542,17 @@ function simulate_dg_coefficients(p::Params, method::DGMethod; progress_every::I
     z, Acoef, Qcoef, dx, initial_summary = dg_initial_coefficients_with_summary(p, method)
     limit_dg_coefficients!(Acoef, Qcoef, method)
     step_cache = DGStepCache(size(Acoef, 1), method.degree)
+    diagnostics = DiagnosticsAccumulator(vec(Acoef[:, 1]), dx)
     t = 0.0
     step = 0
 
     while t < p.tfinal - 1.0e-14
         dt = min(choose_dt_dg(Acoef, Qcoef, z, dx, p, method), p.tfinal - t)
+        record_timestep_diagnostics!(diagnostics, vec(Acoef[:, 1]), vec(Qcoef[:, 1]), z, dx, dt, p)
         dg_step!(Acoef, Qcoef, z, dx, dt, t, p, method, step_cache)
         t += dt
         step += 1
+        record_mass_diagnostics!(diagnostics, max.(vec(Acoef[:, 1]), AREA_LIMITER_FLOOR), dx)
 
         if progress_every > 0 && step % progress_every == 0
             @telemetry_info "DG simulation progress" event="simulation_progress" stage="simulate" backend="native" method=spatial_method_name(method) nx=p.nx tfinal=p.tfinal status="running" degree=method.degree step t dt minA=minimum(Acoef[:, 1]) maxU=maximum(abs.(Qcoef[:, 1] ./ Acoef[:, 1]))
@@ -559,7 +563,7 @@ function simulate_dg_coefficients(p::Params, method::DGMethod; progress_every::I
         end
     end
 
-    return DGSimulationCoefficients(z, Acoef, Qcoef, dx, t, step, initial_summary)
+    return DGSimulationCoefficients(z, Acoef, Qcoef, dx, t, step, initial_summary, finalize_diagnostics(diagnostics))
 end
 
 function simulate_dg0_coefficients(p::Params; progress_every::Int = 0)
@@ -572,6 +576,7 @@ function simulate_dg0_coefficients(p::Params; progress_every::Int = 0)
         result.completed_time,
         result.steps,
         result.initial_condition,
+        result.diagnostics,
     )
 end
 
@@ -592,6 +597,7 @@ function simulate_dg(p::Params, method::DGMethod; progress_every::Int = 0)
             coefficients.completed_time,
             coefficients.steps,
             coefficients.initial_condition,
+            coefficients.diagnostics,
         )
         @telemetry_info "simulation completed" event="simulation_completed" stage="simulate" backend="native" method=spatial_method_name(method) nx=p.nx tfinal=p.tfinal status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(A)
         return result

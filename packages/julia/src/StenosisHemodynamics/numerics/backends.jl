@@ -127,15 +127,22 @@ function simulate(p::Params, backend::SciMLTimeBackend; progress_every::Int = 0)
         initial = initial_state_result(p)
         prob = ode_problem(sim; u0=pack_state(initial.area, initial.flow))
         sol = solve_ode_problem(prob, backend)
-        final_state = Vector(sol.u[end])
-        A, Q = unpack_state(final_state, sim.layout)
+        times = Float64.(collect(sol.t))
+        area_snapshots = Vector{Vector{Float64}}(undef, length(sol.u))
+        flow_snapshots = Vector{Vector{Float64}}(undef, length(sol.u))
+        for i in eachindex(sol.u)
+            area_snapshots[i], flow_snapshots[i] = unpack_state(Vector(sol.u[i]), sim.layout)
+        end
+        A = area_snapshots[end]
+        Q = flow_snapshots[end]
 
         if !all(isfinite, A) || !all(isfinite, Q)
             error("non-finite SciML solution at t=$(sol.t[end])")
         end
         minimum(A) > 0.0 || error("nonpositive SciML area at t=$(sol.t[end])")
 
-        result = SimulationResult(copy(sim.z), A, Q, sol.t[end], sciml_step_count(sol), initial.summary)
+        diagnostics = finalize_snapshot_diagnostics(copy(sim.z), area_snapshots, flow_snapshots, times, sim.dx, p)
+        result = SimulationResult(copy(sim.z), A, Q, sol.t[end], sciml_step_count(sol), initial.summary, diagnostics)
         @telemetry_info "simulation completed" event="simulation_completed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(A)
         return result
     catch err

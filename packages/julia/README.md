@@ -115,14 +115,16 @@ override that method stack. Supported spatial method flags are:
 
 - `--space fv-first-order`: legacy first-order Rusanov finite volume.
 - `--space fv-muscl`: TVD MUSCL finite volume.
+- `--space fv-weno3`: third-order finite volume with WENO reconstruction.
 - `--space fv-lax-wendroff`: native fixed-step Richtmyer/Lax-Wendroff finite
   volume with limited interface states.
-- `--space dg --degree 0|1|2`: modal Legendre DG.
+- `--space dg --degree 0|1|2|3|4`: modal Legendre DG.
 
 Native time steppers are selected with `--time-stepper euler`,
-`--time-stepper ssprk2`, or `--time-stepper ssprk3`. SciML remains available
-for semi-discrete methods that do not require a fixed-step predictor. The
-Lax-Wendroff method is native-only.
+`--time-stepper ssprk2`, `--time-stepper ssprk3`, or
+`--time-stepper ssprk54`. SciML remains available for semi-discrete methods
+that do not require a fixed-step predictor. The Lax-Wendroff method is
+native-only.
 
 The default velocity profile is `ParabolicVelocityProfile()`, equivalent to
 Poiseuille transport with `alpha = 4/3`, shear-rate factor `4`, and

@@ -1,8 +1,15 @@
-function write_csv(path::String, result::SimulationResult, p::Params)
-    write_csv(path, result.z, result.area, result.flow, p)
+function write_csv(path::String, result::SimulationResult, p::Params; overwrite::Bool = true)
+    write_csv(path, result.z, result.area, result.flow, p; overwrite=overwrite)
 end
 
-function write_csv(path::String, z::Vector{Float64}, A::Vector{Float64}, Q::Vector{Float64}, p::Params)
+function write_csv(
+    path::String,
+    z::Vector{Float64},
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    p::Params;
+    overwrite::Bool = true,
+)
     P = pressure(A, Q, z, p)
 
     header = [
@@ -43,14 +50,21 @@ function write_csv(path::String, z::Vector{Float64}, A::Vector{Float64}, Q::Vect
         end
         for i in eachindex(z)
     )
-    write_csv_table(path, header, rows)
+    write_csv_table(path, header, rows; overwrite=overwrite)
 end
 
-function write_svg(path::String, result::SimulationResult, p::Params)
-    write_svg(path, result.z, result.area, result.flow, p)
+function write_svg(path::String, result::SimulationResult, p::Params; overwrite::Bool = true)
+    write_svg(path, result.z, result.area, result.flow, p; overwrite=overwrite)
 end
 
-function write_svg(path::String, z::Vector{Float64}, A::Vector{Float64}, Q::Vector{Float64}, p::Params)
+function write_svg(
+    path::String,
+    z::Vector{Float64},
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    p::Params;
+    overwrite::Bool = true,
+)
     u = Q ./ A
     P = pressure(A, Q, z, p)
     r0 = [stenosis(zi, p)[1] for zi in z]
@@ -64,7 +78,7 @@ function write_svg(path::String, z::Vector{Float64}, A::Vector{Float64}, Q::Vect
         ("Reference radius R0 (cm)", r0, 470, 590),
     )
 
-    guarded_open_write(path, true) do io
+    guarded_open_write(path, overwrite) do io
         println(io, """<svg xmlns="http://www.w3.org/2000/svg" width="$width" height="$height" viewBox="0 0 $width $height">""")
         println(io, """<rect width="100%" height="100%" fill="white"/>""")
         println(io, """<text x="55" y="30" font-family="Arial" font-size="18" fill="#111">$(model_name(p)) stenotic artery simulation, severity $(p.severity)%</text>""")

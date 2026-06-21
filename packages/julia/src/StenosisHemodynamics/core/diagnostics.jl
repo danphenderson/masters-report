@@ -239,12 +239,59 @@ function record_timestep_diagnostics!(
     return diagnostics
 end
 
+function record_state_diagnostics!(
+    diagnostics::DiagnosticsAccumulator,
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    _dx::Float64,
+    p::Params,
+)
+    for i in eachindex(A)
+        lambda_minus, lambda_plus, _, _ = characteristic_speeds(A[i], Q[i], z[i], p)
+        diagnostics.lambda_minus_min = min(diagnostics.lambda_minus_min, lambda_minus)
+        diagnostics.lambda_minus_max = max(diagnostics.lambda_minus_max, lambda_minus)
+        diagnostics.lambda_plus_min = min(diagnostics.lambda_plus_min, lambda_plus)
+        diagnostics.lambda_plus_max = max(diagnostics.lambda_plus_max, lambda_plus)
+        diagnostics.subcritical_margin_min = min(diagnostics.subcritical_margin_min, min(-lambda_minus, lambda_plus))
+    end
+    return diagnostics
+end
+
 function record_mass_diagnostics!(diagnostics::DiagnosticsAccumulator, A::Vector{Float64}, dx::Float64)
     mass = section_mass(A, dx)
     diagnostics.mass_final = mass
     diagnostics.mass_min = min(diagnostics.mass_min, mass)
     diagnostics.mass_max = max(diagnostics.mass_max, mass)
     return diagnostics
+end
+
+function finalize_snapshot_diagnostics(
+    z::Vector{Float64},
+    area_snapshots::Vector{Vector{Float64}},
+    flow_snapshots::Vector{Vector{Float64}},
+    times::Vector{Float64},
+    dx::Float64,
+    p::Params,
+)
+    length(area_snapshots) == length(flow_snapshots) == length(times) ||
+        throw(DimensionMismatch("snapshot diagnostic inputs must have matching lengths"))
+    isempty(times) && return empty_simulation_diagnostics()
+
+    diagnostics = DiagnosticsAccumulator(area_snapshots[begin], dx)
+    if length(times) == 1
+        record_state_diagnostics!(diagnostics, area_snapshots[begin], flow_snapshots[begin], z, dx, p)
+        record_mass_diagnostics!(diagnostics, area_snapshots[begin], dx)
+        return finalize_diagnostics(diagnostics)
+    end
+
+    for i in 1:(length(times) - 1)
+        dt = times[i + 1] - times[i]
+        dt >= 0.0 || throw(ArgumentError("snapshot times must be nondecreasing"))
+        record_timestep_diagnostics!(diagnostics, area_snapshots[i], flow_snapshots[i], z, dx, dt, p)
+        record_mass_diagnostics!(diagnostics, area_snapshots[i + 1], dx)
+    end
+    return finalize_diagnostics(diagnostics)
 end
 
 function record_projection!(diagnostics::Nothing, _candidate::Float64)

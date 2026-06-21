@@ -196,7 +196,7 @@ function Params(
 end
 
 """
-    OutputSpec(; csv, svg, write_svg, progress_every)
+    OutputSpec(; csv, svg, write_svg, progress_every, overwrite)
 
 CLI output and progress-log settings for a single run. This intentionally stays
 separate from `Params` and `SolveSpec`.
@@ -206,6 +206,7 @@ Base.@kwdef struct OutputSpec
     svg::String = ""
     write_svg::Bool = true
     progress_every::Int = 5000
+    overwrite::Bool = false
 end
 
 """

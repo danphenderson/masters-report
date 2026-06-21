@@ -87,6 +87,21 @@
             @test StenosisHemodynamics.workflow_kind(severity_spec) == "severity_sweep"
             @test StenosisHemodynamics.default_output_paths(severity_spec).summary_csv == joinpath(dir, "severity.csv")
             @test StenosisHemodynamics.validate_workflow_spec(severity_spec) === severity_spec
+            default_severity_spec = StenosisHemodynamics.SeveritySweepSpec(
+                base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC()),
+                severities=[23.0],
+                parallel_workers=0,
+            )
+            @test dirname(StenosisHemodynamics.study_summary_path(default_severity_spec)) ==
+                  joinpath(StenosisHemodynamics.DEFAULT_SIMULATION_OUTPUT_ROOT, "studies")
+
+            default_grid_spec = StenosisHemodynamics.GridConvergenceStudySpec(
+                base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC()),
+                nxs=[8, 16],
+                parallel_workers=0,
+            )
+            @test dirname(StenosisHemodynamics.study_summary_path(default_grid_spec)) ==
+                  joinpath(StenosisHemodynamics.DEFAULT_SIMULATION_OUTPUT_ROOT, "studies")
 
             refinement_spec = StenosisHemodynamics.RefinementStudySpec(
                 base_params=Params(nx=8, tfinal=1.0e-5, initial_condition=GeometryRestIC()),

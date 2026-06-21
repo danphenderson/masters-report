@@ -26,6 +26,7 @@ const study_summary_path = StenosisHemodynamics.study_summary_path
         @test params.initial_condition.pressure_drop_dyn_cm2 == 400.0
         @test output.progress_every == 0
         @test output.write_svg == false
+        @test output.overwrite == false
         @test backend isa NativeRK3Backend
     end
 
@@ -245,6 +246,26 @@ end
         @test result isa SimulationResult
         @test isfile(csv_path)
         @test occursin("model,variable_radius_terms,wall_law", first(readlines(csv_path)))
+        @test_throws ArgumentError StenosisHemodynamics.run_cli([
+            "simulate",
+            "--ic", "geometry-rest",
+            "--tfinal", "1e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--output", csv_path,
+        ])
+        overwritten = StenosisHemodynamics.run_cli([
+            "simulate",
+            "--ic", "geometry-rest",
+            "--tfinal", "1e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--output", csv_path,
+            "--overwrite",
+        ])
+        @test overwritten isa SimulationResult
     end
 
     mktempdir() do dir

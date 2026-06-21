@@ -301,9 +301,8 @@ function default_study_summary_path(spec::SeveritySweepSpec)
     severity_token = join(map(path_token, spec.severities), "-")
     profile_token = velocity_profile_path_token(spec.base_params.velocity_profile)
     return joinpath(
-        "julia",
-        "simulations",
-        "output",
+        DEFAULT_SIMULATION_OUTPUT_ROOT,
+        "studies",
         "stenosis_hemodynamics_severity_sweep_vp_$(profile_token)_s$(severity_token)_nx$(spec.base_params.nx)_t$(path_token(spec.base_params.tfinal)).csv",
     )
 end
@@ -312,9 +311,8 @@ function default_study_summary_path(spec::GridConvergenceStudySpec)
     nx_token = join(spec.nxs, "-")
     profile_token = velocity_profile_path_token(spec.base_params.velocity_profile)
     return joinpath(
-        "julia",
-        "simulations",
-        "output",
+        DEFAULT_SIMULATION_OUTPUT_ROOT,
+        "studies",
         "stenosis_hemodynamics_grid_convergence_vp_$(profile_token)_nx$(nx_token)_s$(path_token(spec.base_params.severity))_t$(path_token(spec.base_params.tfinal)).csv",
     )
 end

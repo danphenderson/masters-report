@@ -30,6 +30,7 @@
             params = Params(nx=8, tfinal=1.0e-5, severity=30.0, space=method, initial_condition=GeometryRestIC())
             result = simulate(params, NativeRK3Backend(); progress_every=0)
             assert_finite_positive_state(result, params)
+            assert_finite_runtime_diagnostics(result)
         end
     end
 
@@ -82,6 +83,7 @@
             )
             result = simulate(native_params, backend; progress_every=0)
             assert_finite_positive_state(result, native_params)
+            assert_finite_runtime_diagnostics(result)
         end
     end
 

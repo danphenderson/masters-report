@@ -12,6 +12,21 @@ function assert_finite_positive_state(result::SimulationResult, params::Params)
     @test all(isfinite, pressure_values)
 end
 
+function assert_finite_runtime_diagnostics(result::SimulationResult)
+    @test isfinite(result.diagnostics.dt_min)
+    @test isfinite(result.diagnostics.dt_max)
+    @test isfinite(result.diagnostics.cfl_min)
+    @test isfinite(result.diagnostics.cfl_max)
+    @test isfinite(result.diagnostics.lambda_minus_min)
+    @test isfinite(result.diagnostics.lambda_plus_max)
+    @test isfinite(result.diagnostics.subcritical_margin_min)
+    @test isfinite(result.diagnostics.mass_initial)
+    @test isfinite(result.diagnostics.mass_final)
+    @test isfinite(result.diagnostics.mass_defect)
+    @test result.diagnostics.dt_min <= result.diagnostics.dt_max
+    @test result.diagnostics.cfl_min <= result.diagnostics.cfl_max
+end
+
 function synthetic_coordinates()
     z_planes = [0.0, 3.0, 6.0]
     radii = [0.0, 0.025, 0.05, 0.075, 0.10]

@@ -36,7 +36,7 @@ function print_simulate_usage(io::IO = stdout)
           --dt VALUE              Maximum time step, default 1e-5
           --cfl VALUE             CFL limit, default 0.45
           --space VALUE           fv-first-order, fv-muscl, fv-weno3, fv-lax-wendroff, or dg
-          --degree VALUE          DG polynomial degree 0, 1, or 2
+          --degree VALUE          DG polynomial degree 0 through 4
           --limiter VALUE         TVD limiter: minmod or van-leer, default minmod
           --time-stepper VALUE    euler, ssprk2, ssprk3, or ssprk54
           --ic VALUE              stationary-stokes or geometry-rest, default stationary-stokes
@@ -74,6 +74,7 @@ function print_simulate_usage(io::IO = stdout)
           --output PATH           CSV output path
           --svg PATH              SVG plot output path
           --no-svg                Skip SVG output
+          --overwrite             Replace existing CSV/SVG outputs
           --progress-every VALUE  Log every N steps, default 5000; use 0 to disable
           --help                  Show this help
         """,
@@ -130,6 +131,7 @@ const VALUE_OPTIONS = Set([
 const FLAG_OPTIONS = Set([
     "help",
     "no-svg",
+    "overwrite",
     "save-everystep",
 ])
 
@@ -432,6 +434,7 @@ function simulate_specs_from_values(values::Dict{String,String}, flags::Set{Stri
         svg=get(param_values, "svg", default_stub * ".svg"),
         write_svg=!("no-svg" in flags),
         progress_every=parse(Int, get(param_values, "progress-every", "5000")),
+        overwrite=("overwrite" in flags),
     )
 
     output.progress_every >= 0 || throw(ArgumentError("progress-every must be nonnegative"))
@@ -573,8 +576,8 @@ function run_single_simulation(parsed)
     @info "running stenosis hemodynamics simulation" model=model_name(params) variable_radius_terms=variable_radius_terms_enabled(params) nx=params.nx tfinal=params.tfinal dt_cap=params.dt severity=params.severity velocity_profile=profile_name(params.velocity_profile) alpha=params.alpha shear_rate_factor=shear_rate_factor(params.velocity_profile) young=params.young space=spatial_method_name(params.space) time_stepper=time_stepper_name(params.time_stepper) rheology=rheology_name(params.rheology) initial_condition=initial_condition_name(params.initial_condition) backend=backend_label alg=alg_label
 
     result = simulate(params, backend; progress_every=output.progress_every)
-    write_csv(output.csv, result, params)
-    output.write_svg && write_svg(output.svg, result, params)
+    write_csv(output.csv, result, params; overwrite=output.overwrite)
+    output.write_svg && write_svg(output.svg, result, params; overwrite=output.overwrite)
 
     for line in summary_lines(result, params, output)
         println(line)
