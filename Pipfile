@@ -5,8 +5,11 @@ name = "pypi"
 
 [packages]
 masters-report-ops = {editable = true, path = "packages/ops"}
+click      = "*"
 numpy      = "*"
 matplotlib = "*"
+rich       = "*"
+typer      = "*"
 
 [dev-packages]
 pre-commit  = "*"

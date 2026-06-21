@@ -1,6 +1,11 @@
+import json
 from pathlib import Path
 
 from ops import orchestrate
+
+
+def repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
 
 
 def test_parse_status_classifies_surfaces_and_protected_artifacts() -> None:
@@ -151,7 +156,7 @@ def test_review_packet_prints_read_only_lane_contract(monkeypatch) -> None:
     assert "Review commit: 786e8f9" in packet
     assert "Lane: orchestration" in packet
     assert "Mode: hard-review" in packet
-    assert "- packages/ops/src/ops/orchestrate.py" in packet
+    assert "- packages/ops/src/ops/orchestrate/**" in packet
     assert "Do not edit, stage, delete, or generate patches during review." in packet
     assert "pipenv run ops-orchestrate docs-contract" in packet
     for section in orchestrate.REQUIRED_HANDBACK_SECTIONS:
@@ -210,7 +215,7 @@ def test_handback_check_rejects_missing_validation_command() -> None:
             [
                 "Status: passed",
                 "Scope: ops package",
-                "Files: packages/ops/src/ops/orchestrate.py",
+                "Files: packages/ops/src/ops/orchestrate/__init__.py",
                 "Validation: pytest packages/ops/tests/test_orchestrate.py",
                 "Risks: narrow ops-only change with no artifact churn",
             ]
@@ -228,7 +233,7 @@ def test_handback_check_rejects_empty_validation_even_when_marker_is_elsewhere()
             [
                 "Status: passed",
                 "Scope: ops package; expected command is pipenv run ops-python-check",
-                "Files: packages/ops/src/ops/orchestrate.py",
+                "Files: packages/ops/src/ops/orchestrate/__init__.py",
                 "Validation:",
                 "Risks: no artifact or report-output churn in scope",
             ]
@@ -247,7 +252,7 @@ def test_handback_check_rejects_empty_or_boilerplate_risks() -> None:
             [
                 "Status: passed",
                 "Scope: ops package only",
-                "Files: packages/ops/src/ops/orchestrate.py",
+                "Files: packages/ops/src/ops/orchestrate/__init__.py",
                 "Validation: pipenv run ops-python-check",
                 "Risks: none",
             ]
@@ -268,7 +273,7 @@ def test_handback_check_accepts_complete_ops_handback() -> None:
                 "## Scope",
                 "ops package only",
                 "## Files",
-                "packages/ops/src/ops/orchestrate.py",
+                "packages/ops/src/ops/orchestrate/__init__.py",
                 "## Validation",
                 "pipenv run ops-python-check",
                 "## Risks",
@@ -309,6 +314,40 @@ def test_handback_check_accepts_explicit_validation_skip_reason() -> None:
     )
 
     assert orchestrate.check_handback(handback, "report").status == "passed"
+
+
+def test_handback_check_rejects_validation_skip_with_success_status() -> None:
+    handback = "\n".join(
+        [
+            "Status: passed",
+            "Scope: ops package",
+            "Files: packages/ops/src/ops/orchestrate/__init__.py",
+            "Validation: not run because optional in this checkout",
+            "Risks: validation omitted but this still claims pass",
+        ]
+    )
+
+    result = orchestrate.check_handback(handback, "ops")
+
+    assert result.status == "failed"
+    assert "validation skip requires a blocked, failed, or no-send Status" in result.issues
+
+
+def test_handback_check_rejects_pending_validation_intent() -> None:
+    handback = "\n".join(
+        [
+            "Status: passed",
+            "Scope: ops package",
+            "Files: packages/ops/src/ops/orchestrate/__init__.py",
+            "Validation: TODO run pipenv run ops-python-check before commit",
+            "Risks: reviewer should verify because validation is still pending",
+        ]
+    )
+
+    result = orchestrate.check_handback(handback, "ops")
+
+    assert result.status == "failed"
+    assert "pending validation evidence for surface: ops" in result.issues
 
 
 def test_handback_check_requires_profile_sections() -> None:
@@ -374,3 +413,91 @@ def test_packet_check_accepts_profiled_dispatch_packet(monkeypatch) -> None:
     result = orchestrate.packet_check(packet, "editorial-readiness")
 
     assert result.status == "passed"
+
+
+def test_cli_json_subcommands_smoke(tmp_path: Path, capsys) -> None:
+    root = repo_root()
+
+    assert orchestrate.main(["--repo", str(root), "status", "--json"]) == 0
+    assert "branch" in json.loads(capsys.readouterr().out)
+
+    assert (
+        orchestrate.main(
+            [
+                "--repo",
+                str(root),
+                "dispatch",
+                "--surface",
+                "ops",
+                "--mode",
+                "inspect",
+                "--objective",
+                "review smoke",
+                "--files",
+                "packages/ops/src/ops/orchestrate/__init__.py",
+                "packages/ops/src/ops/orchestrate/cli.py",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    dispatch = json.loads(capsys.readouterr().out)
+    assert dispatch["surface"] == "ops"
+    assert dispatch["allowed_files"] == [
+        "packages/ops/src/ops/orchestrate/__init__.py",
+        "packages/ops/src/ops/orchestrate/cli.py",
+    ]
+
+    assert (
+        orchestrate.main(["--repo", str(root), "review", "--commit", "HEAD", "--lane", "orchestration", "--json"]) == 0
+    )
+    assert json.loads(capsys.readouterr().out)["lane"] == "orchestration"
+
+    handback_path = tmp_path / "handback.md"
+    handback_path.write_text(
+        "\n".join(
+            [
+                "Status: passed",
+                "Scope: ops package",
+                "Files: packages/ops/src/ops/orchestrate/__init__.py",
+                "Validation: pipenv run ops-python-check",
+                "Risks: none identified",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    assert (
+        orchestrate.main(
+            [
+                "--repo",
+                str(root),
+                "handback-check",
+                "--path",
+                str(handback_path),
+                "--surface",
+                "ops",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out)["status"] == "passed"
+
+    packet_path = tmp_path / "packet.md"
+    packet_path.write_text(
+        "\n".join(
+            [
+                "Surface: ops",
+                "Mode: inspect",
+                "public/final-report.pdf unless --mode artifact-refresh",
+                "report/assets/rendered/** unless listed in Allowed Files with --mode artifact-refresh",
+                "pipenv run ops-python-check",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    assert orchestrate.main(["--repo", str(root), "packet-check", "--path", str(packet_path), "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "passed"
+
+    assert orchestrate.main(["--repo", str(root), "docs-contract", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "passed"

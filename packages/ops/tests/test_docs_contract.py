@@ -74,6 +74,17 @@ def test_docs_contract_rejects_stale_active_paths(tmp_path: Path) -> None:
     assert any("stale active path reference in README.md" in issue for issue in result.issues)
 
 
+def test_docs_contract_scans_new_active_public_docs(tmp_path: Path) -> None:
+    write_minimal_docs_contract(tmp_path)
+    extra_doc = tmp_path / "public/docs/new-policy.md"
+    extra_doc.write_text("Old wrapper: tools/python/build_report.py\n", encoding="utf-8")
+
+    result = orchestrate.docs_contract(tmp_path)
+
+    assert result.status == "failed"
+    assert any("stale active path reference in public/docs/new-policy.md" in issue for issue in result.issues)
+
+
 def test_stale_path_check_allows_historical_archive_paths(tmp_path: Path) -> None:
     archive_path = tmp_path / "report/archive/old-notes.md"
     archive_path.parent.mkdir(parents=True)
