@@ -1,30 +1,32 @@
 \section{Introduction and Report Methodology}
 \label{sec:intro}
 
-Blood-flow simulation sits between continuum mechanics, numerical analysis, and
-biomedical interpretation. A stenosis is a useful organizing example because a
-narrowing changes velocity, pressure, wall loading, and downstream flow in ways
-that depend on the model tier and on the observable being compared. A
-three-dimensional CFD calculation, a fluid--structure interaction model, a
-distributed one-dimensional area--flow model, a lumped outlet network, and a
-learned surrogate do not retain the same state variables or answer the same
-question. The first task of a mathematical simulation report is therefore to
-state the governing assumptions before interpreting the computed quantities.
-Anatomical stenosis descriptors and lesion-imaging records do not by themselves
-determine the functional flow quantity being modeled, so pressure-flow and
-lesion-imaging studies distinguish anatomy from functional assessment
-\cite[p.~4401]{DerimayEtAl2021CoronaryStenosisObstruction}
+Blood-flow simulation sits between continuum mechanics, numerical
+analysis, and biomedical interpretation. A stenosis is a useful
+organizing example because a vessel narrowing changes velocity,
+pressure, wall loading, and downstream flow in ways that depend on
+the model tier and on the observable being compared. For example, a 
+three-dimensional (3D) computational fluid dynamics (CFD) simulation of
+the Naview-Stokes system, a reduced-order 1D area-flow model, and a lumped (0D) outlet network do
+not retain the same state variables or answer the same question. The first 
+task of a mathematical simulation report is therefore to state the governing assumptions
+before interpreting the computed quantities. In particular, geometric
+descriptions of a narrowed vessel do not by themselves determine its
+functional hemodynamic significance: pressure–flow measurements and
+coronary imaging studies distinguish anatomical severity from
+functional assessment \cite[p.~4401]{DerimayEtAl2021CoronaryStenosisObstruction}
 \cite[Abstract; Methods]{VanDenHoogenEtAl2022CoronaryLesionCTA}.
 
-The primary purpose of this report is a mathematical and numerical review of
-blood-flow modeling. It organizes the literature around the questions a reader
-must answer before interpreting a computed hemodynamic quantity: what continuum
-description is being reduced or solved, what model tier is selected, which
-closures and data enter the equations, which observable is reported, and what
-numerical or empirical evidence supports the claim. An idealized stenosis
-computation appears later as a worked example of this review framework. It is
-not the organizing center of the report and does not delimit the literature
-scope.
+The primary purpose of this report is to review mathematical models
+and numerical methods used in blood-flow simulation. It organizes the
+literature around the questions that must be answered before a computed
+hemodynamic quantity can be interpreted: which continuum description is
+being solved or reduced, which model class is selected, which closures
+and data enter the equations, which quantity of interest is reported,
+and what numerical or empirical evidence supports the claim. The
+idealized stenosis computation developed later in the report serves as
+a worked numerical example; it illustrates the review framework but
+does not delimit the scope of the literature.
 
 \subsection{Literature Review Scope}
 \label{subsec:narrative-review-scope}

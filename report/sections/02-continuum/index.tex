@@ -2,22 +2,26 @@
 \label{sec:continuum-description}
 \label{sec:continuum-description-blood-flow}
 
-This chapter fixes the continuum vocabulary from which the later model
-hierarchy is read. The aim is not to repeat a full mechanics derivation. It is
-to record the progression from material motion to transport identities, balance
-laws, stress closure, and incompressible flow equations. Resolved, reduced,
-lumped, multiscale, and learned models differ in how much of this continuum
-description they retain, close, observe, or approximate.
+This section fixes the continuum vocabulary used by the later model hierarchy.
+It begins with material motion and transport identities, then derives the
+balance laws, constitutive stress closures, and incompressible flow equations
+that serve as the full-order reference model. Resolved, reduced, lumped,
+multiscale, and learned models differ in which parts of this continuum
+description they retain, close, average, or approximate.
 
 \subsection{Continuum Scale and Field Variables}
 \label{subsec:continuum-scale-and-fields}
 
-At the large-vessel scale, blood-flow models replace individual blood cells,
-platelets, and plasma constituents by macroscopic fields on a lumen. This is the
-scale at which three-dimensional CFD, FSI, and one-dimensional area--flow models
-can be placed in a common hierarchy. It is also a modeling assumption:
-small-vessel, hematocrit-dependent, or low-shear regimes can require additional
-rheology choices rather than the same constant-viscosity closure
+At the large-vessel scale, blood-flow models replace the cellular and plasma
+constituents of blood by continuum fields defined on the vascular fluid domain.
+In many such models, the Cauchy stress is closed by a Newtonian
+constant-viscosity constitutive law. This report reviews Newtonian and
+generalized non-Newtonian rheological assumptions and uses them to place
+three-dimensional CFD, fluid--structure interaction, and one-dimensional
+area--flow models within a common hierarchy. These rheological closures are
+modeling choices rather than intrinsic properties of blood. In small-vessel,
+hematocrit-dependent, or low-shear regimes, constant-viscosity Newtonian closure
+may be inadequate, and additional constitutive assumptions may be required
 \cite{KopplHelmig2023DimensionReducedModeling,GaldiEtAl2008HemodynamicalFlows,PriesEtAl1992BloodViscosityTubeFlow}.
 
 \begin{assumption}[Large-vessel continuum setting]
@@ -34,10 +38,11 @@ rheology choices rather than the same constant-viscosity closure
     density $\rho$, and Cauchy stress tensor $\vT$ on $\mathcal Q_T$.
 \end{assumption}
 
-These fields are the common language of the model hierarchy. A full-order
-continuum tier evolves $\vu$ and $p$ on $\OmgBt$. A reduced 1D tier stores
-section area, flow, and mean velocity obtained from these fields by additional
-averaging and closure assumptions. The continuum assumption therefore fixes the
+The continuum fields in Assumption~\ref{ass:continuum-bridge-large-vessel-setting}
+provide the common language of the model hierarchy. A full-order continuum tier
+evolves $\vu$ and $p$ on $\OmgBt$. A reduced one-dimensional tier stores
+cross-sectional area, flow, and mean velocity obtained from these fields through
+averaging and closure assumptions. The continuum setting therefore identifies the
 objects being reduced before any numerical discretization is introduced.
 
 \begin{figure}[!htb]
@@ -80,7 +85,7 @@ For a scalar field,
     \quad
     D_t\phi(t,\vx)
     =
-    \dt\phi(t,\La_t(\vxi))
+    \dt\bigl[\phi(t,\La_t(\vxi))\bigr]
     =
     \pd_t\phi(t,\vx)+\vu(t,\vx)\cdot\nabla\phi(t,\vx),
     \qquad \vxi=\La_t^{-1}(\vx).
@@ -196,8 +201,8 @@ $2\eta_{\mathrm{eff}}(\sqrt{2D:D})D$.
 \subsection{Incompressible Navier--Stokes Forms}
 \label{subsec:continuum-navier-stokes}
 
-Combining constant density, incompressibility, and Newtonian stress gives the
-standard incompressible Navier--Stokes tier:
+Combining constant density, incompressibility, and constant-viscosity Newtonian
+stress gives the standard incompressible Navier--Stokes tier:
 \begin{flalign*}
     \quad
     \begin{cases}
@@ -239,11 +244,12 @@ geometric averaging and closure choices
 \subsection{Cross-Sectional Bridge to Area--Flow Models}
 \label{subsec:continuum-area-flow-bridge}
 
-The distributed 1D models reviewed later keep the axial conservation structure
-of the continuum equations but replace the full three-dimensional field by
-cross-sectional variables. Let $S(z,t)$ be the lumen section at axial coordinate
-$z$, with outward-moving wall already included in the moving section. The
-physical area and physical flow are
+The distributed one-dimensional models reviewed later retain the axial
+conservation structure of the continuum equations but replace the full
+three-dimensional field by cross-sectional variables. Let $S(z,t)$ denote the
+lumen section at axial coordinate $z$, with wall motion incorporated into the
+moving section. The physical area, physical flow, and section-mean axial
+velocity are
 \begin{flalign*}
     \quad
     A(z,t)
@@ -253,11 +259,13 @@ physical area and physical flow are
     Q(z,t)
     =
     \int_{S(z,t)}u_z(z,r,\theta,t)\,dA,
+    \qquad
+    \bar u(z,t)=\frac{Q(z,t)}{A(z,t)}
+    \quad(A>0).
     &&
 \end{flalign*}
-and the section mean velocity is $\bar u=Q/A$ when $A>0$. Applying mass
-conservation to a short vessel slice and accounting for the wall motion gives
-the reduced continuity law
+Applying mass conservation to a short vessel slice, with impermeable wall
+motion represented by the moving section, gives the reduced continuity law
 \begin{flalign*}
     \quad
     \pd_t A+\pd_z Q=0. &&
@@ -274,7 +282,8 @@ momentum-flux correction factor
     \int_{S(z,t)}u_z(z,r,\theta,t)^2\,dA,
     &&
 \end{flalign*}
-with the usual limiting interpretation when $Q=0$. At review level, the
+where the expression is interpreted through the corresponding velocity-profile
+closure when $Q=0$. Suppressing model-specific closure details, the
 section-averaged axial balance has the structure
 \begin{flalign*}
     \quad
@@ -318,10 +327,11 @@ replace parts of this boundary motion and stress information by section area,
 wall-law, profile, friction, and rheology closures
 \cite{KopplHelmig2023DimensionReducedModeling,QuarteroniFormaggia2004CardiovascularModeling}.
 
-The principal observables depend on the selected tier and on the operator used
-to read the field. Table~\ref{tab:continuum-principal-observables} records the
-main categories used when a continuum field is compared with a reduced stenosis
-model.
+The principal quantities of interest depend on the selected model tier and on
+the observation operator used to extract a scalar, profile, section average,
+boundary quantity, or time history from the computed field.
+Table~\ref{tab:continuum-principal-observables} records the main categories used
+when a continuum field is compared with a reduced stenosis model.
 
 \begin{table}[!htb]
     \centering
@@ -345,9 +355,10 @@ model.
             and reconstructed profile descriptors. \\
         Pressure $p$
             & Local pressure, pressure drop, or pressure history.
-            & Section-averaged pressure or wall-law gauge pressure. \\
+            & Section-averaged pressure or gauge pressure supplied by a
+            pressure--area law. \\
         Flow through a section
-            & $Q_{\mathrm{phys}}=\int_{S(z,t)} u_z\,dS$.
+            & $Q_{\mathrm{phys}}=\int_{S(z,t)}u_z\,dA$.
             & Stored flow state and physical-flow reconstruction. \\
         Wall traction and shear
             & Boundary stress or wall-shear measure.
@@ -361,11 +372,11 @@ model.
 \end{table}
 
 \begin{stenosisillustration}
-The idealized stenosis example later in the report uses this chapter only as a
+The idealized stenosis example later in the report uses this section only as a
 foundation. Its 1D state is meaningful because area, flow, mean velocity, and
 pressure are reductions of continuum fields. Its closure choices are necessary
 because transverse velocity, wall traction, wall motion, and rheological detail
 are not all solved directly. Its comparison quantities are continuum-derived
-observables: physical flow, section-mean axial velocity, pressure when a
-pressure output is declared, and velocity-profile descriptors.
+observables: physical flow, section-mean axial velocity, pressure when supplied
+by the selected closure, and velocity-profile descriptors.
 \end{stenosisillustration}
