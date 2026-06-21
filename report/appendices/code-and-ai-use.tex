@@ -14,24 +14,22 @@ report is \path{packages/julia/bin/stenosis-hemodynamics}, which dispatches thro
 This manuscript refresh was prepared from the local \texttt{master} branch.
 The exact source tree for a submitted PDF should be identified by the git
 commit or release tag that contains this appendix and the corresponding
-\path{public/final-report.pdf}. The local archive fields available in this checkout are:
+\path{public/final-report.pdf}. The local reproducibility identifiers available
+in this checkout are:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 branch: master
 local_tag_available: masters-report-final-2026-06-19 -> 1a15a52d6e986f08d745c9e40ecbcd04d4475104
-git_remote: none configured in the inspected checkout
-public_repository_url: not declared
-archival_doi: not declared
+public_archive_record: no public URL or DOI is asserted by this local thesis copy
 \end{lstlisting}
 The local release manifest remains the concrete source-access record rather
 than a final public archive record:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 public/reproducibility/release-manifest.json
 \end{lstlisting}
-No stable public repository URL, immutable archive URL, or archival DOI was
-available from the local metadata in \path{CITATION.cff} or
-\path{public/reproducibility/release-manifest.json}. Unless a later public release adds
-one, access to \texttt{StenosisHemodynamics} is by the repository owner's
-source-control policy.
+This appendix therefore records local reproducibility rather than claiming a
+public archive. Unless a later public release adds a repository URL, immutable
+archive URL, or DOI, access to \texttt{StenosisHemodynamics} is governed by the
+repository owner's source-control policy.
 
 \paragraph*{Computational environment.}
 The checked Julia environment and local hardware record were:
@@ -85,6 +83,9 @@ packages/julia/bin/stenosis-hemodynamics verify rest \
   --output-dir report/assets/tables/verification \
   --overwrite
 \end{lstlisting}
+The rest command writes both the drift-history tables and the initial
+geometry-rest residual-component CSV/\TeX{} assets consumed in
+Section~\ref{subsec:rest-state-drift}.
 The resolved-velocity comparison uses the main-text labels C23 and C40 for the
 23\% and 40\% stenosis-severity cases, corresponding to local source IDs 77 and
 60, respectively. The raw 3D fields are optional local inputs rather than

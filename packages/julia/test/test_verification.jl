@@ -138,12 +138,19 @@ end
         @test isfile(drift.summary_csv)
         @test isfile(drift.summary_tex)
         @test isfile(drift.profile_csv)
+        @test isfile(drift.residual_csv)
+        @test isfile(drift.residual_tex)
         @test isfile(replace(drift.summary_tex, r"\.tex$" => "_full.tex"))
         @test all(row.status == "ok" for row in drift.rows)
+        @test all(row.status == "ok" for row in drift.residual_rows)
         @test all(row.max_abs_q >= 0.0 for row in drift.rows)
         @test all(row.max_abs_area_drift >= 0.0 for row in drift.rows)
         @test all(row.requested_q_in ≈ 0.0 for row in drift.rows)
         @test all(row.applied_q_in ≈ 0.0 for row in drift.rows)
+        @test all(row.mass_flux_rusanov_max_abs >= 0.0 for row in drift.residual_rows)
+        @test all(row.elastic_flux_difference_max_abs >= 0.0 for row in drift.residual_rows)
+        @test all(row.wall_geometry_source_max_abs >= 0.0 for row in drift.residual_rows)
+        @test all(row.total_flow_residual_max_abs >= 0.0 for row in drift.residual_rows)
         ok_drift_row = only(row for row in drift.rows if row.nx == 8 && row.requested_time_s > 0.0)
         @test ok_drift_row.elapsed_time_s ≈ ok_drift_row.requested_time_s
         @test ok_drift_row.terminal_time_error_s ≈
@@ -168,12 +175,23 @@ end
             ],
         )
         @test !("mass_defect" in drift_header)
+        residual_header = split(readline(drift.residual_csv), ",")
+        @test all(
+            in(residual_header),
+            [
+                "mass_flux_rusanov_max_abs",
+                "elastic_flux_difference_max_abs",
+                "wall_geometry_source_max_abs",
+                "total_flow_residual_max_abs",
+            ],
+        )
         drift_csv_row = only(row for row in read_simple_csv(drift.summary_csv) if row["nx"] == "8" && row["requested_time_s"] != "0.0")
         @test parse(Float64, drift_csv_row["elapsed_time_s"]) ≈ parse(Float64, drift_csv_row["requested_time_s"])
         @test parse(Float64, drift_csv_row["terminal_time_error_s"]) <= 1.0e-12
         @test parse(Float64, drift_csv_row["requested_q_in"]) ≈ 0.0
         @test parse(Float64, drift_csv_row["applied_q_in"]) ≈ 0.0
         @test occursin("\\Delta\\!\\int a\\,dz", read(drift.summary_tex, String))
+        @test occursin("R_q^{\\mathrm{tot}}", read(drift.residual_tex, String))
         @test occursin("\\Delta\\!\\int a\\,dz", read(replace(drift.summary_tex, r"\\.tex$" => "_full.tex"), String))
 
         failing_drift = StenosisHemodynamics.run_rest_state_drift(StenosisHemodynamics.RestStateDriftSpec(;
@@ -189,5 +207,6 @@ end
         @test error_row.requested_time_s ≈ 1.0e-5
         @test isnan(error_row.elapsed_time_s)
         @test isnan(error_row.terminal_time_error_s)
+        @test isfile(failing_drift.residual_csv)
     end
 end

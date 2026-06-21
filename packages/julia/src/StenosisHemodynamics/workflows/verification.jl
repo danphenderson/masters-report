@@ -165,12 +165,32 @@ Base.@kwdef struct RestStateDriftRow
     error_message::String
 end
 
+Base.@kwdef struct RestStateResidualComponentRow
+    severity::Float64
+    nx::Int
+    dx::Float64
+    mass_flux_rusanov_max_abs::Float64
+    mass_flux_rusanov_z_cm::Float64
+    elastic_flux_difference_max_abs::Float64
+    elastic_flux_difference_z_cm::Float64
+    wall_geometry_source_max_abs::Float64
+    wall_geometry_source_z_cm::Float64
+    total_flow_residual_max_abs::Float64
+    total_flow_residual_z_cm::Float64
+    total_area_residual_max_abs::Float64
+    status::String
+    error_message::String
+end
+
 struct RestStateDriftResult{S<:RestStateDriftSpec}
     spec::S
     rows::Vector{RestStateDriftRow}
+    residual_rows::Vector{RestStateResidualComponentRow}
     summary_csv::String
     summary_tex::String
     profile_csv::String
+    residual_csv::String
+    residual_tex::String
 end
 
 workflow_kind(::ManufacturedVerificationSpec) = "manufactured_verification"
@@ -262,6 +282,14 @@ function rest_state_drift_profile_csv_path(spec::RestStateDriftSpec)
     return joinpath(spec.output_dir, "rest_state_drift_profiles.csv")
 end
 
+function rest_state_residual_components_csv_path(spec::RestStateDriftSpec)
+    return joinpath(spec.output_dir, "rest_state_residual_components.csv")
+end
+
+function rest_state_residual_components_tex_path(spec::RestStateDriftSpec)
+    return joinpath(spec.output_dir, "rest_state_residual_components.tex")
+end
+
 default_output_paths(spec::ManufacturedVerificationSpec) = (
     summary_csv=manufactured_verification_csv_path(spec),
     summary_tex=manufactured_verification_tex_path(spec),
@@ -277,6 +305,8 @@ default_output_paths(spec::RestStateDriftSpec) = (
     summary_tex=rest_state_drift_tex_path(spec),
     full_tex=rest_state_drift_full_tex_path(rest_state_drift_tex_path(spec)),
     profile_csv=rest_state_drift_profile_csv_path(spec),
+    residual_csv=rest_state_residual_components_csv_path(spec),
+    residual_tex=rest_state_residual_components_tex_path(spec),
 )
 
 function run_manufactured_verification(spec::ManufacturedVerificationSpec = ManufacturedVerificationSpec())
@@ -637,6 +667,7 @@ function run_rest_state_drift(spec::RestStateDriftSpec = RestStateDriftSpec())
         push!(rows, row)
         append!(profile_rows, profiles)
     end
+    residual_rows = rest_state_residual_component_rows(spec)
     paths = default_output_paths(spec)
     csv_path = paths.summary_csv
     tex_path = paths.summary_tex
@@ -644,7 +675,50 @@ function run_rest_state_drift(spec::RestStateDriftSpec = RestStateDriftSpec())
     write_rest_state_drift_tex(tex_path, rows; overwrite=spec.overwrite)
     write_rest_state_drift_full_tex(paths.full_tex, rows; overwrite=spec.overwrite)
     write_rest_state_drift_profile_csv(paths.profile_csv, profile_rows; overwrite=spec.overwrite)
-    return RestStateDriftResult(spec, rows, csv_path, tex_path, paths.profile_csv)
+    write_rest_state_residual_components_csv(paths.residual_csv, residual_rows; overwrite=spec.overwrite)
+    write_rest_state_residual_components_tex(paths.residual_tex, residual_rows; overwrite=spec.overwrite)
+    return RestStateDriftResult(
+        spec,
+        rows,
+        residual_rows,
+        csv_path,
+        tex_path,
+        paths.profile_csv,
+        paths.residual_csv,
+        paths.residual_tex,
+    )
+end
+
+function rest_state_residual_component_rows(spec::RestStateDriftSpec)
+    rows = RestStateResidualComponentRow[]
+    for severity in spec.severities, nx in sort(spec.nxs)
+        push!(rows, rest_state_residual_component_case(spec, Float64(severity), nx))
+    end
+    return rows
+end
+
+function rest_state_residual_component_case(spec::RestStateDriftSpec, severity::Float64, nx::Int)
+    params = params_with(spec.base_params; severity=severity, nx=nx, tfinal=0.0)
+    try
+        return rest_state_residual_components(params)
+    catch err
+        return RestStateResidualComponentRow(
+            severity=severity,
+            nx=nx,
+            dx=params.length_cm / nx,
+            mass_flux_rusanov_max_abs=NaN,
+            mass_flux_rusanov_z_cm=NaN,
+            elastic_flux_difference_max_abs=NaN,
+            elastic_flux_difference_z_cm=NaN,
+            wall_geometry_source_max_abs=NaN,
+            wall_geometry_source_z_cm=NaN,
+            total_flow_residual_max_abs=NaN,
+            total_flow_residual_z_cm=NaN,
+            total_area_residual_max_abs=NaN,
+            status="error",
+            error_message=sprint(showerror, err),
+        )
+    end
 end
 
 function rest_state_drift_case(spec::RestStateDriftSpec, severity::Float64, nx::Int, tfinal::Float64)
@@ -840,6 +914,58 @@ function rest_state_lh_metrics(
         flow_interior_max_abs=maximum_abs_index_range(dQ, 2:(length(dQ) - 1)),
         flow_boundary_max_abs=max(abs(dQ[begin]), abs(dQ[end])),
     )
+end
+
+function rest_state_residual_components(params::Params)
+    validate(params)
+    initial = initial_state_result(params)
+    A = initial.area
+    Q = initial.flow
+    z = initial.z
+    dx = initial.dx
+    nx = length(A)
+    cache = RHSCache(nx)
+    fill_method_fluxes!(cache.area_flux, cache.flow_flux, A, Q, z, dx, 0.0, 0.0, params.space, params, cache)
+    fill_source!(cache.source, A, Q, z, dx, params)
+
+    mass_flux = Vector{Float64}(undef, nx)
+    elastic_flux_difference = Vector{Float64}(undef, nx)
+    wall_geometry_source = copy(cache.source)
+    total_flow_residual = Vector{Float64}(undef, nx)
+    for i in 1:nx
+        mass_flux[i] = -(cache.area_flux[i + 1] - cache.area_flux[i]) / dx
+        elastic_flux_difference[i] = -(cache.flow_flux[i + 1] - cache.flow_flux[i]) / dx
+        total_flow_residual[i] = elastic_flux_difference[i] + wall_geometry_source[i]
+    end
+
+    mass_value, mass_z = max_abs_with_z(mass_flux, z)
+    elastic_value, elastic_z = max_abs_with_z(elastic_flux_difference, z)
+    source_value, source_z = max_abs_with_z(wall_geometry_source, z)
+    total_flow_value, total_flow_z = max_abs_with_z(total_flow_residual, z)
+
+    return RestStateResidualComponentRow(
+        severity=params.severity,
+        nx=nx,
+        dx=dx,
+        mass_flux_rusanov_max_abs=mass_value,
+        mass_flux_rusanov_z_cm=mass_z,
+        elastic_flux_difference_max_abs=elastic_value,
+        elastic_flux_difference_z_cm=elastic_z,
+        wall_geometry_source_max_abs=source_value,
+        wall_geometry_source_z_cm=source_z,
+        total_flow_residual_max_abs=total_flow_value,
+        total_flow_residual_z_cm=total_flow_z,
+        total_area_residual_max_abs=mass_value,
+        status="ok",
+        error_message="",
+    )
+end
+
+function max_abs_with_z(values::AbstractVector{Float64}, z::AbstractVector{Float64})
+    length(values) == length(z) || throw(DimensionMismatch("values and z must have matching length"))
+    !isempty(values) || throw(ArgumentError("values must be nonempty"))
+    index = argmax(abs.(values))
+    return abs(values[index]), z[index]
 end
 
 function maximum_abs_index_range(values::AbstractVector{Float64}, indices)
@@ -1058,6 +1184,55 @@ function rest_state_drift_values(row::RestStateDriftRow)
     ]
 end
 
+function write_rest_state_residual_components_csv(
+    path::String,
+    rows::Vector{RestStateResidualComponentRow};
+    overwrite::Bool = false,
+)
+    return write_csv_table(
+        path,
+        rest_state_residual_components_header(),
+        (rest_state_residual_components_values(row) for row in rows);
+        overwrite=overwrite,
+    )
+end
+
+rest_state_residual_components_header() = [
+    "severity",
+    "nx",
+    "dx",
+    "mass_flux_rusanov_max_abs",
+    "mass_flux_rusanov_z_cm",
+    "elastic_flux_difference_max_abs",
+    "elastic_flux_difference_z_cm",
+    "wall_geometry_source_max_abs",
+    "wall_geometry_source_z_cm",
+    "total_flow_residual_max_abs",
+    "total_flow_residual_z_cm",
+    "total_area_residual_max_abs",
+    "status",
+    "error_message",
+]
+
+function rest_state_residual_components_values(row::RestStateResidualComponentRow)
+    return Any[
+        row.severity,
+        row.nx,
+        row.dx,
+        row.mass_flux_rusanov_max_abs,
+        row.mass_flux_rusanov_z_cm,
+        row.elastic_flux_difference_max_abs,
+        row.elastic_flux_difference_z_cm,
+        row.wall_geometry_source_max_abs,
+        row.wall_geometry_source_z_cm,
+        row.total_flow_residual_max_abs,
+        row.total_flow_residual_z_cm,
+        row.total_area_residual_max_abs,
+        row.status,
+        row.error_message,
+    ]
+end
+
 rest_state_profile_header() = [
     "severity",
     "nx",
@@ -1082,11 +1257,11 @@ function write_manufactured_verification_tex(
         println(io, "\\begin{table}[!htb]")
         println(io, "    \\centering")
         println(io, "    \\scriptsize")
-        println(io, "    \\caption{Manufactured-solution spatial verification errors. The order columns use adjacent-grid \$L^2\$ errors; the final two columns audit the inserted forcing against an independently assembled residual.}")
+        println(io, "    \\caption{Manufactured-solution spatial verification errors. The order columns use adjacent-grid \$L_2\$ errors; the final column checks the inserted forcing against an independently assembled residual.}")
         println(io, "    \\resizebox{\\textwidth}{!}{%")
         println(io, "    \\begin{tabular}{@{}rrrrrrrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        \$N\$ & \$\\Delta t_{\\min}\$ & CFL\$_{\\max}\$ & \$\\|e_a\\|_1\$ & \$\\|e_a\\|_2\$ & \$\\|e_a\\|_\\infty\$ & \$p_a\$ & \$\\|e_q\\|_1\$ & \$\\|e_q\\|_2\$ & \$\\|e_q\\|_\\infty\$ & \$p_q\$ & forcing audit \\\\")
+        println(io, "        \$N\$ & \$\\Delta t_{\\min}\$ & CFL\$_{\\max}\$ & \$\\|e_a\\|_1\$ & \$\\|e_a\\|_2\$ & \$\\|e_a\\|_\\infty\$ & \$p_a\$ & \$\\|e_q\\|_1\$ & \$\\|e_q\\|_2\$ & \$\\|e_q\\|_\\infty\$ & \$p_q\$ & forcing check \\\\")
         println(io, "        \\midrule")
         for row in rows
             row.status == "ok" && row.study_kind == "spatial" || continue
@@ -1104,7 +1279,7 @@ function write_manufactured_verification_tex(
         println(io, "    \\resizebox{\\textwidth}{!}{%")
         println(io, "    \\begin{tabular}{@{}rrrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        \$N\$ & requested \$\\Delta t\$ & accepted \$\\Delta t_{\\min}\$ & accepted \$\\Delta t_{\\max}\$ & CFL\$_{\\max}\$ & \$\\|e_a\\|_2\$ & \$\\|e_q\\|_2\$ & forcing audit \\\\")
+        println(io, "        \$N\$ & requested \$\\Delta t\$ & accepted \$\\Delta t_{\\min}\$ & accepted \$\\Delta t_{\\max}\$ & CFL\$_{\\max}\$ & \$\\|e_a\\|_2\$ & \$\\|e_q\\|_2\$ & forcing check \\\\")
         println(io, "        \\midrule")
         for row in rows
             row.status == "ok" && row.study_kind == "temporal" || continue
@@ -1209,6 +1384,34 @@ function write_rest_state_drift_tex(path::String, rows::Vector{RestStateDriftRow
     return path
 end
 
+function write_rest_state_residual_components_tex(
+    path::String,
+    rows::Vector{RestStateResidualComponentRow};
+    overwrite::Bool = false,
+)
+    guarded_open_write(path, overwrite) do io
+        println(io, "\\begin{table}[!htb]")
+        println(io, "    \\centering")
+        println(io, "    \\scriptsize")
+        println(io, "    \\caption{Initial geometry-rest residual component magnitudes at \$t=0\$. The area row is the Rusanov mass-flux residual. The momentum rows split the elastic-flux difference and wall/geometry source before summing them into the total flow residual. Values are maxima over cells in solver coordinates.}")
+        println(io, "    \\label{tab:rest-state-residual-components}")
+        println(io, "    \\resizebox{\\textwidth}{!}{%")
+        println(io, "    \\begin{tabular}{@{}lrrrrrrr@{}}")
+        println(io, "        \\toprule")
+        println(io, "        Case & \$N\$ & \$\\max |R_a^{\\mathrm{Rus}}|\$ & \$z_a\$ & \$\\max |R_q^{\\mathrm{el}}|\$ & \$\\max |S_q^{\\mathrm{wall}}|\$ & \$\\max |R_q^{\\mathrm{tot}}|\$ & \$z_{q,\\mathrm{tot}}\$ \\\\")
+        println(io, "        \\midrule")
+        for row in rest_state_residual_component_summary_rows(rows)
+            row.status == "ok" || continue
+            println(io, rest_state_residual_components_latex_row(row))
+        end
+        println(io, "        \\bottomrule")
+        println(io, "    \\end{tabular}%")
+        println(io, "    }")
+        println(io, "\\end{table}")
+    end
+    return path
+end
+
 function write_rest_state_drift_full_tex(path::String, rows::Vector{RestStateDriftRow}; overwrite::Bool = false)
     guarded_open_write(path, overwrite) do io
         println(io, "\\begin{table}[!htb]")
@@ -1265,6 +1468,17 @@ function rest_state_drift_summary_rows(rows::Vector{RestStateDriftRow})
     return output
 end
 
+function rest_state_residual_component_summary_rows(rows::Vector{RestStateResidualComponentRow})
+    ok_rows = [row for row in rows if row.status == "ok"]
+    isempty(ok_rows) && return RestStateResidualComponentRow[]
+    nxs = sort(unique(row.nx for row in ok_rows))
+    selected_nxs = Set(nxs[max(1, length(nxs) - 1):end])
+    return [
+        row for row in sort(ok_rows; by=row -> (row.severity, row.nx))
+        if row.nx in selected_nxs
+    ]
+end
+
 rest_state_comparison_flow_scale() = 2.288 / pi
 
 function rest_state_drift_summary_latex_row(row)
@@ -1280,6 +1494,19 @@ function rest_state_drift_summary_latex_row(row)
         latex_number(row.final_solver_volume_defect),
         latex_number(row.final_boundary_flux_integral),
         latex_number(row.final_conservation_residual),
+    ), " & ") * " \\\\"
+end
+
+function rest_state_residual_components_latex_row(row::RestStateResidualComponentRow)
+    return join((
+        "C$(round(Int, row.severity))",
+        string(row.nx),
+        latex_number(row.mass_flux_rusanov_max_abs),
+        latex_number(row.mass_flux_rusanov_z_cm),
+        latex_number(row.elastic_flux_difference_max_abs),
+        latex_number(row.wall_geometry_source_max_abs),
+        latex_number(row.total_flow_residual_max_abs),
+        latex_number(row.total_flow_residual_z_cm),
     ), " & ") * " \\\\"
 end
 

@@ -1,260 +1,91 @@
-\section{Mathematical Foundations}
+\section{Mathematical Convention Appendix}
 \label{app:mathematical-foundations}
-This appendix supplies citation anchors for the analytic notation used in the
-main chapters and in Appendix~\ref{app:mathematical-notation}. It separates domain
-and boundary language, classical function spaces, field notation, differential
-operators, and norm conventions so later sections can cite only the convention
-they need.
+
+This appendix records only the analytic conventions needed by the continuum
+derivations and coordinate appendices. Elementary compactness, Banach-space, and
+function-space background is not repeated here.
 
 \begin{convention}[Standing regularity convention]
 \label{conv:foundation-standing-regularity}
-Unless a section states a stronger or weaker hypothesis, classical identities are
-used only under the regularity needed for their terms to be defined. In
-particular, fields have the displayed classical derivatives in the indicated
-domains, boundary traces are defined when boundary terms are written, and
+Unless a section states a stronger or weaker hypothesis, displayed classical
+identities are used only under the regularity needed for their terms to be
+defined. Fields have the indicated classical derivatives on the stated domains;
+boundary traces are assumed when boundary terms are written; and
 integration-by-parts or adjoint identities are invoked only when the required
-boundary terms are meaningful. When a weak formulation is discussed, the relevant
-Sobolev space, trace theorem, and boundary regularity assumptions are stated
-explicitly; Sobolev traces are not inferred from this classical convention. At
-minimum, boundaries are assumed piecewise $C^1$ when classical boundary
-integrals or integration-by-parts identities are used. Outward unit normals are
-then interpreted on the regular boundary pieces, hence surface-a.e. When a
-pointwise normal derivative is asserted on all of $\pOmg$, the boundary is
-assumed at least $C^1$.
+boundary terms are meaningful. When a weak formulation is discussed, the
+relevant Sobolev space, trace theorem, and boundary regularity assumptions are
+stated locally rather than inferred from this convention. Boundaries are at
+least piecewise $C^1$ for classical boundary integrals, and outward unit normals
+are interpreted on the regular boundary pieces.
 \end{convention}
 
-\begin{definition}[Domain and boundary notation]
+\begin{definition}[Domain, time, and field notation]
 \label{def:foundation-domain-boundary-notation}
-Let $\Omg \subset \R^n$ be a bounded open connected set, with $n\in\N$, and
-denote its closure by $\OmgBar$. In the hemodynamics settings considered in
-this report, only $n\in[3]$ is used. The standing regularity convention in
-Convention~\ref{conv:foundation-standing-regularity} applies whenever traces,
-outward unit normals, or integration by parts are used. For open $\Omg$,
+For a bounded open connected domain $\Omg\subset\R^n$ with the locally stated
+regularity, $\OmgBar$ denotes its closure and $\pOmg$ its boundary. The report
+uses
 \begin{flalign*}
-    \quad \OmgBar=\Omg\cup\pOmg, \qquad \pOmg=\OmgBar\setminus\Omg. &&
+    \quad
+    I_T&\defined (0,T_{\mathrm{final}}),&
+    \ITBar&\defined [0,T_{\mathrm{final}}],&
+    K&\defined [0,\ell]\times[0,T_{\mathrm{final}}] &&
 \end{flalign*}
-Since $\Omg$ is bounded, $\OmgBar$ is closed and bounded and is therefore
-compact by the Heine--Borel theorem. The open set $\Omg$ itself need not be
-compact. Since $\Omg$ is bounded, $\pOmg$ is also compact. When the standing
-regularity convention supplies a piecewise $C^1$ boundary, the outward unit
-normal $\nhat$ is interpreted on the regular boundary pieces, hence $\dSx$-a.e.
-on $\pOmg$.
-\end{definition}
-
-\begin{definition}[Time intervals and compact space-time sets]
-\label{def:foundation-time-and-compact-set-notation}
-For a final time $T_{\mathrm{final}}>0$, this report uses
+unless a section declares a local final time or length. Scalar, vector, and
+second-order tensor fields are written
 \begin{flalign*}
-    \quad I_T \defined (0,T_{\mathrm{final}}),
-    \qquad
-    \ITBar \defined [0,T_{\mathrm{final}}]. &&
+    \quad
+    \phi:\Omg\to\R,\qquad
+    \vf:\Omg\to\R^n,\qquad
+    \vT:\Omg\to\R^{n\times n}. &&
 \end{flalign*}
-The open interval $I_T$ is used for interior-time differential identities and
-space-time PDE regions, while $\ITBar$ is used when initial-time data,
-endpoint data, sampled time grids, or flow maps are included. When a local final
-time such as $T_\ast$ is stated, the same convention applies with
-$T_{\mathrm{final}}$ replaced by that local final time.
-
-For one-dimensional output fields, a compact space-time rectangle is written as
-\begin{flalign*}
-    \quad K \defined [0,\ell]\times[0,T_{\mathrm{final}}] &&
-\end{flalign*}
-or by an explicitly stated local variant. Spaces such as $C(K)$ and
-$C^1([0,\ell])$ mean continuous functions on the named compact set, with the
-supremum norm when a norm is written. Spaces such as $L^p(K)$ use the product
-Lebesgue measure and the same almost-everywhere convention as
-Definition~\ref{def:foundation-norm-conventions}.
-\end{definition}
-
-\begin{definition}[Field and multi-index notation]
-\label{def:foundation-field-and-derivative-notation}
-For $\Omg\subset\R^n$, we use the following field notation:
-\begin{flalign*}
-    \quad & \phi:\Omg\to\R \;\text{ is a \emph{scalar field}}, & \\
-    \quad & \vf:\Omg\to\R^{n} \;\text{ is a \emph{vector field}}, &&\\
-    \quad & \vT:\Omg\to\R^{n\times n} \;\text{ is a \emph{(second-order) tensor field}},&&
-\end{flalign*}
-and we write $\phi(\vx)$, $\vf(\vx)$, and $\vTx$\footnote{
-A second-order tensor value $\vTx\in\R^{n\times n}$ can be identified with
-the matrix of a linear map $\R^n\to\R^n$ acting on vectors by matrix-vector
-multiplication.}
-for the values at a point $\vx \in \Omg$. When referring to a physical quantity,
-its measurement units are indicated as $\units{\cdot}$, whereas dimensionless
-quantities are indicated as $\units{-}$. The $k$-th partial derivative of
-$\phi$ with respect to coordinate $x_i$ is
-\begin{flalign*}
-    \quad & \pd_{x_i}^k \phi \equivto \frac{\pd^k \phi}{\pd x_i^k}. &&
-\end{flalign*}
-For a multi-index $\alpha=(\alpha_1,\ldots,\alpha_n)\in\N_0^n$, set
-$|\alpha|=\alpha_1+\cdots+\alpha_n$. When the derivative exists classically,
-the corresponding derivative of a scalar field $\phi$ is
-\begin{flalign*}
-    \quad & D^\alpha \phi \equivto \frac{\pd^{|\alpha|} \phi}{\pd x_1^{\alpha_1} \, \pd x_2^{\alpha_2} \, \ldots \, \pd x_n^{\alpha_n}}. &&
-\end{flalign*}
-For $|\alpha| = 1$, $D^\alpha \phi$ is a first-order partial derivative of
-$\phi$, e.g. $\pd_{x_i} \phi$
-where $\alpha_i = 1$ and $\alpha_j = 0$ for all $j\in[n]\setminus\{i\}$.
-\end{definition}
-
-\begin{definition}[Classical function-space notation]
-\label{def:foundation-classical-function-space-notation}
-Given a domain $\Omg$ and a scalar field $\mathbb F\in\{\R,\C\}$, a scalar
-function space on $\Omg$ is an $\mathbb F$-vector subspace of the maps
-$f:\Omg\to \mathbb F$. Unless a complex-valued space is
-explicitly specified, this report uses real-valued spaces. Thus $C^0(\Omg)$
-denotes the real-valued continuous functions on the open domain $\Omg$.
-For $k\in\N_0$, $C^k(\Omg)$ denotes functions $\phi:\Omg\to\R$ such that
-$D^\alpha\phi$ exists and is continuous in $\Omg$ for every $|\alpha|\le k$.
-By contrast, $C^k(\OmgBar)$ denotes functions in $C^k(\Omg)$ whose derivatives
-through order $k$ extend continuously to the closure $\OmgBar$. The space
-$C^\infty(\Omg)$ is the intersection of all $C^k(\Omg)$ for $k\in\N_0$, i.e.
-the infinitely differentiable functions on $\Omg$.
-The notation $C^k(\Omg;\R^m)$ denotes the maps $\vf:\Omg \to \R^m$ with
-components in $C^k(\Omg)$, i.e., $\vf = (f_i)_{i\in[m]}$ with
-$f_i \in C^k(\Omg)$ for all $i \in[m]$.
+Multi-index notation is used in the standard way:
+$D^\alpha\phi$ denotes the classical derivative of order
+$|\alpha|=\alpha_1+\cdots+\alpha_n$ when it exists. Spaces such as
+$C^k(\OmgBar)$ and $L^p(\Omg)$ are used with their standard meanings; the norm
+subscript always identifies the intended space when a norm is needed.
 \end{definition}
 
 \begin{definition}[Differential-operator conventions]
 \label{def:foundation-differential-operator-conventions}
-For real-valued $\phi \in C^1(\Omg)$, the partial derivative with respect to coordinate
-$x_i$ is
-\begin{flalign*}
-    \quad \pd_{x_i} \phi = \frac{\pd \phi}{\pd x_i}. &&
-\end{flalign*}
-Named-coordinate partial derivatives use the same compact convention; for
-example,
+Named-coordinate partial derivatives use compact notation, for example
 \begin{flalign*}
     \quad
-    \pd_t \phi = \frac{\pd \phi}{\pd t},
-    \qquad
-    \pd_z f = \frac{\pd f}{\pd z},
-    \qquad
-    \pd_A p = \frac{\pd p}{\pd A}. &&
+    \pd_t\phi=\frac{\pd\phi}{\pd t},\qquad
+    \pd_z f=\frac{\pd f}{\pd z},\qquad
+    \pd_A p=\frac{\pd p}{\pd A}. &&
 \end{flalign*}
-Cylindrical derivatives such as $\pd_r u$ and $\pd_\theta u$ are read
-analogously. Boundary notation retains $\partial$, as in $\partial V(t)$ and
-$\pOmg$.
-For $\vx \in \Omg$ and a direction $\vv \in \R^n$, the directional derivative is
+For scalar fields, $\nabla\phi$ is the column gradient and
+$\del\phi=\nabla\cdot\nabla\phi$. For vector fields, $\nabla\vf$ is the
+Jacobian with entries $(\nabla\vf)_{ij}=\pd_{x_j}f_i$ and
 \begin{flalign*}
-    \quad D_{\vv} \phi(\vx) \defined \inp{\nabla \phi(\vx)}{\vv}_{\R^n}. &&
+    \quad
+    \Div\,\vf=\nabla\cdot\vf=\sum_{i\in[n]}\pd_{x_i}f_i. &&
 \end{flalign*}
-If $\phi\in C^1(\OmgBar)$, $\vx\in\pOmg$, and $\nhat$ is the outward unit
-normal at $\vx$, then the boundary normal derivative is
+For tensor fields, the report uses the row-divergence convention
 \begin{flalign*}
-    \quad \pd_{\nhat} \phi(\vx) \defined \inp{\nabla \phi(\vx)}{\nhat}_{\R^n}. &&
+    \quad
+    (\Divbf\vT)_i=\sum_{j\in[n]}\pd_{x_j}T_{ij}. &&
 \end{flalign*}
-For Lebesgue measure $\dx$ on $\R^n$ the integral of $\phi$ in $\Omg$ is
-\begin{flalign*}
-    \quad \int_{\Omg} \phi(\vx) \dx. &&
-\end{flalign*}
-If $\pOmg$ is of class $C^1$ and $\phi\in C^0(\OmgBar)$, then the classical boundary trace
-$\phi|_{\pOmg}$ is continuous on $\pOmg$. Since
-$\Omg$ is bounded and $\pOmg$ is a compact $C^1$ hypersurface,
-this trace belongs to $L^1(\pOmg; \dSx)$. The corresponding boundary integral
-is written
-\begin{flalign*}
-    \quad \int_{\pOmg} \phi(\vx)\,\dSx. &&
-\end{flalign*}
-We use the column-gradient convention for scalar fields. For
-$\phi\in C^1(\Omg)$, the gradient is
-\begin{flalign*}
-    \quad \nabla \phi \defined \left(\pd_{x_i} \phi\right)_{i\in[n]} \in \R^n. &&
-\end{flalign*}
-For $\phi\in C^2(\Omg)$, the Laplacian is
-\begin{flalign*}
-    \quad \del \phi \defined \nabla\cdot\nabla\phi \equals \sum_{i\in[n]} \pd_{x_i}^2 \phi. &&
-\end{flalign*}
-
-For vector-valued $\vf \in C^1(\Omg; \R^n)$ with components $\vf = (f_i)_{i\in[n]}$,
-the vector gradient is the Jacobian with entries $(\nabla \vf)_{ij} \defined \pd_{x_j} f_i$.
-The divergence is the trace of this Jacobian:
-\begin{flalign*}
-    \quad \Div \, \vf \defined \nabla \cdot \vf \equals \sum_{i\in[n]} \pd_{x_i} f_i
-    \equals \operatorname{tr}(\nabla \vf). &&
-\end{flalign*}
-For $\vf \in C^2(\Omg; \R^n)$, the Laplacian is defined componentwise. The domain integral is
-also componentwise whenever the components are integrable:
-\begin{flalign*}
-    \quad &  \del \, \vf \defined \left( \del f_i \right)_{i\in[n]} &&\\
-    \quad &  \int_\Omg \vf(\vx)\,\dx \defined \left(\int_\Omg f_i(\vx)\,\dx\right)_{i\in[n]}. &&
-\end{flalign*}
-
-For tensor-valued $\vT \in C^1(\Omg; \R^{n\times n})$ with entries $\vT = (T_{ij})_{i,j\in[n]}$,
-we use the row-divergence convention $(\Divbf\vT)_i=\sum_{j\in[n]} \pd_{x_j} T_{ij}$.
-Equivalently, if $\vt_i=(T_{ij})_{j\in[n]}$ denotes the $i$-th row of $\vT$, then
-\begin{flalign*}
-    \quad \Divbf \, \vT &\defined \left( \Div \, \vt_{i} \right)_{i\in[n]} &&\\
-        & \equals \left( \nabla \cdot \vt_{i} \right)_{i\in[n]} &&\\
-        & \equals \left( \sum_{j\in[n]} \pd_{x_j} T_{ij} \right)_{i\in[n]}. &&
-\end{flalign*}
-For $\vT \in C^2(\Omg; \R^{n\times n})$, the Laplacian is defined componentwise.
-The domain integral is also defined componentwise whenever the entries are integrable:
-\begin{flalign*}
-    \quad & \del \, \vT \defined \left( \del T_{ij} \right)_{i,j\in[n]} &&\\
-    \quad & \int_\Omg \vT(\vx)\,\dx \defined \left( \int_\Omg T_{ij}(\vx)\,\dx \right)_{i,j\in[n]}. &&
-\end{flalign*}
+This is the convention used in the continuum momentum balance and in the
+Navier--Stokes coordinate appendix. Componentwise integrals and Laplacians are
+used for vector- and tensor-valued fields whenever the relevant components are
+integrable or differentiable.
 \end{definition}
 
-\begin{definition}[$C^k$ and $L^p$ norm conventions]
+\begin{definition}[Norm conventions]
 \label{def:foundation-norm-conventions}
-Let $\Omg\subset\R^n$ be bounded and open. We write
-$C^k(\OmgBar)$ for the functions $\phi\in C^k(\Omg)$ such that
-each derivative $D^\alpha\phi$, $|\alpha|\le k$, extends continuously to
-$\OmgBar$. The norm is
-\begin{flalign*}
-    \quad \norm{\phi}_{C^k(\OmgBar)} \defined
-    \sum_{|\alpha|\le k} \sup_{\vx\in\OmgBar} |D^\alpha\phi(\vx)|. &&
-\end{flalign*}
-With this norm, $C^k(\OmgBar)$ is a Banach space: every Cauchy
-sequence in $C^k(\OmgBar)$ converges, with respect to $\norm{\cdot}_{C^k(\OmgBar)}$,
-to a limit in $C^k(\OmgBar)$. In particular, for $k = 0$, we have
-\begin{flalign*}
-    \quad \norm{\phi}_{C^0(\OmgBar)} &\defined \sup_{\vx \in \OmgBar} \left| \phi(\vx) \right|
-    = \max_{\vx \in \OmgBar} \left| \phi(\vx) \right|. &&
-\end{flalign*}
-For continuous functions on compact sets, the max norm agrees with the usual
-supremum norm.
-
-For $1\le p<\infty$, $L^p(\Omg)$ denotes the space of equivalence classes of
-real-valued measurable functions on $\Omg$, identified up to equality almost
-everywhere, with finite norm
-\begin{flalign*}
-    \quad \norm{\phi}_{L^p(\Omg)} \defined \left(\int_\Omg |\phi(\vx)|^p \dx\right)^{1/p}. &&
-\end{flalign*}
-For $p=\infty$,
-\begin{flalign*}
-    \quad \norm{\phi}_{L^\infty(\Omg)} \defined \operatorname*{ess\,sup}_{\vx\in\Omg}|\phi(\vx)|. &&
-\end{flalign*}
-With this almost-everywhere identification, $L^p(\Omg)$ is a Banach space for
-$1\le p\le\infty$.
-
-The notation $L^p(\Omg;\R^m)$ denotes equivalence classes of measurable maps
-$\vf:\Omg\to\R^m$, identified up to equality a.e., whose components belong to
-$L^p(\Omg)$, i.e., $\vf = (f_i)_{i\in[m]}$ with $f_i \in L^p(\Omg)$ for all $i \in[m]$.
-When a norm on $L^p(\Omg;\R^m)$ is needed, we use the Euclidean norm in the
-range. For $1\le p<\infty$,
+The report uses the usual $L^p$ and $C^k$ norms when they are explicitly named.
+For vector-valued $L^p$ quantities, the pointwise range norm is Euclidean. For
+matrix or second-order tensor values, the pointwise range norm is the Frobenius
+norm,
 \begin{flalign*}
     \quad
-    \norm{\vf}_{L^p(\Omg;\R^m)}
+    \norm{\vT}_{\mathrm F}
     \defined
-    \left(\int_\Omg \norm{\vf(\vx)}_{\R^m}^p\dx\right)^{1/p}.
-    &&
+    \left(\vT:\vT\right)^{1/2}
+    =
+    \left(\sum_{i,j\in[n]}T_{ij}^{2}\right)^{1/2}. &&
 \end{flalign*}
-For $p=\infty$, the corresponding convention is
-\begin{flalign*}
-    \quad
-    \norm{\vf}_{L^\infty(\Omg;\R^m)}
-    \defined
-    \operatorname*{ess\,sup}_{\vx\in\Omg}\norm{\vf(\vx)}_{\R^m}.
-    &&
-\end{flalign*}
-For matrix or second-order tensor values, the pointwise range norm is the
-Frobenius norm
-\begin{flalign*}
-    \quad \norm{\vT}_{\mathrm F}
-    \defined \left(\vT:\vT\right)^{1/2}
-    = \left(\sum_{i,j\in[n]}T_{ij}^{2}\right)^{1/2}. &&
-\end{flalign*}
-Thus tensor-valued $L^p$ norms are formed by replacing $|\phi(\vx)|$ in the
-scalar $L^p$ formula with $\norm{\vT(\vx)}_{\mathrm F}$.
+Bare norms are local shorthand only; global notation tables state the intended
+space or range norm where ambiguity would otherwise arise.
 \end{definition}

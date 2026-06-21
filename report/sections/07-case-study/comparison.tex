@@ -21,12 +21,49 @@ Section~\ref{sec:numerical-verification} remains
 required context because it uses the same principal finite-volume operator as
 the comparison runs and shows a nonzero geometry-rest defect on the production
 grid. The current/deformed 3D geometry status also remains unresolved: the
-static cut-area audit below supports only the fixed-section geometry check, not a
+static cut-area check below supports only the fixed-section geometry check, not a
 decision about whether a deformed-wall geometry or displacement application
 should be used for final-time plane cuts. The 3D wall model, wall-motion history,
 inlet/outlet histories, material parameters, and prior transient history are not
 carried by the comparison record; these would need to be established before
 making a validation-level claim.
+
+The comparison gates are therefore deliberately limited: the final timestamp is
+matched, the static section area is checked, the dynamic or deformed 3D geometry
+state is unresolved, the resolved flow is not sectionwise constant, and the
+wall, boundary, material, and transient-history metadata needed for validation
+are not persisted in the retained comparison record. No pressure-drop,
+pressure-ratio, or FFR-style result is retained for this 1D--3D comparison
+because compatible pressure observations and extraction conventions are not
+declared for the paired data.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Resolved-data metadata available to the retained velocity
+    comparison. Counts and final timestamp are read from the local XDMF records
+    and tracked geometry manifests; unmatched physical and transient metadata
+    are stated as not persisted rather than inferred.}
+    \label{tab:resolved-3d-metadata}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lrrrrllll@{}}
+        \toprule
+        \textbf{Case}
+            & \textbf{Nodes}
+            & \textbf{Tetra.}
+            & $\boldsymbol{t_{3D}}$ \textbf{(s)}
+            & $\boldsymbol{|t_{3D}-T|}$ \textbf{(s)}
+            & \textbf{Velocity}
+            & \textbf{Pressure}
+            & \textbf{Displacement}
+            & \textbf{Unpersisted metadata} \\
+        \midrule
+        C23 & 22691 & 110420 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & present, not applied to cuts & $\nu,\rho$, BCs, wall law, transient history \\
+        C40 & 21975 & 106547 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & present, not applied to cuts & $\nu,\rho$, BCs, wall law, transient history \\
+        \bottomrule
+    \end{tabular}%
+    }
+\end{table}
 
 \begin{figure}[!htb]
     \centering
@@ -128,7 +165,11 @@ The production rows show that the selected runs reached the CFL cap, retained
 positive physical area, used no positivity projection, closed the final
 area-flux bookkeeping at the listed scale, and completed at the matched final
 timestamp. These diagnostics are run admissibility evidence; they do not by
-themselves establish cross-model validation.
+themselves establish cross-model validation. No inlet, throat, and outlet
+time-history table for $q(t)$, $A_{\mathrm{phys}}(t)$, CFL extrema over time,
+or area-flux balance over time is retained in the current report assets; the
+comparison is therefore interpreted from final-time diagnostics plus the
+separate rest-state drift record.
 
 \FloatBarrier
 
@@ -154,10 +195,10 @@ $R_{\min}=0.1386\,\mathrm{cm}$ for C23 and $R_{\min}=0.1080\,\mathrm{cm}$ for
 C40. The shaded region in Figure~\ref{fig:t1-section-mean-comparison} is the
 displayed interval $2.4\le z\le2.8\,\mathrm{cm}$.
 
-\subsubsection{Cut-Area Audit}
+\subsubsection{Cut-Area Check}
 \label{subsec:section-averaged-velocity-results}
 
-The same quadrature record audits whether the cut operator is sampling the
+The same quadrature record checks whether the cut operator is sampling the
 expected static cross-section. With the reference area
 $A_{\mathrm{ref}}(z_j)=\pi R_0(z_j)^2$, define
 \begin{flalign*}
@@ -167,9 +208,9 @@ $A_{\mathrm{ref}}(z_j)=\pi R_0(z_j)^2$, define
     \frac{|A_{3D}(z_j)-A_{\mathrm{ref}}(z_j)|}
          {A_{\mathrm{ref}}(z_j)}. &&
 \end{flalign*}
-Table~\ref{tab:t1-area-audit} reports this geometry/operator audit for the same
+Table~\ref{tab:t1-area-check} reports this geometry/operator check for the same
 200 section targets. It shows sub-percent typical static cut-area discrepancy,
-with the largest differences confined to a few targets. This audit does not
+with the largest differences confined to a few targets. This check does not
 resolve the current/deformed geometry question and does not measure the dynamic
 area discrepancy entering the 1D velocity denominator,
 \begin{flalign*}
@@ -182,10 +223,10 @@ area discrepancy entering the 1D velocity denominator,
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Quadrature cut-area audit against the static reference
+    \caption{Quadrature cut-area check against the static reference
     $A_{\mathrm{ref}}(z)=\pi R_0(z)^2$. Discrepancies are percentages over
     valid section targets.}
-    \label{tab:t1-area-audit}
+    \label{tab:t1-area-check}
     \begin{tabular}{@{}lrrrrr@{}}
         \toprule
         \textbf{Case}
@@ -201,6 +242,36 @@ area discrepancy entering the 1D velocity denominator,
     \end{tabular}
 \end{table}
 
+The retained section values also allow the dynamic 1D area used in the velocity
+denominator to be compared with the resolved cut area. With
+$A_{1D}(z_j,t)=\pi a(z_j,t)=Q_{1D}(z_j,t)/\bar u_{1D}(z_j,t)$ on the retained
+sections, Table~\ref{tab:t1-dynamic-area-discrepancy} reports
+$\epsilon_A^{\mathrm{model}}$ for the same 200 targets. This is still a
+single-final-time comparison against the fixed 3D cut areas, not evidence that
+deformed 3D geometry has been matched.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Dynamic 1D area versus resolved cut-area discrepancy at the
+    retained final-time sample. Values are percentages over the 200 valid
+    section targets.}
+    \label{tab:t1-dynamic-area-discrepancy}
+    \begin{tabular}{@{}lrrrrr@{}}
+        \toprule
+        \textbf{Case}
+            & \textbf{Sections}
+            & $\boldsymbol{\min \epsilon_A^{\mathrm{model}}}$
+            & $\boldsymbol{\mathrm{median}\ \epsilon_A^{\mathrm{model}}}$
+            & $\boldsymbol{\mathrm{mean}\ \epsilon_A^{\mathrm{model}}}$
+            & $\boldsymbol{\max \epsilon_A^{\mathrm{model}}}$ \\
+        \midrule
+        C23 & 200 & 0.078 & 0.344 & 0.443 & 2.71 \\
+        C40 & 200 & 0.016 & 0.346 & 0.483 & 4.60 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
 \subsubsection{Axial Physical-Flow Behavior}
 \label{subsec:axial-flow-behavior}
 
@@ -212,6 +283,29 @@ That unresolved axial variation appears before the velocity interpretation
 because it is a matching gate, not a solved mechanism. The tracked artifacts do
 not identify whether the variation comes from 3D numerical state, boundary or
 history mismatch, geometry handling, operator sensitivity, or another source.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Axial variation of resolved physical flow extracted by the
+    declared plane-quadrature operator. Flows are in cm$^3$/s and locations are
+    axial positions in cm.}
+    \label{tab:t1-q3d-axial-variation}
+    \begin{tabular}{@{}lrrrrrr@{}}
+        \toprule
+        \textbf{Case}
+            & $\boldsymbol{\langle Q_{3D}\rangle}$
+            & $\boldsymbol{\min Q_{3D}}$
+            & $\boldsymbol{\max Q_{3D}}$
+            & \textbf{range/mean}
+            & $\boldsymbol{z_{\max |Q_{3D}-\langle Q_{3D}\rangle|}}$
+            & \textbf{max dev./mean} \\
+        \midrule
+        C23 & 2.241 & 2.125 & 2.298 & 7.72\% & 2.291 & 5.20\% \\
+        C40 & 2.219 & 1.862 & 2.311 & 20.2\% & 2.261 & 16.1\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 The section means are
 $\langle Q_{1D}\rangle=2.288\,\mathrm{cm}^3/\mathrm{s}$ and
@@ -320,6 +414,35 @@ $z=2.291$ cm for C23 and 9.92 cm/s at $z=2.261$ cm for C40.
     }
 \end{table}
 
+Table~\ref{tab:t1-normalized-scale-comparison} places the principal numerical
+limitation beside the final-time comparison scales. The rest-state entry uses
+the $N=400$, $t=1$ s zero-inlet solver-flow magnitude from
+Section~\ref{subsec:rest-state-drift}, normalized by the production
+solver-coordinate flow scale $\langle Q_{1D}\rangle/\pi$. The flow discrepancy
+is normalized by $\langle Q_{1D}\rangle$, and the velocity entry uses the
+relative RMS discrepancy already reported in
+Table~\ref{tab:t1-3d-comparison-summary}.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Normalized scale comparison for the production-grid rest-state
+    limitation and final-time 1D--3D discrepancy measures.}
+    \label{tab:t1-normalized-scale-comparison}
+    \begin{tabular}{@{}lrrrr@{}}
+        \toprule
+        \textbf{Case}
+            & \textbf{rest }$\boldsymbol{\max |q|}$\textbf{/prod. }$\boldsymbol{q}$
+            & $\boldsymbol{D_{Q,1}/\langle Q_{1D}\rangle}$
+            & $\boldsymbol{D_{u,1}}$ \textbf{(cm/s)}
+            & \textbf{rel. }$\boldsymbol{D_{u,2}}$ \\
+        \midrule
+        C23 & 5.27\% & 2.11\% & 0.505 & 2.77\% \\
+        C40 & 8.71\% & 3.10\% & 0.966 & 6.88\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
 The optional production-grid sensitivity record repeats the same section-target
 comparison at $N=200$, $400$, and $800$ while keeping the resolved 3D cuts,
 target time, section count, model closures, and observation operator fixed.
@@ -371,11 +494,11 @@ velocity comparison along the vessel. The 1D and quadrature-averaged 3D means
 are closest away from the largest acceleration zone, while the largest
 discrepancies in this two-case pair are upstream of the displayed throat-centered
 band. The largest C40 velocity discrepancy occurs at the same section as the
-largest static cut-area discrepancy in Table~\ref{tab:t1-area-audit}. Excluding
+largest static cut-area discrepancy in Table~\ref{tab:t1-area-check}. Excluding
 the two C40 sections with static area discrepancy above 4\% moves the maximum
 from 9.92 cm/s at $z=2.261$ cm to 8.74 cm/s at $z=2.291$ cm, where the static
 area discrepancy is below 1\%. Thus the localized C40 peak is not solely an
-area-audit artifact, but the exact maximum value and location remain
+area-check artifact, but the exact maximum value and location remain
 operator-sensitive.
 
 \begin{figure}[H]

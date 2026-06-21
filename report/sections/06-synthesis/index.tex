@@ -127,7 +127,7 @@ data. A discrete method that does not preserve that state can generate motion
 from the numerical representation itself. Well-balanced methods for 1D blood
 flow make this point directly and raise the standard for stenosis
 computations: manufactured solutions and grid studies are useful, but an
-equilibrium problem needs an equilibrium-preservation audit
+equilibrium problem needs an equilibrium-preservation check
 \cite{PimentelGarciaEtAl2025HighOrderWellBalanced}. The broader verification
 and validation gap is that many studies report plausible hemodynamic outputs
 without enough evidence to separate implementation error, discretization error,
@@ -178,7 +178,7 @@ the recorded artifacts are sufficient to reproduce the numerical claim, and
 which uncertainties remain outside the case.
 
 The case study is therefore not the destination of the literature review. It is
-one auditable example of the review standard. It removes segmentation and
+one controlled numerical example of the review standard. It removes segmentation and
 clinical-matching ambiguity so that closure dependence, boundary sensitivity,
 equilibrium preservation, verification evidence, and cross-dimensional
 observability can be examined in a controlled setting. Patient-specific

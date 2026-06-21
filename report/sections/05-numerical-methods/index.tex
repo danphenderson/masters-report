@@ -130,7 +130,7 @@ evidence role. A platform such as SimVascular supports inspectable model
 construction, meshing, simulation, and postprocessing workflows, while a
 vascular model repository provides reusable geometry and model records
 \cite{SimVascular2026Platform,SimVascular2026VascularModelRepository}. Those
-resources strengthen reproducibility and make reference cases easier to audit.
+resources strengthen reproducibility and make reference cases easier to inspect.
 Their contribution is traceability of workflow and model records, not automatic
 validation evidence; validation still requires the geometry, boundary data,
 material assumptions, numerical settings, and observable to match the claim
@@ -199,7 +199,7 @@ in the case study.
             state under refinement?
             & Implementation-verification evidence for flux, source, boundary, and
             time-integration wiring; strongest when the manufactured residual is
-            audited outside the production right-hand-side path or by mutation
+            checked outside the production right-hand-side path or by mutation
             tests. \\
         Geometry-rest equilibrium
             & Does the discrete flux/source operator preserve a selected rest state?

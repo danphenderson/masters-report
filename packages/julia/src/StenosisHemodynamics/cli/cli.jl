@@ -872,6 +872,8 @@ function run_verify_cli(args::Vector{String})
         ))
         println("rest_state_drift_csv,$(result.summary_csv)")
         println("rest_state_drift_tex,$(result.summary_tex)")
+        println("rest_state_residual_components_csv,$(result.residual_csv)")
+        println("rest_state_residual_components_tex,$(result.residual_tex)")
         return result
     end
 

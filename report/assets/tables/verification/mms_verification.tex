@@ -1,11 +1,11 @@
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Manufactured-solution spatial verification errors. The order columns use adjacent-grid $L^2$ errors; the final two columns audit the inserted forcing against an independently assembled residual.}
+    \caption{Manufactured-solution spatial verification errors. The order columns use adjacent-grid $L_2$ errors; the final column checks the inserted forcing against an independently assembled residual.}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}rrrrrrrrrrrr@{}}
         \toprule
-        $N$ & $\Delta t_{\min}$ & CFL$_{\max}$ & $\|e_a\|_1$ & $\|e_a\|_2$ & $\|e_a\|_\infty$ & $p_a$ & $\|e_q\|_1$ & $\|e_q\|_2$ & $\|e_q\|_\infty$ & $p_q$ & forcing audit \\
+        $N$ & $\Delta t_{\min}$ & CFL$_{\max}$ & $\|e_a\|_1$ & $\|e_a\|_2$ & $\|e_a\|_\infty$ & $p_a$ & $\|e_q\|_1$ & $\|e_q\|_2$ & $\|e_q\|_\infty$ & $p_q$ & forcing check \\
         \midrule
 50 & 2.500e-06 & 0.02154 & 7.412e-07 & 1.018e-06 & 2.377e-06 & 1.752 & 0.001163 & 0.003447 & 0.017 & 1.497 & 0.000e+00 \\
 100 & 2.500e-06 & 0.04309 & 1.895e-07 & 3.022e-07 & 9.223e-07 & 1.719 & 3.318e-04 & 0.001221 & 0.008493 & 1.502 & 0.000e+00 \\
@@ -23,7 +23,7 @@
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}rrrrrrrr@{}}
         \toprule
-        $N$ & requested $\Delta t$ & accepted $\Delta t_{\min}$ & accepted $\Delta t_{\max}$ & CFL$_{\max}$ & $\|e_a\|_2$ & $\|e_q\|_2$ & forcing audit \\
+        $N$ & requested $\Delta t$ & accepted $\Delta t_{\min}$ & accepted $\Delta t_{\max}$ & CFL$_{\max}$ & $\|e_a\|_2$ & $\|e_q\|_2$ & forcing check \\
         \midrule
 400 & 2.000e-05 & 2.168e-06 & 6.532e-06 & 0.45 & 2.833e-08 & 1.520e-04 & 0.000e+00 \\
 400 & 1.000e-05 & 2.168e-06 & 6.532e-06 & 0.45 & 2.833e-08 & 1.520e-04 & 0.000e+00 \\

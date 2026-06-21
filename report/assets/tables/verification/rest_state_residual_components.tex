@@ -1,0 +1,18 @@
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Initial geometry-rest residual component magnitudes at $t=0$. The area row is the Rusanov mass-flux residual. The momentum rows split the elastic-flux difference and wall/geometry source before summing them into the total flow residual. Values are maxima over cells in solver coordinates.}
+    \label{tab:rest-state-residual-components}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lrrrrrrr@{}}
+        \toprule
+        Case & $N$ & $\max |R_a^{\mathrm{Rus}}|$ & $z_a$ & $\max |R_q^{\mathrm{el}}|$ & $\max |S_q^{\mathrm{wall}}|$ & $\max |R_q^{\mathrm{tot}}|$ & $z_{q,\mathrm{tot}}$ \\
+        \midrule
+C23 & 400 & 0.69 & 2.122 & 6.908e+04 & 6.845e+04 & 630.3 & 2.137 \\
+C23 & 800 & 0.1892 & 2.134 & 6.849e+04 & 6.839e+04 & 175.7 & 2.141 \\
+C40 & 400 & 1.234 & 2.122 & 1.043e+05 & 1.040e+05 & 1437.0 & 2.137 \\
+C40 & 800 & 0.3225 & 2.126 & 1.043e+05 & 1.042e+05 & 236.7 & 2.134 \\
+        \bottomrule
+    \end{tabular}%
+    }
+\end{table}

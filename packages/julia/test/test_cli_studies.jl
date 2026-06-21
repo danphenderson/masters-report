@@ -432,6 +432,8 @@ end
         @test result isa StenosisHemodynamics.RestStateDriftResult
         @test result.spec.base_params.inlet_umax ≈ 0.0
         @test isfile(result.profile_csv)
+        @test isfile(result.residual_csv)
+        @test isfile(result.residual_tex)
         row = only(csv_row for csv_row in read_simple_csv(result.summary_csv) if csv_row["requested_time_s"] != "0.0")
         @test parse(Float64, row["requested_q_in"]) ≈ 0.0
         @test parse(Float64, row["applied_q_in"]) ≈ 0.0

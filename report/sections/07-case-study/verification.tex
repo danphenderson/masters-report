@@ -14,7 +14,7 @@ surfaces remain in Appendix~\ref{app:num-secondary-implementation-health}.
 The hierarchy used below is explicit. The strongest positive evidence is the
 manufactured-solution record, because it compares the implemented forced
 operator with a declared smooth exact solution and an independently assembled
-forcing audit. The next and principal numerical limitation is the geometry-rest
+forcing consistency check. The next and principal numerical limitation is the geometry-rest
 preservation test, because the selected comparison runs start from the same rest
 state and the current MUSCL/Rusanov realization does not exactly preserve it.
 Boundary, CFL, positivity, and conservation diagnostics then state whether
@@ -120,13 +120,13 @@ source realization,
     \pd_z F_q(a^\star,q^\star;z)-S_q(a^\star,q^\star;z), &&
 \end{flalign*}
 where $F_a,F_q$ and $S_q$ are the selected discrete-model point flux and source
-functions. A separate residual-audit helper assembles the manufactured balance
+functions. A separate independent residual check assembles the manufactured balance
 outside the production right-hand-side call path and reports the maximum
 absolute forcing mismatch in the generated table. The Julia test suite also
 includes a mutation gate that deliberately perturbs the manufactured momentum
-forcing and verifies that the MMS audit fails. The run therefore checks the
+forcing and verifies that the MMS check fails. The run therefore checks the
 implemented operator against a declared manufactured record with an independent
-forcing consistency audit; it remains an implementation-verification record, not
+forcing consistency check; it remains an implementation-verification record, not
 a physical stenosis experiment.
 
 The regeneration command for this verification record is listed in
@@ -139,7 +139,7 @@ The runner records cell-center discrete errors
     \|e\|_2&=\left(\frac{1}{N}\sum_i e_i^2\right)^{1/2},&
     \|e\|_\infty&=\max_i |e_i|, &&
 \end{flalign*}
-with observed orders computed from the $L^2$ rows as
+with observed orders computed from the discrete $L_2$ rows as
 \begin{flalign*}
     \quad
     p_{\mathrm{obs}}
@@ -147,7 +147,8 @@ with observed orders computed from the $L^2$ rows as
     \frac{\log(E_{\mathrm{coarse}}/E_{\mathrm{fine}})}
          {\log(\Delta_{\mathrm{coarse}}/\Delta_{\mathrm{fine}})}. &&
 \end{flalign*}
-For spatial rows $\Delta$ is the grid spacing. For requested-timestep rows the
+These are discrete $L_2$ norm values for the stated error samples. For spatial
+rows $\Delta$ is the grid spacing. For requested-timestep rows the
 native solver also records realized CFL diagnostics because the accepted
 timestep is $\min(\Delta t_{\mathrm{request}},\Delta t_{\mathrm{CFL}})$. The
 timestep-insensitivity rows in the generated MMS table are therefore read
@@ -163,7 +164,7 @@ through accepted timestep and realized CFL, not as a clean temporal-order study.
     \end{center}
 }
 The spatial rows provide bounded, positive implementation-verification evidence
-for the declared forced operator. The observed $L^2$ rates are approximately
+for the declared forced operator. The observed $L_2$ rates are approximately
 1.70 for area and 1.50 for flow over this grid range, below the formal
 smooth-region MUSCL/SSPRK3 expectation, so this table is not reported as a
 formal-order result for every model variant. The $L^1$ history records
@@ -180,6 +181,25 @@ principal implementation is not exactly well balanced for that state. The
 Rusanov/MUSCL operator includes numerical viscosity in the mass flux, and for
 spatially varying $R_0$ this produces a nonzero discrete residual unless an
 equilibrium reconstruction or path-conservative flux is added.
+
+Three levels of this statement must be kept separate. Continuous rest-state
+compatibility is the cancellation property of the source-balanced differential
+model. The instantaneous discrete residual at $t=0$ is the semidiscrete
+right-hand side obtained after sampling that state and applying the selected
+reconstruction, Rusanov flux, source, and boundary rules. The time-evolved rest
+drift below is the accumulated response of the time integrator to that
+residual. Table~\ref{tab:rest-state-residual-components} reports the initial
+component magnitudes before the drift history is interpreted.
+
+\IfFileExists{report/assets/tables/verification/rest_state_residual_components.tex}{%
+    \input{report/assets/tables/verification/rest_state_residual_components.tex}
+}{%
+    \begin{center}
+    \small
+    \emph{Rest-state residual-component table unavailable in this checkout; see
+    the appendix regeneration record.}
+    \end{center}
+}
 
 The zero-forcing rest runner starts the selected C23 and C40 geometries from the
 rest state with a zero-velocity inlet and reports
@@ -230,7 +250,7 @@ comparison grid, the final zero-inlet rest-flow values are $0.03839$ and
 $0.06339\,\mathrm{cm}^3/\mathrm{s}$ in solver $q$ for C23 and C40, equal to
 5.3\% and 8.7\% of $q_{\mathrm{comp}}$. The corresponding peak production-grid
 values are $0.04387$ and $0.07053\,\mathrm{cm}^3/\mathrm{s}$. On the finer
-$N=800$ audit grid, the $t=1$ s values fall to $0.00973$ and
+$N=800$ check grid, the $t=1$ s values fall to $0.00973$ and
 $0.01605\,\mathrm{cm}^3/\mathrm{s}$; the observed final-flow refinement rates
 from $N=400$ to $N=800$ are 1.98 for both severities. The defect is therefore
 strongly localized and strongly grid-decreasing, but it remains non-negligible
