@@ -1,38 +1,24 @@
 \medskip
 \noindent\textbf{Abstract.}\par\smallskip
-This report reviews mathematical models and numerical methods used to simulate
-blood flow, with emphasis on large-vessel and stenotic settings. The review
-starts from continuum balance laws and incompressible Navier--Stokes models,
-then compares three-dimensional CFD, fluid--structure interaction, axisymmetric
-and two-dimensional reductions, distributed one-dimensional area--flow models,
-lumped zero-dimensional networks, geometrical multiscale coupling, and emerging
-learned surrogate approaches. The review is organized around source-to-source
-contrasts: which equations and state variables are retained, which physical
-effects are closed, which data are required, which numerical evidence is
-reported, and which observables are native or reconstructed. Across those
-tiers, the report separates the modeling choices that determine interpretation:
-rheology, wall mechanics, geometry, inlet and outlet data, numerical
-discretization, verification, validation, and observable definitions.
+This report reviews mathematical and numerical blood-flow simulation methods
+for continuum, large-vessel, stenotic, small-vessel, and low-shear regimes,
+with particular attention to rheological assumptions and interpretable outputs.
+The model hierarchy is organized by what each formulation retains, closes,
+couples, and reconstructs, from resolved continuum descriptions to reduced,
+lumped, multiscale, and surrogate descriptions. Across the review, closure
+choices, observable definitions, geometry, boundary data, and numerical evidence
+determine how computed pressure, flow, velocity, and shear-related quantities
+should be interpreted.
 
-The synthesis compares model classes across fidelity, cost, retained state,
-observables, identifiability, validation status, reproducibility, and
-uncertainty. Its central conclusion is that no model tier is interpretable in
-isolation: equations, closure assumptions, data, numerical evidence, and
-observation maps must be matched to the question being asked. An idealized
-stenosis computation is then used as a worked example of those review
-principles. The case study uses an $R_{\max}$-normalized Canic-derived
-one-dimensional area--flow model with solver variables $a=R^2$ and
-$q=Q_{\mathrm{phys}}/\pi$. It records the model contract, closure choices,
-finite-volume realization, manufactured-solution verification record,
-geometry-rest equilibrium test, production diagnostics, and a
-plane--tetrahedron observation operator for comparing one-dimensional output
-with available resolved three-dimensional velocity data. The MMS record gives
-bounded implementation-verification evidence; the zero-inlet rest audit shows
-that the scheme is not exactly well balanced; and the timestamp-matched
-1D--3D section comparison reports descriptive velocity discrepancies under the
-declared observation operator. Because the resolved wall, boundary, material,
-geometry-state, and transient-history records are not fully matched, those
-differences are not validation errors. Radial-profile output is excluded
-pending operator-test and reducer reconciliation. The case study illustrates
-how model reduction, closure choices, equilibrium preservation, and matched
-observation operators affect the meaning of computed blood-flow quantities.
+The worked example studies a smooth idealized stenosis using an
+$R_{\max}$-normalized Canic-derived one-dimensional area--flow model and a
+plane--tetrahedron section operator to compare two resolved velocity fields
+labelled C23 and C40 by stenosis severity. Manufactured-solution tests over
+$N=50,100,200,400$ cells produced observed $L^2$ rates near 1.70 for area and
+1.50 for flow, with zero forcing-audit mismatch. Zero-inlet rest tests showed
+localized artificial solver-flow drift that decreased from 0.03839 and
+0.06339 cm$^3$/s on the $N=400$ grid to 0.00973 and 0.01605 cm$^3$/s on the
+$N=800$ grid. At the matched final-time comparison over 200 sections, C23 and
+C40 had mean absolute velocity discrepancies of 0.505 and 0.966 cm/s and RMS
+discrepancies of 0.664 and 1.87 cm/s, with the largest differences localized
+near the upstream shoulder.
