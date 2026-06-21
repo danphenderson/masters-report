@@ -68,6 +68,29 @@ Julia package tests are run through the Python ops validation wrapper:
 pipenv run ops-julia-check
 \end{lstlisting}
 
+\paragraph*{Case-study regeneration record.}
+The Section~\ref{sec:case-study} verification tables are regenerated with:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+packages/julia/bin/stenosis-hemodynamics verify mms \
+  --nxs 50,100,200,400 \
+  --dt-values 2e-5,1e-5,5e-6,2.5e-6 \
+  --tfinal 0.002 \
+  --output-dir report/assets/tables/verification \
+  --overwrite
+
+packages/julia/bin/stenosis-hemodynamics verify rest \
+  --severities 23,40 \
+  --nxs 100,200,400,800 \
+  --elapsed-times 0,0.001,0.01,0.1,1.0 \
+  --output-dir report/assets/tables/verification \
+  --overwrite
+\end{lstlisting}
+The resolved-velocity comparison uses the main-text labels C23 and C40 for the
+23\% and 40\% stenosis-severity cases, corresponding to local source IDs 77 and
+60, respectively. The raw 3D fields are optional local inputs rather than
+archived thesis assets; the detailed input root and upstream pointer are
+recorded below.
+
 \paragraph*{Comparison-asset regeneration command.}
 When the optional raw 3D inputs are restored locally, the tracked comparison
 assets are regenerated with:
@@ -121,9 +144,10 @@ packages/julia/bin/stenosis-hemodynamics compare-3d \
   --grid-summary-tex report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex
 \end{lstlisting}
 The manuscript treats this as an output-sensitivity record for the retained
-C23/C40 section means and physical flows. It does not change the matched-data
-boundary: wall, boundary, material, current-geometry, and transient-history
-metadata for the resolved cases remain unmatched or unpersisted.
+23\% and 40\% severity section means and physical flows. It does not change the
+matched-data boundary: wall, boundary, material, current-geometry, and
+transient-history metadata for the resolved cases remain unmatched or
+unpersisted.
 
 Package-benchmark assets are regenerated separately from the PDF:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]

@@ -41,9 +41,7 @@ matched-data validation of the available 3D cases.
     \caption{Synthetic validation of the
     \texttt{CrossSectionQuadratureOperator}. Errors are absolute differences
     against analytic constant or affine references on the synthetic tetrahedron;
-    the plane-shift rows report changes relative to the $z=0.5$ affine cut.
-    The source table is
-    \texttt{cross-section-operator-validation.csv}.}
+    the plane-shift rows report changes relative to the $z=0.5$ affine cut.}
     \label{tab:t1-cross-section-operator-validation}
     \resizebox{\textwidth}{!}{%
     \IfFileExists{report/assets/tables/stenosis-comparison/cross_section_operator_validation.tex}{%
@@ -53,7 +51,7 @@ matched-data validation of the available 3D cases.
         \toprule
         Status & Message \\
         \midrule
-        missing & Run \texttt{operator-validation} to populate the table. \\
+        missing & Operator-validation table unavailable in this checkout. \\
         \bottomrule
         \end{tabular}%
     }%
@@ -131,14 +129,8 @@ implemented operator against a declared manufactured record with an independent
 forcing consistency audit; it remains an implementation-verification record, not
 a physical stenosis experiment.
 
-\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-packages/julia/bin/stenosis-hemodynamics verify mms \
-  --nxs 50,100,200,400 \
-  --dt-values 2e-5,1e-5,5e-6,2.5e-6 \
-  --tfinal 0.002 \
-  --output-dir report/assets/tables/verification \
-  --overwrite
-\end{lstlisting}
+The regeneration command for this verification record is listed in
+Appendix~\ref{app:code-and-ai-use}.
 
 The runner records cell-center discrete errors
 \begin{flalign*}
@@ -166,9 +158,8 @@ through accepted timestep and realized CFL, not as a clean temporal-order study.
 }{%
     \begin{center}
     \small
-    \emph{Manufactured-solution table unavailable in this checkout. Run
-    \texttt{verify mms} to populate
-    \path{report/assets/tables/verification/}.}
+    \emph{Manufactured-solution table unavailable in this checkout; see the
+    appendix regeneration record.}
     \end{center}
 }
 The spatial rows provide bounded, positive implementation-verification evidence
@@ -201,14 +192,8 @@ rest state with a zero-velocity inlet and reports
 as functions of grid size and elapsed time. This test is required context for
 any comparison run initialized from the same geometry-rest state.
 
-\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-packages/julia/bin/stenosis-hemodynamics verify rest \
-  --severities 23,40 \
-  --nxs 100,200,400,800 \
-  --elapsed-times 0,0.001,0.01,0.1,1.0 \
-  --output-dir report/assets/tables/verification \
-  --overwrite
-\end{lstlisting}
+The regeneration command for this rest-state record is listed in
+Appendix~\ref{app:code-and-ai-use}.
 
 \IfFileExists{report/assets/tables/verification/rest_state_drift.tex}{%
     \begin{center}
@@ -225,9 +210,8 @@ packages/julia/bin/stenosis-hemodynamics verify rest \
 }{%
     \begin{center}
     \small
-    \emph{Rest-state drift table unavailable in this checkout. Run
-    \texttt{verify rest} to populate
-    \path{report/assets/tables/verification/}.}
+    \emph{Rest-state drift table unavailable in this checkout; see the appendix
+    regeneration record.}
     \end{center}
 }
 
