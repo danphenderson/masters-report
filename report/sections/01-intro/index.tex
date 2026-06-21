@@ -30,13 +30,16 @@ scope.
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \includegraphics[width=\textwidth]{report/assets/rendered/stenosis-fem-fvm-meshes.pdf}
-    \caption{Finite-element and finite-volume views of the same $C^\infty$
-    idealized stenosis geometry defined in
-    Definition~\ref{def:1d-stenosis-reference-geometry}. Panel (a) shows the
-    generated tetrahedral mesh for the stationary-Stokes initializer; panel (b)
-    shows the 1D finite-volume grid sampled along $R_0(z)$. The panels
-    introduce the case study geometry and discretization; the review chapters
-    define the modeling vocabulary used to interpret them.}
+    \caption{Finite-element and finite-volume discretization views of the same
+    $C^\infty$ reference stenosis geometry defined in
+    Definition~\ref{def:1d-stenosis-reference-geometry}. Panel (a) shows a
+    meridional projection of the stationary-Stokes tetrahedral mesh
+    $\mathcal T_h$ against the wall curves $r=\pm R_0(z)$; the inset sketches a
+    section $S_j=\Omega_{3D}\cap\{z=z_j\}$, the centroid-fan cut triangles
+    $\mathcal Q_j$, and the three barycentric quadrature points used by
+    \texttt{CrossSectionQuadratureOperator}. Panel (b) shows the 1D
+    finite-volume partition $I_i=[z_{i-1/2},z_{i+1/2}]$ with centers
+    $z_i=(i-\frac12)\Delta z$, sampled along $R_0(z)$.}
     \label{fig:stenosis-fem-fvm-meshes}
 \end{figure}
 

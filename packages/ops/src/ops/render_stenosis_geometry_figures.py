@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -24,8 +25,9 @@ matplotlib.rcParams.update(
 
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
+from matplotlib.collections import LineCollection  # noqa: E402
+from matplotlib.patches import Circle, Polygon  # noqa: E402
 from mpl_toolkits.mplot3d import Axes3D  # noqa: E402, F401 - registers 3D projection
-from mpl_toolkits.mplot3d.art3d import Line3DCollection  # noqa: E402
 
 
 DEFAULT_DATA_DIR = Path("report/assets/data/stenosis-geometry")
@@ -33,6 +35,19 @@ DEFAULT_OUTPUT_DIR = Path("report/assets/rendered")
 MANUSCRIPT_TRAJECTORY_SEVERITIES = [23, 50, 73]
 TRAJECTORY_PARTICLE_COUNT = 5
 RESOLVED_FLOW_CASES = [("77", 23), ("60", 40)]
+REQUIRED_GEOMETRY_EXPORTS = (
+    "analytic_summary.csv",
+    "analytic_radius_profiles.csv",
+    "analytic_cross_sections.csv",
+    "analytic_surface_sev0.csv",
+    "analytic_surface_sev23.csv",
+    "analytic_surface_sev40.csv",
+    "analytic_surface_sev50.csv",
+    "analytic_surface_sev73.csv",
+    "fem_mesh_view_sev50.csv",
+    "fvm_mesh_view_sev50.csv",
+    "stokes_particle_trajectories.csv",
+)
 
 COLORS = {
     "bloodred": "#B23A3A",
@@ -71,8 +86,33 @@ def rows_from_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def missing_required_exports(data_dir: Path) -> list[str]:
+    return [name for name in REQUIRED_GEOMETRY_EXPORTS if not (data_dir / name).is_file()]
+
+
+def format_missing_exports_message(data_dir: Path, missing: list[str]) -> str:
+    missing_list = ", ".join(missing)
+    return "\n".join(
+        [
+            f"missing required stenosis geometry export(s) in {data_dir}: {missing_list}",
+            "Generate the analytic, mesh-view, and Stokes trajectory CSVs first:",
+            "  packages/julia/bin/stenosis-hemodynamics export-assets --overwrite",
+            "Then rerun:",
+            "  pipenv run ops-render-stenosis-geometry-figures",
+            "Use --data-dir PATH if the CSV exports already exist outside the default report asset directory.",
+        ]
+    )
+
+
 def float_field(row: dict[str, str], key: str) -> float:
     return float(row[key])
+
+
+def first_row_from_csv(path: Path) -> dict[str, str]:
+    if not path.is_file():
+        return {}
+    rows = rows_from_csv(path)
+    return rows[0] if rows else {}
 
 
 def int_severity(value: str | float) -> int:
@@ -381,6 +421,146 @@ def render_slices(data_dir: Path, output_dir: Path, formats: list[str]) -> list[
     return save_figure(fig, output_dir, "stenosis-geometry-slices", formats)
 
 
+def signed_radius(x_value: float, y_value: float) -> float:
+    radius = float(np.hypot(x_value, y_value))
+    sign_source = x_value if abs(x_value) >= abs(y_value) else y_value
+    return -radius if sign_source < 0.0 else radius
+
+
+def fem_meridional_segments(
+    fem_rows: list[dict[str, str]],
+    line_group: str,
+) -> list[list[tuple[float, float]]]:
+    segments: list[list[tuple[float, float]]] = []
+    for row in fem_rows:
+        if row["line_group"] != line_group:
+            continue
+        segments.append(
+            [
+                (
+                    float_field(row, "z1_cm"),
+                    signed_radius(float_field(row, "x1_cm"), float_field(row, "y1_cm")),
+                ),
+                (
+                    float_field(row, "z2_cm"),
+                    signed_radius(float_field(row, "x2_cm"), float_field(row, "y2_cm")),
+                ),
+            ]
+        )
+    return segments
+
+
+def add_stenosis_profile(ax, z_profile: np.ndarray, r_profile: np.ndarray, fill_alpha: float = 0.30) -> None:
+    ax.fill_between(
+        z_profile,
+        -r_profile,
+        r_profile,
+        color=COLORS["bloodredlight"],
+        alpha=fill_alpha,
+        linewidth=0,
+    )
+    ax.plot(z_profile, r_profile, color=COLORS["bloodred"], linewidth=1.35, label="$r=\\pm R_0(z)$")
+    ax.plot(z_profile, -r_profile, color=COLORS["bloodred"], linewidth=1.35)
+
+
+def add_shared_mesh_axis_style(ax, title: str) -> None:
+    ax.set_title(title, color=COLORS["mathblue"], fontsize=10, pad=5)
+    ax.set_xlabel("z (cm)", fontsize=8)
+    ax.set_ylabel("signed radius r (cm)", fontsize=8)
+    ax.set_xlim(0.0, 6.0)
+    ax.set_ylim(-0.215, 0.215)
+    ax.set_xticks([0, 2, 4, 6])
+    ax.set_yticks([-0.2, 0.0, 0.2])
+    ax.tick_params(labelsize=7, colors=COLORS["mathblue"])
+    ax.grid(True, color="#E3E3E3", linewidth=0.45)
+    ax.set_box_aspect(0.26)
+
+
+def add_quadrature_inset(ax, radius: float, mesh_nr: int, mesh_ntheta: int) -> None:
+    inset = ax.inset_axes([0.745, 0.17, 0.21, 0.68])
+    inset.add_patch(
+        Circle(
+            (0.0, 0.0),
+            radius,
+            facecolor=COLORS["bloodredlight"],
+            edgecolor=COLORS["bloodred"],
+            linewidth=0.9,
+            alpha=0.42,
+        )
+    )
+    for ring in range(1, mesh_nr + 1):
+        inset.add_patch(
+            Circle(
+                (0.0, 0.0),
+                radius * ring / mesh_nr,
+                facecolor="none",
+                edgecolor=COLORS["wallgray"],
+                linewidth=0.22,
+                alpha=0.32,
+            )
+        )
+    spoke_step = max(1, mesh_ntheta // 8)
+    for index in range(0, mesh_ntheta, spoke_step):
+        theta = 2.0 * np.pi * index / mesh_ntheta
+        inset.plot(
+            [0.0, radius * np.cos(theta)],
+            [0.0, radius * np.sin(theta)],
+            color=COLORS["mathblue"],
+            linewidth=0.26,
+            alpha=0.45,
+        )
+
+    theta1 = np.pi / 7.0
+    theta2 = theta1 + 2.0 * np.pi / mesh_ntheta
+    center = np.array([0.0, 0.0])
+    p1 = radius * np.array([np.cos(theta1), np.sin(theta1)])
+    p2 = radius * np.array([np.cos(theta2), np.sin(theta2)])
+    inset.add_patch(
+        Polygon(
+            [center, p1, p2],
+            closed=True,
+            facecolor=COLORS["trajectory_gold"],
+            edgecolor=COLORS["trajectory_gold"],
+            linewidth=0.65,
+            alpha=0.35,
+        )
+    )
+    quadrature_points = np.array(
+        [
+            (2.0 / 3.0) * center + (1.0 / 6.0) * p1 + (1.0 / 6.0) * p2,
+            (1.0 / 6.0) * center + (2.0 / 3.0) * p1 + (1.0 / 6.0) * p2,
+            (1.0 / 6.0) * center + (1.0 / 6.0) * p1 + (2.0 / 3.0) * p2,
+        ]
+    )
+    inset.scatter(
+        quadrature_points[:, 0],
+        quadrature_points[:, 1],
+        s=8,
+        color=COLORS["trajectory_gold"],
+        edgecolors=COLORS["mathblue"],
+        linewidths=0.25,
+        zorder=4,
+    )
+    inset.set_title("$S_j,\\ \\mathcal{Q}_j$", fontsize=7, color=COLORS["mathblue"], pad=1)
+    inset.text(
+        0.0,
+        -1.05 * radius,
+        "3-pt quadrature",
+        ha="center",
+        va="top",
+        fontsize=5.6,
+        color=COLORS["mathblue"],
+    )
+    inset.set_aspect("equal", adjustable="box")
+    inset.set_xlim(-1.2 * radius, 1.2 * radius)
+    inset.set_ylim(-1.24 * radius, 1.2 * radius)
+    inset.set_xticks([])
+    inset.set_yticks([])
+    for spine in inset.spines.values():
+        spine.set_color("#D8D8D8")
+        spine.set_linewidth(0.45)
+
+
 def render_mesh_overview(data_dir: Path, output_dir: Path, formats: list[str]) -> list[Path]:
     fem_rows = rows_from_csv(data_dir / "fem_mesh_view_sev50.csv")
     fvm_rows = sorted(
@@ -392,62 +572,12 @@ def render_mesh_overview(data_dir: Path, output_dir: Path, formats: list[str]) -
     if not fvm_rows:
         raise ValueError("FVM mesh view CSV has no rows")
 
-    fig = plt.figure(figsize=(7.4, 5.2))
-    grid = fig.add_gridspec(
-        2,
-        1,
-        height_ratios=[1.18, 1.0],
-        left=0.065,
-        right=0.985,
-        bottom=0.08,
-        top=0.95,
-        hspace=0.38,
-    )
-    ax_fem = fig.add_subplot(grid[0, 0], projection="3d")
-    ax_fvm = fig.add_subplot(grid[1, 0])
-
-    grouped_segments: dict[str, list[list[tuple[float, float, float]]]] = defaultdict(list)
-    for row in fem_rows:
-        group = row["line_group"]
-        grouped_segments[group].append(
-            [
-                (
-                    float_field(row, "z1_cm"),
-                    float_field(row, "x1_cm"),
-                    float_field(row, "y1_cm"),
-                ),
-                (
-                    float_field(row, "z2_cm"),
-                    float_field(row, "x2_cm"),
-                    float_field(row, "y2_cm"),
-                ),
-            ]
-        )
-
-    line_styles = {
-        "wall-circumferential": (COLORS["wallgray"], 0.34, 0.55),
-        "wall-axial": (COLORS["mathblue"], 0.36, 0.52),
-        "cut-axial": (COLORS["mathblue"], 0.64, 0.96),
-        "cut-radial": (COLORS["bloodred"], 0.70, 0.98),
-    }
-    for group, segments in grouped_segments.items():
-        color, linewidth, alpha = line_styles.get(group, (COLORS["wallgray"], 0.25, 0.35))
-        ax_fem.add_collection3d(
-            Line3DCollection(
-                segments,
-                colors=color,
-                linewidths=linewidth,
-                alpha=alpha,
-            )
-        )
-    setup_3d_axis(ax_fem, "(a) FEM tetrahedral mesh")
-    for axis in (ax_fem.yaxis, ax_fem.zaxis):
-        axis.line.set_alpha(0.0)
-    try:
-        ax_fem.set_box_aspect((6.0, 0.82, 0.82), zoom=2.15)
-    except TypeError:
-        ax_fem.set_box_aspect((6.0, 0.82, 0.82))
-
+    manifest = first_row_from_csv(data_dir / "mesh_view_manifest.csv")
+    mesh_nz = int(manifest.get("fem_mesh_nz", 64))
+    mesh_nr = int(manifest.get("fem_mesh_nr", 6))
+    mesh_ntheta = int(manifest.get("fem_mesh_ntheta", 32))
+    fvm_nx = int(fvm_rows[0]["nx"])
+    fvm_dx = float_field(fvm_rows[0], "dx_cm")
     z_left = np.array([float_field(row, "z_left_cm") for row in fvm_rows])
     z_center = np.array([float_field(row, "z_center_cm") for row in fvm_rows])
     z_right = np.array([float_field(row, "z_right_cm") for row in fvm_rows])
@@ -460,18 +590,66 @@ def render_mesh_overview(data_dir: Path, output_dir: Path, formats: list[str]) -
             np.array([float_field(fvm_rows[-1], "r_right_cm")]),
         ]
     )
+    throat_index = int(np.argmin(r_profile))
+    throat_z = z_profile[throat_index]
+    throat_radius = r_profile[throat_index]
 
-    ax_fvm.fill_between(
-        z_profile,
-        -r_profile,
-        r_profile,
-        color=COLORS["bloodredlight"],
-        alpha=0.50,
-        linewidth=0,
+    fig = plt.figure(figsize=(7.4, 4.95))
+    grid = fig.add_gridspec(
+        2,
+        1,
+        height_ratios=[1.0, 1.0],
+        left=0.075,
+        right=0.985,
+        bottom=0.09,
+        top=0.95,
+        hspace=0.44,
     )
-    ax_fvm.plot(z_profile, r_profile, color=COLORS["bloodred"], linewidth=1.3)
-    ax_fvm.plot(z_profile, -r_profile, color=COLORS["bloodred"], linewidth=1.3)
+    ax_fem = fig.add_subplot(grid[0, 0])
+    ax_fvm = fig.add_subplot(grid[1, 0])
 
+    add_stenosis_profile(ax_fem, z_profile, r_profile, fill_alpha=0.22)
+    ax_fem.add_collection(
+        LineCollection(
+            fem_meridional_segments(fem_rows, "cut-axial"),
+            colors=COLORS["mathblue"],
+            linewidths=0.34,
+            alpha=0.72,
+        )
+    )
+    ax_fem.add_collection(
+        LineCollection(
+            fem_meridional_segments(fem_rows, "cut-radial"),
+            colors=COLORS["bloodred"],
+            linewidths=0.62,
+            alpha=0.78,
+        )
+    )
+    ax_fem.axvline(throat_z, color=COLORS["accent_teal"], linewidth=0.95, linestyle="--", alpha=0.88)
+    ax_fem.text(
+        throat_z + 0.06,
+        0.176,
+        "$S_j$ at $z^\\star$",
+        color=COLORS["accent_teal"],
+        fontsize=7,
+        ha="left",
+        va="center",
+    )
+    ax_fem.text(
+        0.015,
+        0.95,
+        f"$\\mathcal{{T}}_h$: $N_z={mesh_nz}$, $N_r={mesh_nr}$, $N_\\theta={mesh_ntheta}$",
+        transform=ax_fem.transAxes,
+        ha="left",
+        va="top",
+        fontsize=7,
+        color=COLORS["mathblue"],
+        bbox={"facecolor": "white", "edgecolor": "#D8D8D8", "linewidth": 0.4, "alpha": 0.86, "pad": 2.5},
+    )
+    add_shared_mesh_axis_style(ax_fem, "(a) FEM meridional cut and plane quadrature")
+    add_quadrature_inset(ax_fem, throat_radius, mesh_nr, mesh_ntheta)
+
+    add_stenosis_profile(ax_fvm, z_profile, r_profile, fill_alpha=0.38)
     interfaces = np.concatenate([z_left, z_right[-1:]])
     radii = np.interp(interfaces, z_profile, r_profile)
     ax_fvm.vlines(
@@ -491,23 +669,63 @@ def render_mesh_overview(data_dir: Path, output_dir: Path, formats: list[str]) -
         linewidth=0.42,
         alpha=0.75,
     )
-    throat_index = int(np.argmin(r_profile))
-    ax_fvm.axvline(
-        z_profile[throat_index],
-        color=COLORS["bloodred"],
-        linewidth=0.8,
-        alpha=0.72,
+    example_cell = int(np.argmin(np.abs(z_center - throat_z)))
+    ax_fvm.axvspan(
+        z_left[example_cell],
+        z_right[example_cell],
+        color=COLORS["accent_teal_lite"],
+        alpha=0.62,
+        linewidth=0,
     )
-    ax_fvm.set_title("(b) FVM cell mesh", color=COLORS["mathblue"], fontsize=10, pad=4)
-    ax_fvm.set_xlabel("z (cm)", fontsize=8)
-    ax_fvm.set_ylabel("radius (cm)", fontsize=8)
-    ax_fvm.set_xlim(0.0, 6.0)
-    ax_fvm.set_ylim(-0.215, 0.215)
-    ax_fvm.set_xticks([0, 2, 4, 6])
-    ax_fvm.set_yticks([-0.2, 0.0, 0.2])
-    ax_fvm.tick_params(labelsize=7, colors=COLORS["mathblue"])
-    ax_fvm.grid(True, color="#E3E3E3", linewidth=0.45)
-    ax_fvm.set_box_aspect(0.26)
+    ax_fvm.axvline(throat_z, color=COLORS["accent_teal"], linewidth=0.95, linestyle="--", alpha=0.88)
+    center_stride = max(1, len(z_center) // 20)
+    ax_fvm.scatter(
+        z_center[::center_stride],
+        np.zeros_like(z_center[::center_stride]),
+        s=8,
+        color=COLORS["mathblue"],
+        alpha=0.90,
+        zorder=4,
+    )
+    ax_fvm.text(
+        z_center[example_cell] + 0.045,
+        -0.032,
+        "$z_i$",
+        color=COLORS["mathblue"],
+        fontsize=7,
+        ha="left",
+        va="center",
+    )
+    ax_fvm.text(
+        z_left[example_cell] - 0.015,
+        0.168,
+        "$z_{i-1/2}$",
+        color=COLORS["accent_teal"],
+        fontsize=6.5,
+        ha="right",
+        va="center",
+    )
+    ax_fvm.text(
+        z_right[example_cell] + 0.015,
+        0.168,
+        "$z_{i+1/2}$",
+        color=COLORS["accent_teal"],
+        fontsize=6.5,
+        ha="left",
+        va="center",
+    )
+    ax_fvm.text(
+        0.015,
+        0.95,
+        f"$I_i=[z_{{i-1/2}},z_{{i+1/2}}]$, $N={fvm_nx}$, $\\Delta z={fvm_dx:.3f}$ cm",
+        transform=ax_fvm.transAxes,
+        ha="left",
+        va="top",
+        fontsize=7,
+        color=COLORS["mathblue"],
+        bbox={"facecolor": "white", "edgecolor": "#D8D8D8", "linewidth": 0.4, "alpha": 0.86, "pad": 2.5},
+    )
+    add_shared_mesh_axis_style(ax_fvm, "(b) FVM cells and reference-radius sampling")
 
     return save_figure(fig, output_dir, "stenosis-fem-fvm-meshes", formats)
 
@@ -721,11 +939,15 @@ def render_resolved_velocity_field(data_dir: Path, output_dir: Path, formats: li
     return save_figure(fig, output_dir, "resolved-3d-flow-field", formats)
 
 
-def main(argv: list[str] | None = None) -> None:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     data_dir = args.data_dir
     output_dir = args.output_dir
     formats = [fmt.lower().lstrip(".") for fmt in args.formats]
+    missing = missing_required_exports(data_dir)
+    if missing:
+        print(format_missing_exports_message(data_dir, missing), file=sys.stderr)
+        return 2
 
     written: list[Path] = []
     written.extend(render_overview(data_dir, output_dir, formats))
@@ -738,7 +960,8 @@ def main(argv: list[str] | None = None) -> None:
     print(f"wrote {len(written)} rendered files")
     for path in written:
         print(path)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
