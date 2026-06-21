@@ -27,8 +27,8 @@ manuscript and tracked report assets.
 
 - Report entrypoint: `report/final-report.tex`.
 - Bibliography entrypoint: `public/references/references.bib`.
-- Julia package root: `packages/julia/Project.toml` and
-  `packages/julia/src/StenosisHemodynamics.jl`.
+- Julia package root: `packages/stenotic-hemodynamics/Project.toml` and
+  `packages/stenotic-hemodynamics/src/StenoticHemodynamics.jl`.
 - Python support tooling: `packages/ops/`.
 - Stable reviewer commands: `pipenv run ops-build-report --outdir
   /tmp/masters-report-build --no-sync-final-pdf`,

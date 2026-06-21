@@ -11,7 +11,7 @@ writes JSONL plus summary JSON logs under `public/var/logs/`. For direct solver
 development, the lower-level Julia launcher remains:
 
 ```sh
-packages/julia/bin/stenosis-hemodynamics <command> [options]
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics <command> [options]
 ```
 
 Keep generated outputs under ignored scratch paths such as
@@ -47,14 +47,14 @@ pipenv run ops-experiment simulate \
 The command supports model selection, spatial method selection, native or SciML
 time backends, initial-condition options, velocity profiles, rheology closures,
 CSV output, SVG output, overwrite control, and progress logging. Run
-`packages/julia/bin/stenosis-hemodynamics simulate --help` for option names.
+`packages/stenotic-hemodynamics/bin/stenotic-hemodynamics simulate --help` for option names.
 
 ## OpenBF Adapter
 
 Use `openbf-run` only with an explicit config:
 
 ```sh
-packages/julia/bin/stenosis-hemodynamics openbf-run --config path/to/input.yml
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics openbf-run --config path/to/input.yml
 ```
 
 Add `--verbose`, `--out-files`, or `--save-stats` only when the task needs the
@@ -111,7 +111,7 @@ Use `export-assets` to regenerate stenosis geometry CSV assets before running
 geometry renderers:
 
 ```sh
-packages/julia/bin/stenosis-hemodynamics export-assets --overwrite
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics export-assets --overwrite
 ```
 
 After asset export or publication, run the owning renderer and then a

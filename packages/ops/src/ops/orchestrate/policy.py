@@ -69,11 +69,11 @@ SURFACE_PREFIXES: dict[str, tuple[str, ...]] = {
         "report/archive/",
     ),
     "julia": (
-        "packages/julia/",
+        "packages/stenotic-hemodynamics/",
         "julia/",
         "bin/julia-release",
-        "bin/stenosis-hemodynamics",
-        "bin/stenosis-hemodynamics.jl",
+        "bin/stenotic-hemodynamics",
+        "bin/stenotic-hemodynamics.jl",
     ),
     "ops": (
         "packages/ops/",
@@ -144,7 +144,7 @@ STALE_PATH_CHECK_PATHS = (
     "public/docs/benchmark-pipeline.md",
     "public/docs/executive-assessment.md",
     "public/docs/publication-readiness.md",
-    "packages/julia/README.md",
+    "packages/stenotic-hemodynamics/README.md",
     "report/appendices/code-and-ai-use.tex",
     "report/sections/07-case-study/methodology.tex",
 )
@@ -152,7 +152,7 @@ STALE_PATH_CHECK_PATHS = (
 HISTORICAL_PATH_PREFIXES = ("report/archive/",)
 
 STALE_PATH_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("removed Julia simulations package path", re.compile(r"\bpackages/julia/simulations(?:/|\b)")),
+    ("removed Julia simulations package path", re.compile(r"\bpackages/stenotic-hemodynamics/simulations(?:/|\b)")),
     ("removed ops source path", re.compile(r"\btools/python(?:/|\b)")),
     ("removed root Python script wrapper", re.compile(r"(?<![\w./-])scripts/[A-Za-z0-9_.-]+\.py\b")),
     (
@@ -162,7 +162,7 @@ STALE_PATH_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 )
 
 PACKET_STALE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("stale Julia root; use packages/julia/", re.compile(r"(?<![\w./-])julia/")),
+    ("stale Julia root; use packages/stenotic-hemodynamics/", re.compile(r"(?<![\w./-])julia/")),
     ("stale Python tooling root; use packages/ops/", re.compile(r"(?<![\w./-])tools/python/")),
     (
         "stale bibliography path; use public/references/references.bib",
@@ -180,11 +180,13 @@ PACKET_STALE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
     (
         "raw Julia validation command; use pipenv run ops-julia-check",
-        re.compile(r"packages/julia/bin/julia-release\s+packages/julia/test/runtests\.jl"),
+        re.compile(
+            r"packages/stenotic-hemodynamics/bin/julia-release\s+packages/stenotic-hemodynamics/test/runtests\.jl"
+        ),
     ),
     (
-        "stale Julia CLI wrapper; use packages/julia/bin/stenosis-hemodynamics",
-        re.compile(r"(?<![\w./-])bin/stenosis-hemodynamics\b"),
+        "stale Julia CLI wrapper; use packages/stenotic-hemodynamics/bin/stenotic-hemodynamics",
+        re.compile(r"(?<![\w./-])bin/stenotic-hemodynamics\b"),
     ),
 )
 PACKET_VALIDATION_NEEDLES = (
@@ -232,8 +234,8 @@ REVIEW_LANE_SPECS: dict[str, ReviewLaneSpec] = {
         mode="hard-review",
         scope="Julia and ops package relocation, console entry points, and removed root wrappers.",
         files=(
-            "packages/julia/README.md",
-            "packages/julia/bin/*",
+            "packages/stenotic-hemodynamics/README.md",
+            "packages/stenotic-hemodynamics/bin/*",
             "packages/ops/pyproject.toml",
             "Pipfile",
             "deleted bin/ and scripts/ wrappers via git history/status",
@@ -283,19 +285,19 @@ REVIEW_LANE_SPECS: dict[str, ReviewLaneSpec] = {
     "docs": ReviewLaneSpec(
         surfaces=("report", "release", "julia"),
         mode="hard-review",
-        scope="Public docs and report provenance after packages/julia/simulations/** removal.",
+        scope="Public docs and report provenance after packages/stenotic-hemodynamics/simulations/** removal.",
         files=(
             "README.md",
             "AGENTS.md",
             "public/docs/benchmark-pipeline.md",
             "report/appendices/code-and-ai-use.tex",
             "report/sections/07-case-study/methodology.tex",
-            "packages/julia/README.md",
+            "packages/stenotic-hemodynamics/README.md",
         ),
         validation=(
-            'rg -n "packages/julia/simulations" AGENTS.md README.md public/docs '
+            'rg -n "packages/stenotic-hemodynamics/simulations" AGENTS.md README.md public/docs '
             "report/appendices/code-and-ai-use.tex report/sections/07-case-study/methodology.tex "
-            "packages/julia/README.md",
+            "packages/stenotic-hemodynamics/README.md",
         ),
         blocker_rules=("Return BLOCKED if active docs mention stale paths outside historical archives.",),
     ),

@@ -5,10 +5,10 @@
 This repo has three active surfaces. Report source starts at
 `report/final-report.tex`, with prose in `report/sections/`, appendices in `report/appendices/`,
 shared setup in `report/preamble/`, bibliography in `public/references/references.bib`, and assets in
-`report/assets/`. Julia solver code is the `packages/julia/` package
-`StenosisHemodynamics`: `packages/julia/src/StenosisHemodynamics.jl` includes modules under
-`packages/julia/src/StenosisHemodynamics/`, `packages/julia/README.md` documents package usage,
-and `packages/julia/test/*.jl` holds Julia tests. Optional local raw resolved-3D inputs live
+`report/assets/`. Julia solver code is the `packages/stenotic-hemodynamics/` package
+`StenoticHemodynamics`: `packages/stenotic-hemodynamics/src/StenoticHemodynamics.jl` includes modules under
+`packages/stenotic-hemodynamics/src/StenoticHemodynamics/`, `packages/stenotic-hemodynamics/README.md` documents package usage,
+and `packages/stenotic-hemodynamics/test/*.jl` holds Julia tests. Optional local raw resolved-3D inputs live
 under ignored `public/var/data/simulations/`. Python is auxiliary
 report/support tooling only: audit and render scripts live under
 `packages/ops/src/ops/*.py`, with Python tests in `packages/ops/tests/test_*.py`.
@@ -48,16 +48,16 @@ The nested
 
 Use four-space indentation for Python. Black controls formatting with a
 120-column line length; Python support scripts and helpers use snake_case.
-Julia changes should enter through `using StenosisHemodynamics` and keep
-descriptive lower-snake-case file names under `packages/julia/src/StenosisHemodynamics/`. Keep
+Julia changes should enter through `using StenoticHemodynamics` and keep
+descriptive lower-snake-case file names under `packages/stenotic-hemodynamics/src/StenoticHemodynamics/`. Keep
 reusable LaTeX packages, macros, theorem setup, colors, and TikZ/pgfplots
 styles in `report/preamble/`; section and appendix files should contain content, not
 shared command definitions.
 
 ## Testing Guidelines
 
-Add Julia tests to the focused `packages/julia/test/test_*.jl` file and include
-new files from `packages/julia/test/runtests.jl`; run them with `pipenv run
+Add Julia tests to the focused `packages/stenotic-hemodynamics/test/test_*.jl` file and include
+new files from `packages/stenotic-hemodynamics/test/runtests.jl`; run them with `pipenv run
 ops-julia-check` for agent validation. Add Python tests as
 `packages/ops/tests/test_*.py`. For report or TeX
 policy changes, run `pipenv run ops-build-report --outdir

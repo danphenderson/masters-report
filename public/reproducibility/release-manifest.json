@@ -25,5 +25,5 @@
       "subtree": "case3_all_3d_results/"
     }
   },
-  "comparison_asset_regeneration_command": "packages/julia/bin/stenosis-hemodynamics compare-3d --data-root public/var/data/simulations/canic_case3 --output-dir tmp/simulations/output/3d_comparison/full_t1_native_nx400 --nx 400 --target-time 0.9995 --time-atol 1e-3 --overwrite --publish-report-assets --report-assets-dir report/assets/data/stenosis-comparison --radial-bin-counts 10,20,40 --radial-radius-modes current,reference"
+  "comparison_asset_regeneration_command": "packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d --data-root public/var/data/simulations/canic_case3 --output-dir tmp/simulations/output/3d_comparison/full_t1_native_nx400 --nx 400 --target-time 0.9995 --time-atol 1e-3 --overwrite --publish-report-assets --report-assets-dir report/assets/data/stenosis-comparison --radial-bin-counts 10,20,40 --radial-radius-modes current,reference"
 }

@@ -9,7 +9,7 @@ without checking the current TeX consumer and running the owning validation.
 | Path | Role | Owning workflow | Validation |
 | --- | --- | --- | --- |
 | `report/assets/tikz/**` | Hand-maintained TikZ source consumed through `\figtikz`. | TeX source edits. | Validation-only report build. |
-| `report/assets/data/verification/**` | Verification CSV/DAT data consumed by tables or TikZ. | `stenosis-hemodynamics verify ...` and related Julia workflows. | Owning Julia workflow plus validation-only report build. |
+| `report/assets/data/verification/**` | Verification CSV/DAT data consumed by tables or TikZ. | `stenotic-hemodynamics verify ...` and related Julia workflows. | Owning Julia workflow plus validation-only report build. |
 | `report/assets/tables/verification/**` | Verification LaTeX tables. | Julia verification workflows or renderers. | Owning workflow plus validation-only report build. |
 | `report/assets/data/stenosis-comparison/**` | 1D/resolved-3D comparison data, operator validation, and sensitivity rows. | `compare-3d`, `operator-validation`, and evidence summary tools. | Resolved-3D workflow checks plus validation-only report build. |
 | `report/assets/tables/stenosis-comparison/**` | Comparison and operator-validation LaTeX tables. | `compare-3d` and `operator-validation`. | Owning workflow plus validation-only report build. |

@@ -18,7 +18,7 @@ def test_julia_check_runs_repository_launcher(monkeypatch) -> None:
 
     assert calls == [
         (
-            ["packages/julia/bin/julia-release", "packages/julia/test/runtests.jl"],
+            ["packages/stenotic-hemodynamics/bin/julia-release", "packages/stenotic-hemodynamics/test/runtests.jl"],
             root,
         )
     ]
@@ -26,8 +26,8 @@ def test_julia_check_runs_repository_launcher(monkeypatch) -> None:
 
 def test_julia_check_rejects_non_executable_launcher(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
-    launcher = repo / "packages/julia/bin/julia-release"
-    test_file = repo / "packages/julia/test/runtests.jl"
+    launcher = repo / "packages/stenotic-hemodynamics/bin/julia-release"
+    test_file = repo / "packages/stenotic-hemodynamics/test/runtests.jl"
     launcher.parent.mkdir(parents=True)
     test_file.parent.mkdir(parents=True)
     launcher.write_text("#!/bin/sh\n", encoding="utf-8")

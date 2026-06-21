@@ -29,7 +29,7 @@ path before relying on them for evidence.
 Run the default comparison only when local data is available:
 
 ```sh
-packages/julia/bin/stenosis-hemodynamics compare-3d \
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --target-time 0.9995 \
   --time-atol 1e-6 \
   --overwrite
@@ -42,7 +42,7 @@ Use `--publish-report-assets` only when the task intentionally promotes outputs
 into `report/assets/data/stenosis-comparison/**`:
 
 ```sh
-packages/julia/bin/stenosis-hemodynamics compare-3d \
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --target-time 0.9995 \
   --time-atol 1e-6 \
   --overwrite \
@@ -56,7 +56,7 @@ After publishing report assets, run a validation-only report build.
 Run grid sensitivity with explicit grid sizes:
 
 ```sh
-packages/julia/bin/stenosis-hemodynamics compare-3d \
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --nxs 200,400,800 \
   --target-time 0.9995 \
   --time-atol 1e-6 \
@@ -67,7 +67,7 @@ Use `--reuse-grid-summary` when the task needs to reformat or republish an
 already reviewed summary without rerunning the full comparison:
 
 ```sh
-packages/julia/bin/stenosis-hemodynamics compare-3d \
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --nxs 200,400,800 \
   --reuse-grid-summary tmp/simulations/output/3d_comparison/grid_sensitivity/summary.csv \
   --grid-summary-csv report/assets/data/stenosis-comparison/grid-sensitivity-summary.csv \
@@ -84,7 +84,7 @@ Run synthetic cross-section operator validation when operator evidence or report
 tables are in scope:
 
 ```sh
-packages/julia/bin/stenosis-hemodynamics operator-validation \
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics operator-validation \
   --output-dir tmp/simulations/output/operator_validation \
   --overwrite
 ```
@@ -92,7 +92,7 @@ packages/julia/bin/stenosis-hemodynamics operator-validation \
 Publish to report assets only with explicit paths:
 
 ```sh
-packages/julia/bin/stenosis-hemodynamics operator-validation \
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics operator-validation \
   --output-dir report/assets/tables/stenosis-comparison \
   --summary-csv report/assets/data/stenosis-comparison/cross-section-operator-validation.csv \
   --summary-tex report/assets/tables/stenosis-comparison/cross_section_operator_validation.tex \
@@ -105,7 +105,7 @@ Use `export-assets` and the geometry renderer for resolved envelopes and
 resolved velocity field figures:
 
 ```sh
-packages/julia/bin/stenosis-hemodynamics export-assets --overwrite
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics export-assets --overwrite
 pipenv run ops-render-stenosis-geometry-figures
 ```
 

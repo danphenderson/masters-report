@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this code or report source, please cite it using this metadata."
-title: "StenosisHemodynamics: Julia workflows for an idealized stenosis study"
+title: "StenoticHemodynamics: Julia workflows for an idealized stenosis study"
 authors:
   - family-names: Henderson
     given-names: Daniel

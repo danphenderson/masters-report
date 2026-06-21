@@ -6,14 +6,16 @@ from ops import experiment_runner
 
 def test_build_command_uses_repo_relative_launcher(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
-    launcher = repo / "packages/julia/bin/stenosis-hemodynamics"
+    launcher = repo / "packages/stenotic-hemodynamics/bin/stenotic-hemodynamics"
     launcher.parent.mkdir(parents=True)
     launcher.write_text("#!/bin/sh\n", encoding="utf-8")
     launcher.chmod(0o755)
 
-    command = experiment_runner.build_command(repo, "packages/julia/bin/stenosis-hemodynamics", ["benchmark"])
+    command = experiment_runner.build_command(
+        repo, "packages/stenotic-hemodynamics/bin/stenotic-hemodynamics", ["benchmark"]
+    )
 
-    assert command == ["packages/julia/bin/stenosis-hemodynamics", "benchmark"]
+    assert command == ["packages/stenotic-hemodynamics/bin/stenotic-hemodynamics", "benchmark"]
 
 
 def test_julia_telemetry_parser_emits_structured_event() -> None:

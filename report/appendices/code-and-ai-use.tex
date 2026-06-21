@@ -3,12 +3,12 @@
 
 This report is built from the \LaTeX{} sources rooted at
 \path{report/final-report.tex}. The solver package is the root Julia package
-\texttt{StenosisHemodynamics}, with package identity in \path{packages/julia/Project.toml},
-resolved Julia dependencies in \path{packages/julia/Manifest.toml}, and the package entry point
-at \path{packages/julia/src/StenosisHemodynamics.jl}. The command-line surface used by the
-report is \path{packages/julia/bin/stenosis-hemodynamics}, which dispatches through
-\path{packages/julia/bin/stenosis-hemodynamics.jl} and the Julia project under
-\path{packages/julia/}.
+\texttt{StenoticHemodynamics}, with package identity in \path{packages/stenotic-hemodynamics/Project.toml},
+resolved Julia dependencies in \path{packages/stenotic-hemodynamics/Manifest.toml}, and the package entry point
+at \path{packages/stenotic-hemodynamics/src/StenoticHemodynamics.jl}. The command-line surface used by the
+report is \path{packages/stenotic-hemodynamics/bin/stenotic-hemodynamics}, which dispatches through
+\path{packages/stenotic-hemodynamics/bin/stenotic-hemodynamics.jl} and the Julia project under
+\path{packages/stenotic-hemodynamics/}.
 
 \paragraph*{Source-control and archive record.}
 This manuscript refresh was prepared from the local \texttt{master} branch.
@@ -28,7 +28,7 @@ public/reproducibility/release-manifest.json
 \end{lstlisting}
 This appendix therefore records local reproducibility rather than claiming a
 public archive. Unless a later public release adds a repository URL, immutable
-archive URL, or DOI, access to \texttt{StenosisHemodynamics} is governed by the
+archive URL, or DOI, access to \texttt{StenoticHemodynamics} is governed by the
 repository owner's source-control policy.
 
 \paragraph*{Computational environment.}
@@ -69,14 +69,14 @@ pipenv run ops-julia-check
 \paragraph*{Case-study regeneration record.}
 The Section~\ref{sec:case-study} verification tables are regenerated with:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-packages/julia/bin/stenosis-hemodynamics verify mms \
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify mms \
   --nxs 50,100,200,400 \
   --dt-values 2e-5,1e-5,5e-6,2.5e-6 \
   --tfinal 0.002 \
   --output-dir report/assets/tables/verification \
   --overwrite
 
-packages/julia/bin/stenosis-hemodynamics verify rest \
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify rest \
   --severities 23,40 \
   --nxs 100,200,400,800 \
   --elapsed-times 0,0.001,0.01,0.1,1.0 \
@@ -96,7 +96,7 @@ recorded below.
 When the optional raw 3D inputs are restored locally, the tracked comparison
 assets are regenerated with:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-packages/julia/bin/stenosis-hemodynamics compare-3d \
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
   --output-dir tmp/simulations/output/3d_comparison/full_t1_native_nx400 \
   --nx 400 \
@@ -117,7 +117,7 @@ the final timestamp.
 The synthetic cross-section operator validation table is regenerated without
 raw 3D inputs:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-packages/julia/bin/stenosis-hemodynamics operator-validation \
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics operator-validation \
   --output-dir report/assets/tables/stenosis-comparison \
   --summary-csv report/assets/data/stenosis-comparison/cross-section-operator-validation.csv \
   --summary-tex report/assets/tables/stenosis-comparison/cross_section_operator_validation.tex \
@@ -131,7 +131,7 @@ fields.
 When the optional raw 3D inputs are available, the publication-scope grid
 sensitivity is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-packages/julia/bin/stenosis-hemodynamics compare-3d \
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
   --output-dir tmp/simulations/output/3d_comparison/grid_sensitivity_C23_C40 \
   --target-time 0.9995 \
@@ -152,7 +152,7 @@ unpersisted.
 
 Package-benchmark assets are regenerated separately from the PDF:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-packages/julia/bin/stenosis-hemodynamics benchmark \
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics benchmark \
   --profile overnight \
   --output-dir tmp/simulations/output/package_benchmark/overnight-YYYYMMDD \
   --overwrite \

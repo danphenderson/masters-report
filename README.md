@@ -1,9 +1,9 @@
-# StenosisHemodynamics
+# StenoticHemodynamics
 
 This repository contains the Julia package, simulations, tests, and LaTeX
 source for an idealized stenotic-vessel hemodynamics master's report. The
 report source is rooted at `report/final-report.tex`; the solver package is
-`StenosisHemodynamics` under `packages/julia/src/`.
+`StenoticHemodynamics` under `packages/stenotic-hemodynamics/src/`.
 
 The project is prepared for public peer review as a source tree. It does not
 track generated final PDFs, third-party full-text reference mirrors, private
@@ -134,7 +134,7 @@ external datasets, and publisher artifacts are excluded from those grants.
 Regenerate the analytic stenosis geometry CSVs and rendered report assets with:
 
 ```bash
-packages/julia/bin/stenosis-hemodynamics export-assets --overwrite
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics export-assets --overwrite
 pipenv run ops-render-stenosis-geometry-figures
 ```
 
@@ -163,11 +163,11 @@ schemas, and resolved-3D skip behavior, see
 
 This repository has separate Julia and Python environments.
 
-- Julia simulation work uses `packages/julia/Project.toml` and `packages/julia/Manifest.toml`. Run Julia
-  commands through `packages/julia/bin/julia-release`, which selects Julia 1.12 or newer
+- Julia simulation work uses `packages/stenotic-hemodynamics/Project.toml` and `packages/stenotic-hemodynamics/Manifest.toml`. Run Julia
+  commands through `packages/stenotic-hemodynamics/bin/julia-release`, which selects Julia 1.12 or newer
   and binds the project environment automatically. The solver is the root Julia
-  package `StenosisHemodynamics`; programmatic commands should use
-  `using StenosisHemodynamics` from this project.
+  package `StenoticHemodynamics`; programmatic commands should use
+  `using StenoticHemodynamics` from this project.
 - Local Julia shells source `~/.config/julia/resource-profile.zsh` for the
   batch profile: 10 Julia threads, 2 GC threads, BLAS/OpenMP/vecLib pinned to 1
   thread, and `JULIA_CASE_WORKERS=10` for independent simulation cases. Set
@@ -185,7 +185,7 @@ does not prepare the other.
 ## Julia Extension Points
 
 The solver package is organized around explicit layers documented in
-`packages/julia/src/StenosisHemodynamics/layers.jl`. New numerical methods should enter
+`packages/stenotic-hemodynamics/src/StenoticHemodynamics/layers.jl`. New numerical methods should enter
 through the numerics protocols: spatial methods subtype `AbstractSpatialMethod`,
 limiters subtype `AbstractLimiter`, and time backends subtype
 `AbstractTimeBackend`. Capability checks are expressed with internal trait
@@ -228,8 +228,8 @@ pipenv run ops-summarize-revision-evidence \
 
 Run simulation experiments and benchmarks with `pipenv run ops-experiment ...`
 so terminal output and JSON logs are captured together. Direct Julia CLI usage
-through `packages/julia/bin/stenosis-hemodynamics` remains available for solver
-development. Programmatic use through `using StenosisHemodynamics` exposes the
+through `packages/stenotic-hemodynamics/bin/stenotic-hemodynamics` remains available for solver
+development. Programmatic use through `using StenoticHemodynamics` exposes the
 core modeling and `simulate` API; report and benchmark workflow helpers remain
 available only as qualified names such as
-`StenosisHemodynamics.run_package_benchmark`.
+`StenoticHemodynamics.run_package_benchmark`.

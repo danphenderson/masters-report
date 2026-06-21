@@ -21,7 +21,7 @@ from typing import Any, TextIO
 from ops.git_state import git_sha, git_snapshot
 
 SCHEMA_VERSION = "1.0"
-DEFAULT_LAUNCHER = "packages/julia/bin/stenosis-hemodynamics"
+DEFAULT_LAUNCHER = "packages/stenotic-hemodynamics/bin/stenotic-hemodynamics"
 DEFAULT_LOG_DIR = "public/var/logs"
 DIRTY_POLICIES = ("allow", "warn", "fail")
 JULIA_FIELD_RE = re.compile(r"^[\u2502\u2514]\s+(?P<body>.*)$")
@@ -66,7 +66,7 @@ def utc_timestamp() -> str:
 def repo_root() -> Path:
     path = Path(__file__).resolve()
     for parent in path.parents:
-        if (parent / "packages" / "julia").is_dir() and (parent / "packages" / "ops").is_dir():
+        if (parent / "packages" / "stenotic-hemodynamics").is_dir() and (parent / "packages" / "ops").is_dir():
             return parent
     raise RuntimeError("could not locate repository root")
 

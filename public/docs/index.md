@@ -18,7 +18,7 @@ terms aligned with `public/docs/policy-vocabulary.md`.
 - `public/docs/ops-tooling.md`: packaged Python `ops-*` commands for
   experiments, audits, renderers, orchestration, and evidence summaries.
 - `public/docs/julia-cli-workflows.md`: Julia command families exposed through
-  `packages/julia/bin/stenosis-hemodynamics`.
+  `packages/stenotic-hemodynamics/bin/stenotic-hemodynamics`.
 
 ## Artifacts And Data
 

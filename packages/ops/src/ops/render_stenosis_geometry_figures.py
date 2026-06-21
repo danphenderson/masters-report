@@ -96,7 +96,7 @@ def format_missing_exports_message(data_dir: Path, missing: list[str]) -> str:
         [
             f"missing required stenosis geometry export(s) in {data_dir}: {missing_list}",
             "Generate the analytic, mesh-view, and Stokes trajectory CSVs first:",
-            "  packages/julia/bin/stenosis-hemodynamics export-assets --overwrite",
+            "  packages/stenotic-hemodynamics/bin/stenotic-hemodynamics export-assets --overwrite",
             "Then rerun:",
             "  pipenv run ops-render-stenosis-geometry-figures",
             "Use --data-dir PATH if the CSV exports already exist outside the default report asset directory.",

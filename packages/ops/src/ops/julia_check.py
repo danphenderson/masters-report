@@ -8,14 +8,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-DEFAULT_LAUNCHER = "packages/julia/bin/julia-release"
-DEFAULT_TEST_FILE = "packages/julia/test/runtests.jl"
+DEFAULT_LAUNCHER = "packages/stenotic-hemodynamics/bin/julia-release"
+DEFAULT_TEST_FILE = "packages/stenotic-hemodynamics/test/runtests.jl"
 
 
 def repo_root() -> Path:
     path = Path(__file__).resolve()
     for parent in path.parents:
-        if (parent / "packages" / "julia").is_dir() and (parent / "packages" / "ops").is_dir():
+        if (parent / "packages" / "stenotic-hemodynamics").is_dir() and (parent / "packages" / "ops").is_dir():
             return parent
     raise RuntimeError("could not locate repository root")
 

@@ -78,7 +78,7 @@ Do not track private full-text PDF or HTML mirrors.
 - `pipenv run ops-render-stenosis-geometry-figures`: render stenosis geometry and
   resolved-flow figures from `report/assets/data/stenosis-geometry` into
   `report/assets/rendered`. Run
-  `packages/julia/bin/stenosis-hemodynamics export-assets --overwrite` first
+  `packages/stenotic-hemodynamics/bin/stenotic-hemodynamics export-assets --overwrite` first
   when the analytic, mesh-view, and Stokes trajectory CSV exports are absent.
 - `pipenv run ops-render-package-benchmark-figures --benchmark-dir PATH`: render
   benchmark figures into `report/assets/rendered` and the benchmark summary

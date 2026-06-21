@@ -49,7 +49,7 @@ class Gate:
 def repo_root() -> Path:
     path = Path(__file__).resolve()
     for parent in path.parents:
-        if (parent / "packages" / "julia").is_dir() and (parent / "packages" / "ops").is_dir():
+        if (parent / "packages" / "stenotic-hemodynamics").is_dir() and (parent / "packages" / "ops").is_dir():
             return parent
     raise RuntimeError("could not locate repository root")
 
