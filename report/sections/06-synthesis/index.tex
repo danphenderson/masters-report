@@ -17,9 +17,11 @@ asked.
 Increasing dimensional fidelity can expose local velocity gradients, wall
 interaction, and geometry-specific flow features, but it also increases the
 number of boundary, material, geometric, and numerical assumptions that must be
-identified. Three-dimensional CFD and FSI formulations retain the most direct
-representation of local flow and wall kinematics, while 1D and 0D models
-deliberately compress that information into axial or lumped variables
+identified. The continuum and FSI sources show what is gained by retaining
+local flow fields, wall kinematics, and interface work; the multiscale sources
+show that those fields still have to be connected to lower-dimensional
+circulation states; and the 0D/1D review literature shows what is deliberately
+compressed into axial or lumped pressure--flow variables
 \cite{FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale,ShiEtAl2011BloodFlowModelReview}.
 The reduced tiers are not weaker by definition. They are appropriate when the
 question concerns pulse propagation, network pressure--flow behavior, rapid
@@ -34,8 +36,9 @@ material properties, prestress, inlet histories, outflow impedances, geometry
 state, and wall motion that are rarely all observed with matching certainty.
 Parameter-identifiability work for hemodynamics PDE models makes this tension
 explicit: adding modeling detail is valuable only when the data and outputs can
-distinguish the resulting parameters
-\cite{Colebank2025HemodynamicsIdentifiability}.
+distinguish the resulting parameters \cite{Colebank2025HemodynamicsIdentifiability}.
+The synthesis point is therefore comparative rather than taxonomic: the right
+tier is the one whose retained state is identifiable for the claim being made.
 
 \subsection{Observables and Cross-Model Comparability}
 \label{subsec:synthesis-observables-comparability}
@@ -47,13 +50,18 @@ velocity, wall-shear, or FFR-style quantity each imposes a different comparison
 contract. Multiscale coupling work already treats interface quantities and
 compatibility conditions as mathematical structure
 \cite{FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale};
-diagnostic 1D--3D comparison needs the same discipline at the output side.
+diagnostic 1D--3D comparison needs the same discipline at the output side. A
+flow-rate comparison, for example, tests a different map than a pressure-ratio
+or wall-shear comparison even when the underlying geometry is shared.
 
 The clinical FFR literature sharpens the point because it separates anatomical
-stenosis appearance from pressure-flow function
-\cite{ToninoEtAl2010FAMEAngioFunctional,TebaldiEtAl2015FFROverview}. CT-derived
-FFR and 1D--3D FFR comparison sources agree that the diagnostic scalar is not a
-raw geometry measurement; it is an output of an acquisition, modeling, boundary,
+stenosis appearance from pressure-flow function: Tonino and coauthors supply
+the angiographic-versus-functional contrast, while FFR overview work defines
+the scalar as a pressure-ratio diagnostic
+\cite{ToninoEtAl2010FAMEAngioFunctional,TebaldiEtAl2015FFROverview}.
+CT-derived FFR and 1D--3D FFR comparison sources then move that diagnostic into
+computational chains. Their shared lesson is that the scalar is not a raw
+geometry measurement; it is an output of an acquisition, modeling, boundary,
 and pressure-observation chain
 \cite{NorgaardEtAl2014NXTFFRCT,Blanco2018FFR1D3D,ShaikhEtAl2025CTFFR}. Thus a
 cross-model discrepancy is uninterpretable until the observed quantity is
@@ -71,7 +79,9 @@ vascular beds communicate with the modeled region
 \cite{QuarteroniVeneziani2003GeometricalMultiscale,FormaggiaEtAl2007FSICoupling}.
 A reduced stenosis result that does not declare its boundary approximation
 therefore cannot be cleanly compared with a resolved result, even if both
-models share a nominal geometry.
+models share a nominal geometry. The source contrast is direct: multiscale
+papers treat the boundary as an interface model, whereas single-domain
+diagnostic studies can hide the same choice behind an inlet or outlet label.
 
 Wall and rheology uncertainty create a second closure layer. Wall stiffness and
 thickness determine wave speed and area response; rheology and velocity-profile
@@ -101,10 +111,11 @@ Verification, validation, and reproducibility should not be collapsed.
 Manufactured solutions and grid studies ask whether an implementation behaves
 as expected for a declared mathematical problem. Benchmarks and open solvers
 support reproducibility and comparison across workflows
-\cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}. Resolved-flow
-platforms and model repositories extend that reproducibility lesson to 3D
-workflows by making geometry, meshing, solver, and repository records easier to
-inspect
+\cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}. The benchmark study
+contributes shared cases and scheme comparison; OpenBF contributes an
+inspectable open finite-volume workflow. Resolved-flow platforms and model
+repositories extend that reproducibility lesson to 3D workflows by making
+geometry, meshing, solver, and repository records easier to inspect
 \cite{SimVascular2026Platform,SimVascular2026VascularModelRepository}. None of
 these records is automatically a validation claim unless the model, data,
 observable, and accepted reference match the target question.
@@ -114,9 +125,9 @@ stenotic balance law may admit a rest or steady state through cancellation
 between flux gradients, geometry terms, wall response, friction, and boundary
 data. A discrete method that does not preserve that state can generate motion
 from the numerical representation itself. Well-balanced methods for 1D blood
-flow make this point directly and raise the standard for stenosis computations:
-manufactured solutions and grid studies are useful, but an equilibrium problem
-needs an equilibrium-preservation audit
+flow make this point directly and raise the standard for stenosis
+computations: manufactured solutions and grid studies are useful, but an
+equilibrium problem needs an equilibrium-preservation audit
 \cite{PimentelGarciaEtAl2025HighOrderWellBalanced}. The broader verification
 and validation gap is that many studies report plausible hemodynamic outputs
 without enough evidence to separate implementation error, discretization error,
@@ -130,9 +141,11 @@ Reproducibility is the practical bridge between modeling ambition and reviewable
 evidence. Benchmark studies help by fixing common cases and comparison
 quantities, but stenosis studies also need persisted geometry definitions,
 boundary histories, closure parameters, solver settings, diagnostics, and output
-maps \cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}. Without those
-records, a disagreement between two models is hard to assign to physics,
-parameters, numerics, or data handling.
+maps \cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}. The lesson from
+the benchmark/open-solver pair is not that every stenosis study must use the
+same code. It is that disagreement between two models is hard to assign to
+physics, parameters, numerics, or data handling unless the comparison record is
+inspectable.
 
 Learned methods do not remove this requirement. Physics-informed neural networks
 offer a framework for solving and inverting PDE-constrained problems
@@ -143,7 +156,7 @@ analyses show that training dynamics can be a limiting numerical issue rather
 than a transparent solver detail
 \cite{WangEtAl2021PINNGradientPathologies}. Operator-learning methods such as
 DeepONet and Fourier neural operators shift the ambition from one solution to a
-map between function spaces \cite{LuEtAl2021DeepONet,LiEtAl2021FNO}, and recent
+map between function spaces \cite{LuEtAl2021DeepONet,LiEtAl2021FNO}. Recent
 hemodynamics-specific neural differential and stenosed-vessel operator-learning
 work shows why such models are appealing for fast parameterized flow prediction
 \cite{CsalaEtAl2025PCNDE,VelikorodnyEtAl2025DeepOperatorStenosed}. Their open

@@ -17,12 +17,16 @@ simulations, especially when the target quantities are dominated by moderate to
 high shear rates and the uncertainty in geometry or boundary data is already
 large. Non-Newtonian categories remain important in stenotic, small-vessel, or
 low-shear regimes because viscosity may depend on shear rate, hematocrit, and
-diameter \cite{PriesEtAl1992BloodViscosityTubeFlow}. In a review taxonomy,
-Carreau and Carreau--Yasuda laws represent shear-thinning models with limiting
-viscosities, Casson laws introduce a yield-stress-like response, and power-law
-models represent scale-free shear-rate dependence. Computational studies of
-Carreau--Yasuda and intracranial stenosis rheology illustrate why the selected
-rheology must be reported with the resulting hemodynamic observable
+diameter. Pries, Neuhaus, and Gaehtgens make the point from tube-flow evidence:
+apparent blood viscosity is not a single universal constant once vessel scale
+and hematocrit enter the measurement
+\cite{PriesEtAl1992BloodViscosityTubeFlow}. Carreau and Carreau--Yasuda laws
+therefore do more than fill a taxonomy slot; they encode shear-thinning with
+limiting viscosities. Casson laws introduce yield-stress-like behavior, and
+power-law models express scale-free shear dependence. Computational studies of
+Carreau--Yasuda and intracranial stenosis rheology then show the consequence
+for reporting: changing the viscosity law can alter the hemodynamic quantity
+being interpreted, so the selected rheology must be carried with the observable
 \cite{KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}.
 
 \begin{definition}[Effective-viscosity closure catalog]
@@ -110,12 +114,14 @@ model uses an algebraic or differential pressure--area relation to close a 1D
 or network state. A resolved FSI model solves structural wall motion and
 couples it to the fluid at the interface
 \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,FormaggiaEtAl2007FSICoupling}.
-Clinical imaging work on coronary distensibility reinforces the same modeling
-distinction from the observable side: wall compliance can be a measured or
-estimated quantity rather than a hidden numerical constant
-\cite{KelleEtAl2011CoronaryDistensibility}. The same rheology can be paired
-with any of these wall choices, so rheology and wall mechanics should not be
-merged into a single modeling label.
+The source contrast matters. Formaggia, Lamponi, and Quarteroni use a wall law
+to close reduced pressure--area dynamics, while Formaggia, Moura, and Nobile
+treat wall motion as an interface-coupled FSI state. Clinical imaging work on
+coronary distensibility reinforces the same distinction from the observable
+side: wall compliance can be a measured or estimated quantity rather than a
+hidden numerical constant \cite{KelleEtAl2011CoronaryDistensibility}. The same
+rheology can be paired with any of these wall choices, so rheology and wall
+mechanics should not be merged into a single modeling label.
 
 \subsection{Stenosis Geometry and Reference-State Choices}
 \label{subsec:geometry-boundary-observable-closures}
@@ -125,12 +131,13 @@ axisymmetric radius profile, a 1D reference-area variation, an empirical
 pressure-loss relation, or a network resistance. Distributed 1D formulations
 make the reference area and its derivatives part of the balance-law closure,
 while resolved models represent the same narrowing through the computational
-domain. Extended 1D stenosis formulations show that variable-radius effects may
-require more than simply replacing a healthy radius with a narrowed radius in a
-standard area--flow model \cite{CanicEtAl2024Extended1DStenosis}. Geometry is
-therefore not only a mesh or image artifact: it determines whether throat
-effects appear through domain shape, source terms, pressure loss, or lumped
-parameters.
+domain. The extended 1D stenosis formulation is important here because it
+argues that variable-radius effects can alter the reduced balance law itself;
+they are not captured by simply inserting a narrowed healthy-radius profile
+into an otherwise standard area--flow model
+\cite{CanicEtAl2024Extended1DStenosis}. Geometry is therefore not only a mesh
+or image artifact: it determines whether throat effects appear through domain
+shape, source terms, pressure loss, or lumped parameters.
 
 \subsection{Inlet, Outlet, and Initial Data}
 \label{subsec:inlet-outlet-initial-data}
@@ -142,12 +149,15 @@ impedance, reflection, or characteristic conditions. In multiscale models, the
 same words also name interface contracts between tiers, not only external
 boundary conditions
 \cite{QuarteroniVeneziani2003GeometricalMultiscale,ShiEtAl2011BloodFlowModelReview}.
-For a single-vessel problem, the boundary is not just a geometric edge. A
-resolved 3D problem may prescribe velocity, flow, traction, pressure, or
-wall-coupling information on inlet, outlet, and wall portions, while a 1D model
-applies incoming information to area--flow or characteristic variables. The
-case study later records its boundary rule as part of its model contract rather
-than as optional bookkeeping.
+Quarteroni and Veneziani treat such data as coupling variables in a
+geometrical multiscale system, while Shi, Lawford, and Hose emphasize how
+network and terminal choices close lumped or distributed pressure--flow states.
+For a single-vessel problem, the boundary is therefore not just a geometric
+edge. A resolved 3D problem may prescribe velocity, flow, traction, pressure,
+or wall-coupling information on inlet, outlet, and wall portions, while a 1D
+model applies incoming information to area--flow or characteristic variables.
+The case study later records its boundary rule as part of its model contract
+rather than as optional bookkeeping.
 
 \subsection{Pressure, Flow, Velocity, WSS, and FFR Observables}
 \label{subsec:hemodynamic-observables}
@@ -165,13 +175,14 @@ or structural state, so it is native to resolved FSI or a structural model and
 only indirectly represented by a reduced pressure--area wall law.
 
 Clinical pressure-flow quantities add another observable layer. FFR literature
-separates anatomical stenosis severity from functional severity, while overview
-and trial sources define FFR as a pressure-ratio diagnostic rather than a
-generic flow-model output
-\cite{ToninoEtAl2010FAMEAngioFunctional,TebaldiEtAl2015FFROverview}. CT-derived
-FFR sources shift the same diagnostic into an image-derived computational
-pipeline, so the observable depends on segmentation, boundary assumptions,
-solver model, and pressure-ratio extraction
+separates anatomical stenosis severity from functional severity. The FAME trial
+source supplies the clinical contrast between angiographic appearance and
+functional assessment, while FFR overview literature defines the diagnostic as
+a pressure-ratio quantity rather than a generic flow-model output
+\cite{ToninoEtAl2010FAMEAngioFunctional,TebaldiEtAl2015FFROverview}.
+CT-derived FFR sources then shift the same diagnostic into an image-derived
+computational pipeline, so the observable depends on segmentation, boundary
+assumptions, solver model, and pressure-ratio extraction
 \cite{NorgaardEtAl2014NXTFFRCT,ShaikhEtAl2025CTFFR}. The 1D--3D FFR comparison
 literature makes the cross-tier version of the point: a pressure-ratio scalar
 can be compared across model classes only after both states have been observed

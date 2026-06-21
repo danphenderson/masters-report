@@ -25,19 +25,22 @@ control the pressure null mode and avoid spurious pressure oscillations. Stable
 Taylor--Hood-type pairs, divergence-conforming constructions, or equal-order
 pairs augmented by pressure-stabilization, streamline-upwind/Petrov--Galerkin,
 least-squares, local projection, or grad-div terms are different numerical
-contracts, even when they target the same continuum equations
+contracts. Galdi and coauthors are useful here not as a generic FEM citation,
+but because their hemodynamical-flow treatment ties continuum equations,
+mixed discretization, stabilization, and simulation evidence together
 \cite{GaldiEtAl2008HemodynamicalFlows}.
 
 When the wall moves, the numerical contract also includes the fluid--structure
 interface. FSI formulations must transfer traction and velocity or displacement
 data across the interface, update the fluid domain or mesh, and control the
 added-mass and time-lag effects that appear in partitioned coupling. Monolithic
-and partitioned schemes can both be useful, but they expose different solver
-errors, stability limits, and coupling residuals
+and partitioned schemes can both be useful, but the FSI and multiscale coupling
+sources show why they expose different solver errors, stability limits, and
+coupling residuals
 \cite{FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale}.
-For a reduced 1D comparison, a resolved FSI or CFD field is therefore not a raw
-truth object; it is a numerically produced state that still needs its own mesh,
-timestep, boundary, material, and output-operator record.
+For a reduced 1D comparison, a resolved FSI or CFD field is therefore not an
+unqualified reference standard; it is a numerically produced state that still
+needs its own mesh, timestep, boundary, material, and output-operator record.
 
 \subsection{Finite Differences, Finite Volumes, DG, and High-Resolution Schemes}
 \label{subsec:numerical-methods-balance-law-families}
@@ -50,9 +53,11 @@ averages using numerical fluxes through cell faces. That structure makes local
 conservation visible and is well suited to wave propagation, boundary fluxes,
 and discontinuity-capturing limiters
 \cite{LeVeque2002FiniteVolumeMethodsForHyperbolicProblems}. In arterial
-networks, node conditions and terminal models add another layer: each vessel
-solve must be compatible with coupling rules that determine incoming and
-outgoing characteristic information \cite{Wang2014BloodFlowNetworks}.
+networks, Wang's 1D network treatment adds the next layer: each vessel solve
+must be compatible with node and terminal rules that determine incoming and
+outgoing characteristic information \cite{Wang2014BloodFlowNetworks}. The
+method comparison is therefore not finite volume versus network modeling; it is
+how a conservative vessel update is embedded in a coupled vascular system.
 
 Discontinuous Galerkin methods combine finite-volume fluxes with local
 polynomial approximation. They can raise spatial order, expose element-local
@@ -74,9 +79,13 @@ compatible with the grid scale and characteristic speeds. Semi-implicit and
 implicit network methods can relax the fastest explicit restriction, especially
 when wave speed or network coupling is stiff, but they replace it with nonlinear
 or linear solver tolerances, splitting errors, and coupling-residual criteria.
-Open and benchmarked 1D hemodynamics workflows therefore record not only the
-equation family, but also the timestep policy, boundary assumptions, network
-coupling, and diagnostic metadata
+The benchmark and open-solver literature makes this evidentiary rather than
+only algorithmic: Boileau and coauthors compare numerical schemes on shared 1D
+arterial cases, OpenBF exposes a finite-volume solver record, and recent
+well-balanced or Lax--Friedrichs studies show how boundary and coupling
+policies affect the accepted run. Such workflows record not only the equation
+family, but also the timestep policy, boundary assumptions, network coupling,
+and diagnostic metadata
 \cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF,BeckersKolbe2025LaxFriedrichsHemodynamics,
 LuccaEtAl2025FFRPrediction}.
 
@@ -91,7 +100,8 @@ or integrating flux and source contributions so that selected rest states cancel
 after discretization, not only in the continuous equations
 \cite{PimentelGarciaEtAl2025HighOrderWellBalanced}. For the present report,
 geometry-rest preservation is therefore a core numerical property rather than a
-postprocessing preference.
+postprocessing preference or a cosmetic refinement of an otherwise verified
+scheme.
 
 \subsection{Verification, Validation, and Reference Data}
 \label{subsec:numerical-methods-verification-validation}
@@ -110,19 +120,21 @@ change the reported quantities in the expected direction and magnitude. These
 studies are strongest when spatial and temporal effects are separated; otherwise
 they are better reported as sensitivity or time-step-insensitivity checks.
 Benchmark problems provide a broader reproducibility context by comparing
-multiple solvers on shared model cases, but a benchmark row does not by itself
-prove that a different stenosis geometry, wall law, or boundary rule is
-accurate \cite{BoileauEtAl2015Benchmark}.
+multiple solvers on shared model cases. The Boileau benchmark is strongest in
+that role: it helps interpret scheme behavior under common assumptions, but a
+benchmark row does not by itself establish accuracy for a different stenosis
+geometry, wall law, or boundary rule \cite{BoileauEtAl2015Benchmark}.
 
 Open modeling platforms and model repositories occupy a related but distinct
 evidence role. A platform such as SimVascular supports inspectable model
 construction, meshing, simulation, and postprocessing workflows, while a
 vascular model repository provides reusable geometry and model records
 \cite{SimVascular2026Platform,SimVascular2026VascularModelRepository}. Those
-resources strengthen reproducibility and make reference cases easier to audit,
-but they are not themselves validation evidence unless the geometry, boundary
-data, material assumptions, numerical settings, and observable are matched to
-the claim being tested.
+resources strengthen reproducibility and make reference cases easier to audit.
+Their contribution is traceability of workflow and model records, not automatic
+validation evidence; validation still requires the geometry, boundary data,
+material assumptions, numerical settings, and observable to match the claim
+being tested.
 
 Validation is a different evidence category. It requires comparison with an
 accepted reference for the target question, such as controlled experimental
@@ -153,8 +165,9 @@ and FSI literature treats such maps as part of the model interface rather than
 as after-the-fact plotting choices
 \cite{FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale}.
 Clinical FFR and CT-FFR sources show the same requirement in diagnostic form:
-the reported pressure-ratio observable is meaningful only after the imaging,
-model, boundary, and pressure-extraction conventions have been fixed
+overview and CT-derived FFR work make the reported pressure-ratio observable
+meaningful only after the imaging, model, boundary, and pressure-extraction
+conventions have been fixed
 \cite{TebaldiEtAl2015FFROverview,NorgaardEtAl2014NXTFFRCT,ShaikhEtAl2025CTFFR}.
 Comparisons of 1D and 3D FFR estimates make the cross-dimensional version of
 that requirement explicit \cite{Blanco2018FFR1D3D}.

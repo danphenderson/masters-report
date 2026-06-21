@@ -10,15 +10,17 @@ choices, observable definitions, geometry, boundary data, and numerical evidence
 determine how computed pressure, flow, velocity, and shear-related quantities
 should be interpreted.
 
-The worked example studies a smooth idealized stenosis using an
-$R_{\max}$-normalized Canic-derived one-dimensional area--flow model and a
-plane--tetrahedron section operator to compare two resolved velocity fields
-labelled C23 and C40 by stenosis severity. Manufactured-solution tests over
-$N=50,100,200,400$ cells produced observed $L^2$ rates near 1.70 for area and
-1.50 for flow, with zero forcing-audit mismatch. Zero-inlet rest tests showed
-localized artificial solver-flow drift that decreased from 0.03839 and
-0.06339 cm$^3$/s on the $N=400$ grid to 0.00973 and 0.01605 cm$^3$/s on the
-$N=800$ grid. At the matched final-time comparison over 200 sections, C23 and
-C40 had mean absolute velocity discrepancies of 0.505 and 0.966 cm/s and RMS
-discrepancies of 0.664 and 1.87 cm/s, with the largest differences localized
-near the upstream shoulder.
+A worked example illustrates this standard using a smooth idealized stenosis,
+an $R_{\max}$-normalized Canic-derived one-dimensional area--flow model, and a
+plane--tetrahedron quadrature observation operator applied to resolved velocity
+fields for 23\% and 40\% stenosis severity. The numerical record is treated as
+an evidence audit rather than a validation result: manufactured-solution tests
+give observed $L^2$ rates near 1.70 for area and 1.50 for flow, zero-inlet rest
+tests expose localized nonzero solver-coordinate flow that decreases by about a
+factor of four from $N=400$ to $N=800$, and the matched 200-section comparison
+yields mean absolute velocity discrepancies of 0.505 and 0.966 cm/s, with RMS
+discrepancies of 0.664 and 1.87 cm/s, for the 23\% and 40\% cases,
+respectively. The case study therefore illustrates the review's central
+argument: verification, rest-state behavior, observation operators, and
+cross-model discrepancy bound the interpretation of computed hemodynamic
+quantities.

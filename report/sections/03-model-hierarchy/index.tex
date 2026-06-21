@@ -4,17 +4,18 @@
 The central organizing device of the review is the model hierarchy. The
 hierarchy is not a ladder of accuracy. It is a way to ask what a formulation
 retains, what it closes, what it can observe natively, and what it must map
-before a comparison is meaningful. A resolved three-dimensional model retains
-local velocity and pressure fields in the lumen. A fluid--structure interaction
-model additionally retains wall motion and interface work. Axisymmetric and
-two-dimensional models retain selected local structure under stronger geometry
-assumptions. Distributed one-dimensional models retain axial propagation of
-area and flow. Zero-dimensional and network models retain compartmental
-pressure--flow relations. Multiscale models couple several of these states.
-Surrogate, PINN, and operator-learning models approximate solution or
-parameter-to-solution maps and inherit the model tier, data, and loss
-conventions used to train or constrain them
+before a comparison is meaningful. The major review sources contribute
+different parts of that frame. Quarteroni and Formaggia place cardiovascular
+simulation inside a continuum and multiscale modeling program; Formaggia,
+Lamponi, and Quarteroni identify the variables and closures retained by
+distributed 1D artery models; Shi, Lawford, and Hose organize the 0D/1D network
+literature around pressure--flow states and terminal coupling; and
+Koppl--Helmig recast the same landscape as dimension reduction from detailed
+flow fields to lower-dimensional states
 \cite{QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,KopplHelmig2023DimensionReducedModeling}.
+Read together, these sources motivate a hierarchy organized by retained state
+and observation, not by a simple claim that higher dimension is always the
+right model.
 
 \subsection{Resolved 3D CFD and FSI Models}
 \label{subsec:resolved-reduced-model-tiers}
@@ -32,11 +33,13 @@ wall normal, tangent projection convention, and surface output map
 \cite{JohnEtAl2017WallShearStressVectorForm}.
 
 The resolved tier also contains distinct uses of ``three-dimensional'' data.
-Classical numerical analysis of blood flow in the heart already treated the
-geometry and moving-boundary representation as part of the mathematical problem
-\cite{Peskin1977NumericalAnalysisBloodFlowHeart}. Continuum cardiovascular
-models and 3D--1D FSI coupling sources then make the interface and wall state
-explicit
+Peskin's numerical analysis of blood flow in the heart is an early example in
+which geometry, moving boundaries, and numerical representation are already
+part of the mathematical problem, not merely input data
+\cite{Peskin1977NumericalAnalysisBloodFlowHeart}. Quarteroni--Formaggia-style
+cardiovascular modeling then broadens that perspective across continuum flow
+and system coupling, while 3D--1D FSI coupling work makes the interface and
+wall state explicit
 \cite{QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2007FSICoupling}.
 By contrast, a fixed-wall resolved stenosis computation used to estimate a
 pressure or velocity diagnostic may retain the same local velocity and pressure
@@ -51,66 +54,89 @@ and which observable is extracted from the resulting field.
 Axisymmetric and two-dimensional models occupy an intermediate role. They
 retain more geometry and local velocity information than a one-dimensional
 area--flow model, but they remove at least one spatial direction or impose
-symmetry. This makes them useful for idealized stenosis studies, sectional
-diagnostics, and controlled comparisons, while still requiring declared
-boundary conditions, rheology, wall treatment, and observable definitions. The
-interpretive limit is the same as in any reduced model: suppressed secondary
-flow, asymmetric geometry, and wall mechanics cannot later be recovered as
-native outputs unless an additional closure or observation map supplies them.
+symmetry. Classical idealized stenosis studies use this controlled setting to
+separate obstruction, pressure loss, and flow-structure effects from
+patient-specific geometry and boundary uncertainty
+\cite{YoungTsai1973SteadyStenosis,YoungTsai1973UnsteadyStenosis}. Their
+contribution is therefore not only that they occupy a lower-dimensional
+category; it is that they show how idealization can isolate a stenosis
+mechanism.
+
+The same reduction also imposes a limit. Axisymmetric and two-dimensional
+models remain useful for sectional diagnostics and controlled comparisons only
+when their boundary conditions, rheology, wall treatment, and observable
+definitions are declared. Suppressed secondary flow, asymmetric geometry, and
+wall mechanics cannot later be recovered as native outputs unless an additional
+closure or observation map supplies them.
 
 \subsection{Distributed One-Dimensional Area--Flow Models}
 \label{subsec:distributed-one-dimensional-models}
 
 Distributed 1D models reduce each vessel segment to axial variables, most often
-cross-sectional area, flow, mean velocity, and pressure. They preserve pulse
-propagation and vessel-to-vessel transport at far lower cost than resolved
-CFD/FSI, but profile, wall, friction, rheology, stenosis, and boundary effects
-enter as closures rather than resolved fields
+cross-sectional area, flow, mean velocity, and pressure. Formaggia, Lamponi,
+and Quarteroni make this state reduction concrete through area--flow equations,
+wall laws, and profile assumptions, while Koppl--Helmig emphasize how such
+models should be read as dimension-reduced representations with explicit
+closure and coupling choices
 \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,KopplHelmig2023DimensionReducedModeling}.
-This tier is the natural setting for single-vessel stenosis calculations whose
-native outputs are area, flow, mean velocity, and reduced pressure.
+This tier preserves pulse propagation and vessel-to-vessel transport at far
+lower cost than resolved CFD/FSI, but profile, wall, friction, rheology,
+stenosis, and boundary effects enter as closures rather than resolved fields.
+It is therefore the natural setting for single-vessel stenosis calculations
+whose native outputs are area, flow, mean velocity, and reduced pressure.
 
 Stenosis-specific reductions also divide by observable. Pressure-loss formulas
-and pressure-drop reduced-order models target obstruction through a flow--loss
-relation, while distributed 1D stenosis models place narrowed reference
-geometry and wall response inside an area--flow system. Network-scale coronary
-models add tree structure and terminal assumptions, so their pressure and flow
-outputs must be read with the same closure discipline
-\cite{LyrasLee2021PressureDropROM,DuanmuEtAl2019CoronaryArterialTree,CanicEtAl2024Extended1DStenosis}.
+and pressure-drop reduced-order models, such as the Lyras--Lee pressure-drop
+ROM, target obstruction through a flow--loss relation
+\cite{LyrasLee2021PressureDropROM}. Extended 1D stenosis formulations instead
+place narrowed reference geometry and wall response inside an area--flow system
+\cite{CanicEtAl2024Extended1DStenosis}. Network-scale coronary models add tree
+structure and terminal assumptions, so the Duanmu coronary-tree contribution is
+not just another single-vessel stenosis model; it shows how reduced vessel
+states become part of a larger pressure--flow network
+\cite{DuanmuEtAl2019CoronaryArterialTree}. These sources should therefore be
+compared by target observable and closure contract, not collected under a
+single ``1D'' label.
 
 \subsection{Zero-Dimensional Networks and Multiscale Coupling}
 \label{subsec:network-multiscale-learned-models}
 
 Zero-dimensional and network models replace distributed fields with lumped
-states and algebraic or ordinary-differential pressure--flow relations. They
-are central for terminal resistance, compliance, circulation closure, and large
-arterial networks, but their state variables are not local wall or velocity
-fields \cite{ShiEtAl2011BloodFlowModelReview}. In a single-vessel calculation,
-these models most often enter through inlet or outlet closure rather than as
-the main spatial solver.
+states and algebraic or ordinary-differential pressure--flow relations. The
+Shi--Lawford--Hose review is useful here because it treats 0D and 1D models as
+circulation models with explicit resistance, compliance, junction, and terminal
+assumptions, rather than as merely cheaper versions of resolved CFD
+\cite{ShiEtAl2011BloodFlowModelReview}. Their state variables are not local
+wall or velocity fields. In a single-vessel calculation, these models most
+often enter through inlet or outlet closure rather than as the main spatial
+solver.
 
 Geometrical multiscale models connect tiers, for example 3D--1D, 3D--0D, or
 1D--0D, through interface conditions that transfer pressure, flow, traction,
 impedance, or characteristic information
 \cite{QuarteroniVeneziani2003GeometricalMultiscale,FormaggiaEtAl2007FSICoupling}.
-The mathematical issue is not only that two solvers are coupled; it is that the
-interface variables must have compatible meanings across dimensions. Coronary
-FFR comparisons between 1D and 3D models show the same issue on the output
-side: the reduced and resolved states must be mapped to a common pressure-ratio
+Quarteroni and Veneziani foreground the ODE--PDE coupling problem, while
+Formaggia, Moura, and Nobile expose the additional stability and interface
+issues that arise when the coupled tiers include FSI. The mathematical issue is
+therefore not only that two solvers are coupled; it is that the interface
+variables must have compatible meanings across dimensions. Coronary FFR
+comparisons between 1D and 3D models show the same issue on the output side:
+the reduced and resolved states must be mapped to a common pressure-ratio
 observable before agreement or disagreement has a mathematical meaning
 \cite{Blanco2018FFR1D3D}.
 
 \subsection{Learned Surrogates, PINNs, and Operator Maps}
 \label{subsec:learned-surrogates-operator-maps}
 
-Surrogate and scientific-ML models add a second axis to the hierarchy. A PINN
-uses residual, boundary, data, and regularization terms to constrain an
-approximate solution or inverse map
+Surrogate and scientific-ML models add a second axis to the hierarchy. The
+general PINN framework constrains an approximate solution or inverse map with
+residual, boundary, data, and regularization terms, while hemodynamics-specific
+reviews ask how that framework translates to vascular flow settings
 \cite{RaissiEtAl2019PhysicsInformedNeuralNetworks,YuEtAl2026PINNHemodynamicsReview}.
-Operator-learning models, such as DeepONet and Fourier neural operators, learn
-maps between functions or parameterized fields
+DeepONet and Fourier neural operators shift the claim from one computed
+solution to a learned map between functions or parameterized fields
 \cite{LuEtAl2021DeepONet,LiEtAl2021FNO}. Hemodynamics-specific neural
-differential and deep-operator examples target reduced blood-flow or
+differential and deep-operator examples then target reduced blood-flow or
 stenosed-vessel maps directly
 \cite{CsalaEtAl2025PCNDE,VelikorodnyEtAl2025DeepOperatorStenosed}. These
 learned categories do not remove the need to state the underlying model tier: a
