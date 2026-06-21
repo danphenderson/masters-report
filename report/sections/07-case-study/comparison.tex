@@ -26,6 +26,24 @@ should be used for the final-time plane cuts. The 3D wall model, wall-motion
 history, inlet/outlet histories, material parameters, and prior transient
 history are likewise not persisted in the tracked report artifact.
 
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \IfFileExists{report/assets/rendered/resolved-3d-flow-field.pdf}{%
+        \includegraphics[width=\textwidth]{report/assets/rendered/resolved-3d-flow-field.pdf}
+    }{%
+        \fbox{\parbox{0.82\linewidth}{\centering Resolved velocity-field
+        asset unavailable in this checkout.}}
+    }
+    \caption{Final-time resolved velocity samples used by the C23/C40
+    comparison. The panels show node-centered $u_z$ values from the tracked
+    resolved-velocity CSV assets, with the corresponding node-envelope geometry
+    shown only as visual context. This figure identifies the resolved fields
+    being sampled; the quantitative comparison still enters through the
+    declared plane-quadrature operator below.}
+    \label{fig:resolved-3d-flow-field}
+\end{figure}
+
 \begin{table}[!htb]
     \centering
     \scriptsize
