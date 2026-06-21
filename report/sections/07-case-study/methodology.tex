@@ -8,6 +8,98 @@ contract before any result is interpreted. Dense operator formulas, secondary
 solver surfaces, and reproducibility commands remain in the appendices unless
 they are needed to understand a main-body claim.
 
+\begin{center}
+\fbox{\begin{minipage}{0.90\linewidth}
+\small
+\textbf{Solver-coordinate convention.} In the comparison record, the stored
+solver state \texttt{A} is $a=R^2$, not physical circular area. The physical
+map is Definition~\ref{def:physical-to-solver-map}:
+$A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and
+$\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
+\end{minipage}}
+\end{center}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Case-study contract for the retained 23\% and 40\%
+    stenosis-severity numerical evidence.
+    The table states the minimum computational and interpretive commitments
+    needed before the result tables are read. It is a reading contract, not an
+    additional numerical result.}
+    \label{tab:t1-case-study-contract}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.20\textwidth}
+        >{\raggedright\arraybackslash}p{0.39\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Contract item}
+            & \textbf{Main-body statement}
+            & \textbf{Interpretation boundary} \\
+        \midrule
+        Case-study purpose
+            & A controlled idealized stenosis example applies the review
+            framework to a selected 1D area--flow model and two resolved
+            velocity fields.
+            & The chapter illustrates verification, reproducibility, and
+            diagnostic cross-model velocity comparison; it is not a
+            pressure-ratio study or patient-specific prediction. \\
+        Case labels and final-time match
+            & C23 and C40 are short labels for the retained 23\% and 40\%
+            stenosis-severity cases. Both are compared at $T=0.9995$ s, with
+            recorded 1D--3D final-time offsets of $5.47\times10^{-14}$ s.
+            & The final timestamp is matched. Earlier transient-history
+            matching is not carried by the retained record and would be needed
+            for a stronger predictive comparison. \\
+        Principal 1D computation
+            & The main comparison uses the $R_{\max}$-normalized
+            Canic-derived extended 1D member with Newtonian
+            $\nu=0.04$ cm$^2$/s, parabolic profile closure, $N=400$ MUSCL
+            finite-volume cells, Rusanov flux, and native SSPRK3 time
+            integration.
+            & Other finite-volume, DG, timestepper, and descriptor records are
+            implementation-health or sensitivity context rather than the
+            principal two-case comparison method. \\
+        Observation operator
+            & The 3D velocity field is reduced by the declared
+            \texttt{CrossSectionQuadratureOperator}; the 1D state is observed as
+            physical flow $Q_{1D}=\pi q$ and mean velocity
+            $\bar u_{1D}=q/a$ on 200 axial sections.
+            & The comparison is meaningful only for these common section
+            observables. Radial-profile outputs are excluded from retained
+            claims. \\
+        Numerical admissibility gates
+            & The main text reports manufactured-solution behavior,
+            output-operator verification, geometry-rest drift, subcritical
+            boundary diagnostics, CFL, positivity, and finite-volume
+            bookkeeping.
+            & These records support run admissibility and numerical
+            interpretation. They do not by themselves identify a physical
+            prediction target. \\
+        Matching limits
+            & The analytic reference profile is shared and the static cut-area
+            check is reported, but current/deformed 3D geometry handling,
+            wall motion, boundary histories, material parameters, and earlier
+            transient histories remain unmatched or unpersisted.
+            & Velocity differences cannot be attributed uniquely to a specific
+            closure, wall, boundary, or geometry mechanism. \\
+        Retained outputs
+            & The retained numerical evidence is the MMS/rest-state record,
+            cut-area check, axial flow behavior, flow/area bookkeeping,
+            section-mean velocity discrepancy summary, production-grid
+            sensitivity, and largest section discrepancies.
+            & These are descriptive final-time discrepancy and sensitivity
+            records for the declared two-case comparison. \\
+        Excluded radial/profile outputs
+            & Secondary radial-profile rows exist for selected axial slices but
+            are not used for any figure, table, discrepancy metric, or
+            localization claim.
+            & The radial reducer remains quarantined pending reconciliation
+            with the generated summaries. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
 \subsubsection{Model Contract and Native Variables}
 \label{subsec:methodology-problem-definition}
 \label{subsec:selected-1d-forward-model}
@@ -467,102 +559,10 @@ available resolved 3D velocity comparison datasets at the matched final-time
 sample $T=0.9995$ s. The case labels C23 and C40 denote the retained 23\% and
 40\% stenosis-severity cases, respectively. The comparison is a diagnostic
 cross-model velocity comparison under the declared observation operator.
-Table~\ref{tab:t1-case-study-contract} gives the compact contract for reading
-the retained two-case evidence. Regeneration commands, local source identifiers,
-raw-input policy, and static asset ownership are recorded in
+The compact reading contract is stated at the start of this section.
+Regeneration commands, local source identifiers, raw-input policy, and static
+asset ownership are recorded in
 Appendix~\ref{app:code-and-ai-use}.
-
-\begin{center}
-\fbox{\begin{minipage}{0.90\linewidth}
-\small
-\textbf{Solver-coordinate convention.} In the comparison record, the stored
-solver state \texttt{A} is $a=R^2$, not physical circular area. The physical
-map is Definition~\ref{def:physical-to-solver-map}:
-$A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and
-$\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
-\end{minipage}}
-\end{center}
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Case-study contract for the retained 23\% and 40\%
-    stenosis-severity numerical evidence.
-    The table states the minimum computational and interpretive commitments
-    needed before the result tables are read. It is a reading contract, not an
-    additional numerical result.}
-    \label{tab:t1-case-study-contract}
-    \begin{tabularx}{\textwidth}{@{}
-        >{\raggedright\arraybackslash}p{0.20\textwidth}
-        >{\raggedright\arraybackslash}p{0.39\textwidth}
-        >{\raggedright\arraybackslash}X@{}}
-        \toprule
-        \textbf{Contract item}
-            & \textbf{Main-body statement}
-            & \textbf{Interpretation boundary} \\
-        \midrule
-        Case-study purpose
-            & A controlled idealized stenosis example applies the review
-            framework to a selected 1D area--flow model and two resolved
-            velocity fields.
-            & The chapter illustrates verification, reproducibility, and
-            cross-model velocity comparison; it is not a clinical validation
-            study or a pressure-ratio study. \\
-        Case labels and final-time match
-            & C23 and C40 are short labels for the retained 23\% and 40\%
-            stenosis-severity cases. Both are compared at $T=0.9995$ s, with
-            recorded 1D--3D final-time offsets of $5.47\times10^{-14}$ s.
-            & The final timestamp is matched. Earlier transient-history
-            matching is not carried by the retained record and would need to be
-            established before making a validation-level claim. \\
-        Principal 1D computation
-            & The main comparison uses the $R_{\max}$-normalized
-            Canic-derived extended 1D member with Newtonian
-            $\nu=0.04$ cm$^2$/s, parabolic profile closure, $N=400$ MUSCL
-            finite-volume cells, Rusanov flux, and native SSPRK3 time
-            integration.
-            & Other finite-volume, DG, timestepper, and descriptor records are
-            implementation-health or sensitivity context rather than the
-            principal two-case comparison method. \\
-        Observation operator
-            & The 3D velocity field is reduced by the declared
-            \texttt{CrossSectionQuadratureOperator}; the 1D state is observed as
-            physical flow $Q_{1D}=\pi q$ and mean velocity
-            $\bar u_{1D}=q/a$ on 200 axial sections.
-            & The comparison is meaningful only for these common section
-            observables. Radial-profile outputs are excluded from retained
-            claims. \\
-        Numerical admissibility gates
-            & The main text reports manufactured-solution behavior,
-            output-operator verification, geometry-rest drift, subcritical
-            boundary diagnostics, CFL, positivity, and finite-volume
-            bookkeeping.
-            & These records support run admissibility and implementation
-            interpretation. They do not convert the two-case comparison into
-            model validation. \\
-        Matching limits
-            & The analytic reference profile is shared and the static cut-area
-            check is reported, but current/deformed 3D geometry handling,
-            wall motion, boundary histories, material parameters, and earlier
-            transient histories remain unmatched or unpersisted.
-            & Velocity differences cannot be attributed uniquely to a specific
-            closure, wall, boundary, or geometry mechanism. \\
-        Retained outputs
-            & The retained numerical evidence is the MMS/rest-state record,
-            cut-area check, axial flow behavior, flow/area bookkeeping,
-            section-mean velocity discrepancy summary, production-grid
-            sensitivity, and largest section discrepancies.
-            & These are descriptive final-time discrepancy and sensitivity
-            records for the declared two-case comparison. \\
-        Excluded radial/profile outputs
-            & Secondary radial-profile rows exist for selected axial slices but
-            are not used for any figure, table, discrepancy metric, or
-            localization claim.
-            & The radial reducer remains quarantined pending reconciliation
-            with the generated summaries. \\
-        \bottomrule
-    \end{tabularx}
-\end{table}
 
 Velocity and flow differences are reported as sample discrepancy measures over
 valid section targets. With

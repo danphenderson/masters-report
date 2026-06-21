@@ -26,16 +26,16 @@ decision about whether a deformed-wall geometry or displacement application
 should be used for final-time plane cuts. The 3D wall model, wall-motion history,
 inlet/outlet histories, material parameters, and prior transient history are not
 carried by the comparison record; these would need to be established before
-making a validation-level claim.
+making a stronger predictive comparison claim.
 
 The comparison gates are therefore deliberately limited: the final timestamp is
 matched, the static section area is checked, the dynamic or deformed 3D geometry
 state is unresolved, the resolved flow is not sectionwise constant, and the
-wall, boundary, material, and transient-history metadata needed for validation
-are not persisted in the retained comparison record. No pressure-drop,
-pressure-ratio, or FFR-style result is retained for this 1D--3D comparison
-because compatible pressure observations and extraction conventions are not
-declared for the paired data.
+wall, boundary, material, and transient-history metadata needed for a matched
+reference comparison are not persisted in the retained comparison record. No
+pressure-drop, pressure-ratio, or FFR-style result is retained for this 1D--3D
+comparison because compatible pressure observations and extraction conventions
+are not declared for the paired data.
 
 \begin{table}[!htb]
     \centering
@@ -165,7 +165,7 @@ The production rows show that the selected runs reached the CFL cap, retained
 positive physical area, used no positivity projection, closed the final
 area-flux bookkeeping at the listed scale, and completed at the matched final
 timestamp. These diagnostics are run admissibility evidence; they do not by
-themselves establish cross-model validation. No inlet, throat, and outlet
+themselves establish a matched-reference comparison. No inlet, throat, and outlet
 time-history table for $q(t)$, $A_{\mathrm{phys}}(t)$, CFL extrema over time,
 or area-flux balance over time is retained in the current report assets; the
 comparison is therefore interpreted from final-time diagnostics plus the
