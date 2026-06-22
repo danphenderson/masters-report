@@ -186,84 +186,98 @@ the FFR setting are part of the model contract.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Closure-contract axes that should remain explicit when comparing
+    \caption{Closure-contract axes that should remain explicit before comparing
     stenotic-hemodynamics models.}
     \label{tab:modeling-closures-observables}
     \begin{tabularx}{\textwidth}{@{}
-        >{\raggedright\arraybackslash}p{0.14\textwidth}
-        >{\raggedright\arraybackslash}p{0.19\textwidth}
-        >{\raggedright\arraybackslash}p{0.18\textwidth}
-        >{\raggedright\arraybackslash}p{0.17\textwidth}
         >{\raggedright\arraybackslash}p{0.16\textwidth}
+        >{\raggedright\arraybackslash}p{0.23\textwidth}
+        >{\raggedright\arraybackslash}p{0.23\textwidth}
         >{\raggedright\arraybackslash}X@{}}
         \toprule
         \textbf{Closure}
             & \textbf{Mathematical location}
-            & \textbf{Required data}
-            & \textbf{Native effect}
-            & \textbf{Affected observables}
-            & \textbf{Concern/source} \\
+            & \textbf{Required declaration}
+            & \textbf{What this does not establish} \\
         \midrule
         Rheology
             & Stress law or 1D friction source.
             & $\eta$ or $\eta_{\mathrm{eff}}(\dot\gamma)$ and proxy.
-            & Viscous stress and dissipation.
-            & Pressure ratio, WSS, low-shear regions.
-            & Observable dependence \cite{LiuEtAl2021ICASRheology}. \\
+            & A viscosity law alone does not determine pressure-ratio or WSS
+            sensitivity; the observable and regime must be stated
+            \cite{LiuEtAl2021ICASRheology}. \\
         Velocity profile
             & Momentum flux and wall friction.
             & Profile shape, $\alpha$, shear factor.
-            & Convective flux and drag.
-            & Mean velocity, pressure loss, shear proxy.
-            & Not a resolved radial field. \\
+            & A profile closure does not produce a native resolved radial field
+            or wall traction. \\
         Wall mechanics
             & Pressure--area law or structural PDE.
             & Reference/current geometry, stiffness, external pressure.
-            & Wave speed, area, displacement.
-            & Pressure, area, interface work.
-            & May compensate for other uncertainty. \\
+            & A wall law does not identify stiffness, prestress, or material
+            memory unless those data are independently constrained. \\
         Geometry/reference state
             & Domain, reference radius, source terms, loss model.
             & Segmentation or analytic radius and severity definition.
-            & Throat area and geometric source.
-            & Flow, pressure loss, WSS.
-            & Reconstruction sensitivity \cite{GambarutoEtAl2011GeometryRheologySensitivity}. \\
+            & A shared nominal severity does not remove reconstruction or
+            reference-state uncertainty
+            \cite{GambarutoEtAl2011GeometryRheologySensitivity}. \\
         Inlet data
             & Boundary state or interface.
             & Flow, pressure, velocity profile, characteristic data.
-            & Incoming wave or imposed flux.
-            & Flow phase, pressure, velocity.
-            & Encodes omitted upstream dynamics. \\
+            & A prescribed inlet does not model omitted upstream dynamics unless
+            it is supplied by a coupling model. \\
         Outlet data
             & Boundary state, terminal ODE, or impedance.
             & Pressure, traction, resistance, Windkessel, characteristic data.
-            & Load and reflection.
-            & Pressure-flow phase and ratios.
-            & Encodes omitted downstream dynamics. \\
+            & A terminal label does not determine wave reflection or distal
+            circulation without its parameters and assumptions. \\
         Junction law
             & Network interface.
             & Conservation and pressure/energy condition.
-            & Wave transmission and reflection.
-            & Network pressures and flows.
-            & Needs compatible variables. \\
+            & A junction condition does not make variables compatible across
+            tiers unless pressure, flow, and energy conventions match. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Reporting conventions for reduced and cross-tier observables.}
+    \label{tab:modeling-observable-reporting-conventions}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.18\textwidth}
+        >{\raggedright\arraybackslash}p{0.25\textwidth}
+        >{\raggedright\arraybackslash}p{0.24\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Observable convention}
+            & \textbf{Required declaration}
+            & \textbf{Affected output}
+            & \textbf{What this does not establish} \\
+        \midrule
         Pressure convention
-            & State, wall law, or observation.
             & Gauge/absolute/transmural reference.
-            & Pressure-area interpretation.
             & Pressure drop and ratio.
-            & Must state external pressure. \\
+            & A pressure convention does not define external pressure or
+            upstream/downstream sites by itself. \\
+        Flow or velocity map
+            & Section, coordinate mode, quadrature, and averaging rule.
+            & Flow, mean velocity, and discrepancy summaries.
+            & A section mean does not establish resolved secondary-flow or WSS
+            agreement. \\
         WSS convention
-            & Wall traction observation.
             & Stress, wall normal, projection.
-            & Boundary shear vector.
             & WSS, AWSS, OSI.
-            & Convention sensitivity \cite{JohnEtAl2017WallShearStressVectorForm}. \\
+            & A scalar WSS index does not identify the vector convention unless
+            the traction projection is declared
+            \cite{JohnEtAl2017WallShearStressVectorForm}. \\
         FFR-style observation
-            & Diagnostic pressure-ratio map.
             & Upstream/downstream pressures and physiological contract.
-            & Scalar pressure ratio.
             & FFR or FFR-style result.
-            & Matched contract \cite{Blanco2018FFR1D3D}. \\
+            & A pressure ratio should not be called FFR without the physiological
+            and boundary contract \cite{Blanco2018FFR1D3D}. \\
         \bottomrule
     \end{tabularx}
 \end{table}

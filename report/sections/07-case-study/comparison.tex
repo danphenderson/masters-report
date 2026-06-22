@@ -212,9 +212,11 @@ case.
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{axial-flow-comparison}
-    \caption{Axial physical-flow comparison under the plane-quadrature
-    operator. Dashed curves are $Q_{1D}(z)=\pi q(z)$ and solid curves are
-    $Q_{3D}(z)$ from the resolved velocity fields.}
+    \caption{Axial physical-flow comparison after applying the
+    reference-coordinate plane-quadrature observation operator. Dashed curves
+    are $Q_{1D}(z)=\pi q(z)$ and solid curves are $Q_{3D}(z)$ from the resolved
+    velocity fields; the figure compares observed section flow, not native
+    resolved velocity fields or pressure-ratio output.}
     \label{fig:t1-axial-flow-comparison}
 \end{figure}
 
@@ -234,8 +236,11 @@ attribution.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Section-wise decomposition of the mean-velocity discrepancy into
-    physical-flow and area-denominator contributions. Values are in cm/s.}
+    \caption{Section-wise decomposition of the reference-coordinate
+    mean-velocity discrepancy into physical-flow and area-denominator
+    contributions. Values are in cm/s. This bookkeeping split is tied to the
+    declared section observation operator and is not a causal error
+    attribution.}
     \label{tab:t1-flow-area-decomposition}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}lrrrrl@{}}
@@ -258,8 +263,9 @@ attribution.
     \centering
     \scriptsize
     \caption{Reference-coordinate section-mean velocity discrepancy summary at
-    the matched final-time sample. Values are in cm/s except for the axial
-    location column in cm.}
+    the matched final-time sample after applying the common section observation
+    map. Values are in cm/s except for the axial location column in cm; the
+    table reports diagnostic cross-model discrepancy, not clinical validation.}
     \label{tab:t1-3d-comparison-summary}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}lrrrrrrrrr@{}}
@@ -282,13 +288,14 @@ attribution.
     }
 \end{table}
 
-\begin{figure}[H]
+\begin{figure}[!htb]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{section-mean-comparison}
-    \caption{Area-mean axial velocity comparison at $t=0.9995$ s. Solid curves
-    are tetrahedral cross-section quadrature means from the resolved 3D
-    velocity field; dashed curves are interpolated 1D means
+    \caption{Area-mean axial velocity comparison at $t=0.9995$ s under the
+    reference-coordinate section observation map. Solid curves are tetrahedral
+    cross-section quadrature means from the resolved 3D velocity field; dashed
+    curves are interpolated 1D means
     $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.}
     \label{fig:t1-section-mean-comparison}
 \end{figure}
@@ -296,8 +303,11 @@ attribution.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Normalized scale comparison for the production-grid rest-state
-    limitation and final-time 1D--3D discrepancy measures.}
+    \caption{Normalized scale comparison between the production-grid
+    geometry-rest limitation and final-time 1D--3D velocity-discrepancy
+    measures. These ratios place the diagnostic comparison on a common scale;
+    they do not convert the comparison into an accepted-reference validation
+    result.}
     \label{tab:t1-normalized-scale-comparison}
     \begin{tabular}{@{}lrrrr@{}}
         \toprule
@@ -317,8 +327,9 @@ attribution.
     \centering
     \scriptsize
     \caption{Optional production-grid sensitivity for the reference-coordinate
-    resolved-velocity comparison. Flow discrepancies are in cm$^3$/s and
-    velocity discrepancies are in cm/s.}
+    resolved-velocity observation map. Flow discrepancies are in cm$^3$/s and
+    velocity discrepancies are in cm/s; the rows test numerical sensitivity of
+    the comparison output, not patient-specific interpretation.}
     \label{tab:t1-grid-sensitivity-summary}
     \resizebox{\textwidth}{!}{%
     \input{report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex}%
@@ -330,7 +341,9 @@ attribution.
     \scriptsize
     \caption{Five largest section-wise velocity discrepancies in the
     reference-coordinate comparison. Velocities and velocity discrepancies are
-    in cm/s; physical flows and flow discrepancies are in cm$^3$/s.}
+    in cm/s; physical flows and flow discrepancies are in cm$^3$/s. The ranking
+    identifies where the declared observation map differs most strongly between
+    tiers.}
     \label{tab:t1-largest-section-discrepancies}
     \begin{tabular}{@{}rlrrrrrrrr@{}}
         \toprule
@@ -361,16 +374,16 @@ The deformed-coordinate comparison repeats the same section operator after
 moving each resolved node by its displacement value. Table~\ref{tab:t1-coordinate-mode-comparison}
 shows that applying displacement changes the final-time discrepancy measures
 only modestly for these two datasets. This is still not a full wall-motion
-match: the retained record contains the final displacement field, not the
+match: the available comparison record contains the final displacement field, not the
 resolved wall history or boundary histories.
 
 \begin{table}[!htb]
     \centering
     \scriptsize
     \caption{Reference-coordinate versus deformed-coordinate discrepancy
-    measures. $D_{u,1}$ and $D_{u,2}$ are the mean absolute and RMS
-    section-mean velocity discrepancies in cm/s; $D_{Q,1}$ is the mean absolute
-    physical-flow discrepancy in cm$^3$/s.}
+    measures for the same section observation map. $D_{u,1}$ and $D_{u,2}$ are
+    the mean absolute and RMS section-mean velocity discrepancies in cm/s;
+    $D_{Q,1}$ is the mean absolute physical-flow discrepancy in cm$^3$/s.}
     \label{tab:t1-coordinate-mode-comparison}
     \input{report/assets/tables/stenosis-comparison/coordinate_mode_comparison.tex}
 \end{table}
@@ -380,9 +393,10 @@ resolved wall history or boundary histories.
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{coordinate-mode-discrepancy}
     \caption{Effect of the displacement-aware observation map on the
-    section-wise velocity discrepancy. Solid curves use the reference mesh
+    section-wise velocity discrepancy. Solid curves use reference mesh
     coordinates, while dashed curves form the same plane cuts after the nodal
-    map $x\mapsto x+d(x)$.}
+    map $x\mapsto x+d(x)$; the figure changes the coordinate mode, not the 1D
+    model or the resolved velocity field.}
     \label{fig:t1-coordinate-mode-discrepancy}
 \end{figure}
 
@@ -411,7 +425,8 @@ selected 1D pressure--area closure used in the reduced model.
     \caption{Quasi-static membrane-FSI fixed-point results on the retained
     finer mesh. The reported displacement is the radial wall displacement
     $\eta_r$; the minimum radius is the deformed lumen radius
-    $R_0+\eta_r$.}
+    $R_0+\eta_r$. This comparator informs wall-motion scale only and does not
+    supply a transient FSI validation target.}
     \label{tab:t1-membrane-fsi-summary}
     \input{report/assets/tables/membrane-fsi/summary.tex}
 \end{table}
@@ -419,10 +434,10 @@ selected 1D pressure--area closure used in the reduced model.
 \begin{figure}[!htb]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \figtikz{membrane-fsi-wall-profile}
+    \resizebox{0.98\textwidth}{!}{\figtikz{membrane-fsi-wall-profile}}
     \caption{Quasi-static wall deformation from the membrane-FSI comparator.
     The upper panel shows the radial displacement $\eta_r(z)$ solving the
-    clamped membrane equation; the lower panel shows the resulting deformed
+    fixed-end membrane equation; the lower panel shows the resulting deformed
     radius $R_0(z)+\eta_r(z)$ alongside the reference radius.}
     \label{fig:t1-membrane-fsi-wall-profile}
 \end{figure}
@@ -430,10 +445,11 @@ selected 1D pressure--area closure used in the reduced model.
 \begin{figure}[!htb]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \figtikz{membrane-fsi-fixed-point-history}
+    \resizebox{0.98\textwidth}{!}{\figtikz{membrane-fsi-fixed-point-history}}
     \caption{Fixed-point convergence for the quasi-static membrane-FSI
     comparator. The residual is the maximum radial-radius update between
-    successive coupled wall solves, reported in centimeters.}
+    successive coupled wall solves, reported in centimeters; it checks the
+    comparator solve, not the 1D--3D velocity observation error.}
     \label{fig:t1-membrane-fsi-fixed-point-history}
 \end{figure}
 
@@ -450,7 +466,7 @@ therefore not promoted into the main evidence.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Radial-profile promotion audit. The zero summary delta confirms
+    \caption{Radial-profile promotion check. The zero summary delta confirms
     that the raw radial rows reproduce the generated radial-summary statistic;
     the area-closure gate remains failed, so no radial figure or radial-bin
     localization claim is retained.}
@@ -466,6 +482,6 @@ declared resolved comparators: a reference-coordinate velocity comparison, a
 displacement-aware observation comparison, and a quasi-static membrane-wall
 comparator. The evidence supports the implemented observation and comparison
 workflow and localizes final-time velocity discrepancies under the stated
-operators. It does not validate clinical prediction, pressure-ratio accuracy,
-or equivalence to a full transient FSI computation with matched boundary and
-wall-history data.
+operators. It does not provide externally validated clinical prediction
+evidence, pressure-ratio evidence, or equivalence to a full transient FSI
+computation with matched boundary and wall-history data.

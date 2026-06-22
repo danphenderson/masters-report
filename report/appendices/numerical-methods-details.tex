@@ -3,7 +3,7 @@
 This appendix records the numerical-method details needed to interpret the
 implemented solver contract, the verification records, and the diagnostic
 1D--3D velocity comparison. Secondary solver surfaces are included only where
-they support retained implementation-health records; the principal comparison
+they support retained implementation-check records; the principal comparison
 method remains MUSCL finite volume with minmod limiting, Rusanov flux, source
 splitting, and native SSPRK3.
 
@@ -131,12 +131,12 @@ SI.
     \end{tabularx}
 \end{table}
 
-\subsection{Secondary implementation-health records}
-\label{app:num-secondary-implementation-health}
+\subsection{Secondary implementation-check records}
+\label{app:num-secondary-implementation-checks}
 \label{subsec:verification-reproducibility}
 \label{subsec:package-benchmark-suite}
 
-The package benchmark suite records implementation-health stages for the Julia
+The package benchmark suite records implementation-check stages for the Julia
 solver: descriptor health, sampled self-convergence, native/SciML
 cross-integrator discrepancy, stationary-Stokes projection rows,
 rheology/profile sensitivity, OpenBF-style boundary handling, and
@@ -145,7 +145,7 @@ surfaces runnable and generated assets schema-consistent. They do not supersede
 the MMS or geometry-rest evidence in Section~\ref{sec:numerical-verification},
 and they are not the principal two-case comparison method. When a secondary
 record lacks a declared reference solution, hardware-normalized runtime target,
-or admitted threshold, it is interpreted only as implementation-health context.
+or admitted threshold, it is interpreted only as implementation-check context.
 
 \IfFileExists{report/assets/tables/package-benchmark/package-benchmark-summary.tex}{%
     \input{report/assets/tables/package-benchmark/package-benchmark-summary.tex}
@@ -161,7 +161,7 @@ or admitted threshold, it is interpreted only as implementation-health context.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Implemented discretization surfaces retained as secondary appendix context. The principal 23\% and 40\% stenosis comparison uses the MUSCL finite-volume row with native SSPRK3; other rows are implementation-health, sensitivity, or backend-context surfaces.}
+    \caption{Implemented discretization surfaces retained as secondary appendix context. The principal 23\% and 40\% stenosis comparison uses the MUSCL finite-volume row with native SSPRK3; other rows are implementation-check, sensitivity, or backend-context surfaces.}
     \label{tab:implemented-discretization-surface}
     \begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}p{0.34\textwidth}X@{}}
         \toprule
@@ -212,11 +212,12 @@ used here as evidence for a p-convergence claim.
 
 \paragraph{Self-convergence, backend parity, and descriptor sensitivity.}
 The remaining package-benchmark figures are retained as compact
-implementation-health side records. They can expose grid sensitivity,
+implementation-check side records. They can expose grid sensitivity,
 integration-policy discrepancies, or descriptor wiring problems, but they do not
 establish a convergence theorem for the nonlinear operator. The benchmark
-pressure traces are legacy local-denominator diagnostics from the implementation
-helpers, not selected wall-law pressure observations.
+pressure traces are legacy local-denominator diagnostics
+$p_{\mathrm{loc},\mathrm g}^{\mathrm{diag}}$ from the implementation helpers,
+not selected evolution wall-law pressure observations.
 
 \begin{figure}[!htb]
     \centering
@@ -226,8 +227,9 @@ helpers, not selected wall-law pressure observations.
         \fbox{\parbox{0.82\linewidth}{\centering Benchmark convergence asset unavailable in this checkout.}}
     }
     \caption{Secondary self-convergence summary reported by the benchmark renderer.
-    Pressure bars, where present, are legacy local-denominator diagnostics rather
-    than selected wall-law pressure observations.}
+    Pressure bars, where present, are legacy local-denominator diagnostics
+    $p_{\mathrm{loc},\mathrm g}^{\mathrm{diag}}$ rather than selected evolution
+    wall-law pressure observations.}
     \label{fig:package-benchmark-convergence}
 \end{figure}
 
@@ -315,8 +317,11 @@ Here $\eta_r$ is the radial displacement, $f_r$ is the radial fluid load in the
 wall-law gauge, and $R_0^*$ is the constant reference-radius convention recorded
 in the workflow manifest. The implementation also accepts a named positive,
 sufficiently smooth reference-radius callback, so the membrane-FSI solve is not
-tied to the default Canic stenosis profile. The retained report comparison has
-not yet promoted these workflow outputs into main-text evidence.
+tied to the default Canic stenosis profile. The retained report comparison
+promotes the quasi-static summary table, wall-profile curves, and fixed-point
+history into Section~\ref{subsec:membrane-fsi-comparator}; the scratch output
+directory and manifest remain provenance records for regenerating the
+report-owned assets.
 
 The corresponding report-generation entry point is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
@@ -341,7 +346,7 @@ artifact-refresh lane explicitly promotes them.
 \subsection{Elastic-potential balance-law form}
 \label{app:num-elastic-potential-form}
 
-The reduced state is $\mathbf U=(A,Q)^\top$. For a member of the
+The reduced state is $\mathbf U=(A,Q)^\top$. For a law in the
 $\mathcal W_{\mathrm{elastic1D}}$ balance-law contract with prescribed
 momentum-flux correction $\alpha$, the reference elastic-potential form is
 \begin{flalign*}
@@ -361,7 +366,7 @@ The elastic potential satisfies
     \quad
     \pd_A \Psi(A,z,t)
     =
-    \frac{A}{\rho} \pd_A p_{\mathcal W,\mathrm g}(A,z,t), &&
+    \frac{A}{\rho} \pd_A p_{\mathcal W,\mathrm g}^{\mathrm{evol}}(A,z,t), &&
 \end{flalign*}
 and the geometry source is
 \begin{flalign*}
@@ -371,20 +376,20 @@ and the geometry source is
     \left.\pd_z \Psi(A,z,t)\right|_A
     -
     \frac{A}{\rho}
-    \left.\pd_z p_{\mathcal W,\mathrm g}(A,z,t)\right|_A. &&
+    \left.\pd_z p_{\mathcal W,\mathrm g}^{\mathrm{evol}}(A,z,t)\right|_A. &&
 \end{flalign*}
-For the selected Canic--Koiter wall-law member, assuming
+For the selected Canic--Koiter wall law, assuming
 $p_{\mathrm{ext}}$ is independent of $A$,
 \begin{flalign*}
     \quad
     c^2(A,z)
     =
-    \frac{A}{\rho} \pd_A p_{\mathcal W,\mathrm g}(A,z,t)
+    \frac{A}{\rho} \pd_A p_{\mathcal W,\mathrm g}^{\mathrm{evol}}(A,z,t)
     =
     \frac{\beta(z)\sqrt A}{2\rho A_0(z)}. &&
 \end{flalign*}
 Under the selected solver-coordinate map $A=\pi a$ and
-$A_0=\pi R_0^2$, the implemented member corresponds to
+$A_0=\pi R_0^2$, the implemented law corresponds to
 $\beta(z)=\sqrt{\pi}K R_0(z)^2/R_{\max}^2$. Therefore
 \begin{flalign*}
     \quad
@@ -624,7 +629,7 @@ $\iota_{\mathcal M}=0$.
 
 Other implemented surfaces include lower-order finite volume, WENO3 finite
 volume, a Lax--Wendroff variant, modal Legendre DG with $p=0,\ldots,4$, and
-selected SciML time backends. They remain implementation-health context unless a
+selected SciML time backends. They remain implementation-check context unless a
 retained table or figure explicitly invokes them.
 
 \subsection{Time-integration realization}

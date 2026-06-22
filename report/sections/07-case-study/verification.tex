@@ -5,8 +5,8 @@ This section applies the evidence standards from
 Section~\ref{sec:numerical-methods} to the worked example. The retained
 main-body evidence supports interpretation of the case: manufactured-solution
 verification, output-operator verification, geometry-rest preservation, and
-run-admissibility diagnostics. Secondary health records for implementation
-surfaces remain in Appendix~\ref{app:num-secondary-implementation-health}.
+run-admissibility diagnostics. Secondary implementation-check records for
+nonprincipal surfaces remain in Appendix~\ref{app:num-secondary-implementation-checks}.
 
 \subsubsection{Evidence Hierarchy and Scope}
 \label{subsec:verification-scope-convergence-stability}
@@ -21,8 +21,8 @@ Boundary, CFL, positivity, and conservation diagnostics then state whether
 accepted runs remained within the recorded numerical regime.
 Self-convergence, backend parity, stationary-Stokes projection, broad
 rheology/profile sweeps, resolved-velocity benchmark stages, and nonselected DG
-rows are secondary implementation-health records and are kept in
-Appendix~\ref{app:num-secondary-implementation-health}.
+rows are secondary implementation-check records and are kept in
+Appendix~\ref{app:num-secondary-implementation-checks}.
 
 The observation operator has its own check because the retained 1D--3D
 comparison is only meaningful after the resolved field is mapped to section
@@ -281,7 +281,7 @@ The native solver records accepted timestep extrema, realized CFL extrema,
 $\lambda_-$ and $\lambda_+$ extrema, the minimum subcriticality margin
 $\min(-\lambda_-,\lambda_+)$, solver-coordinate volume extrema and signed
 defect, positivity projection count, and total area correction from the
-positivity floor. The fixed-area characteristic boundary rule is used under the
+positivity lower bound. The fixed-area characteristic boundary rule is used under the
 subcritical sign condition $\lambda_-<0<\lambda_+$. A positive characteristic
 radicand alone is not the boundary-regime evidence; the persisted sign extrema
 and subcriticality margin are the relevant diagnostics.
@@ -296,15 +296,15 @@ characteristic-speed evidence for the runs later used in the velocity-output
 comparison. These diagnostics are admissibility and bookkeeping checks. They do
 not remove the non-well-balanced geometry-rest drift reported above.
 
-\subsubsection{Appendix-Held Implementation-Health Checks}
+\subsubsection{Appendix-Held Implementation Checks}
 \label{subsec:verification-summary}
 
-The fourth evidence tier is kept out of the main argument. Appendix~\ref{app:num-secondary-implementation-health}
+The fourth evidence tier is kept out of the main argument. Appendix~\ref{app:num-secondary-implementation-checks}
 retains the package benchmark stage summary, sampled self-convergence figure,
 backend-parity figure, nonselected DG p/h demonstration, resolved-velocity
 benchmark stage, and broad rheology/profile sensitivity figure. Appendix~\ref{app:num-stationary-stokes-refinement}
 retains the fixed-wall stationary-Stokes projection and mesh-refinement record.
-Those records are useful implementation-health checks: they can reveal runnable
+Those records are useful implementation checks: they can reveal runnable
 surface regressions, boundedness problems, backend-policy discrepancies, or
 sensitivity to nonprincipal descriptors. They do not replace the MMS record, and
 they do not change the geometry-rest conclusion.

@@ -17,12 +17,14 @@ The notation below separates the mathematical model from the discrete
 realization:
 \begin{flalign*}
     \quad
-    \mathcal M(U)=0
-    \quad\text{(continuous model)},\qquad
-    M_h\dot U_h=R_h(U_h)
-    \quad\text{(semidiscrete equations)},\qquad
-    U_h^{n+1}=\Phi_{\Delta t,h}(U_h^n)
-    \quad\text{(fully discrete scheme)}. &&
+    \mathcal M(U)&=0,
+        && \text{continuous model},\\
+    \quad
+    M_h\dot U_h&=R_h(U_h),
+        && \text{semidiscrete equations},\\
+    \quad
+    U_h^{n+1}&=\Phi_{\Delta t,h}(U_h^n),
+        && \text{fully discrete scheme}. &&
 \end{flalign*}
 A reported numerical quantity is then
 \begin{flalign*}
@@ -111,7 +113,8 @@ LuccaEtAl2025FFRPrediction}.
 
 For compliant-vessel balance laws, three checks are especially direct. First,
 positivity guards ensure that area or radius states remain physical; any
-projection or floor must be counted because it changes the discrete solution.
+projection or lower-bound correction must be counted because it changes the
+discrete solution.
 Second, conservation diagnostics record whether mass or flow bookkeeping is
 consistent with boundary fluxes and source terms. Third, well-balanced tests
 ask whether a target equilibrium is preserved by the discrete operator itself.
@@ -228,30 +231,41 @@ in the case study.
     \caption{Claim-to-evidence map for numerical-method statements in the
     report.}
     \label{tab:numerical-methods-evidence-map}
-    \begin{tabularx}{\textwidth}{@{}p{0.42\textwidth}X@{}}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.26\textwidth}
+        >{\raggedright\arraybackslash}p{0.39\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
         \toprule
-        \textbf{Claim} & \textbf{Minimum evidence} \\
+        \textbf{Claim} & \textbf{Minimum evidence} & \textbf{Does not establish} \\
         \midrule
         Implementation reproduces a manufactured smooth solution
             & Code verification and observed order for the declared forced
             operator, including flux, source, boundary, and time-integration
-            wiring. \\
+            wiring.
+            & Physical validity or grid/time resolution for the target case. \\
         Computed quantity is grid/time resolved
             & Solution verification with grid and timestep sensitivity or an
-            uncertainty estimate for the reported observable. \\
+            uncertainty estimate for the reported observable.
+            & Agreement with external data or with another model tier. \\
         Rest or steady state is preserved
             & Named equilibrium family plus a drift, residual, or exact-discrete
-            preservation test. \\
+            preservation test.
+            & Preservation of unrelated transients or patient-specific behavior. \\
         Two schemes agree
             & Shared benchmark, matched model contracts, and comparable output
-            quantities. \\
+            quantities.
+            & Correctness if the shared model contract is incomplete. \\
         Two model tiers agree
-            & Matched inputs and closures plus a common observation operator. \\
+            & Matched inputs and closures plus a common observation operator.
+            & Native-field equivalence or clinical validation. \\
         Model represents physical or clinical reality
-            & External data for the specified observable and context of use. \\
+            & External data for the specified observable and context of use.
+            & Transfer to a different observable, population, or decision
+            setting. \\
         Result is reproducible
             & Archived or declared inputs, versions, commands, generated outputs,
-            and source/provenance records. \\
+            and source/provenance records.
+            & Accuracy or validity without the relevant evidence category above. \\
         \bottomrule
     \end{tabularx}
 \end{table}

@@ -43,14 +43,14 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             velocity fields.
             & The chapter illustrates verification, reproducibility, and
             diagnostic cross-model velocity comparison; it is not a
-            pressure-ratio study or patient-specific prediction. \\
+            pressure-ratio study or patient-specific interpretation. \\
         Resolved datasets and final-time match
             & The retained resolved datasets are the 23\% stenosis case from
             local dataset 77 and the 40\% stenosis case from local dataset 60.
             Both are compared at $T=0.9995$ s, with recorded 1D--3D final-time
             offsets of $5.47\times10^{-14}$ s.
             & The final timestamp is matched. Earlier transient-history
-            matching is not carried by the retained record and would be needed
+            matching is not carried by the available comparison record and would be needed
             for a stronger predictive comparison. \\
         Principal 1D computation
             & The main comparison uses the $R_{\max}$-normalized
@@ -59,7 +59,7 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             finite-volume cells, Rusanov flux, and native SSPRK3 time
             integration.
             & Other finite-volume, DG, timestepper, and descriptor records are
-            implementation-health or sensitivity context rather than the
+            implementation-check or sensitivity context rather than the
             principal two-case comparison method. \\
         Observation operator
             & The 3D velocity field is reduced by the declared
@@ -258,10 +258,10 @@ follows standard compliant-artery and dimension-reduced modeling arguments
 \begin{definition}[Selected Canic--Koiter pressure--area wall law]
     \label{def:1d-elastic-wall-law}
     The selected elastic wall closure is the Canic--Koiter thin-wall
-    pressure--area law for the reduced wall-law gauge pressure
-    $p_{\mathcal W,\mathrm g}$. In conventional area notation it may be written
+    pressure--area law for the evolution wall-law gauge pressure
+    $p_{\mathcal W,\mathrm g}^{\mathrm{evol}}$. In conventional area notation it may be written
     \begin{flalign*}
-        \quad p_{\mathcal W,\mathrm g}(A,z,t)
+        \quad p_{\mathcal W,\mathrm g}^{\mathrm{evol}}(A,z,t)
         =
         p_{\mathrm{ext}}(z,t)
         + \frac{\beta(z)}{A_0(z)}
@@ -271,11 +271,11 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     Here $A_0(z)$ is the reference area, $p_{\mathrm{ext}}$ is the external
     pressure, and $\beta(z)$ is a wall-stiffness parameter. In the
     radius-squared coordinate $a=R^2$ used by the implemented finite-volume
-    evolution, the selected continuous source-balanced member uses the Canic
+    evolution, the selected continuous source-balanced law uses the Canic
     conservative-form reference radius $R_0^*=R_{\max}$:
     \begin{flalign*}
         \quad
-        p_{1,\mathrm g}(a,z,t)
+        p_{\mathcal W,\mathrm g}^{\mathrm{evol}}(a,z,t)
         =
         p_{\mathrm{ext}}(z,t)
         +
@@ -285,7 +285,7 @@ follows standard compliant-artery and dimension-reduced modeling arguments
         K=\frac{Eh}{1-\sigma^2}. &&
     \end{flalign*}
     With $A=\pi a$ and $A_0=\pi R_0^2$, the conventional law in
-    Eq.~\ref{eq:1d-wall-law} reduces to this selected member only when
+    Eq.~\ref{eq:1d-wall-law} reduces to this selected evolution law only when
     \begin{flalign*}
         \quad
         \beta(z)=\sqrt{\pi}\,K\,\frac{R_0(z)^2}{R_{\max}^2}. &&
@@ -303,10 +303,12 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     $p_{\mathrm{ext}}\equiv0$.
     This is the wall law paired with the implemented elastic potential and
     wall/geometry source below. Legacy pressure-output helpers in the
-    implementation still report a local-denominator pressure diagnostic through
+    implementation still report a local-denominator pressure diagnostic
+    $p_{\mathrm{loc},\mathrm g}^{\mathrm{diag}}$ through
     \path{pressure(result, params)}; benchmark pressure extrema and
-    pressure-diagnostic bars refer to that diagnostic, not to the selected
-    evolution wall law. The 1D model identifies $p_{\mathcal W,\mathrm g}$ with
+    pressure-diagnostic bars refer to that diagnostic, not to
+    $p_{\mathcal W,\mathrm g}^{\mathrm{evol}}$. The 1D model identifies
+    $p_{\mathcal W,\mathrm g}^{\mathrm{evol}}$ with
     a cross-sectional pressure representative as a closure assumption and does
     not resolve radial pressure variation.
 \end{definition}
@@ -325,7 +327,7 @@ effective-alpha correction, and locally frozen $p_2$ derivative. The main-body
 case study uses that appendix as the implementation authority and records here
 only the model contract needed to interpret the evidence.
 
-The continuous selected member has a rest state that matters for the evidence
+The selected continuous law has a rest state that matters for the evidence
 standard. Under constant external pressure and compatible zero-flow boundary
 data, the reference geometry $a(z)=R_0(z)^2$ with $q(z)=0$ should remain at
 rest in the continuous source-balanced model. This property is the target of

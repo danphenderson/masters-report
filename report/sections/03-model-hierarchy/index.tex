@@ -157,112 +157,122 @@ domain.
 \subsection{Native States and Cross-Tier Observation Maps}
 \label{subsec:native-states-observation-maps}
 
-Table~\ref{tab:model-hierarchy-comparison} summarizes the hierarchy by state,
-mathematical form, closure burden, data, observables, evidence target, and
-principal interpretation limit. The table is intentionally organized around
-state and observation rather than around individual papers. It is the reading
-frame used by later closure, evidence, and synthesis chapters.
+Tables~\ref{tab:model-hierarchy-comparison} and
+\ref{tab:model-hierarchy-observation-evidence} summarize the hierarchy in two
+steps. The first table records retained state, reduction, closure, and data
+requirements. The second records observables, evidence role, and interpretation
+limits. The split keeps the reading frame organized around state and
+observation rather than around individual papers.
 
 \begin{table}[!htb]
     \centering
-    \tiny
-    \setlength{\tabcolsep}{2pt}
-    \caption{State, closure, data, observable, and evidence matrix for
-    cardiovascular model tiers.}
+    \scriptsize
+    \caption{State, reduction, closure, and data contract for cardiovascular
+    model tiers.}
     \label{tab:model-hierarchy-comparison}
     \begin{tabularx}{\textwidth}{@{}
-        >{\raggedright\arraybackslash}p{0.075\textwidth}
-        >{\raggedright\arraybackslash}p{0.105\textwidth}
-        >{\raggedright\arraybackslash}p{0.105\textwidth}
-        >{\raggedright\arraybackslash}p{0.095\textwidth}
-        >{\raggedright\arraybackslash}p{0.105\textwidth}
-        >{\raggedright\arraybackslash}p{0.095\textwidth}
-        >{\raggedright\arraybackslash}p{0.09\textwidth}
-        >{\raggedright\arraybackslash}p{0.095\textwidth}
-        >{\raggedright\arraybackslash}p{0.095\textwidth}
+        >{\raggedright\arraybackslash}p{0.15\textwidth}
+        >{\raggedright\arraybackslash}p{0.22\textwidth}
+        >{\raggedright\arraybackslash}p{0.16\textwidth}
+        >{\raggedright\arraybackslash}p{0.21\textwidth}
         >{\raggedright\arraybackslash}X@{}}
         \toprule
         \textbf{Tier}
-            & \textbf{Native state}
-            & \textbf{Mathematical form}
+            & \textbf{Native state and form}
             & \textbf{Reduction}
             & \textbf{Closure burden}
-            & \textbf{Data/coupling}
-            & \textbf{Native observables}
-            & \textbf{Reconstructed}
-            & \textbf{Evidence target}
-            & \textbf{Limit} \\
+            & \textbf{Data or coupling requirement} \\
         \midrule
         Fixed-wall 3D CFD
-            & $\vu,p$ on prescribed lumen.
-            & Navier--Stokes or Stokes PDE.
+            & $\vu,p$ on a prescribed lumen; Navier--Stokes or Stokes PDE.
             & None in space.
             & Rheology, wall boundary, numerics.
-            & Geometry and inlet/outlet data.
-            & Velocity, pressure.
-            & WSS indices, section means.
-            & Local-field verification.
-            & Wall motion and circulation are closed. \\
+            & Geometry and inlet/outlet data. \\
         Resolved FSI
-            & Fluid fields plus wall state.
-            & Coupled fluid/structure PDEs.
+            & Fluid fields plus wall state; coupled fluid/structure PDEs.
             & Structural idealization only.
             & Wall material, interface, mesh/ALE.
-            & Wall data and coupling histories.
-            & Displacement, traction, fields.
-            & Scalar WSS or pressure diagnostics.
-            & Coupled-interface behavior.
-            & Many data/parameter inputs must be identified. \\
+            & Wall data and coupling histories. \\
         Axisymmetric / 2D
-            & Symmetry-constrained velocity, pressure.
-            & Reduced spatial PDE.
+            & Symmetry-constrained velocity and pressure; reduced spatial PDE.
             & Suppressed azimuthal/asymmetric modes.
             & Symmetry, wall, rheology, boundaries.
-            & Radius/profile data.
-            & Sectional fields.
-            & 3D asymmetry proxies.
-            & Mechanism isolation.
-            & Suppressed modes are not native. \\
+            & Radius/profile data. \\
         Distributed 1D
-            & $A,Q,\bar u$, pressure/wall state.
-            & Axial hyperbolic balance law.
+            & $A,Q,\bar u$, pressure/wall state; axial balance law.
             & Section averaging.
             & Profile, wall, friction, geometry, rheology.
-            & Inlet/outlet, junctions, terminal beds.
-            & Area, flow, mean velocity.
-            & WSS proxies, radial profiles.
-            & Pulse or stenosis comparison.
-            & Local wall traction and transverse flow are closed. \\
+            & Inlet/outlet, junctions, terminal beds. \\
         Lumped 0D
-            & Pressures, volumes, flows.
-            & ODE/algebraic network.
+            & Pressures, volumes, flows; ODE/algebraic network.
             & Spatial distribution removed.
             & Resistance, compliance, inertance, valves.
-            & Network topology and terminal data.
-            & Global pressure--flow states.
-            & Local fields only by added model.
-            & System interaction.
-            & No native stenosis geometry or WSS. \\
+            & Network topology and terminal data. \\
         Geometrical multiscale
-            & Tier-specific states plus interfaces.
-            & Coupled PDE/ODE systems.
+            & Tier-specific states plus interfaces; coupled PDE/ODE systems.
             & Local/system split.
             & Interface compatibility and stability.
-            & Pressure, flow, traction, impedance.
-            & Tier-native and interface values.
-            & Cross-tier diagnostics.
-            & Coupled-domain consistency.
-            & Interface map can dominate interpretation. \\
-        Solver surrogate/PINN/operator
-            & Learned solution, parameter, or operator map.
-            & Trained residual/data objective.
+            & Pressure, flow, traction, impedance. \\
+        Learned surrogate
+            & Learned solution, parameter, or operator map; trained objective.
             & Inherits source model/data tier.
             & Architecture, loss, training distribution.
-            & Training inputs, geometry family, labels.
+            & Training inputs, geometry family, labels. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Observable, evidence, and interpretation limits for cardiovascular
+    model tiers.}
+    \label{tab:model-hierarchy-observation-evidence}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.16\textwidth}
+        >{\raggedright\arraybackslash}p{0.22\textwidth}
+        >{\raggedright\arraybackslash}p{0.22\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Tier}
+            & \textbf{Native observables}
+            & \textbf{Reconstructed or diagnostic outputs}
+            & \textbf{Evidence role and limit} \\
+        \midrule
+        Fixed-wall 3D CFD
+            & Velocity and pressure fields.
+            & WSS indices and section means.
+            & Supports local-field verification; wall motion and circulation
+            are closed. \\
+        Resolved FSI
+            & Fluid fields, wall displacement, and interface traction.
+            & Scalar WSS or pressure diagnostics.
+            & Supports coupled-interface analysis; many data and material
+            inputs must be identified. \\
+        Axisymmetric / 2D
+            & Symmetry-constrained sectional fields.
+            & 3D asymmetry proxies.
+            & Supports mechanism isolation; suppressed modes are not native. \\
+        Distributed 1D
+            & Area, flow, mean velocity, and wall-law pressure.
+            & WSS proxies and radial-profile reconstructions.
+            & Supports pulse or stenosis comparison; local traction and
+            transverse flow are closed. \\
+        Lumped 0D
+            & Global pressure--flow states.
+            & Local fields only by added model.
+            & Supports system interaction; stenosis geometry and WSS are not
+            native. \\
+        Geometrical multiscale
+            & Tier-native and interface values.
+            & Cross-tier diagnostics.
+            & Supports coupled-domain consistency; interface maps can dominate
+            interpretation. \\
+        Learned surrogate
             & Declared learned target.
             & Derived diagnostics such as FFR.
-            & Generalization inside train/test domain.
-            & Credibility is bounded by data-generating contract. \\
+            & Supports in-distribution generalization tests; credibility is
+            bounded by the data-generating contract. \\
         \bottomrule
     \end{tabularx}
 \end{table}
