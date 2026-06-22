@@ -7,10 +7,13 @@ To add a limiter, subtype `AbstractLimiter` and define:
 
 - `limiter_name(limiter) -> String`
 - `validate(limiter) -> limiter`
-- `limited_slope(values, i, limiter) -> Float64`
+- `limited_slope(values, i, limiter) -> T`, preserving the floating-point
+  element type of `values` when practical
 
 Limiter implementations are intentionally small and allocation-free so they can
-be called inside reconstruction kernels.
+be called inside reconstruction kernels. The helper kernels below are
+scalar-generic over `AbstractFloat`, even though the current finite-volume and
+DG solver paths still call them through `Float64` state arrays.
 """
 abstract type AbstractLimiter end
 
@@ -122,27 +125,35 @@ validate(::SSPRK2Stepper) = SSPRK2Stepper()
 validate(::SSPRK3Stepper) = SSPRK3Stepper()
 validate(::SSPRK54Stepper) = SSPRK54Stepper()
 
-function minmod(a::Float64, b::Float64)
-    sign(a) == sign(b) || return 0.0
+"""Two-argument TVD minmod limiter on floating slopes."""
+function minmod(a::T, b::T) where {T<:AbstractFloat}
+    sign(a) == sign(b) || return zero(T)
     return sign(a) * min(abs(a), abs(b))
 end
 
-function minmod(a::Float64, b::Float64, c::Float64)
+minmod(a::AbstractFloat, b::AbstractFloat) = minmod(promote(a, b)...)
+
+function minmod(a::T, b::T, c::T) where {T<:AbstractFloat}
     return minmod(a, minmod(b, c))
 end
 
-function vanleer(a::Float64, b::Float64)
-    a * b > 0.0 || return 0.0
-    return 2.0 * a * b / (a + b)
+minmod(a::AbstractFloat, b::AbstractFloat, c::AbstractFloat) = minmod(promote(a, b, c)...)
+
+"""Van Leer harmonic limiter on floating slopes."""
+function vanleer(a::T, b::T) where {T<:AbstractFloat}
+    a * b > zero(T) || return zero(T)
+    return T(2) * a * b / (a + b)
 end
 
-function limited_slope(values::AbstractVector{Float64}, i::Int, ::MinmodLimiter)
-    firstindex(values) < i < lastindex(values) || return 0.0
+vanleer(a::AbstractFloat, b::AbstractFloat) = vanleer(promote(a, b)...)
+
+function limited_slope(values::AbstractVector{T}, i::Int, ::MinmodLimiter) where {T<:AbstractFloat}
+    firstindex(values) < i < lastindex(values) || return zero(T)
     return minmod(values[i] - values[i - 1], values[i + 1] - values[i])
 end
 
-function limited_slope(values::AbstractVector{Float64}, i::Int, ::VanLeerLimiter)
-    firstindex(values) < i < lastindex(values) || return 0.0
+function limited_slope(values::AbstractVector{T}, i::Int, ::VanLeerLimiter) where {T<:AbstractFloat}
+    firstindex(values) < i < lastindex(values) || return zero(T)
     return vanleer(values[i] - values[i - 1], values[i + 1] - values[i])
 end
 
@@ -186,10 +197,12 @@ cells and a spatial method.
 degrees_of_freedom(nx::Int, ::AbstractSpatialMethod) = 2 * nx
 degrees_of_freedom(nx::Int, method::DGMethod) = 2 * nx * (method.degree + 1)
 
-function legendre_value(degree::Int, xi::Float64)
+# The current DG solver still uses Float64 quadrature tables, but the Legendre
+# basis kernels themselves are safe to evaluate at other floating-point types.
+function legendre_value(degree::Int, xi::T) where {T<:AbstractFloat}
     0 <= degree <= MAX_DG_DEGREE || throw(ArgumentError("Legendre degree must be in 0:$MAX_DG_DEGREE"))
-    degree == 0 && return 1.0
-    p_nm2 = 1.0
+    degree == 0 && return one(T)
+    p_nm2 = one(T)
     p_nm1 = xi
     degree == 1 && return p_nm1
     p_n = p_nm1
@@ -201,13 +214,13 @@ function legendre_value(degree::Int, xi::Float64)
     return p_n
 end
 
-function legendre_derivative(degree::Int, xi::Float64)
+function legendre_derivative(degree::Int, xi::T) where {T<:AbstractFloat}
     0 <= degree <= MAX_DG_DEGREE || throw(ArgumentError("Legendre degree must be in 0:$MAX_DG_DEGREE"))
-    degree == 0 && return 0.0
-    p_nm2 = 1.0
+    degree == 0 && return zero(T)
+    p_nm2 = one(T)
     p_nm1 = xi
-    dp_nm2 = 0.0
-    dp_nm1 = 1.0
+    dp_nm2 = zero(T)
+    dp_nm1 = one(T)
     degree == 1 && return dp_nm1
     dp_n = dp_nm1
     for n in 2:degree

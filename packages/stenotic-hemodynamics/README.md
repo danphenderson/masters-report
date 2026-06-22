@@ -1,11 +1,12 @@
 # StenoticHemodynamics Julia Package
 
 `StenoticHemodynamics` is the Julia package used by the report in this
-repository. Its primary forward solver is a reduced 1D stenotic-vessel model,
-with native finite-volume and DG discretizations, multiple explicit
-time-stepping and SciML backend options, and Gridap-based stationary-Stokes
-and membrane-FSI workflows used for initialization, verification, backend
-comparison, and report asset generation. The package does not run transient
+repository. Its primary forward solver evolves a reduced 1D stenotic-vessel
+area-flow state, with native finite-volume and DG discretizations, explicit
+time-stepping, and selected SciML backend support. Auxiliary workflows cover
+Gridap-based stationary-Stokes initialization, reduced membrane-FSI examples,
+OpenBF-style configuration adaptation, resolved-3D data comparison, benchmark
+studies, and report asset generation. The package does not run transient
 resolved-3D CFD; resolved-3D workflows import externally generated XDMF/HDF5
 velocity data for comparison and post-processing.
 
@@ -39,7 +40,22 @@ which delegates to this CLI and records JSONL/session-summary logs:
 pipenv run ops-experiment simulate --help
 ```
 
-## Model Scope
+## Scope
+
+The package is organized around a reduced one-dimensional hemodynamics model.
+It supports model construction, numerical verification, backend comparison,
+validation-oriented auxiliary workflows, and selected comparisons against
+externally generated resolved-3D data. These workflows do not by themselves
+establish physical or clinical validation; reported quantities should be read
+relative to the model assumptions, geometry, boundary data, numerical method,
+and observation operator used to produce them.
+
+The implemented auxiliary workflows are part of the research-computation
+surface for this report. They are not a general-purpose CFD environment, a
+native generator for the upstream resolved-3D datasets, or a minimal-dependency
+solver-only package.
+
+## Reduced Model
 
 The default forward model is `canic-extended-1d`, the historical manifest token
 for the Rmax-normalized Canic-derived extended 1D stenotic artery model used in
@@ -173,11 +189,11 @@ derivation.
 
 Two deterministic initial-condition modes are available:
 
-- `--ic stationary-stokes`: default. Builds a generated 3D stenotic vessel mesh
+- `--ic stationary-stokes`: default. Builds a generated 3D stenotic-vessel mesh
   and assembles a Gridap Taylor-Hood stationary Stokes solve driven by the
-  requested pressure drop. The current 1D `(A,Q)` initialization is then
-  produced by an analytic resistance and pressure-law projection, rather than by
-  direct section averaging of the finite-element velocity and pressure fields.
+  requested pressure drop. The current 1D `(A,Q)` initialization is produced by
+  an analytic resistance and pressure-law projection, rather than by direct
+  section averaging of the finite-element velocity and pressure fields.
 - `--ic geometry-rest`: legacy baseline with `A=R0^2` and `Q=0`.
 
 Stationary Stokes pressure drops are stored internally in dyn/cm^2. The CLI
@@ -185,7 +201,7 @@ also accepts Pa and converts with `1 Pa = 10 dyn/cm^2`. The generated FEM mesh
 defaults are `--ic-mesh-nz 64 --ic-mesh-nr 6 --ic-mesh-ntheta 32`; small smoke
 tests can lower these values.
 
-## Optional Resolved-3D Data
+## Resolved-3D Comparison Data
 
 Resolved-3D comparison workflows read optional upstream XDMF/HDF5 velocity
 inputs from this ignored local root:
@@ -223,12 +239,16 @@ target plane, linearly interpolates axial velocity on cut edges, triangulates
 each cut polygon, and integrates physical area and flow. Node-slab arithmetic
 means are emitted only as supplemental sensitivity rows.
 
-## Limitations
+## Non-Goals and Limitations
 
-- The RHS and caches are currently `Float64`-specialized.
+- Solver RHS entrypoints remain `Float64`-specialized. Cache constructors and
+  local limiter/basis helpers now have typed footholds for staged scalar
+  genericization.
 - Internal semi-discrete simulation objects own mutable RHS cache arrays; do not
   share one instance across concurrent solves.
 - Study summary CSVs use simple scalar fields and minimal CSV escaping.
+- The package does not provide a general-purpose 3D CFD solver, native resolved
+  dataset generation, or clinical validation of stenosis metrics.
 - Stationary Stokes initialization is a projection contract for the 1D state,
   not a transient FSI solve or direct finite-element field projection.
 - The model is a finite-volume reproduction for local experimentation, not a

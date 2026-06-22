@@ -27,6 +27,61 @@ function assert_finite_runtime_diagnostics(result::SimulationResult)
     @test result.diagnostics.cfl_min <= result.diagnostics.cfl_max
 end
 
+function write_openbf_fixture(dir::String; project_name::String = "strict_one", extra_vessel::String = "", include_canic::Bool = true)
+    inlet_path = joinpath(dir, "inlet.dat")
+    write(
+        inlet_path,
+        """
+        0.0 1.0e-6
+        1.0e-5 2.0e-6
+        """,
+    )
+
+    canic_block = include_canic ? """
+    canic:
+      severity_percent: 30.0
+      dt: 1.0e-5
+      initial_condition:
+        pressure_drop_pa: 40.0
+        mesh_nz: 1
+        mesh_nr: 1
+        mesh_ntheta: 4
+    """ : ""
+
+    config_path = joinpath(dir, "input.yml")
+    write(
+        config_path,
+        """
+        project_name: $project_name
+        inlet_file: "inlet.dat"
+        output_directory: "out"
+        write_results: ["P", "Q", "A", "u"]
+        blood:
+          rho: 1060.0
+          mu: 0.004
+        solver:
+          Ccfl: 0.45
+          cycles: 2
+          jump: 5
+          convergence_tolerance: 1.0
+        network:
+          - label: vessel
+            sn: 1
+            tn: 2
+            L: 0.06
+            M: 8
+            E: 5.02e5
+            R0: 0.0018
+            h0: 0.0006
+            gamma_profile: 9
+            Rt: 0.25
+            $extra_vessel
+        $canic_block
+        """,
+    )
+    return config_path, inlet_path
+end
+
 function synthetic_coordinates()
     z_planes = [0.0, 3.0, 6.0]
     radii = [0.0, 0.025, 0.05, 0.075, 0.10]

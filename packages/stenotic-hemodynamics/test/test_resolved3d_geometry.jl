@@ -335,6 +335,129 @@ end
     @test occursin("fewer than 20 radial bins", message_short)
 end
 
+@testset "StenoticHemodynamics resolved 3D compare seam helpers" begin
+    @testset "time and run metadata helpers" begin
+        mktempdir() do dir
+            xdmf_path, _, _ = write_synthetic_xdmf_hdf5_case(joinpath(dir, "case77"); time=4.5e-5)
+            case_spec = StenoticHemodynamics.Resolved3DCaseSpec("77", 23.0, xdmf_path; target_time=5.0e-5, time_atol=1.0e-6)
+            params = Params(nx=8, tfinal=5.0e-5, severity=23.0, initial_condition=GeometryRestIC())
+
+            time_fields = StenoticHemodynamics.resolved3d_time_fields(case_spec.target_time, 4.5e-5, 5.2e-5)
+            @test time_fields.target_time_s ≈ 5.0e-5
+            @test time_fields.one_d_completed_time_s ≈ 5.2e-5
+            @test time_fields.one_d_terminal_time_error_s ≈ 2.0e-6
+            @test time_fields.xdmf_target_time_error_s ≈ 5.0e-6
+            @test time_fields.cross_model_time_offset_s ≈ 7.0e-6
+
+            run_fields = StenoticHemodynamics.resolved3d_run_fields(case_spec, params, NativeRK3Backend())
+            @test run_fields.model == "canic-extended-1d"
+            @test run_fields.nx == 8
+            @test run_fields.dt_s ≈ params.dt
+            @test run_fields.initial_condition == "geometry-rest"
+            @test run_fields.backend == "native"
+            @test run_fields.run_status == "ok"
+            @test run_fields.time_atol_s ≈ case_spec.time_atol
+        end
+    end
+
+    @testset "tetra plane polygon helper" begin
+        mktempdir() do dir
+            xdmf_path, _, _ = write_single_tetra_xdmf_hdf5_case(joinpath(dir, "tetra"))
+            field = StenoticHemodynamics.load_resolved3d_velocity(
+                StenoticHemodynamics.Resolved3DCaseSpec("tetra", 0.0, xdmf_path; target_time=5.0e-5),
+            )
+            tet = field.topology[1, :]
+
+            face_polygon = StenoticHemodynamics.tetra_plane_polygon(field, tet, 0.0)
+            @test length(face_polygon) == 3
+            @test all(point -> isapprox(point[3], 0.0; atol=1.0e-12), face_polygon)
+            @test length(Set([(round(point[1]; digits=12), round(point[2]; digits=12)) for point in face_polygon])) == 3
+
+            mid_polygon = StenoticHemodynamics.tetra_plane_polygon(field, tet, 0.5)
+            @test length(mid_polygon) == 3
+            @test all(point -> isapprox(point[3], 0.5; atol=1.0e-12), mid_polygon)
+            center = StenoticHemodynamics.polygon_center(mid_polygon)
+            @test center[3] ≈ 0.5 atol = 1.0e-12
+            decomposed_area = sum(
+                StenoticHemodynamics.triangle_area_xy(
+                    center,
+                    mid_polygon[i],
+                    mid_polygon[mod1(i + 1, length(mid_polygon))],
+                ) for i in eachindex(mid_polygon)
+            )
+            @test decomposed_area ≈ 0.125 atol = 1.0e-12
+
+            edge_path, _, _ = write_custom_tetra_xdmf_hdf5_case(
+                joinpath(dir, "edge_on_plane"),
+                [
+                    0.0 0.0 0.0
+                    1.0 0.0 0.0
+                    0.0 1.0 1.0
+                    0.0 0.0 1.0
+                ],
+            )
+            edge_field = StenoticHemodynamics.load_resolved3d_velocity(
+                StenoticHemodynamics.Resolved3DCaseSpec("edge", 0.0, edge_path; target_time=5.0e-5),
+            )
+            edge_polygon = StenoticHemodynamics.tetra_plane_polygon(edge_field, edge_field.topology[1, :], 0.0)
+            @test 0 < length(edge_polygon) < 3
+        end
+    end
+
+    @testset "node slab section and radial helpers" begin
+        mktempdir() do dir
+            xdmf_path, _, _ = write_synthetic_xdmf_hdf5_case(joinpath(dir, "synthetic"))
+            field = StenoticHemodynamics.load_resolved3d_velocity(
+                StenoticHemodynamics.Resolved3DCaseSpec("synthetic", 23.0, xdmf_path; target_time=5.0e-5),
+            )
+            operator = StenoticHemodynamics.NodeSlabOperator(half_width_cm=1.0e-8)
+
+            node_ids = StenoticHemodynamics.slab_node_indices(field.coordinates, 3.0, operator.half_width_cm)
+            @test length(node_ids) == 17
+
+            slab_observation = StenoticHemodynamics.section_observation(field, 3.0, operator)
+            @test slab_observation.cut_status == "valid-slab"
+            @test !slab_observation.area_valid
+            @test slab_observation.node_count == length(node_ids)
+            @test slab_observation.intersection_count == 0
+            @test slab_observation.mean_velocity_cm_s ≈ 13.0 atol = 1.0e-12
+            @test slab_observation.observed_radius_cm ≈ 0.1 atol = 1.0e-12
+
+            empty_observation = StenoticHemodynamics.section_observation(field, 1.5, operator)
+            @test empty_observation.cut_status == "empty-slab"
+            @test empty_observation.node_count == 0
+            @test isnan(empty_observation.mean_velocity_cm_s)
+            @test isnan(empty_observation.observed_radius_cm)
+
+            bins = StenoticHemodynamics.radial_bins(field.coordinates, node_ids, 0.1, 4)
+            radial_rows = StenoticHemodynamics.radial_profile_observations(field, 3.0, 0.1, 4, operator)
+            @test length(radial_rows) == 4
+            @test [row.node_count for row in radial_rows] == length.(bins)
+            @test [row.area_valid for row in radial_rows] == fill(false, 4)
+            @test [row.intersection_count for row in radial_rows] == fill(0, 4)
+            @test sum(row.node_count for row in radial_rows) == length(node_ids)
+            @test all(
+                row.node_count == 0 ?
+                isnan(row.mean_velocity_cm_s) :
+                isapprox(row.mean_velocity_cm_s, 13.0; atol=1.0e-12) for row in radial_rows
+            )
+            @test all(
+                row.node_count <= 1 ?
+                isnan(row.velocity_variance_cm2_s2) :
+                isapprox(row.velocity_variance_cm2_s2, 0.0; atol=1.0e-12) for row in radial_rows
+            )
+
+            @test_throws ArgumentError StenoticHemodynamics.radial_profile_observations(
+                field,
+                3.0,
+                0.0,
+                4,
+                StenoticHemodynamics.CrossSectionQuadratureOperator(),
+            )
+        end
+    end
+end
+
 @testset "StenoticHemodynamics resolved 3D comparison diagnostics" begin
     mktempdir() do dir
         xdmf_path, _, _ = write_synthetic_xdmf_hdf5_case(joinpath(dir, "case77"); time=4.5e-5)
@@ -611,6 +734,12 @@ end
         @test all(isfinite(parse(Float64, row["relative_rms_velocity_discrepancy"])) for row in rows)
         @test isfinite(parse(Float64, rows[2]["adjacent_rms_velocity_difference_cm_s"]))
         @test 0.0 <= parse(Float64, rows[2]["max_velocity_discrepancy_z_cm"]) <= spec.base_params.length_cm
+
+        parsed_rows = StenoticHemodynamics.read_grid_sensitivity_summary_csv(result.summary_csv)
+        @test length(parsed_rows) == length(result.summary_rows)
+        roundtrip_csv = joinpath(output_dir, "roundtrip-summary.csv")
+        StenoticHemodynamics.write_grid_sensitivity_summary_csv(roundtrip_csv, parsed_rows; overwrite=true)
+        @test read(roundtrip_csv, String) == read(result.summary_csv, String)
 
         tex = read(result.summary_tex, String)
         @test occursin("\\begin{tabular}", tex)

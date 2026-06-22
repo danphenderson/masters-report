@@ -78,6 +78,25 @@ end
         @test occursin("spatial verification", tex_text)
         @test occursin("timestep-insensitivity", tex_text)
 
+        cli_mms = StenoticHemodynamics.run_cli([
+            "verify",
+            "mms",
+            "--output-dir",
+            joinpath(dir, "mms-cli"),
+            "--nxs",
+            "8,12",
+            "--dt-values",
+            "2e-5,1e-5",
+            "--tfinal",
+            "1e-5",
+            "--dt",
+            "1e-5",
+            "--overwrite",
+        ])
+        @test cli_mms isa StenoticHemodynamics.ManufacturedVerificationResult
+        @test isfile(cli_mms.summary_csv)
+        @test isfile(cli_mms.summary_tex)
+
         ph_demo = StenoticHemodynamics.run_ph_refinement_demo(StenoticHemodynamics.PHRefinementDemoSpec(;
             output_dir=joinpath(dir, "ph-demo"),
             h_nxs=[6, 8],

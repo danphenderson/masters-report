@@ -306,6 +306,113 @@ end
     end
 
     mktempdir() do dir
+        result = StenoticHemodynamics.run_cli([
+            "study",
+            "severity",
+            "--output-dir",
+            dir,
+            "--summary-csv",
+            joinpath(dir, "severity.csv"),
+            "--severities",
+            "23,40",
+            "--nx",
+            "8",
+            "--tfinal",
+            "1e-5",
+            "--dt",
+            "1e-5",
+            "--progress-every",
+            "0",
+            "--no-svg",
+            "--overwrite",
+            "--parallel-workers",
+            "0",
+        ])
+        @test result isa StenoticHemodynamics.StudyResult
+        @test result.study_kind == "severity_sweep"
+        @test isfile(result.summary_csv)
+        @test length(result.summaries) == 2
+    end
+
+    mktempdir() do dir
+        result = StenoticHemodynamics.run_cli([
+            "study",
+            "grid",
+            "--output-dir",
+            dir,
+            "--summary-csv",
+            joinpath(dir, "grid.csv"),
+            "--nxs",
+            "6,8",
+            "--severity",
+            "23",
+            "--tfinal",
+            "1e-5",
+            "--dt",
+            "1e-5",
+            "--progress-every",
+            "0",
+            "--no-svg",
+            "--overwrite",
+            "--parallel-workers",
+            "0",
+        ])
+        @test result isa StenoticHemodynamics.StudyResult
+        @test result.study_kind == "grid_convergence"
+        @test isfile(result.summary_csv)
+        @test sort([row.nx for row in result.summaries]) == [6, 8]
+    end
+
+    mktempdir() do dir
+        result = StenoticHemodynamics.run_cli([
+            "study",
+            "refinement",
+            "--output-dir",
+            dir,
+            "--nxs",
+            "6,8",
+            "--degrees",
+            "0",
+            "--tfinal",
+            "1e-5",
+            "--dt",
+            "1e-5",
+            "--progress-every",
+            "0",
+            "--no-svg",
+            "--overwrite",
+            "--parallel-workers",
+            "0",
+        ])
+        @test result isa StenoticHemodynamics.RefinementStudyResult
+        @test all(isfile, result.csv_paths)
+        @test all(isfile, result.tex_paths)
+        @test !isempty(result.h_rows)
+        @test !isempty(result.p_rows)
+    end
+
+    mktempdir() do dir
+        result = StenoticHemodynamics.run_cli([
+            "stokes",
+            "refine",
+            "--output-dir",
+            dir,
+            "--nx",
+            "8",
+            "--severities",
+            "23",
+            "--meshes",
+            "4x1x4",
+            "--overwrite",
+            "--parallel-workers",
+            "0",
+        ])
+        @test result isa StenoticHemodynamics.StationaryStokesRefinementResult
+        @test isfile(result.summary_csv)
+        @test only(result.rows).status == "ok"
+    end
+
+    mktempdir() do dir
         result = StenoticHemodynamics.run_cli(["compare-3d", "--data-root", joinpath(dir, "missing"), "--output-dir", joinpath(dir, "out"), "--overwrite"])
         @test result === nothing
     end
@@ -433,12 +540,95 @@ end
         @test parse(Int, rows[2]["adjacent_from_nx"]) == 6
         @test isfinite(parse(Float64, rows[2]["adjacent_rms_velocity_difference_cm_s"]))
         @test all(isfile(joinpath(output_dir, "nx$(row["nx"])", "comparison_summary.csv")) for row in rows)
+
+        reused_output_dir = joinpath(dir, "grid-comparison-reused")
+        reused = StenoticHemodynamics.run_cli([
+            "compare-3d",
+            "--output-dir",
+            reused_output_dir,
+            "--nxs",
+            "6,8",
+            "--reuse-grid-summary",
+            result.summary_csv,
+            "--grid-summary-csv",
+            joinpath(reused_output_dir, "selected_summary.csv"),
+            "--grid-summary-tex",
+            joinpath(reused_output_dir, "selected_summary.tex"),
+            "--overwrite",
+        ])
+        @test reused isa StenoticHemodynamics.GridSensitivityResult
+        @test isfile(reused.summary_csv)
+        @test isfile(reused.summary_tex)
+        reused_rows = read_simple_csv(reused.summary_csv)
+        @test [row["nx"] for row in reused_rows] == ["6", "8"]
     end
 
     mktempdir() do dir
         result = StenoticHemodynamics.run_cli(["benchmark", "--profile", "smoke", "--output-dir", dir, "--overwrite"])
         @test result isa StenoticHemodynamics.PackageBenchmarkResult
         @test isfile(joinpath(dir, "manifest.json"))
+    end
+
+    @test StenoticHemodynamics.CLI_COMMAND_HANDLERS["export-assets"] === StenoticHemodynamics.run_export_assets_cli
+    @test StenoticHemodynamics.run_cli(["export-assets", "--help"]) === nothing
+    @test_throws ArgumentError StenoticHemodynamics.run_cli(["export-assets", "--z-samples", "2"])
+
+    mktempdir() do dir
+        output_dir = joinpath(dir, "exports")
+        missing_root = joinpath(dir, "missing-resolved3d")
+        expected_paths = [
+            joinpath(output_dir, "analytic_summary.csv"),
+            joinpath(output_dir, "analytic_radius_profiles.csv"),
+            joinpath(output_dir, "analytic_surface_sev0.csv"),
+            joinpath(output_dir, "analytic_surface_sev23.csv"),
+            joinpath(output_dir, "analytic_surface_sev40.csv"),
+            joinpath(output_dir, "analytic_surface_sev50.csv"),
+            joinpath(output_dir, "analytic_surface_sev73.csv"),
+            joinpath(output_dir, "analytic_cross_sections.csv"),
+            joinpath(output_dir, "mesh_view_manifest.csv"),
+            joinpath(output_dir, "fem_mesh_view_sev50.csv"),
+            joinpath(output_dir, "fvm_mesh_view_sev50.csv"),
+            joinpath(output_dir, "stokes_particle_trajectories.csv"),
+            joinpath(output_dir, "stokes_particle_trajectories_manifest.csv"),
+            joinpath(output_dir, "resolved_velocity_nodes_manifest.csv"),
+            joinpath(output_dir, "resolved_envelope_manifest.csv"),
+        ]
+        captured = Ref{Union{Nothing, StenoticHemodynamics.GeometryExportOptions}}(nothing)
+        original_handler = StenoticHemodynamics.CLI_COMMAND_HANDLERS["export-assets"]
+        StenoticHemodynamics.CLI_COMMAND_HANDLERS["export-assets"] = args -> begin
+            opts = StenoticHemodynamics.parse_export_args(args)
+            opts === nothing && return nothing
+            captured[] = opts
+            for path in expected_paths
+                mkpath(dirname(path))
+                write(path, "stub\n")
+            end
+            return expected_paths
+        end
+        try
+            result = StenoticHemodynamics.run_cli([
+                "export-assets",
+                "--output-dir",
+                output_dir,
+                "--data-root",
+                missing_root,
+                "--z-samples",
+                "3",
+                "--theta-samples",
+                "12",
+                "--overwrite",
+            ])
+            @test result == expected_paths
+            @test all(isfile, expected_paths)
+            @test captured[] isa StenoticHemodynamics.GeometryExportOptions
+            @test captured[].output_dir == output_dir
+            @test captured[].data_root == missing_root
+            @test captured[].z_samples == 3
+            @test captured[].theta_samples == 12
+            @test captured[].overwrite == true
+        finally
+            StenoticHemodynamics.CLI_COMMAND_HANDLERS["export-assets"] = original_handler
+        end
     end
 
     mktempdir() do dir

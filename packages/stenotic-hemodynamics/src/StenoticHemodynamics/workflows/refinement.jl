@@ -90,6 +90,20 @@ function default_output_paths(spec::RefinementStudySpec)
     )
 end
 
+function refinement_study_spec_from_values(values::Dict{String,String}, flags::Set{String})
+    params, backend, progress_every = params_backend_progress(values, flags)
+    return RefinementStudySpec(;
+        base_params=params,
+        nxs=parse_int_list(get(values, "nxs", "50,100,200,400")),
+        degrees=parse_int_list(get(values, "degrees", "0,1,2")),
+        backend=backend,
+        output_dir=get(values, "output-dir", ""),
+        overwrite=("overwrite" in flags),
+        progress_every=progress_every,
+        parallel_workers=parse(Int, get(values, "parallel-workers", string(default_case_workers()))),
+    )
+end
+
 function run_refinement_study(spec::RefinementStudySpec = RefinementStudySpec())
     validate_workflow_spec(spec)
     h_chunks = parallel_case_map(spec.h_methods; parallel_workers=spec.parallel_workers) do method

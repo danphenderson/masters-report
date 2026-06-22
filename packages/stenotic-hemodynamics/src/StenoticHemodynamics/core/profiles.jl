@@ -1,23 +1,22 @@
 abstract type AbstractVelocityProfile end
 
 """Uniform section velocity with explicit finite shear/friction scaling."""
-struct FlatVelocityProfile <: AbstractVelocityProfile
-    shear_rate_factor::Float64
+struct FlatVelocityProfile{T<:AbstractFloat} <: AbstractVelocityProfile
+    shear_rate_factor::T
 end
 
-FlatVelocityProfile(; shear_rate_factor::Real = 4.0) = FlatVelocityProfile(Float64(shear_rate_factor))
+FlatVelocityProfile(shear_rate_factor::Real) = FlatVelocityProfile{Float64}(Float64(shear_rate_factor))
+FlatVelocityProfile(; shear_rate_factor::Real = 4.0) = FlatVelocityProfile(shear_rate_factor)
 
 """Poiseuille/parabolic profile normalized by the section-mean velocity."""
 struct ParabolicVelocityProfile <: AbstractVelocityProfile end
 
 """Power-family profile normalized by the section-mean velocity."""
-struct PowerVelocityProfile <: AbstractVelocityProfile
-    exponent::Float64
+struct PowerVelocityProfile{T<:AbstractFloat} <: AbstractVelocityProfile
+    exponent::T
 end
 
-function PowerVelocityProfile(exponent::Real)
-    return PowerVelocityProfile(Float64(exponent))
-end
+PowerVelocityProfile(exponent::Real) = PowerVelocityProfile{Float64}(Float64(exponent))
 
 function PowerVelocityProfile(; exponent::Union{Nothing,Real} = nothing, alpha::Union{Nothing,Real} = nothing)
     if exponent !== nothing && alpha !== nothing
@@ -28,27 +27,32 @@ function PowerVelocityProfile(; exponent::Union{Nothing,Real} = nothing, alpha::
         return PowerVelocityProfile(exponent)
     end
 
-    alpha_value = Float64(alpha)
+    alpha_value = alpha isa AbstractFloat ? alpha : Float64(alpha)
+    one_t = one(typeof(alpha_value))
     1.0 < alpha_value < 2.0 ||
         throw(ArgumentError("power velocity profile alpha must satisfy 1 < alpha < 2"))
-    return PowerVelocityProfile(normalized_profile_parameter((2.0 - alpha_value) / (alpha_value - 1.0)))
+    return PowerVelocityProfile(normalized_profile_parameter((typeof(alpha_value)(2) - alpha_value) / (alpha_value - one_t)))
 end
 
 profile_name(::FlatVelocityProfile) = "flat"
 profile_name(::ParabolicVelocityProfile) = "parabolic"
 profile_name(::PowerVelocityProfile) = "power"
 
-momentum_alpha(::FlatVelocityProfile) = 1.0
+momentum_alpha(profile::FlatVelocityProfile{T}) where {T<:AbstractFloat} = one(T)
 momentum_alpha(::ParabolicVelocityProfile) = 4.0 / 3.0
-momentum_alpha(profile::PowerVelocityProfile) = (profile.exponent + 2.0) / (profile.exponent + 1.0)
+function momentum_alpha(profile::PowerVelocityProfile{T}) where {T<:AbstractFloat}
+    return (profile.exponent + T(2)) / (profile.exponent + one(T))
+end
 
 shear_rate_factor(profile::FlatVelocityProfile) = profile.shear_rate_factor
 shear_rate_factor(::ParabolicVelocityProfile) = 4.0
-shear_rate_factor(profile::PowerVelocityProfile) = profile.exponent + 2.0
+shear_rate_factor(profile::PowerVelocityProfile{T}) where {T<:AbstractFloat} = profile.exponent + T(2)
 
-mean_to_max_velocity_ratio(::FlatVelocityProfile) = 1.0
+mean_to_max_velocity_ratio(profile::FlatVelocityProfile{T}) where {T<:AbstractFloat} = one(T)
 mean_to_max_velocity_ratio(::ParabolicVelocityProfile) = 0.5
-mean_to_max_velocity_ratio(profile::PowerVelocityProfile) = profile.exponent / (profile.exponent + 2.0)
+function mean_to_max_velocity_ratio(profile::PowerVelocityProfile{T}) where {T<:AbstractFloat}
+    return profile.exponent / (profile.exponent + T(2))
+end
 
 profile_exponent(::AbstractVelocityProfile) = NaN
 profile_exponent(::ParabolicVelocityProfile) = 2.0
@@ -68,15 +72,16 @@ end
 
 path_token(value) = replace(trim_trailing_decimal_zeros(string(value)), "." => "p", "-" => "m", "+" => "")
 
-function normalized_profile_parameter(value::Real)
-    value64 = Float64(value)
-    !isfinite(value64) && return value64
-    rounded_integer = round(value64)
-    if isapprox(value64, rounded_integer; rtol=1.0e-12, atol=1.0e-12)
+function normalized_profile_parameter(value::T) where {T<:AbstractFloat}
+    !isfinite(value) && return value
+    rounded_integer = round(value)
+    if isapprox(value, rounded_integer; rtol=T(1.0e-12), atol=T(1.0e-12))
         return rounded_integer
     end
-    return round(value64; digits=12)
+    return round(value; digits=12)
 end
+
+normalized_profile_parameter(value::Real) = normalized_profile_parameter(Float64(value))
 
 function trim_trailing_decimal_zeros(text::AbstractString)
     occursin(".", text) || return text
@@ -89,35 +94,42 @@ velocity_profile_path_token(profile::FlatVelocityProfile) = "flat_sf_" * path_to
 velocity_profile_path_token(profile::PowerVelocityProfile) = "power_g_" * path_token(profile.exponent)
 
 function radial_profile_velocity(
-    uavg::Float64,
-    radius::Float64,
-    section_radius::Float64,
+    uavg::Real,
+    radius::Real,
+    section_radius::Real,
     ::FlatVelocityProfile,
 )
-    _ = radius
-    _ = section_radius
-    return uavg
+    T = _promote_float_type(uavg, radius, section_radius)
+    return T(uavg)
 end
 
 function radial_profile_velocity(
-    uavg::Float64,
-    radius::Float64,
-    section_radius::Float64,
+    uavg::Real,
+    radius::Real,
+    section_radius::Real,
     ::ParabolicVelocityProfile,
 )
-    ratio = clamp(radius / max(section_radius, eps()), 0.0, 1.0)
-    return 2.0 * uavg * (1.0 - ratio^2)
+    T = _promote_float_type(uavg, radius, section_radius)
+    uavg_t = T(uavg)
+    radius_t = T(radius)
+    section_radius_t = T(section_radius)
+    ratio = clamp(radius_t / max(section_radius_t, eps(T)), zero(T), one(T))
+    return T(2) * uavg_t * (one(T) - ratio^2)
 end
 
 function radial_profile_velocity(
-    uavg::Float64,
-    radius::Float64,
-    section_radius::Float64,
+    uavg::Real,
+    radius::Real,
+    section_radius::Real,
     profile::PowerVelocityProfile,
 )
-    ratio = clamp(radius / max(section_radius, eps()), 0.0, 1.0)
-    gamma = profile.exponent
-    return ((gamma + 2.0) / gamma) * uavg * (1.0 - ratio^gamma)
+    T = _promote_float_type(uavg, radius, section_radius, profile.exponent)
+    uavg_t = T(uavg)
+    radius_t = T(radius)
+    section_radius_t = T(section_radius)
+    gamma = T(profile.exponent)
+    ratio = clamp(radius_t / max(section_radius_t, eps(T)), zero(T), one(T))
+    return ((gamma + T(2)) / gamma) * uavg_t * (one(T) - ratio^gamma)
 end
 
 function validate(profile::FlatVelocityProfile)
