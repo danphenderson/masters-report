@@ -157,5 +157,19 @@ end
         @test occursin("wall_velocity_cm_s", readline(dynamic_row.profile_csv))
         @test occursin("wall_velocity_max_cm_s", readline(dynamic_row.history_csv))
         @test !occursin("planned-dynamic-mode", read(dynamic.summary_csv, String))
+
+        report_assets_dir = joinpath(dir, "report-assets")
+        report_paths = StenoticHemodynamics.publish_membrane_fsi_report_assets(
+            dynamic;
+            report_assets_dir=report_assets_dir,
+            overwrite=true,
+        )
+        @test joinpath(report_assets_dir, "data", "membrane-fsi", "summary.csv") in report_paths
+        @test joinpath(report_assets_dir, "tables", "membrane-fsi", "summary.tex") in report_paths
+        @test joinpath(report_assets_dir, "data", "membrane-fsi", "wall-profile-severity23.dat") in report_paths
+        @test joinpath(report_assets_dir, "data", "membrane-fsi", "fixed-point-history-severity23.dat") in report_paths
+        report_tex = read(joinpath(report_assets_dir, "tables", "membrane-fsi", "summary.tex"), String)
+        @test occursin("23\\% stenosis", report_tex)
+        @test !occursin(dynamic_row.case_id, report_tex)
     end
 end

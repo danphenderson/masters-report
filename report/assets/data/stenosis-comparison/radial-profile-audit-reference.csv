@@ -1,0 +1,7 @@
+severity,case,coordinate_mode,z_slice_cm,radial_bin_count,area_mismatch_rel,reconstructed_mean_abs_error_cm_s,summary_mean_abs_delta_cm_s,status,message
+23.0,severity23,reference,1.951,20,NaN,0.6368789301984604,0.0,failed,radial area closure exceeds 1%
+23.0,severity23,reference,2.451,20,NaN,4.30852859296203,0.0,failed,radial area closure exceeds 1%
+23.0,severity23,reference,2.951,20,NaN,4.325340644572205,0.0,failed,radial area closure exceeds 1%
+40.0,severity40,reference,1.951,20,NaN,0.6860284705019742,0.0,failed,radial area closure exceeds 1%
+40.0,severity40,reference,2.451,20,NaN,9.20000268655039,0.0,failed,radial area closure exceeds 1%
+40.0,severity40,reference,2.951,20,NaN,12.23076715689459,0.0,failed,radial area closure exceeds 1%

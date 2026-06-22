@@ -237,6 +237,104 @@ end
     end
 end
 
+@testset "StenoticHemodynamics radial profile promotion audit" begin
+    section_row = StenoticHemodynamics.SectionComparisonRow(
+        "77",
+        23.0,
+        "CrossSectionQuadratureOperator",
+        "canic-extended-1d",
+        8,
+        1.0e-5,
+        "geometry-rest",
+        "native",
+        "ok",
+        "reference",
+        0.5,
+        1.0,
+        20.0,
+        18.0,
+        20.0,
+        18.0,
+        2.0,
+        2.0,
+        0.1,
+        0.0,
+        20,
+        true,
+        "valid",
+        20,
+        1.0,
+        5.0e-5,
+        0.0,
+        5.0e-5,
+        1.0e-6,
+        5.0e-5,
+        0.0,
+        0.0,
+        0.0,
+    )
+    radial_rows = [
+        StenoticHemodynamics.RadialProfileRow(
+            "77",
+            23.0,
+            "CrossSectionQuadratureOperator",
+            "canic-extended-1d",
+            8,
+            1.0e-5,
+            "geometry-rest",
+            "native",
+            "ok",
+            "reference",
+            0.5,
+            bin,
+            (bin - 0.5) / 20.0,
+            0.05,
+            1.0,
+            20.0,
+            18.0,
+            2.0,
+            0.1,
+            20,
+            true,
+            20,
+            5.0e-5,
+            0.0,
+            5.0e-5,
+            1.0e-6,
+            5.0e-5,
+            0.0,
+            0.0,
+            0.0,
+            20,
+            "current",
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+        ) for bin in 1:20
+    ]
+    status, message, area_mismatch, reconstructed_error = StenoticHemodynamics.radial_profile_slice_audit(
+        radial_rows,
+        [section_row];
+        severity=23.0,
+        coordinate_mode="reference",
+    )
+    @test status == "ok"
+    @test isempty(message)
+    @test area_mismatch ≈ 0.0 atol=1.0e-14
+    @test reconstructed_error ≈ 2.0
+
+    status_short, message_short, _, _ = StenoticHemodynamics.radial_profile_slice_audit(
+        radial_rows[1:19],
+        [section_row];
+        severity=23.0,
+        coordinate_mode="reference",
+    )
+    @test status_short == "failed"
+    @test occursin("fewer than 20 radial bins", message_short)
+end
+
 @testset "StenoticHemodynamics resolved 3D comparison diagnostics" begin
     mktempdir() do dir
         xdmf_path, _, _ = write_synthetic_xdmf_hdf5_case(joinpath(dir, "case77"); time=4.5e-5)
@@ -321,15 +419,20 @@ end
 
         report_dir = joinpath(dir, "report-assets")
         report_paths = StenoticHemodynamics.publish_resolved3d_report_assets(result; output_dir=report_dir, overwrite=true)
-        area_audit_path = joinpath(report_dir, "area-audit.dat")
-        node_slab_report_path = joinpath(report_dir, "node-slab-sensitivity.csv")
-        production_report_path = joinpath(report_dir, "production-diagnostics.dat")
+        area_audit_path = joinpath(report_dir, "area-audit-reference.dat")
+        radial_audit_path = joinpath(report_dir, "radial-profile-audit-reference.csv")
+        node_slab_report_path = joinpath(report_dir, "node-slab-sensitivity-reference.csv")
+        production_report_path = joinpath(report_dir, "production-diagnostics-reference.dat")
         @test area_audit_path in report_paths
         @test isfile(area_audit_path)
+        @test radial_audit_path in report_paths
+        @test isfile(radial_audit_path)
         @test node_slab_report_path in report_paths
         @test isfile(node_slab_report_path)
         @test production_report_path in report_paths
         @test isfile(production_report_path)
+        @test joinpath(report_dir, "section-quadrature-reference.dat") in report_paths
+        @test isfile(joinpath(report_dir, "section-quadrature.dat"))
         node_slab_report_header = split(readline(node_slab_report_path), ",")
         @test "time_offset_s" in node_slab_report_header
         @test all(in(node_slab_report_header), time_columns)
@@ -397,7 +500,7 @@ end
             "aref_max_cm2",
         ]
         area_audit_values = split(area_audit_lines[2])
-        @test area_audit_values[1] == "C23"
+        @test area_audit_values[1] == "23\\%"
         @test parse(Int, area_audit_values[2]) == length(valid_sections)
         @test parse(Float64, area_audit_values[3]) >= 0.0
         @test parse(Float64, area_audit_values[6]) >= parse(Float64, area_audit_values[3])
@@ -411,6 +514,41 @@ end
         slab_rows = [row for row in result.sensitivity_rows if row.node_count > 0]
         @test !isempty(slab_rows)
         @test all(row.mean_u3d_cm_s ≈ 10.0 + row.z_cm for row in slab_rows)
+
+        deformed_case_dir = joinpath(dir, "deformed-case")
+        deformed_xdmf_path, deformed_coords, _ = write_single_tetra_xdmf_hdf5_case(deformed_case_dir; time=5.0e-5)
+        displacement_values = zeros(Float64, size(deformed_coords, 1), 3)
+        displacement_values[:, 1] .= 0.02
+        write_xdmf_hdf5_field(
+            deformed_case_dir,
+            "displace",
+            deformed_coords,
+            Int32[0 1 2 3],
+            displacement_values,
+            "Vector",
+            5.0e-5,
+        )
+        deformed_spec = StenoticHemodynamics.ComparisonSpec(
+            cases=[StenoticHemodynamics.Resolved3DCaseSpec("77", 23.0, deformed_xdmf_path; target_time=5.0e-5)],
+            base_params=Params(nx=8, tfinal=5.0e-5, severity=23.0, initial_condition=GeometryRestIC()),
+            output_dir=joinpath(dir, "deformed-out"),
+            section_count=3,
+            profile_slices=[0.5],
+            coordinate_mode="deformed",
+            overwrite=true,
+            write_svg=false,
+        )
+        reference_section_before = read(joinpath(report_dir, "section-quadrature-reference.dat"), String)
+        deformed_result = StenoticHemodynamics.run_comparison(deformed_spec)
+        deformed_paths = StenoticHemodynamics.publish_resolved3d_report_assets(
+            deformed_result;
+            output_dir=report_dir,
+            overwrite=true,
+        )
+        @test joinpath(report_dir, "section-quadrature-deformed.dat") in deformed_paths
+        @test isfile(joinpath(report_dir, "area-audit-deformed.dat"))
+        @test read(joinpath(report_dir, "section-quadrature-reference.dat"), String) == reference_section_before
+        @test !isfile(joinpath(report_dir, "section-quadrature-deformed-reference.dat"))
     end
 end
 
@@ -462,7 +600,7 @@ end
 
         rows = sort(read_simple_csv(result.summary_csv); by=row -> parse(Int, row["nx"]))
         @test [parse(Int, row["nx"]) for row in rows] == [6, 8]
-        @test all(row["case"] == "C23" for row in rows)
+        @test all(row["case"] == "severity23" for row in rows)
         @test all(row["coordinate_mode"] == "reference" for row in rows)
         @test all(row["severity"] == "23" for row in rows)
         @test parse(Int, rows[1]["adjacent_from_nx"]) == 0
@@ -476,7 +614,7 @@ end
 
         tex = read(result.summary_tex, String)
         @test occursin("\\begin{tabular}", tex)
-        @test occursin("C23", tex)
+        @test occursin("23\\% stenosis", tex)
         @test occursin(" & 8 & ", tex)
         table_rows = [line for line in split(tex, '\n') if occursin(" & ", line)]
         @test !isempty(table_rows)

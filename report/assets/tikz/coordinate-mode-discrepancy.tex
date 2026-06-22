@@ -1,0 +1,34 @@
+\begin{tikzpicture}[fig]
+  \begin{axis}[
+    width=\textwidth,
+    height=7.0cm,
+    xlabel={axial coordinate $z$ (cm)},
+    ylabel={$|\bar u_{1D}-\bar u_{3D}|$ (cm/s)},
+    xmin=0, xmax=6,
+    ymin=0,
+    grid=both,
+    legend columns=2,
+    legend style={font=\scriptsize, at={(0.5,-0.20)}, anchor=north},
+  ]
+    \path[fill=wallgraylight, fill opacity=0.36, text opacity=1, draw=none]
+      (axis cs:2.4,0) rectangle (axis cs:2.8,10.4);
+    \draw[wallgray!65!black, densely dashed, line width=0.45pt]
+      (axis cs:2.451,0) -- (axis cs:2.451,10.4)
+      node[pos=0.94, right=1pt, font=\scriptsize, fill=white,
+           fill opacity=0.9, text opacity=1, inner sep=1pt]
+        {$z_\star$};
+
+    \addplot+[bloodred, mark=none, line width=1.05pt]
+      table[x=z, y=discseverity23] {report/assets/data/stenosis-comparison/section-quadrature-reference.dat};
+    \addlegendentry{23\% reference}
+    \addplot+[bloodred, mark=none, dashed, line width=1.05pt]
+      table[x=z, y=discseverity23] {report/assets/data/stenosis-comparison/section-quadrature-deformed.dat};
+    \addlegendentry{23\% deformed}
+    \addplot+[accentTeal, mark=none, line width=1.05pt]
+      table[x=z, y=discseverity40] {report/assets/data/stenosis-comparison/section-quadrature-reference.dat};
+    \addlegendentry{40\% reference}
+    \addplot+[accentTeal, mark=none, dashed, line width=1.05pt]
+      table[x=z, y=discseverity40] {report/assets/data/stenosis-comparison/section-quadrature-deformed.dat};
+    \addlegendentry{40\% deformed}
+  \end{axis}
+\end{tikzpicture}

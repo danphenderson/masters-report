@@ -201,7 +201,8 @@ component magnitudes before the drift history is interpreted.
     \end{center}
 }
 
-The zero-forcing rest runner starts the selected C23 and C40 geometries from the
+The zero-forcing rest runner starts the selected 23\% and 40\% stenosis
+geometries from the
 rest state with a zero-velocity inlet and reports
 \begin{flalign*}
     \quad
@@ -247,7 +248,8 @@ $Q_{\mathrm{comp}}\approx2.288\,\mathrm{cm}^3/\mathrm{s}$ in physical circular
 flow, as used in the axial-flow comparison
 (Figure~\ref{fig:t1-axial-flow-comparison}). On the $N=400$ production
 comparison grid, the final zero-inlet rest-flow values are $0.03839$ and
-$0.06339\,\mathrm{cm}^3/\mathrm{s}$ in solver $q$ for C23 and C40, equal to
+$0.06339\,\mathrm{cm}^3/\mathrm{s}$ in solver $q$ for the 23\% and 40\%
+stenosis cases, equal to
 5.3\% and 8.7\% of $q_{\mathrm{comp}}$. The corresponding peak production-grid
 values are $0.04387$ and $0.07053\,\mathrm{cm}^3/\mathrm{s}$. On the finer
 $N=800$ check grid, the $t=1$ s values fall to $0.00973$ and
@@ -266,7 +268,7 @@ on the production comparison grid.
 \end{figure}
 
 This geometry-rest result is the principal negative numerical finding of the
-chapter. The selected C23/C40 comparison runs are initialized from the same
+chapter. The selected 23\% and 40\% stenosis comparison runs are initialized from the same
 geometry-rest state and use the same operator. The corrected zero-inlet
 magnitude no longer supports a large through-flow interpretation, but the
 nonzero localized residual still prevents treating the comparison as a clean
@@ -284,11 +286,11 @@ subcritical sign condition $\lambda_-<0<\lambda_+$. A positive characteristic
 radicand alone is not the boundary-regime evidence; the persisted sign extrema
 and subcriticality margin are the relevant diagnostics.
 
-In the rest-state table, the finest-grid C23/C40 $t=1$ s rows retain
+In the rest-state table, the finest-grid 23\% and 40\% stenosis $t=1$ s rows retain
 positive subcritical margins, zero requested and applied inlet flow, signed
 solver-volume defects, boundary-flux integrals, and near-roundoff finite-volume
 balance residuals. The generated rest CSV records zero positivity projection
-counts for these rest tests. The production C23/C40 comparison diagnostics in
+counts for these rest tests. The production comparison diagnostics in
 Table~\ref{tab:t1-alpha-radicand-diagnostics} provide the corresponding
 characteristic-speed evidence for the runs later used in the velocity-output
 comparison. These diagnostics are admissibility and bookkeeping checks. They do

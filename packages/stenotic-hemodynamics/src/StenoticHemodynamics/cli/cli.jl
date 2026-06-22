@@ -500,8 +500,9 @@ const FSI_VALUE_OPTIONS = union(STUDY_VALUE_OPTIONS, Set([
     "wall-tfinal",
     "manifest-json",
     "summary-tex",
+    "report-assets-dir",
 ]))
-const FSI_FLAG_OPTIONS = union(STUDY_FLAG_OPTIONS, Set(["overwrite"]))
+const FSI_FLAG_OPTIONS = union(STUDY_FLAG_OPTIONS, Set(["overwrite", "publish-report-assets"]))
 
 const VERIFY_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
     "degrees",
@@ -782,10 +783,11 @@ end
 function print_fsi_usage()
     println("""
     Usage:
-      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi validate [--wall-mode quasi-static|dynamic] [--severities 23,40] [--meshes 8x2x8,16x4x16] [options]
+      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi validate [--wall-mode quasi-static|dynamic] [--severities 23,40] [--meshes 8x2x8,16x4x16] [--publish-report-assets] [options]
 
     Dynamic mode is a reduced radial membrane model coupled to repeated quasi-steady Stokes solves.
     Dynamic options use cgs-compatible units: --wall-density G/CM3, --wall-dt SECONDS, --wall-tfinal SECONDS.
+    Report assets are written under --report-assets-dir, default report/assets.
     """)
 end
 
@@ -837,6 +839,16 @@ function run_fsi_cli(args::Vector{String})
     println("fsi_validation_summary_csv,$(result.summary_csv)")
     println("fsi_validation_summary_tex,$(result.summary_tex)")
     println("fsi_validation_manifest_json,$(result.manifest_json)")
+    if "publish-report-assets" in flags
+        paths = publish_membrane_fsi_report_assets(
+            result;
+            report_assets_dir=get(values, "report-assets-dir", joinpath("report", "assets")),
+            overwrite=("overwrite" in flags),
+        )
+        for path in paths
+            println("fsi_validation_report_asset,$path")
+        end
+    end
     return result
 end
 

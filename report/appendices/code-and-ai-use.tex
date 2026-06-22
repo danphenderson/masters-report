@@ -100,11 +100,10 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify rest \
 The rest command writes both the drift-history tables and the initial
 geometry-rest residual-component CSV/\TeX{} assets consumed in
 Section~\ref{subsec:rest-state-drift}.
-The resolved-velocity comparison uses the main-text labels C23 and C40 for the
-23\% and 40\% stenosis-severity cases, corresponding to local source IDs 77 and
-60, respectively. The raw 3D fields are optional local inputs rather than
-archived thesis assets; the detailed input root and upstream pointer are
-recorded below.
+The resolved-velocity comparison uses the 23\% and 40\% stenosis-severity
+descriptions in the main text. These correspond to local source IDs 77 and 60,
+respectively. The raw 3D fields are optional local inputs rather than archived
+thesis assets; the detailed input root and upstream pointer are recorded below.
 
 \paragraph*{Comparison-asset regeneration command.}
 When the optional raw 3D inputs are restored locally, the tracked comparison
@@ -112,34 +111,55 @@ assets are regenerated with:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
-  --output-dir tmp/simulations/output/3d_comparison/full_t1_native_nx400 \
+  --output-dir tmp/simulations/output/3d_comparison/reference_wall_evidence_nx400 \
   --nx 400 \
+  --coordinate-mode reference \
   --target-time 0.9995 \
-  --time-atol 1e-3 \
+  --time-atol 1e-6 \
+  --section-count 200 \
+  --profile-slices 1.951,2.451,2.951 \
+  --radial-bin-counts 20 \
+  --radial-radius-modes current,reference \
   --overwrite \
   --publish-report-assets \
-  --report-assets-dir report/assets/data/stenosis-comparison \
-  --radial-bin-counts 10,20,40 \
-  --radial-radius-modes current,reference
+  --report-assets-dir report/assets/data/stenosis-comparison
 \end{lstlisting}
-This command reproduces the currently tracked comparison assets; it accepts the
-available $0.9995$ s 3D velocity field and runs the 1D comparison to the same
-target time. The remaining timing limitation is transient-history matching, not
-the final timestamp.
+The deformed-coordinate companion run changes only the coordinate mode and
+scratch output directory:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
+  --data-root public/var/data/simulations/canic_case3 \
+  --output-dir tmp/simulations/output/3d_comparison/deformed_wall_evidence_nx400 \
+  --nx 400 \
+  --coordinate-mode deformed \
+  --target-time 0.9995 \
+  --time-atol 1e-6 \
+  --section-count 200 \
+  --profile-slices 1.951,2.451,2.951 \
+  --radial-bin-counts 20 \
+  --radial-radius-modes current,reference \
+  --overwrite \
+  --publish-report-assets \
+  --report-assets-dir report/assets/data/stenosis-comparison
+\end{lstlisting}
+These commands reproduce the retained reference-coordinate and
+deformed-coordinate comparison assets. The remaining timing limitation is
+transient-history matching, not the final timestamp.
 
-The package also contains a scratch-only membrane-FSI validation workflow. It
-solves the quasi-static radial membrane update on the current lumen geometry
-and writes wall-profile outputs without publishing them to report assets:
+The package also contains the retained quasi-static membrane-FSI comparator. It
+solves the radial membrane update on the current lumen geometry and publishes
+the report-owned wall profile, fixed-point history, and summary table:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi validate \
   --wall-mode quasi-static \
   --severities 23,40 \
   --meshes 8x2x8,16x4x16 \
+  --parallel-workers 0 \
   --output-dir tmp/simulations/output/membrane_fsi_validation \
+  --publish-report-assets \
+  --report-assets-dir report/assets \
   --overwrite
 \end{lstlisting}
-Those outputs are not consumed by the retained C23/C40 tables unless a later
-asset-refresh lane explicitly promotes them.
 
 \paragraph*{Optional operator and grid-sensitivity evidence.}
 The synthetic cross-section operator validation table is regenerated without
@@ -161,7 +181,7 @@ sensitivity is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
-  --output-dir tmp/simulations/output/3d_comparison/grid_sensitivity_C23_C40 \
+  --output-dir tmp/simulations/output/3d_comparison/grid_sensitivity_severity23_severity40 \
   --target-time 0.9995 \
   --time-atol 1e-3 \
   --nxs 200,400,800 \

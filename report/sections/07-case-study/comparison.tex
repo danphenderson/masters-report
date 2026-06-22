@@ -1,69 +1,49 @@
-\subsection{Diagnostic 1D--3D Velocity Comparison}
+\subsection{Resolved Comparator Evidence}
 \label{sec:resolved-3d-comparison}
 
-\subsubsection{Available 3D Data and Matching Limits}
+\subsubsection{Available Resolved Data and Matching Limits}
 \label{subsec:preliminary-cross-model-velocity-comparison}
 
-This section reports the final-time resolved-velocity comparison whose protocol
-is defined in Section~\ref{subsec:numerical-experiments-metrics-provenance}. It
-is included because it illustrates the observation-operator discipline reviewed
-in Sections~\ref{subsec:hemodynamic-observables} and
-\ref{subsec:numerical-methods-observation-operators}: a reduced 1D state and a
-resolved 3D velocity field can be compared only after both are mapped to common
-velocity and physical-flow observables. The two available resolved velocity
-fields are the 23\% and 40\% stenosis-severity cases, labelled C23 and C40.
-The 1D runs and resolved samples are matched at $T=0.9995$ s, with recorded
-final-time offsets of $5.47\times10^{-14}$ s for both cases.
+This section reports final-time comparisons between the selected 1D
+area--flow solution and two resolved stenotic-vessel datasets. The retained
+datasets are the 23\% stenosis case from local dataset 77 and the 40\%
+stenosis case from local dataset 60. Both are sampled at
+$T=0.9995\,\mathrm{s}$; the recorded 1D--3D final-time offset is
+$5.47\times10^{-14}\,\mathrm{s}$ in each case. This timestamp agreement is a
+final-time alignment check, not a complete transient-history match.
 
-That timestamp agreement establishes final-time alignment, not full dataset
-matching. The zero-input rest-state test in
-Section~\ref{sec:numerical-verification} remains
-required context because it uses the same principal finite-volume operator as
-the comparison runs and shows a nonzero geometry-rest defect on the production
-grid. The current/deformed 3D geometry status also remains unresolved: the
-static cut-area check below supports only the fixed-section geometry check, not a
-decision about whether a deformed-wall geometry or displacement application
-should be used for the already retained final-time plane cuts. The current
-package can now load pressure and displacement companions and can form
-deformed-coordinate plane cuts when that mode is requested, but those outputs
-have not been regenerated and promoted into the retained C23/C40 comparison
-assets. The 3D wall model, wall-motion history, inlet/outlet histories, material
-parameters, and prior transient history are not carried by the retained
-comparison record; these would need to be established before making a stronger
-predictive comparison claim.
-
-The comparison gates are therefore deliberately limited: the final timestamp is
-matched, the static section area is checked, the retained dynamic or deformed
-3D geometry state is unresolved, the resolved flow is not sectionwise constant, and the
-wall, boundary, material, and transient-history metadata needed for a matched
-reference comparison are not persisted in the retained comparison record. No
-pressure-drop, pressure-ratio, or FFR-style result is retained for this 1D--3D
-comparison because compatible pressure observations and extraction conventions
-are not declared for the paired data.
+The evidence below separates three resolved-comparator questions. First, the
+reference-coordinate velocity comparison maps the 1D and 3D fields to common
+section-mean observables. Second, the deformed-coordinate comparison applies the
+available node-centered displacement field before forming plane cuts. Third,
+the quasi-static membrane-FSI solve supplies a resolved wall-deformation
+comparator based on the membrane relation used by Canic et al.\ for their wall
+model \cite[Eq.~(35)]{CanicEtAl2024Extended1DStenosis}. The third item is a
+Canic-style resolved comparator for this report, not a reproduction of the full
+transient FSI calculation in that paper.
 
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Resolved-data metadata available to the retained velocity
-    comparison. Counts and final timestamp are read from the local XDMF records
-    and tracked geometry manifests; unmatched physical and transient metadata
-    are stated as not persisted rather than inferred.}
+    \caption{Resolved-data metadata used by the velocity and
+    displacement-aware comparisons. Dataset identifiers are provenance labels;
+    the case descriptions in the text use stenosis severity.}
     \label{tab:resolved-3d-metadata}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}lrrrrllll@{}}
         \toprule
         \textbf{Case}
+            & \textbf{Dataset}
             & \textbf{Nodes}
             & \textbf{Tetra.}
             & $\boldsymbol{t_{3D}}$ \textbf{(s)}
             & $\boldsymbol{|t_{3D}-T|}$ \textbf{(s)}
             & \textbf{Velocity}
             & \textbf{Pressure}
-            & \textbf{Displacement}
-            & \textbf{Unpersisted metadata} \\
+            & \textbf{Displacement} \\
         \midrule
-        C23 & 22691 & 110420 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & loadable; not applied to retained cuts & $\nu,\rho$, BCs, wall law, transient history \\
-        C40 & 21975 & 106547 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & loadable; not applied to retained cuts & $\nu,\rho$, BCs, wall law, transient history \\
+        23\% stenosis & 77 & 22691 & 110420 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & applied in deformed-coordinate cuts \\
+        40\% stenosis & 60 & 21975 & 106547 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & applied in deformed-coordinate cuts \\
         \bottomrule
     \end{tabular}%
     }
@@ -79,22 +59,20 @@ are not declared for the paired data.
         asset unavailable in this checkout.}}
     }
     \caption{Final-time resolved velocity samples used by the 23\% and 40\%
-    stenosis-severity comparison. The panels show node-centered $u_z$ values
-    from the available resolved velocity samples, with the corresponding
-    node-envelope geometry shown only as visual context. This figure identifies
-    the resolved fields being sampled; the quantitative comparison still enters
-    through the declared plane-quadrature operator below.}
+    stenosis comparisons. The panels show node-centered $u_z$ values; the
+    quantitative comparison enters only after applying the declared
+    cross-sectional observation operator.}
     \label{fig:resolved-3d-flow-field}
 \end{figure}
 
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Recorded subcritical-boundary diagnostics for the same 23\% and
-    40\% severity 1D runs used in the resolved-velocity comparison. The positive
-    characteristic-radicand values are in solver units of cm$^2$/s$^2$; the
-    persisted $\lambda_-$, $\lambda_+$, and subcriticality margin support the
-    boundary-regime gate in Assumption~\ref{ass:1d-subcritical-boundary-regime}.}
+    \caption{Subcritical-boundary diagnostics for the same two 1D runs used in
+    the resolved-velocity comparison. The characteristic-radicand values are in
+    solver units of cm$^2$/s$^2$; the signs of $\lambda_-$ and $\lambda_+$
+    support the boundary-regime gate in
+    Assumption~\ref{ass:1d-subcritical-boundary-regime}.}
     \label{tab:t1-alpha-radicand-diagnostics}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}lrrrrrrrr@{}}
@@ -109,25 +87,21 @@ are not declared for the paired data.
             & $\boldsymbol{\max\lambda_+}$
             & $\boldsymbol{\min\{\lambda_+,-\lambda_-\}}$ \\
         \midrule
-        C23 & 1.33058 & 1.33333 & $8.15\times 10^5$ & -998.85 & -852.17 & 953.33 & 1058.76 & 852.17 \\
-        C40 & 1.32500 & 1.33333 & $6.36\times 10^5$ & -999.08 & -713.79 & 880.69 & 1058.94 & 713.79 \\
+        23\% stenosis & 1.33058 & 1.33333 & $8.15\times 10^5$ & -998.85 & -852.17 & 953.33 & 1058.76 & 852.17 \\
+        40\% stenosis & 1.32500 & 1.33333 & $6.36\times 10^5$ & -999.08 & -713.79 & 880.69 & 1058.94 & 713.79 \\
         \bottomrule
     \end{tabular}
     }
 \end{table}
 
-The entries in Table~\ref{tab:t1-alpha-radicand-diagnostics} are used as the
-subcritical-boundary gate for the paired severity comparison runs; they do not
-widen the velocity comparison beyond the declared observation operator.
-
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \pgfplotstableread[col sep=space]{report/assets/data/stenosis-comparison/production-diagnostics.dat}\TOneProductionDiagnostics
+    \pgfplotstableread[col sep=space]{report/assets/data/stenosis-comparison/production-diagnostics-reference.dat}\TOneProductionDiagnostics
     \caption{Production diagnostics from the 23\% and 40\% severity 1D
     comparison runs completed at $T=0.9995$ s. These rows summarize timestep,
-    CFL, positivity, area, and finite-volume bookkeeping for the runs used in
-    the velocity comparison.}
+    CFL, positivity, area, and finite-volume bookkeeping for the 1D runs used
+    in the resolved-comparator evidence.}
     \label{tab:t1-production-diagnostics}
     \resizebox{\textwidth}{!}{%
     \pgfplotstabletypeset[
@@ -148,7 +122,7 @@ widen the velocity comparison beyond the declared observation operator.
         },
         every head row/.style={before row=\toprule, after row=\midrule},
         every last row/.style={after row=\bottomrule},
-        columns/case/.style={string type,column type=l,column name=\textbf{Case}},
+        columns/case/.style={string type,column type=l,column name=\textbf{Stenosis}},
         columns/target_time/.style={fixed,precision=4,column name=$\boldsymbol{T_{\mathrm{target}}}$},
         columns/completed_time/.style={fixed,precision=4,column name=$\boldsymbol{T_{\mathrm{done}}}$},
         columns/cross_model_time_offset/.style={sci,precision=2,column name=$\boldsymbol{|\Delta t_{\mathrm{1D--3D}}|}$},
@@ -165,172 +139,82 @@ widen the velocity comparison beyond the declared observation operator.
     }
 \end{table}
 
-The production rows show that the selected runs reached the CFL cap, retained
-positive physical area, used no positivity projection, closed the final
-area-flux bookkeeping at the listed scale, and completed at the matched final
-timestamp. These diagnostics are run admissibility evidence; they do not by
-themselves establish a matched-reference comparison. No inlet, throat, and outlet
-time-history table for $q(t)$, $A_{\mathrm{phys}}(t)$, CFL extrema over time,
-or area-flux balance over time is retained in the current report assets; the
-comparison is therefore interpreted from final-time diagnostics plus the
-separate rest-state drift record.
-
 \FloatBarrier
 
-\subsubsection{Observation Operator}
+\subsubsection{Observation Operator and Deformed Coordinates}
 \label{subsec:cross-sectional-sampling-protocol-results}
 
-The comparison uses the declared
-\texttt{CrossSectionQuadratureOperator}. For each target plane, the operator
-intersects the tetrahedral 3D mesh with the plane, triangulates the cut polygon,
-and computes section area, physical flow, and area-mean axial velocity from the
-cut triangles as stated in Section~\ref{subsec:plane-tetrahedron-comparison-operator}.
-The 1D quantities use the solver-to-physical map from
-Definition~\ref{def:physical-to-solver-map}: $Q_{1D}=\pi q$ and
-$\bar u_{1D}=q/a$. The principal comparison uses 200 equally spaced section
-targets on $0\le z\le6$ cm. Secondary radial-profile outputs were generated at
-$z=1.951$, 2.451, and 2.951 cm, but they are quarantined rather than used as
-retained results.
+The comparison uses the declared \texttt{CrossSectionQuadratureOperator}. For a
+target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the operator intersects
+the tetrahedral mesh with the plane, triangulates the cut polygon, and computes
+\begin{flalign*}
+    \quad
+    A_{3D,j}
+    =
+    \sum_{\Delta\in\mathcal Q_j}|\Delta|,
+    \qquad
+    Q_{3D,j}
+    =
+    \sum_{\Delta\in\mathcal Q_j}|\Delta|\,\bar u_{z,\Delta},
+    \qquad
+    \bar u_{3D,j}
+    =
+    Q_{3D,j}/A_{3D,j}. &&
+\end{flalign*}
+The 1D quantities use the solver-to-physical map
+$Q_{1D,j}=\pi q(z_j,t)$ and $\bar u_{1D,j}=q(z_j,t)/a(z_j,t)$. In
+deformed-coordinate mode the plane cut is formed after replacing each mesh
+coordinate $x$ by $x+d(x)$, where $d$ is the node-centered resolved
+displacement field.
 
 The stenosis throat is the minimizer $z^\star=\argmin_z R_0(z)$ of the smooth
 reference-radius profile in Eq.~\ref{eq:1d-stenosis-profile}. For the comparison
-geometry this gives $z^\star\approx2.451\,\mathrm{cm}$ for both severities, with
-$R_{\min}=0.1386\,\mathrm{cm}$ for C23 and $R_{\min}=0.1080\,\mathrm{cm}$ for
-C40. The shaded region in Figure~\ref{fig:t1-section-mean-comparison} is the
-displayed interval $2.4\le z\le2.8\,\mathrm{cm}$.
-
-\subsubsection{Cut-Area Check}
-\label{subsec:section-averaged-velocity-results}
-
-The same quadrature record checks whether the cut operator is sampling the
-expected static cross-section. With the reference area
-$A_{\mathrm{ref}}(z_j)=\pi R_0(z_j)^2$, define
-\begin{flalign*}
-    \quad
-    \epsilon_A(z_j)
-    =
-    \frac{|A_{3D}(z_j)-A_{\mathrm{ref}}(z_j)|}
-         {A_{\mathrm{ref}}(z_j)}. &&
-\end{flalign*}
-Table~\ref{tab:t1-area-check} reports this geometry/operator check for the same
-200 section targets. It shows sub-percent typical static cut-area discrepancy,
-with the largest differences confined to a few targets. This check does not
-resolve the current/deformed geometry question and does not measure the dynamic
-area discrepancy entering the 1D velocity denominator,
-\begin{flalign*}
-    \quad
-    \epsilon_A^{\mathrm{model}}(z_j,t)
-    =
-    \frac{|\pi a(z_j,t)-A_{3D}(z_j)|}{A_{3D}(z_j)}. &&
-\end{flalign*}
+geometry this gives $z^\star\approx2.451\,\mathrm{cm}$, with
+$R_{\min}=0.1386\,\mathrm{cm}$ for the 23\% stenosis case and
+$R_{\min}=0.1080\,\mathrm{cm}$ for the 40\% stenosis case.
 
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Quadrature cut-area check against the static reference
-    $A_{\mathrm{ref}}(z)=\pi R_0(z)^2$. Discrepancies are percentages over
-    valid section targets.}
+    \caption{Cut-area check against the static reference
+    $A_{\mathrm{ref}}(z)=\pi R_0(z)^2$ for both coordinate choices.
+    Discrepancies are percentages over the 200 valid section targets.}
     \label{tab:t1-area-check}
-    \begin{tabular}{@{}lrrrrr@{}}
+    \begin{tabular}{@{}llrrrr@{}}
         \toprule
         \textbf{Case}
-            & \textbf{Sections}
+            & \textbf{Coordinates}
             & $\boldsymbol{\min \epsilon_A}$
             & $\boldsymbol{\mathrm{median}\ \epsilon_A}$
             & $\boldsymbol{\mathrm{mean}\ \epsilon_A}$
             & $\boldsymbol{\max \epsilon_A}$ \\
         \midrule
-        C23 & 200 & 0.045 & 0.281 & 0.389 & 2.94 \\
-        C40 & 200 & 0.005 & 0.291 & 0.397 & 4.46 \\
+        23\% stenosis & reference & 0.045 & 0.281 & 0.389 & 2.94 \\
+        23\% stenosis & deformed & 0.001 & 0.254 & 0.336 & 3.03 \\
+        40\% stenosis & reference & 0.005 & 0.291 & 0.397 & 4.46 \\
+        40\% stenosis & deformed & 0.003 & 0.286 & 0.417 & 4.60 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-The retained section values also allow the dynamic 1D area used in the velocity
-denominator to be compared with the resolved cut area. With
-$A_{1D}(z_j,t)=\pi a(z_j,t)=Q_{1D}(z_j,t)/\bar u_{1D}(z_j,t)$ on the retained
-sections, Table~\ref{tab:t1-dynamic-area-discrepancy} reports
-$\epsilon_A^{\mathrm{model}}$ for the same 200 targets. This is still a
-single-final-time comparison against the fixed 3D cut areas, not evidence that
-deformed 3D geometry has been matched.
+\subsubsection{Reference-Coordinate Velocity Comparison}
+\label{subsec:section-mean-velocity-discrepancies}
 
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Dynamic 1D area versus resolved cut-area discrepancy at the
-    retained final-time sample. Values are percentages over the 200 valid
-    section targets.}
-    \label{tab:t1-dynamic-area-discrepancy}
-    \begin{tabular}{@{}lrrrrr@{}}
-        \toprule
-        \textbf{Case}
-            & \textbf{Sections}
-            & $\boldsymbol{\min \epsilon_A^{\mathrm{model}}}$
-            & $\boldsymbol{\mathrm{median}\ \epsilon_A^{\mathrm{model}}}$
-            & $\boldsymbol{\mathrm{mean}\ \epsilon_A^{\mathrm{model}}}$
-            & $\boldsymbol{\max \epsilon_A^{\mathrm{model}}}$ \\
-        \midrule
-        C23 & 200 & 0.078 & 0.344 & 0.443 & 2.71 \\
-        C40 & 200 & 0.016 & 0.346 & 0.483 & 4.60 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-\subsubsection{Axial Physical-Flow Behavior}
-\label{subsec:axial-flow-behavior}
-
-The reported section data include physical flows $Q_{1D}(z)=\pi q(z)$ and
-$Q_{3D}(z)$ before they are divided by area to form mean velocity. The axial 3D
-flow extracted by the declared plane operator is not constant across the 200
-section targets: its range is 7.7\% of the C23 mean and 20.2\% of the C40 mean.
-That unresolved axial variation appears before the velocity interpretation
-because it is a matching gate, not a solved mechanism. The tracked artifacts do
-not identify whether the variation comes from 3D numerical state, boundary or
-history mismatch, geometry handling, operator sensitivity, or another source.
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Axial variation of resolved physical flow extracted by the
-    declared plane-quadrature operator. Flows are in cm$^3$/s and locations are
-    axial positions in cm.}
-    \label{tab:t1-q3d-axial-variation}
-    \begin{tabular}{@{}lrrrrrr@{}}
-        \toprule
-        \textbf{Case}
-            & $\boldsymbol{\langle Q_{3D}\rangle}$
-            & $\boldsymbol{\min Q_{3D}}$
-            & $\boldsymbol{\max Q_{3D}}$
-            & \textbf{range/mean}
-            & $\boldsymbol{z_{\max |Q_{3D}-\langle Q_{3D}\rangle|}}$
-            & \textbf{max dev./mean} \\
-        \midrule
-        C23 & 2.241 & 2.125 & 2.298 & 7.72\% & 2.291 & 5.20\% \\
-        C40 & 2.219 & 1.862 & 2.311 & 20.2\% & 2.261 & 16.1\% \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-The section means are
+The reference-coordinate comparison is retained as the baseline final-time
+velocity comparison. The section means are
 $\langle Q_{1D}\rangle=2.288\,\mathrm{cm}^3/\mathrm{s}$ and
-$\langle Q_{3D}\rangle=2.241\,\mathrm{cm}^3/\mathrm{s}$ for C23, and
-$\langle Q_{1D}\rangle=2.287\,\mathrm{cm}^3/\mathrm{s}$ and
-$\langle Q_{3D}\rangle=2.219\,\mathrm{cm}^3/\mathrm{s}$ for C40. The signed mean
-physical-flow biases are 0.0472 and 0.0684 cm$^3$/s, while the mean absolute
-physical-flow discrepancies are 0.0482 and 0.0709 cm$^3$/s and the RMS
-physical-flow discrepancies are 0.0509 and 0.0893 cm$^3$/s. The largest
-physical-flow discrepancies in the retained section table occur at the same
-locations as the largest mean-velocity discrepancies.
+$\langle Q_{3D}\rangle=2.241\,\mathrm{cm}^3/\mathrm{s}$ for the 23\% stenosis
+case, and $\langle Q_{1D}\rangle=2.287\,\mathrm{cm}^3/\mathrm{s}$ and
+$\langle Q_{3D}\rangle=2.219\,\mathrm{cm}^3/\mathrm{s}$ for the 40\% stenosis
+case.
 
 \begin{figure}[!htb]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{axial-flow-comparison}
-    \caption{Axial physical-flow comparison under the declared plane-quadrature
+    \caption{Axial physical-flow comparison under the plane-quadrature
     operator. Dashed curves are $Q_{1D}(z)=\pi q(z)$ and solid curves are
-    $Q_{3D}(z)$ from the available resolved velocity fields. The variation in
-    the solid curves is a matching limit for interpreting the velocity
-    discrepancies.}
+    $Q_{3D}(z)$ from the resolved velocity fields.}
     \label{fig:t1-axial-flow-comparison}
 \end{figure}
 
@@ -344,19 +228,14 @@ The algebraic split used for flow/area bookkeeping is
     Q_{3D}\left(\frac{1}{A_{1D}}-\frac{1}{A_{3D}}\right),
     \qquad A_{1D}=\pi a. &&
 \end{flalign*}
-The retained section values contain enough information to reconstruct this split
-on sections with nonzero mean-velocity denominators:
-$A_{1D}=Q_{1D}/\bar u_{1D}$ and $A_{3D}=Q_{3D}/\bar u_{3D}$.
-Table~\ref{tab:t1-flow-area-decomposition} summarizes the resulting
-contribution magnitudes. This decomposition is bookkeeping for the reported
-samples, not causal attribution.
+This decomposition is bookkeeping for the sampled sections, not causal
+attribution.
 
 \begin{table}[!htb]
     \centering
     \scriptsize
     \caption{Section-wise decomposition of the mean-velocity discrepancy into
-    physical-flow and area-denominator contributions. Values are in cm/s. The
-    split is bookkeeping, not a causal attribution.}
+    physical-flow and area-denominator contributions. Values are in cm/s.}
     \label{tab:t1-flow-area-decomposition}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}lrrrrl@{}}
@@ -368,34 +247,20 @@ samples, not causal attribution.
             & $\boldsymbol{|d_u|_{\max}}$
             & \textbf{Larger bookkeeping term at max} \\
         \midrule
-        C23 & 0.529 & 0.112 & 2.291 & 2.35 & Flow term \\
-        C40 & 1.012 & 0.133 & 2.261 & 9.92 & Flow term \\
+        23\% stenosis & 0.529 & 0.112 & 2.291 & 2.35 & Flow term \\
+        40\% stenosis & 1.012 & 0.133 & 2.261 & 9.92 & Flow term \\
         \bottomrule
     \end{tabular}%
     }
 \end{table}
 
-\subsubsection{Section-Mean Velocity Discrepancies}
-\label{subsec:section-mean-velocity-discrepancies}
-
-Table~\ref{tab:t1-3d-comparison-summary} reports the retained section-mean
-velocity discrepancy measures. The signed mean velocity biases are 0.480 cm/s
-for C23 and 0.909 cm/s for C40, while the mean absolute velocity discrepancies
-are 0.505 and 0.966 cm/s. The RMS velocity discrepancy is 0.664 cm/s for C23
-and 1.87 cm/s for C40, with relative RMS values 0.0277 and 0.0688. The maximum
-section discrepancies are localized in the upstream shoulder: 2.35 cm/s at
-$z=2.291$ cm for C23 and 9.92 cm/s at $z=2.261$ cm for C40.
-
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Quadrature-backed section-mean velocity discrepancy summary at the
-    matched $0.9995$ s final-time sample. These are single-run
-    descriptors in cm/s except for the final axial-location column in cm. Angle
-    brackets denote axial sample means over the 200 retained comparison
-    sections, not temporal averages or inner products.}
+    \caption{Reference-coordinate section-mean velocity discrepancy summary at
+    the matched final-time sample. Values are in cm/s except for the axial
+    location column in cm.}
     \label{tab:t1-3d-comparison-summary}
-    {\setlength{\tabcolsep}{1.8pt}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}lrrrrrrrrr@{}}
         \toprule
@@ -410,22 +275,23 @@ $z=2.291$ cm for C23 and 9.92 cm/s at $z=2.261$ cm for C40.
             & $\boldsymbol{\max |d_u|}$
             & $\boldsymbol{z_{\max |d_u|}}$ \\
         \midrule
-        C23 & 200 & 24.11 & 23.63 & 0.480 & 0.505 & 0.664 & 0.0277 & 2.35 & 2.291 \\
-        C40 & 200 & 26.43 & 25.52 & 0.909 & 0.966 & 1.87 & 0.0688 & 9.92 & 2.261 \\
+        23\% stenosis & 200 & 24.11 & 23.63 & 0.480 & 0.505 & 0.664 & 0.0277 & 2.35 & 2.291 \\
+        40\% stenosis & 200 & 26.43 & 25.52 & 0.909 & 0.966 & 1.87 & 0.0688 & 9.92 & 2.261 \\
         \bottomrule
     \end{tabular}
-    }%
     }
 \end{table}
 
-Table~\ref{tab:t1-normalized-scale-comparison} places the principal numerical
-limitation beside the final-time comparison scales. The rest-state entry uses
-the $N=400$, $t=1$ s zero-inlet solver-flow magnitude from
-Section~\ref{subsec:rest-state-drift}, normalized by the production
-solver-coordinate flow scale $\langle Q_{1D}\rangle/\pi$. The flow discrepancy
-is normalized by $\langle Q_{1D}\rangle$, and the velocity entry uses the
-relative RMS discrepancy already reported in
-Table~\ref{tab:t1-3d-comparison-summary}.
+\begin{figure}[H]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{section-mean-comparison}
+    \caption{Area-mean axial velocity comparison at $t=0.9995$ s. Solid curves
+    are tetrahedral cross-section quadrature means from the resolved 3D
+    velocity field; dashed curves are interpolated 1D means
+    $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.}
+    \label{fig:t1-section-mean-comparison}
+\end{figure}
 
 \begin{table}[!htb]
     \centering
@@ -441,89 +307,30 @@ Table~\ref{tab:t1-3d-comparison-summary}.
             & $\boldsymbol{D_{u,1}}$ \textbf{(cm/s)}
             & \textbf{rel. }$\boldsymbol{D_{u,2}}$ \\
         \midrule
-        C23 & 5.27\% & 2.11\% & 0.505 & 2.77\% \\
-        C40 & 8.71\% & 3.10\% & 0.966 & 6.88\% \\
+        23\% stenosis & 5.27\% & 2.11\% & 0.505 & 2.77\% \\
+        40\% stenosis & 8.71\% & 3.10\% & 0.966 & 6.88\% \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-The optional production-grid sensitivity record repeats the same section-target
-comparison at $N=200$, $400$, and $800$ while keeping the resolved 3D cuts,
-target time, section count, model closures, and observation operator fixed.
-Define
-\begin{flalign*}
-    \quad
-    D_{Q,1}&=\left\langle |Q_{1D}-Q_{3D}| \right\rangle,&
-    D_{Q,2}&=\left\langle (Q_{1D}-Q_{3D})^2 \right\rangle^{1/2},&
-    D_{u,1}&=\left\langle |d_u| \right\rangle,&
-    D_{u,2}&=\left\langle d_u^2 \right\rangle^{1/2}. &&
-\end{flalign*}
-Table~\ref{tab:t1-grid-sensitivity-summary} reports these values together
-with the relative RMS velocity discrepancy and the adjacent-grid RMS difference
-between the current 1D grid velocity and the previous grid's 1D velocity
-interpolated onto the current grid.
-The C23 metrics improve from $N=200$ to $N=400$ and remain close at $N=800$.
-For C40, the mean and RMS flow discrepancies improve from $N=200$ to $N=400$,
-but the maximum and RMS velocity discrepancies increase on the $N=800$ grid.
-The record therefore supports a bounded statement: the principal $N=400$ rows
-are not isolated coarse-grid artifacts, but the resolved-comparison discrepancy
-is not a monotone grid-convergence result.
-
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Optional production-grid sensitivity for the resolved-velocity
-    comparison. Flow discrepancies are in cm$^3$/s, velocity discrepancies are
-    in cm/s, and the adjacent column compares the current 1D velocity field to
-    the previous grid interpolated onto the current grid. The first grid has no
-    adjacent predecessor.}
+    \caption{Optional production-grid sensitivity for the reference-coordinate
+    resolved-velocity comparison. Flow discrepancies are in cm$^3$/s and
+    velocity discrepancies are in cm/s.}
     \label{tab:t1-grid-sensitivity-summary}
     \resizebox{\textwidth}{!}{%
-    \IfFileExists{report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex}{%
-        \input{report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex}%
-    }{%
-        \begin{tabular}{ll}
-        \toprule
-        Status & Message \\
-        \midrule
-        missing & Grid-sensitivity table unavailable in this checkout. \\
-        \bottomrule
-        \end{tabular}%
-    }%
+    \input{report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex}%
     }
 \end{table}
 
-Figure~\ref{fig:t1-section-mean-comparison} shows the same area-mean axial
-velocity comparison along the vessel. The 1D and quadrature-averaged 3D means
-are closest away from the largest acceleration zone, while the largest
-discrepancies in this two-case pair are upstream of the displayed throat-centered
-band. The largest C40 velocity discrepancy occurs at the same section as the
-largest static cut-area discrepancy in Table~\ref{tab:t1-area-check}. Excluding
-the two C40 sections with static area discrepancy above 4\% moves the maximum
-from 9.92 cm/s at $z=2.261$ cm to 8.74 cm/s at $z=2.291$ cm, where the static
-area discrepancy is below 1\%. Thus the localized C40 peak is not solely an
-area-check artifact, but the exact maximum value and location remain
-operator-sensitive.
-
-\begin{figure}[H]
-    \centering
-    \captionsetup{aboveskip=2pt,belowskip=2pt}
-    \figtikz{section-mean-comparison}
-    \caption{Area-mean axial velocity comparison at $t=0.9995$ s. Solid curves are
-    tetrahedral cross-section quadrature means from the resolved 3D velocity
-    field; dashed curves are interpolated 1D means
-    $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$. The shaded band marks the
-    displayed throat-centered stenosis region; the largest listed section
-    discrepancies occur just upstream of this band.}
-    \label{fig:t1-section-mean-comparison}
-\end{figure}
-
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Five largest section-wise velocity discrepancies across the two
-    included cases. Velocities and velocity discrepancies are in cm/s; physical
-    flows and flow discrepancies are in cm$^3$/s, with $Q_{1D}=\pi q$.}
+    \caption{Five largest section-wise velocity discrepancies in the
+    reference-coordinate comparison. Velocities and velocity discrepancies are
+    in cm/s; physical flows and flow discrepancies are in cm$^3$/s.}
     \label{tab:t1-largest-section-discrepancies}
     \begin{tabular}{@{}rlrrrrrrrr@{}}
         \toprule
@@ -538,33 +345,127 @@ operator-sensitive.
             & $\boldsymbol{|d_Q|}$
             & \textbf{Tri.} \\
         \midrule
-        1 & C40 & 2.261 & 52.58 & 42.66 & 9.92 & 2.201 & 1.862 & 0.339 & 759 \\
-        2 & C40 & 2.291 & 56.94 & 48.20 & 8.74 & 2.230 & 1.903 & 0.327 & 749 \\
-        3 & C40 & 2.352 & 61.43 & 53.22 & 8.21 & 2.270 & 1.980 & 0.290 & 743 \\
-        4 & C40 & 2.322 & 59.81 & 52.09 & 7.72 & 2.253 & 1.970 & 0.283 & 771 \\
-        5 & C40 & 2.231 & 46.95 & 39.94 & 7.01 & 2.174 & 1.918 & 0.256 & 833 \\
+        1 & 40\% stenosis & 2.261 & 52.58 & 42.66 & 9.92 & 2.201 & 1.862 & 0.339 & 759 \\
+        2 & 40\% stenosis & 2.291 & 56.94 & 48.20 & 8.74 & 2.230 & 1.903 & 0.327 & 749 \\
+        3 & 40\% stenosis & 2.352 & 61.43 & 53.22 & 8.21 & 2.270 & 1.980 & 0.290 & 743 \\
+        4 & 40\% stenosis & 2.322 & 59.81 & 52.09 & 7.72 & 2.253 & 1.970 & 0.283 & 771 \\
+        5 & 40\% stenosis & 2.231 & 46.95 & 39.94 & 7.01 & 2.174 & 1.918 & 0.256 & 833 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-\subsubsection{Quarantined Radial Output}
+\subsubsection{Deformed-Coordinate Comparison}
+\label{subsec:deformed-coordinate-comparison}
+
+The deformed-coordinate comparison repeats the same section operator after
+moving each resolved node by its displacement value. Table~\ref{tab:t1-coordinate-mode-comparison}
+shows that applying displacement changes the final-time discrepancy measures
+only modestly for these two datasets. This is still not a full wall-motion
+match: the retained record contains the final displacement field, not the
+resolved wall history or boundary histories.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Reference-coordinate versus deformed-coordinate discrepancy
+    measures. $D_{u,1}$ and $D_{u,2}$ are the mean absolute and RMS
+    section-mean velocity discrepancies in cm/s; $D_{Q,1}$ is the mean absolute
+    physical-flow discrepancy in cm$^3$/s.}
+    \label{tab:t1-coordinate-mode-comparison}
+    \input{report/assets/tables/stenosis-comparison/coordinate_mode_comparison.tex}
+\end{table}
+
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{coordinate-mode-discrepancy}
+    \caption{Effect of the displacement-aware observation map on the
+    section-wise velocity discrepancy. Solid curves use the reference mesh
+    coordinates, while dashed curves form the same plane cuts after the nodal
+    map $x\mapsto x+d(x)$.}
+    \label{fig:t1-coordinate-mode-discrepancy}
+\end{figure}
+
+\subsubsection{Quasi-static Membrane-FSI Comparator}
+\label{subsec:membrane-fsi-comparator}
+
+The resolved wall comparator solves a quasi-static fixed point between the
+Stokes lumen solve and the radial membrane update. In the notation of
+Appendix~\ref{app:num-membrane-fsi-validation}, the wall equation is the
+inertia-free form
+\begin{flalign*}
+    \quad
+    C_0\eta_r(z)=f_r(z),
+    \qquad
+    \eta_r(0)=\eta_r(L)=0,
+    \qquad
+    C_0=\frac{Eh}{(1-\sigma^2)(R_0^*)^2}. &&
+\end{flalign*}
+This is the Canic-style membrane relation used for the resolved comparator
+\cite[Eq.~(35)]{CanicEtAl2024Extended1DStenosis}. It is separate from the
+selected 1D pressure--area closure used in the reduced model.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Quasi-static membrane-FSI fixed-point results on the retained
+    finer mesh. The reported displacement is the radial wall displacement
+    $\eta_r$; the minimum radius is the deformed lumen radius
+    $R_0+\eta_r$.}
+    \label{tab:t1-membrane-fsi-summary}
+    \input{report/assets/tables/membrane-fsi/summary.tex}
+\end{table}
+
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{membrane-fsi-wall-profile}
+    \caption{Quasi-static wall deformation from the membrane-FSI comparator.
+    The upper panel shows the radial displacement $\eta_r(z)$ solving the
+    clamped membrane equation; the lower panel shows the resulting deformed
+    radius $R_0(z)+\eta_r(z)$ alongside the reference radius.}
+    \label{fig:t1-membrane-fsi-wall-profile}
+\end{figure}
+
+\begin{figure}[!htb]
+    \centering
+    \captionsetup{aboveskip=2pt,belowskip=2pt}
+    \figtikz{membrane-fsi-fixed-point-history}
+    \caption{Fixed-point convergence for the quasi-static membrane-FSI
+    comparator. The residual is the maximum radial-radius update between
+    successive coupled wall solves, reported in centimeters.}
+    \label{fig:t1-membrane-fsi-fixed-point-history}
+\end{figure}
+
+\subsubsection{Radial-Profile Audit}
 \label{subsec:reconstructed-radial-profile-results}
 
-The radial-profile reducer is excluded from the retained publication results.
-Direct equal-bin recomputation from the tracked radial data has not been
-reconciled with the existing radial-summary values. Therefore no radial figure,
-table, discrepancy metric, profile-behavior statement, or radial-bin
-localization claim is used as evidence in this chapter.
+The radial-profile reducer was rerun for slices
+$z=1.951$, $2.451$, and $2.951\,\mathrm{cm}$ in both reference and deformed
+coordinate modes. Its summary-discrepancy recomputation matched the generated
+radial summaries, but the area-closure gate failed because those slices are not
+members of the retained 200-section axial target set. The radial-profile plot is
+therefore not promoted into the main evidence.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Radial-profile promotion audit. The zero summary delta confirms
+    that the raw radial rows reproduce the generated radial-summary statistic;
+    the area-closure gate remains failed, so no radial figure or radial-bin
+    localization claim is retained.}
+    \label{tab:t1-radial-profile-audit}
+    \input{report/assets/tables/stenosis-comparison/radial_profile_audit.tex}
+\end{table}
 
 \subsubsection{Interpretation Limits}
 \label{subsec:spatial-localization-discrepancies}
 
-The result of this chapter is a localization of descriptive velocity
-discrepancies under the declared observation operator. The section-mean
-comparison localizes the largest C40 discrepancy upstream of the displayed
-throat-centered band. This observation is bounded by the matching limits stated
-at the start of the chapter: unmatched or unpersisted 3D wall, boundary,
-material, history, and current/deformed geometry information; unresolved axial
-variation in extracted 3D flow; and unmatched transient history before the
-common final timestamp. The flow/area decomposition is bookkeeping, and the
-displayed differences do not identify a unique mechanism.
+The result of this chapter is a controlled numerical validation experiment
+against declared resolved comparators: a reference-coordinate velocity
+comparison, a displacement-aware observation comparison, and a quasi-static
+membrane-wall comparator. The evidence supports the implemented comparison
+workflow and localizes final-time velocity discrepancies under the stated
+operators. It does not establish clinical prediction, pressure-ratio accuracy,
+or equivalence to a full transient FSI computation with matched boundary and
+wall-history data.

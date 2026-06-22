@@ -1,0 +1,19 @@
+\begin{tikzpicture}[fig]
+  \begin{axis}[
+    width=\textwidth,
+    height=6.8cm,
+    xlabel={fixed-point iteration},
+    ylabel={radius-update residual (cm)},
+    ymode=log,
+    grid=both,
+    legend columns=2,
+    legend style={font=\scriptsize, at={(0.5,-0.20)}, anchor=north},
+  ]
+    \addplot+[bloodred, mark=*, mark size=1.4pt, line width=1.05pt]
+      table[x=step, y=residual] {report/assets/data/membrane-fsi/fixed-point-history-severity23.dat};
+    \addlegendentry{23\% stenosis}
+    \addplot+[accentTeal, mark=square*, mark size=1.4pt, line width=1.05pt]
+      table[x=step, y=residual] {report/assets/data/membrane-fsi/fixed-point-history-severity40.dat};
+    \addlegendentry{40\% stenosis}
+  \end{axis}
+\end{tikzpicture}

@@ -1,0 +1,52 @@
+\begin{tikzpicture}[fig]
+  \begin{axis}[
+    width=\textwidth,
+    height=6.0cm,
+    xlabel={axial coordinate $z$ (cm)},
+    ylabel={radial displacement $\eta$ (cm)},
+    xmin=0, xmax=6,
+    ymin=0,
+    grid=both,
+    legend columns=2,
+    legend style={font=\scriptsize, at={(0.5,-0.22)}, anchor=north},
+  ]
+    \path[fill=wallgraylight, fill opacity=0.36, text opacity=1, draw=none]
+      (axis cs:2.4,0) rectangle (axis cs:2.8,3.3e-5);
+    \addplot+[bloodred, mark=none, line width=1.1pt]
+      table[x=z, y=displacement] {report/assets/data/membrane-fsi/wall-profile-severity23.dat};
+    \addlegendentry{23\% stenosis}
+    \addplot+[accentTeal, mark=none, line width=1.1pt]
+      table[x=z, y=displacement] {report/assets/data/membrane-fsi/wall-profile-severity40.dat};
+    \addlegendentry{40\% stenosis}
+  \end{axis}
+\end{tikzpicture}
+
+\vspace{0.4em}
+
+\begin{tikzpicture}[fig]
+  \begin{axis}[
+    width=\textwidth,
+    height=6.0cm,
+    xlabel={axial coordinate $z$ (cm)},
+    ylabel={radius $R_0+\eta$ (cm)},
+    xmin=0, xmax=6,
+    grid=both,
+    legend columns=2,
+    legend style={font=\scriptsize, at={(0.5,-0.22)}, anchor=north},
+  ]
+    \path[fill=wallgraylight, fill opacity=0.36, text opacity=1, draw=none]
+      (axis cs:2.4,0.105) rectangle (axis cs:2.8,0.184);
+    \addplot+[bloodred, mark=none, line width=1.1pt]
+      table[x=z, y=current_radius] {report/assets/data/membrane-fsi/wall-profile-severity23.dat};
+    \addlegendentry{23\% deformed radius}
+    \addplot+[bloodred, mark=none, dashed, line width=0.9pt]
+      table[x=z, y=reference_radius] {report/assets/data/membrane-fsi/wall-profile-severity23.dat};
+    \addlegendentry{23\% reference radius}
+    \addplot+[accentTeal, mark=none, line width=1.1pt]
+      table[x=z, y=current_radius] {report/assets/data/membrane-fsi/wall-profile-severity40.dat};
+    \addlegendentry{40\% deformed radius}
+    \addplot+[accentTeal, mark=none, dashed, line width=0.9pt]
+      table[x=z, y=reference_radius] {report/assets/data/membrane-fsi/wall-profile-severity40.dat};
+    \addlegendentry{40\% reference radius}
+  \end{axis}
+\end{tikzpicture}

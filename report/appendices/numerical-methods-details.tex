@@ -28,7 +28,7 @@ rheology/profile sensitivity, OpenBF-style boundary handling, and
 resolved-velocity output diagnostics. These records keep documented solver
 surfaces runnable and generated assets schema-consistent. They do not supersede
 the MMS or geometry-rest evidence in Section~\ref{sec:numerical-verification},
-and they are not the principal C23/C40 comparison method. When a secondary
+and they are not the principal two-case comparison method. When a secondary
 record lacks a declared reference solution, hardware-normalized runtime target,
 or admitted threshold, it is interpreted only as implementation-health context.
 
@@ -46,14 +46,14 @@ or admitted threshold, it is interpreted only as implementation-health context.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Implemented discretization surfaces retained as secondary appendix context. The principal C23/C40 comparison uses the MUSCL finite-volume row with native SSPRK3; other rows are implementation-health, sensitivity, or backend-context surfaces.}
+    \caption{Implemented discretization surfaces retained as secondary appendix context. The principal 23\% and 40\% stenosis comparison uses the MUSCL finite-volume row with native SSPRK3; other rows are implementation-health, sensitivity, or backend-context surfaces.}
     \label{tab:implemented-discretization-surface}
     \begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}p{0.34\textwidth}X@{}}
         \toprule
         \textbf{Surface} & \textbf{Implemented option} & \textbf{Report role} \\
         \midrule
         Spatial & First-order finite-volume Rusanov & Low-order cell-average baseline and DG $p=0$ bridge. \\
-        Spatial & MUSCL finite volume, minmod limiter, Rusanov flux & Principal C23/C40 comparison method and main verification target. \\
+        Spatial & MUSCL finite volume, minmod limiter, Rusanov flux & Principal 23\% and 40\% stenosis comparison method and main verification target. \\
         Spatial & Characteristic WENO3 and Richtmyer/Lax--Wendroff finite volume & Native sensitivity and implementation-check paths, not principal comparison methods. \\
         Spatial & Modal Legendre DG degrees $p=0,\ldots,4$ & Secondary native-DG surface; selected benchmark rows may use only subsets such as $p=0,1,2$. \\
         Time & Forward Euler, SSPRK2, SSPRK3, SSPRK54, and selected SciML wrappers & Native SSPRK3 is selected for the principal comparison; other backends are diagnostic context. \\
@@ -187,7 +187,7 @@ tetrahedral mesh is regenerated on the updated radius profile until the wall
 update reaches the declared tolerance.
 
 For the quasi-static mode the wall equation is the inertia-free specialization
-of the Canic membrane relation,
+of the Canic membrane relation \cite[Eq.~(35)]{CanicEtAl2024Extended1DStenosis},
 \begin{flalign*}
     \quad
     C_0\eta_r(z)=f_r(z),
@@ -203,18 +203,22 @@ sufficiently smooth reference-radius callback, so the membrane-FSI solve is not
 tied to the default Canic stenosis profile. The retained report comparison has
 not yet promoted these workflow outputs into main-text evidence.
 
-The corresponding CLI entry point is:
+The corresponding report-generation entry point is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi validate \
   --wall-mode quasi-static \
   --severities 23,40 \
   --meshes 8x2x8,16x4x16 \
   --output-dir tmp/simulations/output/membrane_fsi_validation \
+  --publish-report-assets \
+  --report-assets-dir report/assets \
   --overwrite
 \end{lstlisting}
 The workflow writes a summary CSV, a \TeX{} table fragment, per-case wall
 profiles, per-case coupling histories, and a JSON manifest under the selected
-output directory. Dynamic wall mode is a reduced radial membrane time integrator
+output directory, with the retained report assets copied to
+\path{report/assets/data/membrane-fsi/} and
+\path{report/assets/tables/membrane-fsi/}. Dynamic wall mode is a reduced radial membrane time integrator
 coupled to repeated quasi-steady Stokes solves, not a transient moving-boundary
 fluid solve, and its outputs remain scratch workflow evidence unless a later
 artifact-refresh lane explicitly promotes them.

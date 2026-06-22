@@ -78,9 +78,9 @@ review principles, not as a clinical validation study.
 - The plane--tetrahedron observation operator has synthetic constant-field and
   affine-field validation, so the retained velocity comparison is no longer
   relying only on a static area audit.
-- The production-grid sensitivity record for the retained C23/C40 comparison is
-  included and interpreted conservatively as output sensitivity, not formal
-  convergence of cross-model discrepancy.
+- The production-grid sensitivity record for the retained 23% and 40% stenosis
+  comparisons is included and interpreted conservatively as output sensitivity,
+  not formal convergence of cross-model discrepancy.
 - Radial-profile output remains quarantined pending reducer and operator-test
   reconciliation.
 - Appendix H uses copyable listing blocks for commands and gives a concrete

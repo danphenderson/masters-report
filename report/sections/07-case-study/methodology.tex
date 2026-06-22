@@ -44,10 +44,11 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             & The chapter illustrates verification, reproducibility, and
             diagnostic cross-model velocity comparison; it is not a
             pressure-ratio study or patient-specific prediction. \\
-        Case labels and final-time match
-            & C23 and C40 are short labels for the retained 23\% and 40\%
-            stenosis-severity cases. Both are compared at $T=0.9995$ s, with
-            recorded 1D--3D final-time offsets of $5.47\times10^{-14}$ s.
+        Resolved datasets and final-time match
+            & The retained resolved datasets are the 23\% stenosis case from
+            local dataset 77 and the 40\% stenosis case from local dataset 60.
+            Both are compared at $T=0.9995$ s, with recorded 1D--3D final-time
+            offsets of $5.47\times10^{-14}$ s.
             & The final timestamp is matched. Earlier transient-history
             matching is not carried by the retained record and would be needed
             for a stronger predictive comparison. \\
@@ -64,10 +65,12 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             & The 3D velocity field is reduced by the declared
             \texttt{CrossSectionQuadratureOperator}; the 1D state is observed as
             physical flow $Q_{1D}=\pi q$ and mean velocity
-            $\bar u_{1D}=q/a$ on 200 axial sections.
+            $\bar u_{1D}=q/a$ on 200 axial sections. A second retained
+            comparison applies the resolved displacement field before forming
+            the same plane cuts.
             & The comparison is meaningful only for these common section
-            observables. Radial-profile outputs are excluded from retained
-            claims. \\
+            observables. Radial-profile outputs are retained only as an audit
+            record because their area-closure gate fails. \\
         Numerical admissibility gates
             & The main text reports manufactured-solution behavior,
             output-operator verification, geometry-rest drift, subcritical
@@ -78,28 +81,27 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             prediction target. \\
         Matching limits
             & The analytic reference profile is shared and the static cut-area
-            check is reported. The package now includes a quasi-static
-            membrane-FSI validation workflow that can solve a radial wall
-            displacement and can apply resolved displacement fields before
-            plane cuts, but those outputs are not yet promoted into the
-            retained C23/C40 comparison tables.
+            check is reported for both reference and deformed coordinates. A
+            quasi-static membrane-FSI comparator is also retained for the
+            radial wall displacement solve.
             & Velocity differences cannot be attributed uniquely to a specific
-            closure, wall, boundary, or geometry mechanism until the FSI
-            workflow outputs, material constants, boundary histories, and
-            transient histories are retained as comparison evidence. \\
+            closure, wall, boundary, or geometry mechanism because the retained
+            resolved record still lacks matched boundary histories and full
+            transient wall history. \\
         Retained outputs
             & The retained numerical evidence is the MMS/rest-state record,
             cut-area check, axial flow behavior, flow/area bookkeeping,
-            section-mean velocity discrepancy summary, production-grid
-            sensitivity, and largest section discrepancies.
+            section-mean velocity discrepancy summary, coordinate-mode
+            comparison, quasi-static membrane-FSI wall summary,
+            production-grid sensitivity, and largest section discrepancies.
             & These are descriptive final-time discrepancy and sensitivity
             records for the declared two-case comparison. \\
         Excluded radial/profile outputs
-            & Secondary radial-profile rows exist for selected axial slices but
-            are not used for any figure, table, discrepancy metric, or
-            localization claim.
-            & The radial reducer remains quarantined pending reconciliation
-            with the generated summaries. \\
+            & Secondary radial-profile rows were regenerated for selected
+            axial slices and audited.
+            & The raw rows reproduce the generated radial summary, but the
+            area-closure gate fails because the radial slices do not coincide
+            with the retained section-target set. \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -508,18 +510,16 @@ they are not the principal two-case comparison method.
 The 1D state directly supplies a section mean,
 $\bar u_{1D}(z,t)=q(z,t)/a(z,t)$, and physical flow
 $Q_{1D}(z,t)=\pi q(z,t)$. The implementation can also emit radial-profile
-rows using the same cut triangles, but those rows are quarantined in this
-manuscript because direct recomputation from the tracked radial data has not
-been reconciled with the existing summary values. No radial-profile figure,
-table, or interpretation is used as retained evidence.
+rows using the same cut triangles. Those rows are audited in this manuscript,
+but no radial-profile figure or localization claim is retained because the
+radial area-closure gate fails.
 
 The resolved-data loader also accepts pressure and displacement XDMF/HDF5
 companions for a velocity field. When the comparison is explicitly run in
 deformed-coordinate mode, the observation operator applies the node-centered
-displacement before forming the plane cuts. The retained C23/C40 tables in this
-chapter still use the earlier reference-coordinate velocity-comparison assets;
-the deformed-coordinate path is therefore an implemented comparison route, not
-yet a retained result.
+displacement before forming the plane cuts. Both the reference-coordinate and
+deformed-coordinate section comparisons are retained in
+Section~\ref{subsec:deformed-coordinate-comparison}.
 
 For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
 \texttt{CrossSectionQuadratureOperator} intersects every tetrahedron with
@@ -568,9 +568,10 @@ Quarantined radial rows are not part of the retained comparison metrics.
 
 The resolved-velocity comparison evaluates the selected 1D solution against two
 available resolved 3D velocity comparison datasets at the matched final-time
-sample $T=0.9995$ s. The case labels C23 and C40 denote the retained 23\% and
-40\% stenosis-severity cases, respectively. The comparison is a diagnostic
-cross-model velocity comparison under the declared observation operator.
+sample $T=0.9995$ s. The retained cases are described by their 23\% and 40\%
+stenosis severities, with local dataset identifiers recorded only for
+provenance. The comparison is a diagnostic cross-model velocity comparison
+under the declared observation operator.
 The compact reading contract is stated at the start of this section.
 Regeneration commands, local source identifiers, raw-input policy, and static
 asset ownership are recorded in
