@@ -92,6 +92,22 @@ end
     analytic_u = ic.pressure_drop_dyn_cm2 * params.rmax^2 / (8.0 * mu * params.length_cm)
     @test isapprox(u_mean, analytic_u; rtol=0.45)
 
+    field_that_errors = _ -> error("stationary Stokes projection should not evaluate FE fields")
+    fake_solution = StenoticHemodynamics.StationaryStokesSolution(
+        mesh,
+        field_that_errors,
+        field_that_errors,
+        -1,
+        -1,
+        NaN,
+    )
+    fake_area, fake_flow, fake_uavg, fake_pavg =
+        StenoticHemodynamics.project_stationary_stokes(fake_solution, params, ic, state.z)
+    @test fake_area ≈ state.area
+    @test fake_flow ≈ state.flow
+    @test all(isfinite, fake_uavg)
+    @test all(isfinite, fake_pavg)
+
     repeat_state = initial_state_result(params)
     @test repeat_state.summary.projection_hash == state.summary.projection_hash
     @test repeat_state.area ≈ state.area

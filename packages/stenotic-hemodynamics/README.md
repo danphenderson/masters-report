@@ -5,8 +5,11 @@ repository. Its primary forward solver is a reduced 1D stenotic-vessel model,
 with native finite-volume and DG discretizations, multiple explicit
 time-stepping and SciML backend options, and Gridap-based stationary-Stokes
 and membrane-FSI workflows used for initialization, verification, backend
-comparison, and report asset generation. Commands below assume they are run
-from the repository root.
+comparison, and report asset generation. The package does not run transient
+resolved-3D CFD; resolved-3D workflows import externally generated XDMF/HDF5
+velocity data for comparison and post-processing.
+
+Commands below assume they are run from the repository root.
 
 The package environment is owned by:
 
@@ -170,10 +173,11 @@ derivation.
 
 Two deterministic initial-condition modes are available:
 
-- `--ic stationary-stokes`: default. Builds a generated 3D stenotic vessel mesh,
-  assembles a Gridap Taylor-Hood stationary Stokes solve driven by the requested
-  pressure drop, and projects deterministic Stokes section averages back to the
-  1D `(A,Q)` state.
+- `--ic stationary-stokes`: default. Builds a generated 3D stenotic vessel mesh
+  and assembles a Gridap Taylor-Hood stationary Stokes solve driven by the
+  requested pressure drop. The current 1D `(A,Q)` initialization is then
+  produced by an analytic resistance and pressure-law projection, rather than by
+  direct section averaging of the finite-element velocity and pressure fields.
 - `--ic geometry-rest`: legacy baseline with `A=R0^2` and `Q=0`.
 
 Stationary Stokes pressure drops are stored internally in dyn/cm^2. The CLI
@@ -226,6 +230,6 @@ means are emitted only as supplemental sensitivity rows.
   share one instance across concurrent solves.
 - Study summary CSVs use simple scalar fields and minimal CSV escaping.
 - Stationary Stokes initialization is a projection contract for the 1D state,
-  not a transient FSI solve.
+  not a transient FSI solve or direct finite-element field projection.
 - The model is a finite-volume reproduction for local experimentation, not a
   clinical validation or a full validation of the source paper's DG solver.
