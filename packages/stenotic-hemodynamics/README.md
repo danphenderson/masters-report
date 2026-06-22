@@ -1,10 +1,12 @@
 # StenoticHemodynamics Julia Package
 
-`StenoticHemodynamics` is the Julia solver package used by the report in this
-repository. It implements a compact finite-volume reduced model for local
-stenotic-vessel experiments, backend comparisons, verification studies, and
-report asset generation. Commands below assume they are run from the repository
-root.
+`StenoticHemodynamics` is the Julia package used by the report in this
+repository. Its primary forward solver is a reduced 1D stenotic-vessel model,
+with native finite-volume and DG discretizations, multiple explicit
+time-stepping and SciML backend options, and Gridap-based stationary-Stokes
+and membrane-FSI workflows used for initialization, verification, backend
+comparison, and report asset generation. Commands below assume they are run
+from the repository root.
 
 The package environment is owned by:
 
