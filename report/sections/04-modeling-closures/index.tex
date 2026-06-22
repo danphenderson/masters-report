@@ -34,8 +34,12 @@ being interpreted, so the selected rheology must be carried with the observable
 A reduced realization that exposes a rheology descriptor $\mathcal R$ must state
 the scalar effective dynamic-viscosity law
 $\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma)$ before its friction, pressure,
-or shear diagnostics can be interpreted. The descriptor set used in this report
-is
+or shear diagnostics can be interpreted. At the review level, the closure
+contract consists of a dynamic-viscosity law, the shear-rate proxy on which it
+is evaluated, the conversion $\nu_{\mathrm{eff}}^{\mathcal R}
+=\eta_{\mathrm{eff}}^{\mathcal R}/\rho$, and any regularization or bounds used
+near zero shear. The descriptor families used by the case-study implementation
+are
 \begin{flalign*}
     \quad
     \texttt{newtonian},\quad
@@ -44,65 +48,10 @@ is
     \texttt{casson},\quad
     \texttt{power-law}. &&
 \end{flalign*}
-The reduced model evaluates the selected law on a declared shear-rate proxy,
-then uses the density-scaled kinematic coefficient
-$\nu_{\mathrm{eff}}^{\mathcal R}
-=\eta_{\mathrm{eff}}^{\mathcal R}/\rho$ in its source terms. For computed
-non-Newtonian descriptor cases, singular or degenerate zero-shear behavior is
-regularized by
-\begin{flalign*}
-    \quad
-    \dot\gamma_\epsilon
-    \defined
-    \max\{|\dot\gamma|,\epsilon_\gamma\},
-    \qquad
-    \epsilon_\gamma>0,
-    &&
-\end{flalign*}
-and optional declared dynamic-viscosity bounds are applied through
-\begin{flalign*}
-    \quad
-    \Pi_{[\eta_{\min},\eta_{\max}]}(\xi)
-    \defined
-    \min\{\eta_{\max},\max\{\eta_{\min},\xi\}\},
-    \qquad
-    0\leq\eta_{\min}\leq\eta_{\max}\leq\infty.
-    &&
-\end{flalign*}
-Without declared bounds, this projection is the identity. The catalog laws are
-\begin{flalign*}
-    \quad
-    \eta_{\mathrm{eff}}^{\mathrm{newt}}
-    &\equiv \eta, &&\\
-    \quad
-    \eta_{\mathrm{eff}}^{\mathrm{carreau}}(\dot\gamma)
-    &=
-    \eta_\infty+(\eta_0-\eta_\infty)
-    \left(1+(\lambda_{\mathrm C}\dot\gamma_\epsilon)^2\right)^{(n_{\mathrm C}-1)/2}, &&\\
-    \quad
-    \eta_{\mathrm{eff}}^{\mathrm{CY}}(\dot\gamma)
-    &=
-    \eta_\infty+(\eta_0-\eta_\infty)
-    \left(1+(\lambda_{\mathrm{CY}}\dot\gamma_\epsilon)^{a_{\mathrm Y}}\right)^{(n_{\mathrm{CY}}-1)/a_{\mathrm Y}}, &&\\
-    \quad
-    \eta_{\mathrm{eff}}^{\mathrm{casson}}(\dot\gamma)
-    &=
-    \left(\sqrt{\tau_y/\dot\gamma_\epsilon}+\sqrt{\eta_p}\right)^2, &&\\
-    \quad
-    \eta_{\mathrm{eff}}^{\mathrm{power}}(\dot\gamma)
-    &=
-    K_{\mathrm{pl}}\dot\gamma_\epsilon^{n_{\mathrm{pl}}-1}. &&
-\end{flalign*}
-The Carreau and Carreau--Yasuda parameters satisfy
-$\eta_0>0$, $\eta_\infty\geq0$, $\eta_0\geq\eta_\infty$,
-$\lambda_{\mathrm C},\lambda_{\mathrm{CY}}\geq0$,
-$n_{\mathrm C},n_{\mathrm{CY}}>0$, and $a_{\mathrm Y}>0$; the Casson
-parameters satisfy $\tau_y\geq0$ and $\eta_p>0$; and the power-law parameters
-satisfy $K_{\mathrm{pl}}>0$ and $n_{\mathrm{pl}}>0$. The dynamic-viscosity
-parameters have viscosity units, $\tau_y$ has stress units, and
-$K_{\mathrm{pl}}$ has units $\mathrm{Pa}\cdot\mathrm{s}^{n_{\mathrm{pl}}}$ in
-SI. The listed families are descriptor options used to make reduced rheology
-choices explicit, not universal blood constants.
+Appendix~\ref{app:num-rheology-descriptor-details} records the case-study
+parameterization and regularization formulas. The listed families are
+descriptor options used to make reduced rheology choices explicit, not
+universal blood constants.
 \end{definition}
 
 \subsection{Wall Laws and Structural Assumptions}
@@ -123,6 +72,19 @@ hidden numerical constant \cite{KelleEtAl2011CoronaryDistensibility}. The same
 rheology can be paired with any of these wall choices, so rheology and wall
 mechanics should not be merged into a single modeling label.
 
+A wall-law statement must also say which configuration and pressure convention
+it uses. Reference area or radius belongs to the unloaded, imaged, or otherwise
+declared baseline geometry; current area or radius belongs to the deformed
+state being solved or reconstructed. Pressure may be absolute, gauge, or
+transmural, and a transmural law must state the external pressure convention.
+Thickness, elastic modulus, prestress or residual stress, and viscoelastic
+memory change the meaning of the same pressure--area curve. Reduced wall laws
+therefore differ from resolved structural states: the former close pressure,
+area, and wave speed inside a 1D model, while the latter solve wall motion and
+stress. Wall parameters may also compensate for geometry or boundary
+uncertainty, so they are not automatically identifiable from pressure and flow
+alone.
+
 \subsection{Stenosis Geometry and Reference-State Choices}
 \label{subsec:geometry-boundary-observable-closures}
 
@@ -138,6 +100,17 @@ into an otherwise standard area--flow model
 \cite{CanicEtAl2024Extended1DStenosis}. Geometry is therefore not only a mesh
 or image artifact: it determines whether throat effects appear through domain
 shape, source terms, pressure loss, or lumped parameters.
+Severity must also be defined by radius, diameter, or area rather than treated
+as interchangeable. A 23\% radius reduction, diameter reduction, and area
+reduction imply different lumen changes. Patient-specific geometry adds another
+layer: Gambaruto and coauthors found, in one cerebral aneurysm case, that
+reconstructions differing within imaging resolution produced sensitivity
+greater than but comparable to rheology choice and WSS differences of 3--18\%
+\cite{GambarutoEtAl2011GeometryRheologySensitivity}. That result is
+case-specific, but it supports the broader reporting rule: geometry
+reconstruction is part of the model uncertainty. Idealized geometry is useful
+for mechanism isolation; patient-specific geometry is required for
+patient-specific inference.
 
 \subsection{Inlet, Outlet, and Initial Data}
 \label{subsec:inlet-outlet-initial-data}
@@ -158,6 +131,12 @@ or wall-coupling information on inlet, outlet, and wall portions, while a 1D
 model applies incoming information to area--flow or characteristic variables.
 The case study later records its boundary rule as part of its model contract
 rather than as optional bookkeeping.
+For subcritical 1D flow, the conceptual characteristic count is one incoming
+piece of information at each end of a single vessel. Prescribed pressure,
+prescribed flow, traction, impedance/Windkessel, characteristic, and multiscale
+coupling data therefore impose different mathematical information. Boundary
+conditions can encode omitted vascular dynamics, and initial transients must be
+distinguished from a periodic or statistically steady operating assumption.
 
 \subsection{Pressure, Flow, Velocity, WSS, and FFR Observables}
 \label{subsec:hemodynamic-observables}
@@ -188,50 +167,103 @@ literature makes the cross-tier version of the point: a pressure-ratio scalar
 can be compared across model classes only after both states have been observed
 through compatible pressure and flow conventions \cite{Blanco2018FFR1D3D}.
 
+The operator forms used in the report are intentionally explicit:
+\begin{flalign*}
+    \quad
+    Q=\int_S \vu\cdot\nhat_S\,dA,\qquad
+    \bar u=Q/A,\qquad
+    \bar p=A^{-1}\int_S p\,dA, &&
+\end{flalign*}
+where $S$ is the declared section. A pressure drop is
+$\Delta p=p_{\mathrm{up}}-p_{\mathrm{down}}$, and a pressure ratio is
+$p_{\mathrm{down}}/p_{\mathrm{up}}$ only after the pressure convention and
+locations are declared. A WSS vector is the tangential projection of
+$\vT\nhat$ on the wall, with scalar indices such as AWSS or OSI derived only
+after the vector convention is fixed. An FFR-style pressure ratio should not be
+called FFR unless the physiological, boundary, and diagnostic assumptions of
+the FFR setting are part of the model contract.
+
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Closure and observable axes that should remain explicit when
-    comparing stenotic-hemodynamics models.}
+    \caption{Closure-contract axes that should remain explicit when comparing
+    stenotic-hemodynamics models.}
     \label{tab:modeling-closures-observables}
     \begin{tabularx}{\textwidth}{@{}
-        >{\raggedright\arraybackslash}p{0.20\textwidth}
-        >{\raggedright\arraybackslash}p{0.34\textwidth}
+        >{\raggedright\arraybackslash}p{0.14\textwidth}
+        >{\raggedright\arraybackslash}p{0.19\textwidth}
+        >{\raggedright\arraybackslash}p{0.18\textwidth}
+        >{\raggedright\arraybackslash}p{0.17\textwidth}
+        >{\raggedright\arraybackslash}p{0.16\textwidth}
         >{\raggedright\arraybackslash}X@{}}
         \toprule
-        \textbf{Axis}
-            & \textbf{Review categories}
-            & \textbf{Observable consequence} \\
+        \textbf{Closure}
+            & \textbf{Mathematical location}
+            & \textbf{Required data}
+            & \textbf{Native effect}
+            & \textbf{Affected observables}
+            & \textbf{Concern/source} \\
         \midrule
         Rheology
-            & Newtonian; Carreau; Carreau--Yasuda; Casson; power-law; tube-flow
-            effective-viscosity laws.
-            & Changes viscosity, friction, shear-rate interpretation, and sometimes
-            pressure or WSS trends. \\
+            & Stress law or 1D friction source.
+            & $\eta$ or $\eta_{\mathrm{eff}}(\dot\gamma)$ and proxy.
+            & Viscous stress and dissipation.
+            & Pressure ratio, WSS, low-shear regions.
+            & Observable dependence \cite{LiuEtAl2021ICASRheology}. \\
+        Velocity profile
+            & Momentum flux and wall friction.
+            & Profile shape, $\alpha$, shear factor.
+            & Convective flux and drag.
+            & Mean velocity, pressure loss, shear proxy.
+            & Not a resolved radial field. \\
         Wall mechanics
-            & Fixed wall; algebraic pressure--area law; compliant 1D wall;
-            resolved FSI wall.
-            & Determines whether area, pressure, displacement, and interface work are
-            solved states or reconstructed quantities. \\
-        Stenosis geometry
-            & Resolved surface; axisymmetric radius; 1D reference-area profile;
-            empirical loss; terminal/network resistance.
-            & Determines whether throat effects appear through geometry, source
-            terms, pressure loss, or lumped parameters. \\
+            & Pressure--area law or structural PDE.
+            & Reference/current geometry, stiffness, external pressure.
+            & Wave speed, area, displacement.
+            & Pressure, area, interface work.
+            & May compensate for other uncertainty. \\
+        Geometry/reference state
+            & Domain, reference radius, source terms, loss model.
+            & Segmentation or analytic radius and severity definition.
+            & Throat area and geometric source.
+            & Flow, pressure loss, WSS.
+            & Reconstruction sensitivity \cite{GambarutoEtAl2011GeometryRheologySensitivity}. \\
         Inlet data
-            & Resolved velocity profile; mean-flow waveform; pressure waveform;
-            characteristic incoming data.
-            & Fixes what enters the domain and whether section averages or local
-            profiles are prescribed. \\
+            & Boundary state or interface.
+            & Flow, pressure, velocity profile, characteristic data.
+            & Incoming wave or imposed flux.
+            & Flow phase, pressure, velocity.
+            & Encodes omitted upstream dynamics. \\
         Outlet data
-            & Pressure, traction, resistance, Windkessel, impedance, reflection, or
-            characteristic condition.
-            & Controls wave reflection, terminal load, and pressure--flow phase. \\
-        Observation map
-            & Pressure, flow, velocity, WSS, displacement, FFR, or derived
-            diagnostic.
-            & Separates native model states from reconstructed or cross-tier
-            comparison quantities. \\
+            & Boundary state, terminal ODE, or impedance.
+            & Pressure, traction, resistance, Windkessel, characteristic data.
+            & Load and reflection.
+            & Pressure-flow phase and ratios.
+            & Encodes omitted downstream dynamics. \\
+        Junction law
+            & Network interface.
+            & Conservation and pressure/energy condition.
+            & Wave transmission and reflection.
+            & Network pressures and flows.
+            & Needs compatible variables. \\
+        Pressure convention
+            & State, wall law, or observation.
+            & Gauge/absolute/transmural reference.
+            & Pressure-area interpretation.
+            & Pressure drop and ratio.
+            & Must state external pressure. \\
+        WSS convention
+            & Wall traction observation.
+            & Stress, wall normal, projection.
+            & Boundary shear vector.
+            & WSS, AWSS, OSI.
+            & Convention sensitivity \cite{JohnEtAl2017WallShearStressVectorForm}. \\
+        FFR-style observation
+            & Diagnostic pressure-ratio map.
+            & Upstream/downstream pressures and physiological contract.
+            & Scalar pressure ratio.
+            & FFR or FFR-style result.
+            & Matched contract \cite{Blanco2018FFR1D3D}. \\
         \bottomrule
     \end{tabularx}
 \end{table}

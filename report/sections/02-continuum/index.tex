@@ -5,7 +5,7 @@
 This section fixes the continuum vocabulary used by the later model hierarchy.
 It begins with material motion and transport identities, then derives the
 balance laws, constitutive stress closures, and incompressible flow equations
-that serve as the full-order reference model. Resolved, reduced, lumped,
+that serve as the parent continuum description. Resolved, reduced, lumped,
 multiscale, and learned models differ in which parts of this continuum
 description they retain, close, average, or approximate.
 
@@ -39,11 +39,12 @@ may be inadequate, and additional constitutive assumptions may be required
 \end{assumption}
 
 The continuum fields in Assumption~\ref{ass:continuum-bridge-large-vessel-setting}
-provide the common language of the model hierarchy. A full-order continuum tier
+provide the common language of the model hierarchy. A resolved continuum tier
 evolves $\vu$ and $p$ on $\OmgBt$. A reduced one-dimensional tier stores
-cross-sectional area, flow, and mean velocity obtained from these fields through
-averaging and closure assumptions. The continuum setting therefore identifies the
-objects being reduced before any numerical discretization is introduced.
+cross-sectional area, flow, and mean velocity obtained from these fields
+through averaging and closure assumptions. Dimensional reduction therefore
+changes the state space and closure requirements; it is not simply a cheaper
+discretization of the same unknowns.
 
 \begin{figure}[!htb]
     \centering
@@ -189,6 +190,13 @@ some large-vessel operating ranges, while diameter-, hematocrit-, and
 shear-dependent behavior becomes more important in small-vessel or low-shear
 settings \cite[Sec.~1.1.3, Fig.~1.14]{KopplHelmig2023DimensionReducedModeling}
 \cite{PriesEtAl1992BloodViscosityTubeFlow}.
+Patient-specific stenosis computations add an observable-specific caveat:
+Liu and coauthors reported little influence of rheology choice on a
+translesional pressure ratio in their intracranial stenosis setting, but
+observable differences in low-WSS regions, especially during diastole
+\cite{LiuEtAl2021ICASRheology}. Rheology sensitivity is therefore neither
+globally negligible nor globally necessary; it must be stated with the vessel
+class, flow regime, and observable.
 
 The displayed generalized-Newtonian form records the constitutive stress law
 used in the review, not a theorem-level regularity statement for every scalar
@@ -264,6 +272,18 @@ velocity are
     \quad(A>0).
     &&
 \end{flalign*}
+When a section pressure is used later, it denotes a declared representative
+such as
+\begin{flalign*}
+    \quad
+    \bar p(z,t)
+    =
+    \frac{1}{A(z,t)}
+    \int_{S(z,t)}p(z,r,\theta,t)\,dA,
+    &&
+\end{flalign*}
+or a pressure reconstructed from a wall law. It is not a pointwise pressure
+unless the observation map explicitly says so.
 Applying mass conservation to a short vessel slice, with impermeable wall
 motion represented by the moving section, gives the reduced continuity law
 \begin{flalign*}
@@ -309,6 +329,15 @@ the pressure--area relation encodes wall mechanics, geometry terms record axial
 variation of the reference radius or coordinate map, and inlet/outlet conditions
 close the finite vessel problem
 \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,CanicEtAl2024Extended1DStenosis}.
+Formaggia, Lamponi, and Quarteroni also show why there is no single canonical
+area--flow system: different structural simplifications for the vessel wall
+lead to different one-dimensional differential operators
+\cite{FormaggiaEtAl2003OneDimensionalBloodFlow}. Averaging loses transverse
+velocity, secondary flow, wall traction, and local stress information; those
+quantities can only re-enter through reconstruction, profile closure, or an
+observation operator. A velocity-profile closure supplies missing sub-section
+structure inside the reduced equations, whereas an observation operator maps a
+computed state to a reported pressure, flow, velocity, or wall quantity.
 Appendix~\ref{app:continuum-derivation-details} records the supporting
 transport identities. The model hierarchy in Section~\ref{sec:model-hierarchy}
 uses this cross-sectional bridge to explain why distributed 1D models inherit
@@ -326,6 +355,15 @@ fluid velocity to the wall kinematics and stresses. Dimension-reduced models
 replace parts of this boundary motion and stress information by section area,
 wall-law, profile, friction, and rheology closures
 \cite{KopplHelmig2023DimensionReducedModeling,QuarteroniFormaggia2004CardiovascularModeling}.
+Three maps are being distinguished: the fluid material map follows blood
+particles, the structural map follows the wall or membrane reference state, and
+an ALE or mesh map moves computational coordinates. Pressure conventions must
+be declared with the same care. A pressure--area law may use gauge pressure,
+transmural pressure relative to an external pressure, or an absolute pressure
+offset; it may refer to reference area/radius or current area/radius. Wall
+shear stress is likewise a boundary traction projection with a wall-normal and
+projection convention, not a generic near-wall scalar
+\cite{JohnEtAl2017WallShearStressVectorForm}.
 
 The principal quantities of interest depend on the selected model tier and on
 the observation operator used to extract a scalar, profile, section average,
@@ -380,3 +418,9 @@ are not all solved directly. Its comparison quantities are continuum-derived
 observables: physical flow, section-mean axial velocity, pressure when supplied
 by the selected closure, and velocity-profile descriptors.
 \end{stenosisillustration}
+
+The continuum definitions therefore constrain every lower model tier. A lower
+tier may be appropriate for a pressure--flow, pulse-wave, or screening
+question, but any non-native quantity has to be named as an average,
+constitutive state, reconstruction, or postprocessed observation before it can
+support a comparison.

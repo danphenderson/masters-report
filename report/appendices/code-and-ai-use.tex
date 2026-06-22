@@ -58,17 +58,22 @@ or Linux shell with Julia 1.12 or newer, Python/Pipenv for auxiliary tooling,
 and a TeX distribution with \texttt{latexmk} and \texttt{biber}.
 
 \paragraph*{Review provenance.}
-The narrative literature-hardening pass was completed on 19~June~2026 and
+The narrative literature-hardening pass was refreshed on 22~June~2026 and
 considered English-language records from 1973--2026. Representative targeted
 queries were ``one-dimensional blood flow benchmark,'' ``well-balanced blood
 flow finite volume,'' ``3D 1D fractional flow reserve comparison,''
 ``cardiovascular fluid structure interaction verification,'' and
 ``hemodynamics identifiability surrogate.'' The working evidence base consisted
-of 68 BibLaTeX entries, 74 logged source records, a 132-row evidence matrix, and
-a derived review-depth matrix. After triage, 38 source records were treated as
-current cited evidence, 7 as report-adjacent scope checks, 22 as future-work
-context, 2 as background only, and 5 as deferred pending metadata review. Blank
-\texttt{bib\_key} records were not used for citation.
+of 71 BibLaTeX entries, 77 logged source records, a 136-row evidence matrix, and
+a 169-row derived review-depth matrix generated from the repository tooling.
+After triage, 42 source records were treated as current cited evidence, 8 as
+report-adjacent scope checks, 20 as future-work context, 2 as background only,
+and 5 as deferred pending metadata review. Blank \texttt{bib\_key} records were
+not used for citation. The bounded claim register for the main editorial pass
+is stored at:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+public/reproducibility/manuscript-claim-register.tsv
+\end{lstlisting}
 
 \paragraph*{Build command.}
 The report build command is:

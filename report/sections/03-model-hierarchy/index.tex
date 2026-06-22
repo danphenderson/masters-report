@@ -15,7 +15,11 @@ flow fields to lower-dimensional states
 \cite{QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,KopplHelmig2023DimensionReducedModeling}.
 Read together, these sources motivate a hierarchy organized by retained state
 and observation, not by a simple claim that higher dimension is always the
-right model.
+appropriate model.
+Here \emph{retained state} means the variables advanced or constrained by the
+mathematical formulation itself. A \emph{native observable} is computed
+directly from that state before any reconstruction, diagnostic closure, or
+cross-tier output map is applied.
 
 \subsection{Resolved 3D CFD and FSI Models}
 \label{subsec:resolved-reduced-model-tiers}
@@ -82,15 +86,19 @@ closure and coupling choices
 This tier preserves pulse propagation and vessel-to-vessel transport at far
 lower cost than resolved CFD/FSI, but profile, wall, friction, rheology,
 stenosis, and boundary effects enter as closures rather than resolved fields.
-It is therefore the natural setting for single-vessel stenosis calculations
-whose native outputs are area, flow, mean velocity, and reduced pressure.
+It is therefore appropriate for single-vessel stenosis calculations when the
+target observables are area, flow, mean velocity, and reduced pressure, and
+when unavailable transverse flow, wall traction, and local stress fields are
+not required as native outputs.
 
 Stenosis-specific reductions also divide by observable. Pressure-loss formulas
 and pressure-drop reduced-order models, such as the Lyras--Lee pressure-drop
 ROM, target obstruction through a flow--loss relation
 \cite{LyrasLee2021PressureDropROM}. Extended 1D stenosis formulations instead
 place narrowed reference geometry and wall response inside an area--flow system
-\cite{CanicEtAl2024Extended1DStenosis}. Network-scale coronary models add tree
+\cite{CanicEtAl2024Extended1DStenosis}. The Canic et al. arXiv preprint
+reconstructs radial velocity only in post-processing, so that radial field is
+not a native 1D state. Network-scale coronary models add tree
 structure and terminal assumptions, so the Duanmu coronary-tree contribution is
 not just another single-vessel stenosis model; it shows how reduced vessel
 states become part of a larger pressure--flow network
@@ -137,73 +145,143 @@ DeepONet and Fourier neural operators shift the claim from one computed
 solution to a learned map between functions or parameterized fields
 \cite{LuEtAl2021DeepONet,LiEtAl2021FNO}. Hemodynamics-specific neural
 differential and deep-operator examples then target reduced blood-flow or
-stenosed-vessel maps directly
-\cite{CsalaEtAl2025PCNDE,VelikorodnyEtAl2025DeepOperatorStenosed}. These
-learned categories do not remove the need to state the underlying model tier: a
-neural surrogate of a 1D model has different native outputs from a neural
-surrogate trained on resolved 3D velocity fields, and its validation observable
-must match the map it was trained to approximate.
+stenosed-vessel maps directly. Csala and coauthors report conditional error
+reductions in an idealized stenosis/waveform setting, while Velikorodny and
+coauthors derive FFR after learning pressure and flow maps in a simplified
+stenosis setting \cite{CsalaEtAl2025PCNDE,VelikorodnyEtAl2025DeepOperatorStenosed}.
+These learned categories do not remove the need to state the underlying model
+tier: every learned-model claim should identify its training target, input
+functions or parameters, output observable, geometry family, and evaluation
+domain.
 
 \subsection{Native States and Cross-Tier Observation Maps}
 \label{subsec:native-states-observation-maps}
 
-Table~\ref{tab:model-hierarchy-comparison} summarizes the hierarchy by native
-outputs, main closures, and typical role. The table is intentionally organized
-around state and observation rather than around individual papers. It is the
-reading frame used by later closure, evidence, and synthesis chapters.
+Table~\ref{tab:model-hierarchy-comparison} summarizes the hierarchy by state,
+mathematical form, closure burden, data, observables, evidence target, and
+principal interpretation limit. The table is intentionally organized around
+state and observation rather than around individual papers. It is the reading
+frame used by later closure, evidence, and synthesis chapters.
 
 \begin{table}[!htb]
     \centering
-    \scriptsize
-    \caption{Compact comparison of cardiovascular model tiers. ``Native
-    outputs'' means quantities retained directly by the mathematical state,
-    before an observation or reconstruction map is applied.}
+    \tiny
+    \setlength{\tabcolsep}{2pt}
+    \caption{State, closure, data, observable, and evidence matrix for
+    cardiovascular model tiers.}
     \label{tab:model-hierarchy-comparison}
     \begin{tabularx}{\textwidth}{@{}
-        >{\raggedright\arraybackslash}p{0.19\textwidth}
-        >{\raggedright\arraybackslash}p{0.27\textwidth}
-        >{\raggedright\arraybackslash}p{0.25\textwidth}
+        >{\raggedright\arraybackslash}p{0.075\textwidth}
+        >{\raggedright\arraybackslash}p{0.105\textwidth}
+        >{\raggedright\arraybackslash}p{0.105\textwidth}
+        >{\raggedright\arraybackslash}p{0.095\textwidth}
+        >{\raggedright\arraybackslash}p{0.105\textwidth}
+        >{\raggedright\arraybackslash}p{0.095\textwidth}
+        >{\raggedright\arraybackslash}p{0.09\textwidth}
+        >{\raggedright\arraybackslash}p{0.095\textwidth}
+        >{\raggedright\arraybackslash}p{0.095\textwidth}
         >{\raggedright\arraybackslash}X@{}}
         \toprule
-        \textbf{Category}
-            & \textbf{Native outputs}
-            & \textbf{Main closures}
-            & \textbf{Typical role} \\
+        \textbf{Tier}
+            & \textbf{Native state}
+            & \textbf{Mathematical form}
+            & \textbf{Reduction}
+            & \textbf{Closure burden}
+            & \textbf{Data/coupling}
+            & \textbf{Native observables}
+            & \textbf{Reconstructed}
+            & \textbf{Evidence target}
+            & \textbf{Limit} \\
         \midrule
-        3D CFD
-            & Lumen velocity, pressure, stress-derived wall quantities.
-            & Geometry, rheology, wall boundary, inlet/outlet data, numerical
-            resolution.
-            & Local hemodynamics, pressure and velocity fields, WSS diagnostics. \\
+        Fixed-wall 3D CFD
+            & $\vu,p$ on prescribed lumen.
+            & Navier--Stokes or Stokes PDE.
+            & None in space.
+            & Rheology, wall boundary, numerics.
+            & Geometry and inlet/outlet data.
+            & Velocity, pressure.
+            & WSS indices, section means.
+            & Local-field verification.
+            & Wall motion and circulation are closed. \\
         Resolved FSI
-            & Fluid fields plus wall displacement, wall velocity, structural stress.
-            & Structural model, material law, interface coupling, fluid closures.
-            & Moving-wall mechanics and fluid--structure interaction. \\
+            & Fluid fields plus wall state.
+            & Coupled fluid/structure PDEs.
+            & Structural idealization only.
+            & Wall material, interface, mesh/ALE.
+            & Wall data and coupling histories.
+            & Displacement, traction, fields.
+            & Scalar WSS or pressure diagnostics.
+            & Coupled-interface behavior.
+            & Many data/parameter inputs must be identified. \\
         Axisymmetric / 2D
-            & Reduced spatial velocity and pressure fields on a symmetry or
-            sectional domain.
-            & Symmetry assumptions, reduced geometry, boundary data, wall treatment.
-            & Controlled stenosis studies and lower-cost resolved diagnostics. \\
+            & Symmetry-constrained velocity, pressure.
+            & Reduced spatial PDE.
+            & Suppressed azimuthal/asymmetric modes.
+            & Symmetry, wall, rheology, boundaries.
+            & Radius/profile data.
+            & Sectional fields.
+            & 3D asymmetry proxies.
+            & Mechanism isolation.
+            & Suppressed modes are not native. \\
         Distributed 1D
-            & Axial area, flow, mean velocity, pressure or pressure surrogate.
-            & Profile, wall law, friction, rheology, stenosis geometry, boundary
-            rules.
-            & Network-ready pulse propagation and single-vessel stenosis studies. \\
-        0D / network
-            & Lumped pressures, volumes, flows, and terminal states.
-            & Resistance, compliance, inertance, valves, junctions, terminal beds.
-            & Circulation closure, outlet models, and large-system screening. \\
+            & $A,Q,\bar u$, pressure/wall state.
+            & Axial hyperbolic balance law.
+            & Section averaging.
+            & Profile, wall, friction, geometry, rheology.
+            & Inlet/outlet, junctions, terminal beds.
+            & Area, flow, mean velocity.
+            & WSS proxies, radial profiles.
+            & Pulse or stenosis comparison.
+            & Local wall traction and transverse flow are closed. \\
+        Lumped 0D
+            & Pressures, volumes, flows.
+            & ODE/algebraic network.
+            & Spatial distribution removed.
+            & Resistance, compliance, inertance, valves.
+            & Network topology and terminal data.
+            & Global pressure--flow states.
+            & Local fields only by added model.
+            & System interaction.
+            & No native stenosis geometry or WSS. \\
         Geometrical multiscale
-            & Coupled tier-specific states with shared interface variables.
-            & Interface pressure/flow/traction/impedance laws and stability rules.
-            & Coupling local resolved regions to reduced or lumped circulation. \\
-        Surrogate / PINN / operator learning
-            & Learned solution fields, parameters, or function-to-function maps.
-            & Training data, residual loss, architecture, normalization, model tier.
-            & Fast emulation, inverse estimation, and parametric maps. \\
+            & Tier-specific states plus interfaces.
+            & Coupled PDE/ODE systems.
+            & Local/system split.
+            & Interface compatibility and stability.
+            & Pressure, flow, traction, impedance.
+            & Tier-native and interface values.
+            & Cross-tier diagnostics.
+            & Coupled-domain consistency.
+            & Interface map can dominate interpretation. \\
+        Solver surrogate/PINN/operator
+            & Learned solution, parameter, or operator map.
+            & Trained residual/data objective.
+            & Inherits source model/data tier.
+            & Architecture, loss, training distribution.
+            & Training inputs, geometry family, labels.
+            & Declared learned target.
+            & Derived diagnostics such as FFR.
+            & Generalization inside train/test domain.
+            & Credibility is bounded by data-generating contract. \\
         \bottomrule
     \end{tabularx}
 \end{table}
+
+Cross-tier comparisons are therefore observed-output comparisons:
+\begin{flalign*}
+    \quad
+    Y_{1D}=\mathcal O_{1D}(U_{1D}),
+    \qquad
+    Y_{3D}=\mathcal O_{3D}(\vu,p,\OmgB),
+    \qquad
+    \delta Y=Y_{1D}-Y_{3D}. &&
+\end{flalign*}
+Unless the comparison design separates them, $\delta Y$ combines model-form,
+closure, parameter, numerical, data-matching, and observation-operator effects.
+Blanco's 1D--3D FFR study is read here as an FFR-specific matched-contract
+comparison with pressure boundary matching and dedicated stenosis/bifurcation
+losses, not as evidence of general model-tier equivalence
+\cite{Blanco2018FFR1D3D}.
 
 \begin{stenosisillustration}
 \label{ex:stenosisillustration-model-hierarchy}

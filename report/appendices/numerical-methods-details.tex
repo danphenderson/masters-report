@@ -16,6 +16,121 @@ numerical fluxes, residual arrays, and sampled norms denote recorded discrete
 objects unless a section explicitly switches back to a continuum identity.
 \end{convention}
 
+\subsection{Case-study rheology descriptor details}
+\label{app:num-rheology-descriptor-details}
+
+The reduced model evaluates a declared rheology descriptor
+$\mathcal R$ through an effective dynamic-viscosity law
+$\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma)$ and then uses
+$\nu_{\mathrm{eff}}^{\mathcal R}=\eta_{\mathrm{eff}}^{\mathcal R}/\rho$ in
+the source terms. For computed non-Newtonian descriptor cases, singular or
+degenerate zero-shear behavior is regularized by
+\begin{flalign*}
+    \quad
+    \dot\gamma_\epsilon
+    \defined
+    \max\{|\dot\gamma|,\epsilon_\gamma\},
+    \qquad
+    \epsilon_\gamma>0,
+    &&
+\end{flalign*}
+and optional declared dynamic-viscosity bounds are applied through
+\begin{flalign*}
+    \quad
+    \Pi_{[\eta_{\min},\eta_{\max}]}(\xi)
+    \defined
+    \min\{\eta_{\max},\max\{\eta_{\min},\xi\}\},
+    \qquad
+    0\leq\eta_{\min}\leq\eta_{\max}\leq\infty.
+    &&
+\end{flalign*}
+Without declared bounds, this projection is the identity. The implemented
+catalog laws are
+\begin{flalign*}
+    \quad
+    \eta_{\mathrm{eff}}^{\mathrm{newt}}
+    &\equiv \eta, &&\\
+    \quad
+    \eta_{\mathrm{eff}}^{\mathrm{carreau}}(\dot\gamma)
+    &=
+    \eta_\infty+(\eta_0-\eta_\infty)
+    \left(1+(\lambda_{\mathrm C}\dot\gamma_\epsilon)^2\right)^{(n_{\mathrm C}-1)/2}, &&\\
+    \quad
+    \eta_{\mathrm{eff}}^{\mathrm{CY}}(\dot\gamma)
+    &=
+    \eta_\infty+(\eta_0-\eta_\infty)
+    \left(1+(\lambda_{\mathrm{CY}}\dot\gamma_\epsilon)^{a_{\mathrm Y}}\right)^{(n_{\mathrm{CY}}-1)/a_{\mathrm Y}}, &&\\
+    \quad
+    \eta_{\mathrm{eff}}^{\mathrm{casson}}(\dot\gamma)
+    &=
+    \left(\sqrt{\tau_y/\dot\gamma_\epsilon}+\sqrt{\eta_p}\right)^2, &&\\
+    \quad
+    \eta_{\mathrm{eff}}^{\mathrm{power}}(\dot\gamma)
+    &=
+    K_{\mathrm{pl}}\dot\gamma_\epsilon^{n_{\mathrm{pl}}-1}. &&
+\end{flalign*}
+The Carreau and Carreau--Yasuda parameters satisfy
+$\eta_0>0$, $\eta_\infty\geq0$, $\eta_0\geq\eta_\infty$,
+$\lambda_{\mathrm C},\lambda_{\mathrm{CY}}\geq0$,
+$n_{\mathrm C},n_{\mathrm{CY}}>0$, and $a_{\mathrm Y}>0$; the Casson
+parameters satisfy $\tau_y\geq0$ and $\eta_p>0$; and the power-law parameters
+satisfy $K_{\mathrm{pl}}>0$ and $n_{\mathrm{pl}}>0$. The dynamic-viscosity
+parameters have viscosity units, $\tau_y$ has stress units, and
+$K_{\mathrm{pl}}$ has units $\mathrm{Pa}\cdot\mathrm{s}^{n_{\mathrm{pl}}}$ in
+SI.
+
+\subsection{Source-to-implementation map}
+\label{app:num-source-implementation-map}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Source-to-implementation map for the selected 1D model.}
+    \label{tab:source-to-implementation-model}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.24\textwidth}
+        >{\raggedright\arraybackslash}p{0.34\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Feature} & \textbf{Canic et al. source form} & \textbf{Implemented report form} \\
+        \midrule
+        Pressure denominator
+            & Elastic pressure written with a local $R_0(z)^{-2}$ denominator.
+            & Evolution wall potential and source use the constant
+            $R_{\max}^{-2}$ normalization specified in
+            Appendix~\ref{app:num-current-solver-operator}. \\
+        Profile parameters
+            & Source simulations state $\gamma=9$ and $\alpha=1.1$.
+            & Principal runs use the parabolic profile
+            $\alpha_{\mathcal P}=4/3$, $g_{\mathcal P}=4$; power-profile runs
+            are sensitivity/diagnostic records. \\
+        Friction coefficient
+            & Profile-dependent wall/friction closure in the reduced model.
+            & Implemented through the declared velocity-profile shear factor
+            and rheology descriptor. \\
+        $p_2$ differentiation
+            & Variable-radius pressure correction differentiated in the model.
+            & Locally frozen-viscosity treatment for the $p_2$ derivative. \\
+        External pressure
+            & External pressure term may be included in the formulation.
+            & $p_{\mathrm{ext}}\equiv0$ in the reported runs. \\
+        Coordinates
+            & Physical area and flow notation in the source paper.
+            & Solver state is $(a,q)$ with
+            $A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$. \\
+        Boundary rule
+            & Boundary conditions are model/problem dependent.
+            & Fixed-area characteristic approximation applied with persisted
+            subcritical-regime diagnostics. \\
+        Discrete well balancing
+            & Continuous rest equilibrium is a model-level property.
+            & Rusanov/MUSCL is not exactly well balanced for spatially varying
+            $R_0$; Section~\ref{sec:numerical-verification} reports
+            zero-forcing rest-state drift. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
 \subsection{Secondary implementation-health records}
 \label{app:num-secondary-implementation-health}
 \label{subsec:verification-reproducibility}

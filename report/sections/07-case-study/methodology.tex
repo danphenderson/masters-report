@@ -68,7 +68,7 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             $\bar u_{1D}=q/a$ on 200 axial sections. A second retained
             comparison applies the resolved displacement field before forming
             the same plane cuts.
-            & The comparison is meaningful only for these common section
+            & The comparison supports a claim only for these common section
             observables. Radial-profile outputs are retained only as an audit
             record because their area-closure gate fails. \\
         Numerical admissibility gates
@@ -369,8 +369,12 @@ The selected implementation is a documented Canic-derived extended model, not
 a literal reproduction of every source-paper parameter and normalization in
 \cite{CanicEtAl2024Extended1DStenosis}. The report therefore uses the phrase
 \emph{$R_{\max}$-normalized Canic-derived extended model} when source fidelity
-matters. Table~\ref{tab:source-to-implementation-model} records the relevant
-source-to-implementation choices. The diagnostic extended pressure correction is
+matters. The main differences are the $R_{\max}^{-2}$ elastic normalization,
+the parabolic principal velocity-profile closure, the fixed-area characteristic
+boundary approximation, and the locally frozen-viscosity treatment used for the
+diagnostic $p_2$ derivative. Appendix~\ref{app:num-source-implementation-map}
+records the detailed source-to-implementation table. The diagnostic extended
+pressure correction is
 \begin{flalign*}
     \quad
     p_{2,\mathrm g}(a,q,z,t)
@@ -383,55 +387,6 @@ law. In generalized-Newtonian descriptor runs, the implemented analytic $p_2$
 derivative uses the local value of $\nu_{\mathrm{eff}}^{\mathcal R}$ and does
 not differentiate that effective-viscosity factor; it is therefore a locally
 frozen-viscosity computational closure for this term.
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Source-to-implementation map for the selected 1D model.}
-    \label{tab:source-to-implementation-model}
-    \begin{tabularx}{\textwidth}{@{}
-        >{\raggedright\arraybackslash}p{0.24\textwidth}
-        >{\raggedright\arraybackslash}p{0.34\textwidth}
-        >{\raggedright\arraybackslash}X@{}}
-        \toprule
-        \textbf{Feature} & \textbf{Canic et al. source form} & \textbf{Implemented report form} \\
-        \midrule
-        Pressure denominator
-            & Elastic pressure written with a local $R_0(z)^{-2}$ denominator.
-            & Evolution wall potential and source use the constant
-            $R_{\max}^{-2}$ normalization specified in
-            Appendix~\ref{app:num-current-solver-operator}. \\
-        Profile parameters
-            & Source simulations state $\gamma=9$ and $\alpha=1.1$.
-            & Principal runs use the parabolic profile
-            $\alpha_{\mathcal P}=4/3$, $g_{\mathcal P}=4$; power-profile runs
-            are sensitivity/diagnostic records. \\
-        Friction coefficient
-            & Profile-dependent wall/friction closure in the reduced model.
-            & Implemented through the declared velocity-profile shear factor
-            and rheology descriptor. \\
-        $p_2$ differentiation
-            & Variable-radius pressure correction differentiated in the model.
-            & Locally frozen-viscosity treatment for the $p_2$ derivative. \\
-        External pressure
-            & External pressure term may be included in the formulation.
-            & $p_{\mathrm{ext}}\equiv0$ in the reported runs. \\
-        Coordinates
-            & Physical area and flow notation in the source paper.
-            & Solver state is $(a,q)$ with
-            $A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$. \\
-        Boundary rule
-            & Boundary conditions are model/problem dependent.
-            & Fixed-area characteristic approximation applied with persisted
-            subcritical-regime diagnostics. \\
-        Discrete well balancing
-            & Continuous rest equilibrium is a model-level property.
-            & Rusanov/MUSCL is not exactly well balanced for spatially varying
-            $R_0$; Section~\ref{sec:numerical-verification} reports
-            zero-forcing rest-state drift. \\
-        \bottomrule
-    \end{tabularx}
-\end{table}
 
 \subsubsection{Boundary Approximation and Subcritical Condition}
 \label{subsec:initial-boundary-conditions}

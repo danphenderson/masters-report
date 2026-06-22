@@ -1,20 +1,18 @@
 \section{Introduction and Report Methodology}
 \label{sec:intro}
 
-Blood-flow simulation sits between continuum mechanics, numerical
-analysis, and biomedical interpretation. A stenosis is a useful
-organizing example because a vessel narrowing changes velocity,
-pressure, wall loading, and downstream flow in ways that depend on
-the model tier and on the observable being compared. For example, a 
-three-dimensional (3D) computational fluid dynamics (CFD) simulation of
-the Naview-Stokes system, a reduced-order 1D area-flow model, and a lumped (0D) outlet network do
-not retain the same state variables or answer the same question. The first 
-task of a mathematical simulation report is therefore to state the governing assumptions
-before interpreting the computed quantities. In particular, geometric
-descriptions of a narrowed vessel do not by themselves determine its
-functional hemodynamic significance: pressure–flow measurements and
-coronary imaging studies distinguish anatomical severity from
-functional assessment \cite[p.~4401]{DerimayEtAl2021CoronaryStenosisObstruction}
+Blood-flow simulation sits between continuum mechanics, numerical analysis,
+and biomedical interpretation. A stenosis is a useful organizing example
+because a vessel narrowing changes velocity, pressure, wall loading, and
+downstream flow in ways that depend on the retained state and the observable
+being compared. A three-dimensional (3D) computational fluid dynamics (CFD)
+simulation of the Navier--Stokes system, a reduced one-dimensional (1D)
+area--flow model, and a lumped zero-dimensional (0D) outlet network therefore
+do not answer the same mathematical question. Anatomical narrowing and
+functional hemodynamic significance are also different observables:
+pressure--flow measurements and coronary imaging studies distinguish lesion
+appearance from functional assessment
+\cite[p.~4401]{DerimayEtAl2021CoronaryStenosisObstruction}
 \cite[Abstract; Methods]{VanDenHoogenEtAl2022CoronaryLesionCTA}.
 
 The primary purpose of this report is to review mathematical models
@@ -35,31 +33,60 @@ The review is narrative and scoping in style rather than systematic. Sources
 were identified from a curated bibliography, a source-provenance log, citation
 trails within retained sources, and targeted searches used to check concrete
 gaps in model hierarchy, closure uncertainty, verification/validation, learned
-surrogates, and observation operators. The detailed search strings, source
-counts, and triage categories are reproducibility metadata rather than part of
-the main argument; Appendix~\ref{app:code-and-ai-use} records the review
-provenance. The included sources span classical stenosis-loss studies, continuum
-and cardiovascular modeling references, clinical pressure-flow observables,
-benchmark and open-solver work, and compact learned-model context
-\cite{YoungTsai1973SteadyStenosis,YoungTsai1973UnsteadyStenosis,GaldiEtAl2008HemodynamicalFlows,
-QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2003OneDimensionalBloodFlow,
-ShiEtAl2011BloodFlowModelReview,BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF,
-CanicEtAl2024Extended1DStenosis,ToninoEtAl2010FAMEAngioFunctional,
-Blanco2018FFR1D3D,YuEtAl2026PINNHemodynamicsReview}.
+surrogates, and observation operators. Appendix~\ref{app:code-and-ai-use}
+records the reproducibility metadata for the source inventory and generated
+evidence matrices; the main text uses those records only to support bounded
+claims.
+
+\begin{table}[!htb]
+    \centering
+    \small
+    \caption{Primary source roles used in the narrative review.}
+    \label{tab:intro-source-roles}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.24\textwidth}
+        >{\raggedright\arraybackslash}p{0.34\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Source role} & \textbf{What it supports} & \textbf{Representative use} \\
+        \midrule
+        Derivation and theory
+            & Governing equations, reductions, wall laws, coupling assumptions.
+            & Continuum-to-1D reductions and multiscale coupling
+            \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,QuarteroniVeneziani2003GeometricalMultiscale}. \\
+        Review and taxonomy
+            & Model classes, state variables, and clinical or numerical context.
+            & 0D/1D hierarchy and pressure--flow network interpretation
+            \cite{ShiEtAl2011BloodFlowModelReview}. \\
+        Numerical benchmark or software
+            & Scheme comparison, reproducibility, workflow traceability.
+            & 1D benchmark cases and open finite-volume workflows
+            \cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}. \\
+        Clinical or experimental observable
+            & External meaning of pressure ratios, anatomy/function distinction,
+            and measured wall or flow quantities.
+            & Angiographic versus functional stenosis assessment
+            \cite{ToninoEtAl2010FAMEAngioFunctional,Blanco2018FFR1D3D}. \\
+        Learned-model study
+            & Performance within a declared training target, geometry family, and
+            output observable.
+            & PINN, neural differential, and operator-learning scope limits
+            \cite{YuEtAl2026PINNHemodynamicsReview}. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
 
 The inclusion criterion is relevance to the mathematical reading of blood-flow
 simulation: what equations are solved, which physics are retained or closed,
 what data are required, what observables are produced, and what evidence can
 support a comparison. Sources were retained only when they supported at least
 one of those questions for the model hierarchy, closures, numerical evidence
-standard, or 1D--3D observation operator. Exclusion categories were sources with
-unresolved metadata, sources useful only for broad clinical burden or general
-background, low-value surrogate-learning references that did not clarify a
-hemodynamics-specific limitation, and sources whose claims did not affect the
-worked stenosis example. Clinical pressure-ratio, CT-FFR, distensibility, and
-wall-shear literature is used only where it clarifies model-dependent
-observables. The review does not claim exhaustive coverage of all clinical or
-computational hemodynamics.
+standard, or 1D--3D observation operator. Derivation papers establish equations
+and assumptions; benchmark papers establish comparative numerical behavior;
+clinical and experimental studies address external relevance for specified
+observables; and software or repository records support reproducibility rather
+than scientific truth of a model claim. The review does not claim exhaustive
+coverage of all clinical or computational hemodynamics.
 
 \subsection{Research Problem and Questions}
 \label{subsec:research-problem-questions}
@@ -75,9 +102,9 @@ review-oriented questions:
     \item How do rheology, wall mechanics, geometry, inlet and outlet data,
     numerical discretization, evidence standards, and observation operators
     affect the interpretation of reported hemodynamic quantities?
-    \item What limitations remain across the literature when model fidelity,
-    computational cost, identifiability, validation status, reproducibility,
-    and uncertainty sources are compared?
+    \item What limitations remain across the literature when retained state,
+    resolved scales, computational cost, practical identifiability, validation
+    status, reproducibility, and uncertainty sources are compared?
 \end{enumerate}
 
 \subsection{Literature Review and Report Roadmap}
@@ -86,25 +113,20 @@ review-oriented questions:
 \label{subsec:report-organization}
 
 The report's contribution is a structured review framework rather than a new
-clinical validation result. The first part establishes the modeling vocabulary:
-continuum fields, transport identities, balance laws, stress closures, fixed and
-moving domains, and boundary data. The second part organizes the model hierarchy
-by retained state and observation maps, then treats closure choices and
-hemodynamic observables as part of the mathematical model itself. The third
-part reviews numerical methods through evidence standards: stability,
-positivity, conservation, well-balancing, verification, validation,
-reproducibility, and cross-dimensional observation operators. The synthesis
-chapter then compares the literature across fidelity, cost, retained state,
-observables, identifiability, validation status, reproducibility, and
-uncertainty.
+clinical validation result. It first establishes the continuum vocabulary,
+then compares model tiers by retained state, closure burden, boundary data, and
+native observables. It next treats numerical methods through evidence
+standards: conservation, stability, positivity, well-balancing, verification,
+validation, reproducibility, and cross-dimensional observation operators. The
+synthesis chapter turns those ingredients into explicit propositions about
+what can and cannot be inferred from the literature.
 
 Only after that review and synthesis does the report turn to the idealized
-stenosis case study. The case study uses the Julia package
-\path{StenoticHemodynamics} to illustrate how a reduced model contract, closure
-choices, evidence records, and a 1D--3D observation operator appear in one
-reviewable worked example. Its role is methodological: it shows how the review concepts
-constrain interpretation without converting the report into a software or
-clinical-validation document.
+stenosis case study. The case uses \path{StenoticHemodynamics} as a worked
+example of a reduced model contract, closure choices, evidence records, and a
+1D--3D velocity observation operator. Its role is methodological: it shows how
+the review concepts constrain interpretation without converting the report into
+a software or clinical-validation document.
 
 The main continuum symbols are used in their standard units unless a generated
 numerical table states otherwise: $\rho$ denotes density, $u_z$ axial velocity,
@@ -117,15 +139,10 @@ $A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and the section-mean
 velocity is $\bar u=q/a$. Appendix~\ref{app:domain-specific-notation} collects
 the full symbol and unit table used by the report.
 
-Section~\ref{sec:continuum-description} introduces the continuum description of
-blood flow, from flow maps and balance laws to incompressible Navier--Stokes
-and principal observables. Section~\ref{sec:model-hierarchy} compares model
-families across 3D, FSI, reduced, lumped, multiscale, and learned approaches.
-Section~\ref{sec:modeling-closures} reviews constitutive, geometric, wall,
-boundary, and observable conventions. Section~\ref{sec:numerical-methods}
-reviews discretization methods, verification, validation, convergence, and
-observation operators. Section~\ref{sec:literature-synthesis} synthesizes open
-challenges across these choices before Section~\ref{sec:case-study} applies
-the framework to the idealized stenosis example. The final discussion answers
-the research questions directly, and the conclusion states the bounded review
-contribution.
+Section~\ref{sec:continuum-description} supplies the continuum definitions used
+later. Sections~\ref{sec:model-hierarchy}--\ref{sec:numerical-methods} compare
+model tiers, closures, observables, discretizations, and evidence standards.
+Section~\ref{sec:literature-synthesis} states the resulting synthesis
+propositions before Section~\ref{sec:case-study} applies the framework to one
+idealized stenosis example. The final discussion answers the research questions
+directly and closes with the bounded review contribution.

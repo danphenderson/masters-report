@@ -13,6 +13,26 @@ interpret blood-flow simulations: verification, validation, stability,
 positivity, conservation, well-balancing, reproducibility, and observation
 operators.
 
+The notation below separates the mathematical model from the discrete
+realization:
+\begin{flalign*}
+    \quad
+    \mathcal M(U)=0
+    \quad\text{(continuous model)},\qquad
+    M_h\dot U_h=R_h(U_h)
+    \quad\text{(semidiscrete equations)},\qquad
+    U_h^{n+1}=\Phi_{\Delta t,h}(U_h^n)
+    \quad\text{(fully discrete scheme)}. &&
+\end{flalign*}
+A reported numerical quantity is then
+\begin{flalign*}
+    \quad
+    Y_{h,\Delta t}=\mathcal O_h(U_h^n),
+    &&
+\end{flalign*}
+with an observation map $\mathcal O_h$ that carries its own quadrature,
+coordinate, and output conventions.
+
 \subsection{Finite-Element Incompressible Flow and FSI}
 \label{subsec:numerical-methods-fem-fsi}
 
@@ -98,13 +118,25 @@ ask whether a target equilibrium is preserved by the discrete operator itself.
 High-order well-balanced schemes make this requirement explicit by reconstructing
 or integrating flux and source contributions so that selected rest states cancel
 after discretization, not only in the continuous equations
-\cite{PimentelGarciaEtAl2025HighOrderWellBalanced}. For the present report,
+\cite{PimentelGarciaEtAl2023HighOrderWellBalanced}. The 2023 JCP article
+targets all stationary solutions of a model with discontinuous geometrical and
+mechanical properties; the later friction-and-gravity preprint is a distinct
+extension rather than the source for that claim. For the present report,
 geometry-rest preservation is therefore a core numerical property rather than a
 postprocessing preference or a cosmetic refinement of an otherwise verified
 scheme.
 
 \subsection{Verification, Validation, and Reference Data}
 \label{subsec:numerical-methods-verification-validation}
+
+ASME-style VVUQ terminology separates credibility claims
+\cite{ASME2022VVUQTerminology}. Code verification concerns whether the
+implementation conforms to the mathematical description. Solution verification
+concerns numerical error in a computed quantity. Validation concerns whether a
+model represents a specified real application for a specified observable and
+context of use. Uncertainty quantification concerns the effect of uncertain
+numerical and physical inputs. These categories are related, but none is a
+substitute for another.
 
 Verification asks whether the implementation solves the equations it claims to
 solve. Manufactured solutions are useful because the analyst chooses a smooth
@@ -136,15 +168,15 @@ validation evidence; validation still requires the geometry, boundary data,
 material assumptions, numerical settings, and observable to match the claim
 being tested.
 
-Validation is a different evidence category. It requires comparison with an
-accepted reference for the target question, such as controlled experimental
-measurements, clinical measurements with known acquisition conventions, or a
-resolved computational reference whose geometry, material parameters, boundary
-history, timestep, and observable match the reduced model closely enough to
-support the intended claim. Computational reference data are often the practical
-first tier for method development, while experimental data are needed when the
-claim concerns physical or physiological prediction. In both cases, the
-observation operator determines what quantity is actually being compared.
+External validation is therefore a different evidence category. It requires
+comparison with an accepted physical or application reference for the target
+question, such as controlled experimental measurements or clinical measurements
+with known acquisition conventions. A resolved computational comparator can
+support a cross-model comparison when geometry, material parameters, boundary
+history, timestep, and observable are matched closely enough for the intended
+claim, but it is not automatically validation data merely because it is
+higher-dimensional. In every category, the observation operator determines what
+quantity is actually being compared.
 
 \subsection{Cross-Dimensional Observation Operators}
 \label{subsec:numerical-methods-observation-operators}
@@ -166,7 +198,7 @@ as after-the-fact plotting choices
 \cite{FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale}.
 Clinical FFR and CT-FFR sources show the same requirement in diagnostic form:
 overview and CT-derived FFR work make the reported pressure-ratio observable
-meaningful only after the imaging, model, boundary, and pressure-extraction
+interpretable only after the imaging, model, boundary, and pressure-extraction
 conventions have been fixed
 \cite{TebaldiEtAl2015FFROverview,NorgaardEtAl2014NXTFFRCT,ShaikhEtAl2025CTFFR}.
 Comparisons of 1D and 3D FFR estimates make the cross-dimensional version of
@@ -174,6 +206,11 @@ that requirement explicit \cite{Blanco2018FFR1D3D}.
 In this report, the plane--tetrahedron quadrature operator plays that role for
 the available resolved 3D velocity data, while the 1D state is observed through
 physical flow and area-mean velocity.
+A reported discrepancy can then include model-form error, closure or parameter
+differences, numerical error, data-matching error, and observation-operator
+error. The section geometry used by the observation map must also be declared:
+reference-coordinate cuts and deformed-coordinate cuts are different output
+operators even when they are applied to the same velocity file.
 
 \subsection{Evidence Standard for the Present Report}
 \label{subsec:numerical-methods-evidence-standards}
@@ -188,36 +225,33 @@ in the case study.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Numerical-method evidence roles used in the report.}
+    \caption{Claim-to-evidence map for numerical-method statements in the
+    report.}
     \label{tab:numerical-methods-evidence-map}
-    \begin{tabularx}{\textwidth}{@{}p{0.23\textwidth}p{0.31\textwidth}X@{}}
+    \begin{tabularx}{\textwidth}{@{}p{0.42\textwidth}X@{}}
         \toprule
-        \textbf{Evidence item} & \textbf{Numerical question} & \textbf{Role in this report} \\
+        \textbf{Claim} & \textbf{Minimum evidence} \\
         \midrule
-        Manufactured solution
-            & Does the implemented forced operator reproduce a declared smooth exact
-            state under refinement?
-            & Implementation-verification evidence for flux, source, boundary, and
-            time-integration wiring; strongest when the manufactured residual is
-            checked outside the production right-hand-side path or by mutation
-            tests. \\
-        Geometry-rest equilibrium
-            & Does the discrete flux/source operator preserve a selected rest state?
-            & Well-balanced-property test for the stenosis geometry and wall-source
-            realization. \\
-        CFL, positivity, conservation
-            & Did the accepted run remain inside the recorded admissible numerical
-            regime?
-            & Diagnostic bookkeeping for timestep, characteristic, area, and mass
-            behavior. \\
-        Benchmarks and reference data
-            & How does a solver compare on shared cases or against accepted data?
-            & Reproducibility and validation context, conditional on matched model
-            and observable assumptions. \\
-        Plane--tetrahedron quadrature
-            & What common observable is extracted from resolved 3D and 1D states?
-            & Cross-dimensional observation operator for section velocity, flow, and
-            radial-profile diagnostics. \\
+        Implementation reproduces a manufactured smooth solution
+            & Code verification and observed order for the declared forced
+            operator, including flux, source, boundary, and time-integration
+            wiring. \\
+        Computed quantity is grid/time resolved
+            & Solution verification with grid and timestep sensitivity or an
+            uncertainty estimate for the reported observable. \\
+        Rest or steady state is preserved
+            & Named equilibrium family plus a drift, residual, or exact-discrete
+            preservation test. \\
+        Two schemes agree
+            & Shared benchmark, matched model contracts, and comparable output
+            quantities. \\
+        Two model tiers agree
+            & Matched inputs and closures plus a common observation operator. \\
+        Model represents physical or clinical reality
+            & External data for the specified observable and context of use. \\
+        Result is reproducible
+            & Archived or declared inputs, versions, commands, generated outputs,
+            and source/provenance records. \\
         \bottomrule
     \end{tabularx}
 \end{table}
