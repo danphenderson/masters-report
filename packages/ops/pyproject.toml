@@ -17,6 +17,7 @@ dependencies = [
 
 [project.scripts]
 ops-audit-references = "ops.audit_references:main"
+ops-audit-report-prose = "ops.audit_report_prose:main"
 ops-audit-tex-preamble = "ops.audit_tex_preamble:main"
 ops-build-lit-review-depth = "ops.build_lit_review_depth:main"
 ops-build-report = "ops.build_report:main"

@@ -175,6 +175,50 @@ refinement set.
     \end{center}
 }
 
+\subsection{Quasi-static membrane-FSI validation workflow}
+\label{app:num-membrane-fsi-validation}
+
+The Julia package now contains a separate membrane-FSI validation workflow for
+Canic-style resolved-wall comparison experiments. It is not the fixed-wall
+stationary-Stokes refinement record above. The steady mode solves a fixed-point
+problem on the current lumen geometry: a Stokes solve supplies the wall pressure
+load, the radial membrane equation updates the wall displacement, and the
+tetrahedral mesh is regenerated on the updated radius profile until the wall
+update reaches the declared tolerance.
+
+For the quasi-static mode the wall equation is the inertia-free specialization
+of the Canic membrane relation,
+\begin{flalign*}
+    \quad
+    C_0\eta_r(z)=f_r(z),
+    \qquad
+    \eta_r(0)=\eta_r(L)=0,
+    \qquad
+    C_0=\frac{Eh}{(1-\sigma^2)(R_0^*)^2}. &&
+\end{flalign*}
+Here $\eta_r$ is the radial displacement, $f_r$ is the radial fluid load in the
+wall-law gauge, and $R_0^*$ is the constant reference-radius convention recorded
+in the workflow manifest. The implementation also accepts a named positive,
+sufficiently smooth reference-radius callback, so the membrane-FSI solve is not
+tied to the default Canic stenosis profile. The retained report comparison has
+not yet promoted these workflow outputs into main-text evidence.
+
+The corresponding CLI entry point is:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi validate \
+  --wall-mode quasi-static \
+  --severities 23,40 \
+  --meshes 8x2x8,16x4x16 \
+  --output-dir tmp/simulations/output/membrane_fsi_validation \
+  --overwrite
+\end{lstlisting}
+The workflow writes a summary CSV, a \TeX{} table fragment, per-case wall
+profiles, per-case coupling histories, and a JSON manifest under the selected
+output directory. Dynamic wall mode is a reduced radial membrane time integrator
+coupled to repeated quasi-steady Stokes solves, not a transient moving-boundary
+fluid solve, and its outputs remain scratch workflow evidence unless a later
+artifact-refresh lane explicitly promotes them.
+
 \subsection{Elastic-potential balance-law form}
 \label{app:num-elastic-potential-form}
 

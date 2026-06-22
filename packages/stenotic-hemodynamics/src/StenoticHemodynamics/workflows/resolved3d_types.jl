@@ -18,6 +18,8 @@ struct Resolved3DCaseSpec
     case_label::String
     severity::Float64
     velocity_xdmf::String
+    pressure_xdmf::String
+    displacement_xdmf::String
     target_time::Float64
     time_atol::Float64
 end
@@ -26,6 +28,8 @@ function Resolved3DCaseSpec(
     case_label,
     severity,
     velocity_xdmf;
+    pressure_xdmf::AbstractString = default_companion_xdmf_path(velocity_xdmf, "pressure.xdmf"),
+    displacement_xdmf::AbstractString = default_companion_xdmf_path(velocity_xdmf, "displace.xdmf"),
     target_time::Real = 0.9995,
     time_atol::Real = 1.0e-3,
 )
@@ -39,9 +43,17 @@ function Resolved3DCaseSpec(
         string(case_label),
         severity_value,
         String(velocity_xdmf),
+        String(pressure_xdmf),
+        String(displacement_xdmf),
         target_time_value,
         time_atol_value,
     )
+end
+
+function default_companion_xdmf_path(velocity_xdmf, filename::AbstractString)
+    path = String(velocity_xdmf)
+    isempty(path) && return ""
+    return joinpath(dirname(path), String(filename))
 end
 
 """
@@ -61,6 +73,23 @@ struct XDMFVelocityMetadata
 end
 
 """
+Metadata parsed from one node-centered XDMF scalar or vector attribute file.
+"""
+struct XDMFFieldMetadata
+    time::Float64
+    geometry_file::String
+    geometry_path::String
+    geometry_dims::Tuple{Int,Int}
+    topology_file::String
+    topology_path::String
+    topology_dims::Tuple{Int,Int}
+    field_file::String
+    field_path::String
+    field_dims::Tuple{Int,Int}
+    attribute_type::String
+end
+
+"""
 Node-centered 3D coordinates and velocities loaded from HDF5.
 """
 struct Resolved3DVelocityField
@@ -69,6 +98,20 @@ struct Resolved3DVelocityField
     topology::Matrix{Int}
     coordinates::Matrix{Float64}
     velocity::Matrix{Float64}
+end
+
+"""
+Node-centered resolved-FSI field bundle. Pressure and displacement are optional
+so legacy velocity-only comparison cases remain loadable.
+"""
+struct Resolved3DFieldBundle
+    case_spec::Resolved3DCaseSpec
+    velocity::Resolved3DVelocityField
+    pressure_metadata::Union{Nothing,XDMFFieldMetadata}
+    displacement_metadata::Union{Nothing,XDMFFieldMetadata}
+    pressure::Union{Nothing,Vector{Float64}}
+    displacement::Union{Nothing,Matrix{Float64}}
+    deformed_coordinates::Union{Nothing,Matrix{Float64}}
 end
 
 abstract type AbstractResolved3DOperator end
@@ -108,6 +151,7 @@ struct ComparisonSpec{B<:AbstractTimeBackend,O<:AbstractResolved3DOperator} <: A
     radial_bin_counts::Vector{Int}
     radial_radius_modes::Vector{String}
     node_slab_half_widths::Vector{Float64}
+    coordinate_mode::String
     overwrite::Bool
     progress_every::Int
     write_svg::Bool
@@ -125,6 +169,7 @@ function ComparisonSpec(;
     radial_bin_counts = nothing,
     radial_radius_modes = nothing,
     node_slab_half_widths = nothing,
+    coordinate_mode::AbstractString = "reference",
     overwrite::Bool = false,
     progress_every::Int = 0,
     write_svg::Bool = true,
@@ -171,6 +216,9 @@ function ComparisonSpec(;
     !isempty(radius_modes) || throw(ArgumentError("radial_radius_modes must include at least one mode"))
     all(mode -> mode in ("current", "reference"), radius_modes) ||
         throw(ArgumentError("radial_radius_modes must contain only current or reference"))
+    coordinate_mode_value = replace(lowercase(strip(String(coordinate_mode))), "_" => "-")
+    coordinate_mode_value in ("reference", "deformed") ||
+        throw(ArgumentError("coordinate_mode must be reference or deformed"))
 
     return ComparisonSpec{typeof(backend),typeof(operator)}(
         case_values,
@@ -184,6 +232,7 @@ function ComparisonSpec(;
         bin_counts,
         radius_modes,
         widths,
+        coordinate_mode_value,
         overwrite,
         progress_every,
         write_svg,
@@ -207,6 +256,8 @@ function validate(spec::ComparisonSpec)
         throw(ArgumentError("radial_radius_modes must contain only current or reference"))
     all(width -> width > 0.0, spec.node_slab_half_widths) ||
         throw(ArgumentError("node-slab half widths must be positive"))
+    spec.coordinate_mode in ("reference", "deformed") ||
+        throw(ArgumentError("coordinate_mode must be reference or deformed"))
     spec.progress_every >= 0 || throw(ArgumentError("progress_every must be nonnegative"))
     return spec
 end
@@ -241,6 +292,7 @@ struct GridSensitivitySpec{B<:AbstractTimeBackend,O<:AbstractResolved3DOperator}
     radial_bin_counts::Vector{Int}
     radial_radius_modes::Vector{String}
     node_slab_half_widths::Vector{Float64}
+    coordinate_mode::String
     overwrite::Bool
     progress_every::Int
     write_svg::Bool
@@ -261,6 +313,7 @@ function GridSensitivitySpec(;
     radial_bin_counts = nothing,
     radial_radius_modes = nothing,
     node_slab_half_widths = nothing,
+    coordinate_mode::AbstractString = "reference",
     overwrite::Bool = false,
     progress_every::Int = 0,
     write_svg::Bool = true,
@@ -316,6 +369,9 @@ function GridSensitivitySpec(;
     !isempty(radius_modes) || throw(ArgumentError("radial_radius_modes must include at least one mode"))
     all(mode -> mode in ("current", "reference"), radius_modes) ||
         throw(ArgumentError("radial_radius_modes must contain only current or reference"))
+    coordinate_mode_value = replace(lowercase(strip(String(coordinate_mode))), "_" => "-")
+    coordinate_mode_value in ("reference", "deformed") ||
+        throw(ArgumentError("coordinate_mode must be reference or deformed"))
 
     csv_path = isempty(summary_csv) ? joinpath(output_dir, "grid_sensitivity_summary.csv") : summary_csv
     tex_path = isempty(summary_tex) ? joinpath(output_dir, "grid_sensitivity_summary.tex") : summary_tex
@@ -333,6 +389,7 @@ function GridSensitivitySpec(;
         bin_counts,
         radius_modes,
         widths,
+        coordinate_mode_value,
         overwrite,
         progress_every,
         write_svg,
@@ -362,6 +419,8 @@ function validate(spec::GridSensitivitySpec)
         throw(ArgumentError("radial_radius_modes must contain only current or reference"))
     all(width -> width > 0.0, spec.node_slab_half_widths) ||
         throw(ArgumentError("node-slab half widths must be positive"))
+    spec.coordinate_mode in ("reference", "deformed") ||
+        throw(ArgumentError("coordinate_mode must be reference or deformed"))
     spec.progress_every >= 0 || throw(ArgumentError("progress_every must be nonnegative"))
     return spec
 end
@@ -381,6 +440,7 @@ struct SectionComparisonRow
     initial_condition::String
     backend::String
     run_status::String
+    coordinate_mode::String
     z_cm::Float64
     area_cm2::Float64
     flow_3d_cm3_s::Float64
@@ -417,6 +477,7 @@ struct RadialProfileRow
     initial_condition::String
     backend::String
     run_status::String
+    coordinate_mode::String
     z_slice_cm::Float64
     radial_bin::Int
     r_over_r0_mid::Float64
@@ -456,6 +517,7 @@ struct NodeSlabSensitivityRow
     initial_condition::String
     backend::String
     run_status::String
+    coordinate_mode::String
     half_width_cm::Float64
     z_cm::Float64
     mean_u3d_cm_s::Float64
@@ -485,6 +547,7 @@ struct ComparisonSummaryRow
     initial_condition::String
     backend::String
     run_status::String
+    coordinate_mode::String
     section_count::Int
     profile_count::Int
     mean_abs_error_cm_s::Float64
@@ -546,6 +609,7 @@ struct GridSensitivitySummaryRow
     initial_condition::String
     backend::String
     run_status::String
+    coordinate_mode::String
     target_time_s::Float64
     section_count::Int
     valid_section_count::Int

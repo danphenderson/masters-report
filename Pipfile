@@ -25,6 +25,7 @@ python_version = "3.13"
 
 [scripts]
 ops-audit-references = "python -m ops.audit_references"
+ops-audit-report-prose = "python -m ops.audit_report_prose"
 ops-audit-tex-preamble = "python -m ops.audit_tex_preamble"
 ops-build-lit-review-depth = "python -m ops.build_lit_review_depth"
 ops-build-report = "python -m ops.build_report"

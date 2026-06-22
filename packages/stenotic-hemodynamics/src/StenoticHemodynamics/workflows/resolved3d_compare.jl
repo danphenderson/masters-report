@@ -105,7 +105,8 @@ function run_comparison_with_case_runs(spec::ComparisonSpec)
 end
 
 function run_comparison_case(case::Resolved3DCaseSpec, spec::ComparisonSpec)
-    field = load_resolved3d_velocity(case)
+    bundle = load_resolved3d_field_bundle(case; require_displacement=(spec.coordinate_mode == "deformed"))
+    field = resolved3d_velocity_field_from_bundle(bundle, spec.coordinate_mode)
     params = params_with(spec.base_params; severity=case.severity, tfinal=case.target_time)
     result = simulate(params, spec.backend; progress_every=spec.progress_every)
 
@@ -128,6 +129,7 @@ function run_comparison_case(case::Resolved3DCaseSpec, spec::ComparisonSpec)
     return (
         case=case,
         field=field,
+        field_bundle=bundle,
         params=params,
         simulation_result=result,
         section_rows=section_rows,
@@ -156,6 +158,7 @@ function run_grid_sensitivity(spec::GridSensitivitySpec)
             radial_bin_counts=spec.radial_bin_counts,
             radial_radius_modes=spec.radial_radius_modes,
             node_slab_half_widths=spec.node_slab_half_widths,
+            coordinate_mode=spec.coordinate_mode,
             overwrite=spec.overwrite,
             progress_every=spec.progress_every,
             write_svg=spec.write_svg,
@@ -194,11 +197,13 @@ function run_grid_sensitivity_from_summary_csv(
 )
     rows = read_grid_sensitivity_summary_csv(source_summary_csv)
     case_specs = grid_sensitivity_cases_from_summary_rows(rows)
+    coordinate_mode = grid_sensitivity_coordinate_mode(rows, source_summary_csv)
     spec = GridSensitivitySpec(;
         cases=case_specs,
         base_params=base_params,
         output_dir=output_dir,
         nxs=nxs,
+        coordinate_mode=coordinate_mode,
         summary_csv=summary_csv,
         summary_tex=summary_tex,
         overwrite=overwrite,
@@ -225,6 +230,16 @@ function grid_sensitivity_cases_from_summary_rows(rows::Vector{GridSensitivitySu
     ]
 end
 
+function grid_sensitivity_coordinate_mode(rows::Vector{GridSensitivitySummaryRow}, source_summary_csv::String)
+    modes = sort(unique(row.coordinate_mode for row in rows))
+    length(modes) == 1 ||
+        throw(ArgumentError("grid sensitivity summary '$source_summary_csv' mixes coordinate modes: $(join(modes, ", "))"))
+    mode = only(modes)
+    mode in ("reference", "deformed") ||
+        throw(ArgumentError("grid sensitivity summary '$source_summary_csv' has unsupported coordinate_mode '$mode'"))
+    return mode
+end
+
 function validate_reused_grid_sensitivity_rows(
     rows::Vector{GridSensitivitySummaryRow},
     spec::GridSensitivitySpec,
@@ -239,6 +254,10 @@ function validate_reused_grid_sensitivity_rows(
     observed_cases = sort(unique(row.case_label for row in rows))
     observed_cases == expected_cases ||
         throw(ArgumentError("grid sensitivity summary '$source_summary_csv' has cases $(observed_cases), expected $(expected_cases)"))
+
+    observed_modes = sort(unique(row.coordinate_mode for row in rows))
+    observed_modes == [spec.coordinate_mode] ||
+        throw(ArgumentError("grid sensitivity summary '$source_summary_csv' has coordinate modes $(observed_modes), expected $(spec.coordinate_mode)"))
 
     selected_rows = GridSensitivitySummaryRow[]
     for nx in expected_nxs
@@ -278,6 +297,7 @@ function summarize_grid_sensitivity_case(case_run, comparison_result::Comparison
         summary_row.initial_condition,
         summary_row.backend,
         summary_row.run_status,
+        summary_row.coordinate_mode,
         case_run.case.target_time,
         length(case_run.section_rows),
         length(section_rows),
@@ -375,6 +395,7 @@ function compare_section_means(
                 run_fields.initial_condition,
                 run_fields.backend,
                 run_fields.run_status,
+                spec.coordinate_mode,
                 z_value,
                 observation.area_cm2,
                 observation.flow_cm3_s,
@@ -448,6 +469,7 @@ function compare_radial_profiles(
                         run_fields.initial_condition,
                         run_fields.backend,
                         run_fields.run_status,
+                        spec.coordinate_mode,
                         z_slice,
                         bin,
                         r_over_radius_mid,
@@ -514,6 +536,7 @@ function compare_node_slab_sensitivity(
                     run_fields.initial_condition,
                     run_fields.backend,
                     run_fields.run_status,
+                    spec.coordinate_mode,
                     half_width,
                     z_value,
                     observation.mean_velocity_cm_s,
@@ -873,6 +896,7 @@ function summarize_comparison(
     run_fields = resolved3d_run_fields(case, params, backend)
     velocity_errors = finite_values(row.abs_velocity_error_cm_s for row in section_rows)
     velocity_refs = finite_values(row.mean_u3d_cm_s for row in section_rows)
+    coordinate_mode = isempty(section_rows) ? "reference" : first(section_rows).coordinate_mode
 
     return ComparisonSummaryRow(
         case.case_label,
@@ -884,6 +908,7 @@ function summarize_comparison(
         run_fields.initial_condition,
         run_fields.backend,
         run_fields.run_status,
+        coordinate_mode,
         length(section_rows),
         length(profile_rows),
         mean_or_nan(section_abs),

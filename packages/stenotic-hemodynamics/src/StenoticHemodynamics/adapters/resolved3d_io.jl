@@ -33,6 +33,34 @@ function parse_xdmf_velocity(path::String)
     )
 end
 
+function parse_xdmf_field(path::String, attribute_type::AbstractString)
+    isfile(path) || throw(ArgumentError("XDMF file not found: $path"))
+    EzXML.readxml(path)
+
+    text = read(path, String)
+    time_match = match(r"<Time\b[^>]*Value\s*=\s*\"([^\"]+)\""s, text)
+    time_match === nothing && throw(ArgumentError("XDMF file '$path' does not contain a Time Value"))
+    time = parse(Float64, time_match.captures[1])
+
+    topology_dims, topology_file, topology_path = parse_xdmf_dataitem(text, "Topology", path)
+    geometry_dims, geometry_file, geometry_path = parse_xdmf_dataitem(text, "Geometry", path)
+    field_dims, field_file, field_path = parse_xdmf_attribute(text, path, String(attribute_type))
+
+    return XDMFFieldMetadata(
+        time,
+        geometry_file,
+        geometry_path,
+        geometry_dims,
+        topology_file,
+        topology_path,
+        topology_dims,
+        field_file,
+        field_path,
+        field_dims,
+        String(attribute_type),
+    )
+end
+
 function parse_xdmf_dataitem(text::String, element::String, source_path::String)
     block_match = match(Regex("<$(element)\\b[^>]*>.*?</$(element)>", "s"), text)
     block_match === nothing && throw(ArgumentError("XDMF file '$source_path' does not contain a $element block"))
@@ -40,15 +68,24 @@ function parse_xdmf_dataitem(text::String, element::String, source_path::String)
 end
 
 function parse_xdmf_vector_attribute(text::String, source_path::String)
+    return parse_xdmf_attribute(text, source_path, "Vector")
+end
+
+function parse_xdmf_scalar_attribute(text::String, source_path::String)
+    return parse_xdmf_attribute(text, source_path, "Scalar")
+end
+
+function parse_xdmf_attribute(text::String, source_path::String, attribute_type::String)
     for attribute in eachmatch(r"<Attribute\b[^>]*>.*?</Attribute>"s, text)
         block = attribute.match
-        if occursin(r"AttributeType\s*=\s*\"Vector\"", block) &&
+        attribute_pattern = Regex("AttributeType\\s*=\\s*\\\"$(attribute_type)\\\"")
+        if occursin(attribute_pattern, block) &&
            occursin(r"Center\s*=\s*\"Node\"", block)
-            return parse_dataitem_block(block, "node-centered vector Attribute in '$source_path'")
+            return parse_dataitem_block(block, "node-centered $(lowercase(attribute_type)) Attribute in '$source_path'")
         end
     end
 
-    throw(ArgumentError("XDMF file '$source_path' does not contain a node-centered vector Attribute"))
+    throw(ArgumentError("XDMF file '$source_path' does not contain a node-centered $(lowercase(attribute_type)) Attribute"))
 end
 
 function parse_dataitem_block(block::AbstractString, label::String)
@@ -121,6 +158,102 @@ function load_resolved3d_velocity(case_spec::Resolved3DCaseSpec)
     validate_tetra_topology(topology, size(coordinates, 1))
 
     return Resolved3DVelocityField(case_spec, metadata, topology, coordinates, velocity)
+end
+
+function load_resolved3d_field_bundle(case_spec::Resolved3DCaseSpec; require_pressure::Bool = false, require_displacement::Bool = false)
+    velocity_field = load_resolved3d_velocity(case_spec)
+    pressure_metadata = nothing
+    displacement_metadata = nothing
+    pressure = nothing
+    displacement = nothing
+    deformed_coordinates = nothing
+
+    if !isempty(case_spec.pressure_xdmf) && isfile(case_spec.pressure_xdmf)
+        pressure_metadata = parse_xdmf_field(case_spec.pressure_xdmf, "Scalar")
+        assert_compatible_xdmf_field(velocity_field, pressure_metadata, case_spec.pressure_xdmf)
+        pressure_matrix = load_xdmf_field_matrix(case_spec.pressure_xdmf, pressure_metadata, 1, "pressure")
+        pressure = vec(pressure_matrix[:, 1])
+    elseif require_pressure
+        throw(ArgumentError("resolved-FSI case '$(case_spec.case_label)' requires pressure XDMF: $(case_spec.pressure_xdmf)"))
+    end
+
+    if !isempty(case_spec.displacement_xdmf) && isfile(case_spec.displacement_xdmf)
+        displacement_metadata = parse_xdmf_field(case_spec.displacement_xdmf, "Vector")
+        assert_compatible_xdmf_field(velocity_field, displacement_metadata, case_spec.displacement_xdmf)
+        displacement = Matrix{Float64}(
+            load_xdmf_field_matrix(case_spec.displacement_xdmf, displacement_metadata, 3, "displacement"),
+        )
+        deformed_coordinates = velocity_field.coordinates .+ displacement
+    elseif require_displacement
+        throw(ArgumentError("resolved-FSI case '$(case_spec.case_label)' requires displacement XDMF: $(case_spec.displacement_xdmf)"))
+    end
+
+    return Resolved3DFieldBundle(
+        case_spec,
+        velocity_field,
+        pressure_metadata,
+        displacement_metadata,
+        pressure,
+        displacement,
+        deformed_coordinates,
+    )
+end
+
+function assert_compatible_xdmf_field(
+    velocity_field::Resolved3DVelocityField,
+    metadata::XDMFFieldMetadata,
+    source_path::String,
+)
+    velocity_meta = velocity_field.metadata
+    abs(metadata.time - velocity_meta.time) <= velocity_field.case_spec.time_atol ||
+        throw(ArgumentError("XDMF time in '$source_path' does not match velocity time $(velocity_meta.time)"))
+    metadata.geometry_dims == velocity_meta.geometry_dims ||
+        throw(DimensionMismatch("geometry Dimensions in '$source_path' do not match velocity geometry"))
+    metadata.topology_dims == velocity_meta.topology_dims ||
+        throw(DimensionMismatch("topology Dimensions in '$source_path' do not match velocity topology"))
+    xdmf_dir = dirname(source_path)
+    topology_file = resolve_xdmf_hdf_path(xdmf_dir, metadata.topology_file)
+    geometry_file = resolve_xdmf_hdf_path(xdmf_dir, metadata.geometry_file)
+    topology = normalized_tetra_topology(
+        read_hdf_matrix(topology_file, metadata.topology_path, metadata.topology_dims, 4, "topology"),
+    )
+    coordinates = Matrix{Float64}(
+        read_hdf_matrix(geometry_file, metadata.geometry_path, metadata.geometry_dims, 3, "geometry"),
+    )
+    topology == velocity_field.topology ||
+        throw(DimensionMismatch("topology values in '$source_path' do not match velocity topology"))
+    coordinates == velocity_field.coordinates ||
+        throw(DimensionMismatch("geometry coordinates in '$source_path' do not match velocity geometry"))
+    return nothing
+end
+
+function load_xdmf_field_matrix(
+    xdmf_path::String,
+    metadata::XDMFFieldMetadata,
+    expected_cols::Int,
+    label::String,
+)
+    xdmf_dir = dirname(xdmf_path)
+    file_path = resolve_xdmf_hdf_path(xdmf_dir, metadata.field_file)
+    return read_hdf_matrix(file_path, metadata.field_path, metadata.field_dims, expected_cols, label)
+end
+
+function resolved3d_velocity_field_from_bundle(bundle::Resolved3DFieldBundle, coordinate_mode::AbstractString)
+    mode = replace(lowercase(strip(String(coordinate_mode))), "_" => "-")
+    if mode == "reference"
+        return bundle.velocity
+    elseif mode == "deformed"
+        bundle.deformed_coordinates !== nothing ||
+            throw(ArgumentError("coordinate_mode=deformed requires a loaded displacement field"))
+        return Resolved3DVelocityField(
+            bundle.velocity.case_spec,
+            bundle.velocity.metadata,
+            bundle.velocity.topology,
+            bundle.deformed_coordinates,
+            bundle.velocity.velocity,
+        )
+    end
+    throw(ArgumentError("coordinate_mode must be reference or deformed"))
 end
 
 function normalized_tetra_topology(raw_topology)

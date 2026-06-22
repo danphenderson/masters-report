@@ -23,14 +23,18 @@ the comparison runs and shows a nonzero geometry-rest defect on the production
 grid. The current/deformed 3D geometry status also remains unresolved: the
 static cut-area check below supports only the fixed-section geometry check, not a
 decision about whether a deformed-wall geometry or displacement application
-should be used for final-time plane cuts. The 3D wall model, wall-motion history,
-inlet/outlet histories, material parameters, and prior transient history are not
-carried by the comparison record; these would need to be established before
-making a stronger predictive comparison claim.
+should be used for the already retained final-time plane cuts. The current
+package can now load pressure and displacement companions and can form
+deformed-coordinate plane cuts when that mode is requested, but those outputs
+have not been regenerated and promoted into the retained C23/C40 comparison
+assets. The 3D wall model, wall-motion history, inlet/outlet histories, material
+parameters, and prior transient history are not carried by the retained
+comparison record; these would need to be established before making a stronger
+predictive comparison claim.
 
 The comparison gates are therefore deliberately limited: the final timestamp is
-matched, the static section area is checked, the dynamic or deformed 3D geometry
-state is unresolved, the resolved flow is not sectionwise constant, and the
+matched, the static section area is checked, the retained dynamic or deformed
+3D geometry state is unresolved, the resolved flow is not sectionwise constant, and the
 wall, boundary, material, and transient-history metadata needed for a matched
 reference comparison are not persisted in the retained comparison record. No
 pressure-drop, pressure-ratio, or FFR-style result is retained for this 1D--3D
@@ -58,8 +62,8 @@ are not declared for the paired data.
             & \textbf{Displacement}
             & \textbf{Unpersisted metadata} \\
         \midrule
-        C23 & 22691 & 110420 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & present, not applied to cuts & $\nu,\rho$, BCs, wall law, transient history \\
-        C40 & 21975 & 106547 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & present, not applied to cuts & $\nu,\rho$, BCs, wall law, transient history \\
+        C23 & 22691 & 110420 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & loadable; not applied to retained cuts & $\nu,\rho$, BCs, wall law, transient history \\
+        C40 & 21975 & 106547 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & loadable; not applied to retained cuts & $\nu,\rho$, BCs, wall law, transient history \\
         \bottomrule
     \end{tabular}%
     }

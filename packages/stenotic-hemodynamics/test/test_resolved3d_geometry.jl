@@ -34,6 +34,107 @@ const parse_xdmf_velocity = StenoticHemodynamics.parse_xdmf_velocity
     end
 end
 
+@testset "StenoticHemodynamics resolved FSI field bundles" begin
+    mktempdir() do dir
+        case_dir = joinpath(dir, "fsi")
+        xdmf_path, coords, _ = write_single_tetra_xdmf_hdf5_case(case_dir; time=5.0e-5)
+        topology = Int32[0 1 2 3]
+        pressure_values = reshape([20.0 + coords[i, 3] for i in axes(coords, 1)], :, 1)
+        displacement_values = zeros(Float64, size(coords, 1), 3)
+        for i in axes(coords, 1)
+            radius = hypot(coords[i, 1], coords[i, 2])
+            if radius > 0.0
+                displacement_values[i, 1] = 0.10 * coords[i, 1] / radius
+                displacement_values[i, 2] = 0.10 * coords[i, 2] / radius
+            end
+        end
+        write_xdmf_hdf5_field(case_dir, "pressure", coords, topology, pressure_values, "Scalar", 5.0e-5)
+        write_xdmf_hdf5_field(case_dir, "displace", coords, topology, displacement_values, "Vector", 5.0e-5)
+        case_spec = StenoticHemodynamics.Resolved3DCaseSpec("fsi", 23.0, xdmf_path; target_time=5.0e-5)
+        @test basename(case_spec.pressure_xdmf) == "pressure.xdmf"
+        @test basename(case_spec.displacement_xdmf) == "displace.xdmf"
+
+        bundle = StenoticHemodynamics.load_resolved3d_field_bundle(
+            case_spec;
+            require_pressure=true,
+            require_displacement=true,
+        )
+        @test bundle.pressure !== nothing
+        @test bundle.displacement !== nothing
+        @test bundle.deformed_coordinates !== nothing
+        @test bundle.pressure ≈ vec(pressure_values[:, 1])
+        @test bundle.displacement ≈ displacement_values
+        @test bundle.deformed_coordinates ≈ coords .+ displacement_values
+        @test bundle.pressure_metadata.attribute_type == "Scalar"
+        @test bundle.displacement_metadata.attribute_type == "Vector"
+
+        reference_field = StenoticHemodynamics.resolved3d_velocity_field_from_bundle(bundle, "reference")
+        deformed_field = StenoticHemodynamics.resolved3d_velocity_field_from_bundle(bundle, "deformed")
+        reference_cut = StenoticHemodynamics.quadrature_section_observation(reference_field, 0.5)
+        deformed_cut = StenoticHemodynamics.quadrature_section_observation(deformed_field, 0.5)
+        @test reference_cut.area_valid
+        @test deformed_cut.area_valid
+        @test deformed_cut.observed_radius_cm > reference_cut.observed_radius_cm
+        @test deformed_cut.area_cm2 > reference_cut.area_cm2
+
+        missing_displacement = StenoticHemodynamics.Resolved3DCaseSpec(
+            "missing",
+            23.0,
+            xdmf_path;
+            displacement_xdmf=joinpath(dir, "missing.xdmf"),
+            target_time=5.0e-5,
+        )
+        @test_throws ArgumentError StenoticHemodynamics.load_resolved3d_field_bundle(
+            missing_displacement;
+            require_displacement=true,
+        )
+
+        bad_coords = copy(coords)
+        bad_coords[1, 1] += 0.01
+        bad_coords_pressure = write_xdmf_hdf5_field(
+            case_dir,
+            "pressure_bad_coords",
+            bad_coords,
+            topology,
+            pressure_values,
+            "Scalar",
+            5.0e-5,
+        )
+        bad_coords_case = StenoticHemodynamics.Resolved3DCaseSpec(
+            "bad-coords",
+            23.0,
+            xdmf_path;
+            pressure_xdmf=bad_coords_pressure,
+            target_time=5.0e-5,
+        )
+        @test_throws DimensionMismatch StenoticHemodynamics.load_resolved3d_field_bundle(
+            bad_coords_case;
+            require_pressure=true,
+        )
+
+        bad_topology_pressure = write_xdmf_hdf5_field(
+            case_dir,
+            "pressure_bad_topology",
+            coords,
+            Int32[0 2 1 3],
+            pressure_values,
+            "Scalar",
+            5.0e-5,
+        )
+        bad_topology_case = StenoticHemodynamics.Resolved3DCaseSpec(
+            "bad-topology",
+            23.0,
+            xdmf_path;
+            pressure_xdmf=bad_topology_pressure,
+            target_time=5.0e-5,
+        )
+        @test_throws DimensionMismatch StenoticHemodynamics.load_resolved3d_field_bundle(
+            bad_topology_case;
+            require_pressure=true,
+        )
+    end
+end
+
 @testset "StenoticHemodynamics cross-section quadrature" begin
     mktempdir() do dir
         xdmf_path, _, _ = write_single_tetra_xdmf_hdf5_case(joinpath(dir, "tetra"))
@@ -179,6 +280,7 @@ end
             "initial_condition",
             "backend",
             "run_status",
+            "coordinate_mode",
         ]
         production_columns = [
             "accepted_dt_min",
@@ -210,6 +312,7 @@ end
             @test csv_row["initial_condition"] == "geometry-rest"
             @test csv_row["backend"] == "native"
             @test csv_row["run_status"] == "ok"
+            @test csv_row["coordinate_mode"] == "reference"
             @test parse(Float64, csv_row["time_atol_s"]) ≈ case_spec.time_atol
             @test parse(Float64, csv_row["time_offset_s"]) ≈ parse(Float64, csv_row["xdmf_target_time_error_s"])
             @test parse(Float64, csv_row["xdmf_target_time_error_s"]) ≈ abs(xdmf_time - target_time)
@@ -271,6 +374,7 @@ end
                 @test row.initial_condition == "geometry-rest"
                 @test row.backend == "native"
                 @test row.run_status == "ok"
+                @test row.coordinate_mode == "reference"
                 @test row.one_d_completed_time_s ≈ case_spec.target_time
                 @test row.one_d_terminal_time_error_s ≈ abs(row.one_d_completed_time_s - row.target_time_s)
                 @test row.xdmf_target_time_error_s ≈ abs(row.xdmf_time_s - row.target_time_s)
@@ -344,6 +448,7 @@ end
                 "mean_physical_flow_discrepancy_cm3_s",
                 "rms_physical_flow_discrepancy_cm3_s",
                 "case",
+                "coordinate_mode",
                 "mean_velocity_bias_1d_minus_3d_cm_s",
                 "mean_velocity_discrepancy_cm_s",
                 "rms_velocity_discrepancy_cm_s",
@@ -358,6 +463,7 @@ end
         rows = sort(read_simple_csv(result.summary_csv); by=row -> parse(Int, row["nx"]))
         @test [parse(Int, row["nx"]) for row in rows] == [6, 8]
         @test all(row["case"] == "C23" for row in rows)
+        @test all(row["coordinate_mode"] == "reference" for row in rows)
         @test all(row["severity"] == "23" for row in rows)
         @test parse(Int, rows[1]["adjacent_from_nx"]) == 0
         @test parse(Int, rows[2]["adjacent_from_nx"]) == 6

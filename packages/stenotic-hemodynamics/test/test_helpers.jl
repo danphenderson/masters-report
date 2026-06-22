@@ -108,6 +108,93 @@ function write_synthetic_xdmf_hdf5_case(
     return xdmf_path, coords, velocity_values
 end
 
+function write_synthetic_fsi_xdmf_hdf5_case(
+    case_dir::String;
+    time::Float64 = 5.0e-5,
+    displacement_scale::Float64 = 0.01,
+)
+    velocity_xdmf, coords, velocity_values = write_synthetic_xdmf_hdf5_case(case_dir; time=time)
+    topology = Int32[
+        0 1 2 3
+        4 5 6 7
+    ]
+    pressure_values = zeros(Float64, size(coords, 1), 1)
+    displacement_values = zeros(Float64, size(coords, 1), 3)
+    for i in axes(coords, 1)
+        pressure_values[i, 1] = 20.0 + coords[i, 3]
+        radius = hypot(coords[i, 1], coords[i, 2])
+        if radius > 0.0
+            displacement_values[i, 1] = displacement_scale * coords[i, 1] / radius
+            displacement_values[i, 2] = displacement_scale * coords[i, 2] / radius
+        end
+    end
+
+    write_xdmf_hdf5_field(
+        case_dir,
+        "pressure",
+        coords,
+        topology,
+        pressure_values,
+        "Scalar",
+        time,
+    )
+    write_xdmf_hdf5_field(
+        case_dir,
+        "displace",
+        coords,
+        topology,
+        displacement_values,
+        "Vector",
+        time,
+    )
+
+    return velocity_xdmf, coords, velocity_values, pressure_values, displacement_values
+end
+
+function write_xdmf_hdf5_field(
+    case_dir::String,
+    stem::String,
+    coords::Matrix{Float64},
+    topology,
+    values,
+    attribute_type::String,
+    time::Float64,
+)
+    h5_path = joinpath(case_dir, "$stem.h5")
+    h5open(h5_path, "w") do file
+        mesh = create_group(create_group(create_group(file, "Mesh"), "0"), "mesh")
+        mesh["geometry"] = coords
+        mesh["topology"] = topology
+        vector_group = create_group(file, "VisualisationVector")
+        vector_group["0"] = values
+    end
+
+    xdmf_path = joinpath(case_dir, "$stem.xdmf")
+    write(
+        xdmf_path,
+        """
+        <?xml version="1.0"?>
+        <Xdmf Version="3.0">
+          <Domain>
+            <Grid Name="mesh" GridType="Uniform">
+              <Topology NumberOfElements="$(size(topology, 1))" TopologyType="Tetrahedron" NodesPerElement="4">
+                <DataItem Dimensions="$(size(topology, 1)) 4" NumberType="UInt" Format="HDF">$stem.h5:/Mesh/0/mesh/topology</DataItem>
+              </Topology>
+              <Geometry GeometryType="XYZ">
+                <DataItem Dimensions="$(size(coords, 1)) 3" Format="HDF">$stem.h5:/Mesh/0/mesh/geometry</DataItem>
+              </Geometry>
+              <Time Value="$time" />
+              <Attribute Name="$stem" AttributeType="$attribute_type" Center="Node">
+                <DataItem Dimensions="$(size(values, 1)) $(size(values, 2))" Format="HDF">$stem.h5:/VisualisationVector/0</DataItem>
+              </Attribute>
+            </Grid>
+          </Domain>
+        </Xdmf>
+        """,
+    )
+    return xdmf_path
+end
+
 function write_single_tetra_xdmf_hdf5_case(
     case_dir::String;
     time::Float64 = 5.0e-5,

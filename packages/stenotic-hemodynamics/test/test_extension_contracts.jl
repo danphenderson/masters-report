@@ -137,6 +137,20 @@
             @test basename(operator_paths.summary_csv) == "cross_section_operator_validation.csv"
             @test basename(operator_paths.summary_tex) == "cross_section_operator_validation.tex"
 
+            fsi_spec = StenoticHemodynamics.MembraneFSIValidationSpec(
+                base_params=Params(nx=8, tfinal=0.0, initial_condition=GeometryRestIC()),
+                severities=[23.0],
+                meshes=[(4, 1, 4)],
+                output_dir=joinpath(dir, "fsi"),
+                parallel_workers=0,
+            )
+            fsi_paths = StenoticHemodynamics.default_output_paths(fsi_spec)
+            @test fsi_spec isa StenoticHemodynamics.AbstractStudySpec
+            @test StenoticHemodynamics.workflow_kind(fsi_spec) == "membrane_fsi_validation"
+            @test basename(fsi_paths.summary_csv) == "summary.csv"
+            @test basename(fsi_paths.summary_tex) == "summary.tex"
+            @test basename(fsi_paths.manifest_json) == "manifest.json"
+
             benchmark_spec = StenoticHemodynamics.PackageBenchmarkSpec(output_dir=joinpath(dir, "benchmark"))
             benchmark_paths = StenoticHemodynamics.default_output_paths(benchmark_spec)
             @test benchmark_spec isa StenoticHemodynamics.AbstractStudySpec
@@ -174,6 +188,7 @@
             "openbf-run",
             "study",
             "stokes",
+            "fsi",
             "verify",
             "compare-3d",
             "operator-validation",
@@ -181,6 +196,7 @@
             "export-assets",
         ])
         @test handlers["simulate"] === StenoticHemodynamics.run_simulate_cli
+        @test handlers["fsi"] === StenoticHemodynamics.run_fsi_cli
         @test_throws ArgumentError StenoticHemodynamics.run_cli(["--tfinal", "1e-5"])
         @test_throws ArgumentError StenoticHemodynamics.run_cli(["not-a-command"])
     end

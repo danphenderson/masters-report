@@ -26,6 +26,7 @@ assets.
 | `openbf-run` | Run a strict OpenBF-style `input.yml` adapter. | Treat outputs as local workflow evidence. |
 | `study` | Run severity, grid, or refinement studies. | Keep summary outputs in scratch unless routed to report assets. |
 | `stokes refine` | Run stationary-Stokes initialization refinement. | Publish tables only when report verification assets are in scope. |
+| `fsi validate` | Run quasi-static or reduced dynamic membrane-FSI scratch workflows. | Keep wall profiles, histories, and manifests in scratch unless an explicit report-refresh lane promotes them. |
 | `verify` | Run MMS, p/h refinement, or rest-state verification workflows. | Keep scratch outputs unless refreshing report verification tables or figures. |
 | `compare-3d` | Compare optional resolved-3D cases against 1D runs. | Skip when local data is absent; publish assets only in explicit scope. |
 | `operator-validation` | Validate cross-section quadrature on synthetic cuts. | Use for operator evidence and report tables when scoped. |
@@ -81,6 +82,26 @@ pipenv run ops-experiment stokes refine \
 ```
 
 Record skipped optional data or reduced mesh choices in the handback.
+
+Use `fsi validate` for the coupled wall-deformation workflow lane:
+
+```sh
+pipenv run ops-experiment fsi validate \
+  --wall-mode quasi-static \
+  --severities 23,40 \
+  --meshes 8x2x8,16x4x16 \
+  --output-dir tmp/simulations/output/membrane_fsi_validation \
+  --overwrite
+```
+
+The quasi-static mode iterates Stokes flow and radial membrane displacement on
+the current lumen geometry. Dynamic wall mode is a reduced radial membrane time
+integrator coupled to repeated quasi-steady Stokes solves; it is not a transient
+moving-boundary fluid solve.
+Programmatic Julia runs can pass `geometry_id` and `reference_radius_at_z` to
+`MembraneFSIValidationSpec` when the comparator should use another positive
+sufficiently smooth vessel radius profile instead of the default Canic stenosis
+profile.
 
 ## Verification
 

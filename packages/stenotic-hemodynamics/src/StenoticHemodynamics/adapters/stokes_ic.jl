@@ -79,7 +79,11 @@ function initial_condition_values(ic::StationaryStokesIC, p::Params, z::Vector{F
     return A, Q, summary
 end
 
-function generated_stokes_mesh(p::Params, ic::StationaryStokesIC)
+function generated_stokes_mesh(
+    p::Params,
+    ic::StationaryStokesIC;
+    radius_at_z = z -> stenosis(Float64(z), p)[1],
+)
     validate(ic)
     nz = ic.mesh_nz
     nr = ic.mesh_nr
@@ -92,7 +96,7 @@ function generated_stokes_mesh(p::Params, ic::StationaryStokesIC)
     coordinates = NTuple{3,Float64}[]
     for j in 0:nz
         z = p.length_cm * j / nz
-        r0, _, _ = stenosis(z, p)
+        r0 = stokes_mesh_radius(radius_at_z, z)
         push!(coordinates, (0.0, 0.0, z))
         for k in 1:nr
             r = r0 * k / nr
@@ -134,6 +138,14 @@ function generated_stokes_mesh(p::Params, ic::StationaryStokesIC)
     return GeneratedStokesMesh(coordinates, cells, nz, nr, ntheta, inlet_nodes, outlet_nodes, wall_nodes)
 end
 
+function stokes_mesh_radius(radius_at_z, z::Float64)::Float64
+    radius = radius_at_z(z)
+    radius isa Real || throw(ArgumentError("generated Stokes mesh radius callback must return a Real at z=$z"))
+    radius > zero(radius) ||
+        throw(ArgumentError("generated Stokes mesh requires positive radius at z=$z, got $radius"))
+    return Float64(radius)
+end
+
 function sorted_tuple3(a::Int, b::Int, c::Int)
     values = sort!([a, b, c])
     return (values[1], values[2], values[3])
@@ -167,7 +179,11 @@ function signed_tet_volume6(a, b, c, d)
     return ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx)
 end
 
-function gridap_model(mesh::GeneratedStokesMesh, p::Params)
+function gridap_model(
+    mesh::GeneratedStokesMesh,
+    p::Params;
+    wall_radius_at_z = z -> stenosis(Float64(z), p)[1],
+)
     points = [Point(x, y, z) for (x, y, z) in mesh.coordinates]
     cell_node_ids = Table([Int32[cell...] for cell in mesh.cells])
     reffes = [LagrangianRefFE(Float64, TET, 1)]
@@ -183,7 +199,7 @@ function gridap_model(mesh::GeneratedStokesMesh, p::Params)
     merge!(
         labels,
         face_labeling_from_vertex_filter(topo, "wall", x -> begin
-            r0, _, _ = stenosis(x[3], p)
+            r0 = stokes_mesh_radius(wall_radius_at_z, Float64(x[3]))
             abs(hypot(x[1], x[2]) - r0) <= rtol
         end),
     )
@@ -199,7 +215,16 @@ projected 1D initial state through `initial_condition_values`.
 """
 function solve_stationary_stokes(p::Params, ic::StationaryStokesIC)
     mesh = generated_stokes_mesh(p, ic)
-    model, labels = gridap_model(mesh, p)
+    return solve_stationary_stokes_on_mesh(p, ic, mesh)
+end
+
+function solve_stationary_stokes_on_mesh(
+    p::Params,
+    ic::StationaryStokesIC,
+    mesh::GeneratedStokesMesh;
+    wall_radius_at_z = z -> stenosis(Float64(z), p)[1],
+)
+    model, labels = gridap_model(mesh, p; wall_radius_at_z=wall_radius_at_z)
     order = 2
     mu = p.rho * p.nu
     mu > 0.0 || throw(ArgumentError("stationary-stokes IC requires positive Newtonian dynamic viscosity rho*nu"))

@@ -1,4 +1,4 @@
-\section{Software and Reproducibility Record}
+\section{Software, Reproducibility, and AI-Assisted Work Record}
 \label{app:code-and-ai-use}
 
 This report is built from the \LaTeX{} sources rooted at
@@ -30,6 +30,20 @@ public archive. No public repository URL, immutable archive URL, or DOI is
 asserted by this local thesis copy. Unless a later public release adds one of
 those records, access to \texttt{StenoticHemodynamics} is governed by the
 repository owner's source-control policy.
+
+\paragraph*{AI-assisted drafting and code work.}
+Substantive AI assistance, including OpenAI ChatGPT and Codex, was used during
+preparation of this report and repository. That assistance included outlining
+and reorganizing prose, drafting and polishing manuscript passages, checking
+consistency between the report and local code, suggesting \LaTeX{} and
+Julia/Python edits, and helping inspect build, test, and validation output.
+AI-generated text or code was treated as draft material, not as an independent
+source of evidence or scientific authority. I reviewed, edited, and accept
+responsibility for the final manuscript and repository state, including the
+mathematical statements, citations, code descriptions, figure and table
+descriptions, numerical claims, and conclusions. No AI tool is listed as an
+author, credited as a contributor capable of final approval or accountability,
+or cited as a primary source.
 
 \paragraph*{Computational environment.}
 The checked Julia environment and local hardware record were:
@@ -113,6 +127,20 @@ available $0.9995$ s 3D velocity field and runs the 1D comparison to the same
 target time. The remaining timing limitation is transient-history matching, not
 the final timestamp.
 
+The package also contains a scratch-only membrane-FSI validation workflow. It
+solves the quasi-static radial membrane update on the current lumen geometry
+and writes wall-profile outputs without publishing them to report assets:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi validate \
+  --wall-mode quasi-static \
+  --severities 23,40 \
+  --meshes 8x2x8,16x4x16 \
+  --output-dir tmp/simulations/output/membrane_fsi_validation \
+  --overwrite
+\end{lstlisting}
+Those outputs are not consumed by the retained C23/C40 tables unless a later
+asset-refresh lane explicitly promotes them.
+
 \paragraph*{Optional operator and grid-sensitivity evidence.}
 The synthetic cross-section operator validation table is regenerated without
 raw 3D inputs:
@@ -179,10 +207,16 @@ https://github.com/qcutexu/Extended-1D-AQ-system
 056a9da2b36b480691f18025d242d2c00f6e7180
 case3_all_3d_results/
 \end{lstlisting}
-The report archives generated CSV and PGFPlots-ready static assets, not the raw
-fields. Current/deformed 3D geometry, displacement application before plane
-cuts, wall/boundary/material histories, and earlier transient histories remain
-unresolved unless a later release record adds those data.
+For each local case used by the resolved-FSI loaders, the expected companion
+files are \path{velocity.xdmf}/\path{velocity.h5},
+\path{pressure.xdmf}/\path{pressure.h5}, and
+\path{displace.xdmf}/\path{displace.h5}. The report archives generated CSV and
+PGFPlots-ready static assets, not the raw fields. Deformed-coordinate plane
+cuts are now implemented in the Julia loader when displacement companions are
+present, but the retained comparison assets still use the earlier
+reference-coordinate velocity comparison. Wall/boundary/material histories and
+earlier transient histories remain unresolved unless a later release record
+adds those data.
 
 The tracked release manifest is stored outside the thesis PDF:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]

@@ -10,6 +10,7 @@ function print_usage(io::IO = stdout)
           openbf-run    Run a strict OpenBF-style input.yml adapter
           study         Run severity, grid, or refinement studies
           stokes        Run stationary-Stokes workflows
+          fsi           Run membrane-FSI validation workflows
           verify        Run MMS and rest-state verification workflows
           compare-3d    Compare available resolved-3D cases against 1D runs
           operator-validation Validate cross-section quadrature on synthetic cuts
@@ -487,6 +488,21 @@ const STUDY_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
 ]))
 const STUDY_FLAG_OPTIONS = union(FLAG_OPTIONS, Set(["overwrite"]))
 
+const FSI_VALUE_OPTIONS = union(STUDY_VALUE_OPTIONS, Set([
+    "wall-mode",
+    "max-coupling-iters",
+    "coupling-tolerance-cm",
+    "damping",
+    "reference-radius-cm",
+    "history-stride",
+    "wall-density",
+    "wall-dt",
+    "wall-tfinal",
+    "manifest-json",
+    "summary-tex",
+]))
+const FSI_FLAG_OPTIONS = union(STUDY_FLAG_OPTIONS, Set(["overwrite"]))
+
 const VERIFY_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
     "degrees",
     "h-degree",
@@ -513,6 +529,7 @@ const COMPARISON_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
     "radial-bins",
     "radial-bin-counts",
     "radial-radius-modes",
+    "coordinate-mode",
     "profile-slices",
     "node-slab-half-widths",
     "grid-summary-csv",
@@ -762,6 +779,67 @@ function run_stokes_cli(args::Vector{String})
     return result
 end
 
+function print_fsi_usage()
+    println("""
+    Usage:
+      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi validate [--wall-mode quasi-static|dynamic] [--severities 23,40] [--meshes 8x2x8,16x4x16] [options]
+
+    Dynamic mode is a reduced radial membrane model coupled to repeated quasi-steady Stokes solves.
+    Dynamic options use cgs-compatible units: --wall-density G/CM3, --wall-dt SECONDS, --wall-tfinal SECONDS.
+    """)
+end
+
+function membrane_wall_mode_from_cli(values::Dict{String,String})
+    mode = replace(lowercase(strip(get(values, "wall-mode", "quasi-static"))), "_" => "-")
+    if mode in ("quasi-static", "quasistatic", "steady", "quasi-static-membrane")
+        return QuasiStaticMembraneMode()
+    elseif mode in ("dynamic", "dynamic-membrane")
+        return DynamicMembraneMode(
+            wall_density=parse(Float64, get(values, "wall-density", "1.0")),
+            dt=parse(Float64, get(values, "wall-dt", "1e-5")),
+            tfinal=parse(Float64, get(values, "wall-tfinal", "1e-4")),
+        )
+    end
+    throw(ArgumentError("unknown FSI wall mode '$mode'; expected quasi-static or dynamic"))
+end
+
+function run_fsi_cli(args::Vector{String})
+    isempty(args) && (print_fsi_usage(); return nothing)
+    subcommand = args[1]
+    rest = args[2:end]
+    subcommand in ("--help", "-h", "help") && (print_fsi_usage(); return nothing)
+    subcommand == "validate" || throw(ArgumentError("unknown fsi subcommand '$subcommand'; expected validate"))
+    values, flags = parse_cli_options(rest, FSI_VALUE_OPTIONS, FSI_FLAG_OPTIONS)
+    if "help" in flags
+        print_fsi_usage()
+        return nothing
+    end
+    haskey(values, "tfinal") || (values["tfinal"] = "0.0")
+    params, _, _ = params_backend_progress(values, flags)
+    result = run_membrane_fsi_validation(MembraneFSIValidationSpec(;
+        base_params=params,
+        severities=parse_float_list(get(values, "severities", "23,40")),
+        pressure_drop_pa=parse(Float64, get(values, "pressure-drop-pa", "40")),
+        meshes=parse_mesh_list(get(values, "meshes", "8x2x8,16x4x16")),
+        mode=membrane_wall_mode_from_cli(values),
+        output_dir=get(values, "output-dir", ""),
+        summary_csv=get(values, "summary-csv", ""),
+        summary_tex=get(values, "summary-tex", ""),
+        manifest_json=get(values, "manifest-json", ""),
+        overwrite=("overwrite" in flags),
+        max_coupling_iters=parse(Int, get(values, "max-coupling-iters", "12")),
+        coupling_tolerance_cm=parse(Float64, get(values, "coupling-tolerance-cm", "1e-7")),
+        damping=parse(Float64, get(values, "damping", "0.5")),
+        reference_radius_cm=parse(Float64, get(values, "reference-radius-cm", string(params.rmax))),
+        history_stride=parse(Int, get(values, "history-stride", "1")),
+        parallel_workers=parse(Int, get(values, "parallel-workers", string(default_case_workers()))),
+    ))
+    println("fsi_validation_summary_csv,$(result.summary_csv)")
+    println("fsi_validation_summary_tex,$(result.summary_tex)")
+    println("fsi_validation_manifest_json,$(result.manifest_json)")
+    return result
+end
+
 function print_verify_usage()
     println("""
     Usage:
@@ -883,8 +961,8 @@ end
 function print_compare3d_usage()
     println("""
     Usage:
-      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d [--data-root PATH] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--overwrite] [--publish-report-assets]
-      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d --nxs 200,400,800 [--data-root PATH] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--overwrite] [--publish-report-assets]
+      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d [--data-root PATH] [--coordinate-mode reference|deformed] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--overwrite] [--publish-report-assets]
+      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d --nxs 200,400,800 [--data-root PATH] [--coordinate-mode reference|deformed] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--overwrite] [--publish-report-assets]
       packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d --nxs 200,400,800 --reuse-grid-summary PATH [--grid-summary-csv PATH] [--grid-summary-tex PATH] [--overwrite]
     """)
 end
@@ -940,6 +1018,7 @@ function run_compare3d_cli(args::Vector{String})
             radial_bin_counts=radial_bin_counts,
             radial_radius_modes=radial_radius_modes,
             node_slab_half_widths=node_slab_half_widths,
+            coordinate_mode=get(values, "coordinate-mode", "reference"),
             overwrite=("overwrite" in flags),
             progress_every=progress_every,
             write_svg=!("no-svg" in flags),
@@ -978,6 +1057,7 @@ function run_compare3d_cli(args::Vector{String})
         radial_bin_counts=radial_bin_counts,
         radial_radius_modes=radial_radius_modes,
         node_slab_half_widths=node_slab_half_widths,
+        coordinate_mode=get(values, "coordinate-mode", "reference"),
         overwrite=("overwrite" in flags),
         progress_every=progress_every,
         write_svg=!("no-svg" in flags),
@@ -1045,6 +1125,7 @@ const CLI_COMMAND_HANDLERS = Dict{String,Function}(
     "openbf-run" => run_openbf_cli,
     "study" => run_study_cli,
     "stokes" => run_stokes_cli,
+    "fsi" => run_fsi_cli,
     "verify" => run_verify_cli,
     "compare-3d" => run_compare3d_cli,
     "operator-validation" => run_operator_validation_cli,

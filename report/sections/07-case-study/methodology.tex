@@ -78,11 +78,15 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             prediction target. \\
         Matching limits
             & The analytic reference profile is shared and the static cut-area
-            check is reported, but current/deformed 3D geometry handling,
-            wall motion, boundary histories, material parameters, and earlier
-            transient histories remain unmatched or unpersisted.
+            check is reported. The package now includes a quasi-static
+            membrane-FSI validation workflow that can solve a radial wall
+            displacement and can apply resolved displacement fields before
+            plane cuts, but those outputs are not yet promoted into the
+            retained C23/C40 comparison tables.
             & Velocity differences cannot be attributed uniquely to a specific
-            closure, wall, boundary, or geometry mechanism. \\
+            closure, wall, boundary, or geometry mechanism until the FSI
+            workflow outputs, material constants, boundary histories, and
+            transient histories are retained as comparison evidence. \\
         Retained outputs
             & The retained numerical evidence is the MMS/rest-state record,
             cut-area check, axial flow behavior, flow/area bookkeeping,
@@ -508,6 +512,14 @@ rows using the same cut triangles, but those rows are quarantined in this
 manuscript because direct recomputation from the tracked radial data has not
 been reconciled with the existing summary values. No radial-profile figure,
 table, or interpretation is used as retained evidence.
+
+The resolved-data loader also accepts pressure and displacement XDMF/HDF5
+companions for a velocity field. When the comparison is explicitly run in
+deformed-coordinate mode, the observation operator applies the node-centered
+displacement before forming the plane cuts. The retained C23/C40 tables in this
+chapter still use the earlier reference-coordinate velocity-comparison assets;
+the deformed-coordinate path is therefore an implemented comparison route, not
+yet a retained result.
 
 For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
 \texttt{CrossSectionQuadratureOperator} intersects every tetrahedron with

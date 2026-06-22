@@ -63,6 +63,7 @@ function section_comparison_header()
         "initial_condition",
         "backend",
         "run_status",
+        "coordinate_mode",
         "z_cm",
         "area_cm2",
         "flow_3d_cm3_s",
@@ -100,6 +101,7 @@ function section_comparison_values(row::SectionComparisonRow)
         row.initial_condition,
         row.backend,
         row.run_status,
+        row.coordinate_mode,
         row.z_cm,
         row.area_cm2,
         row.flow_3d_cm3_s,
@@ -145,6 +147,7 @@ function radial_profile_header()
         "initial_condition",
         "backend",
         "run_status",
+        "coordinate_mode",
         "z_slice_cm",
         "radial_bin",
         "r_over_radius_mid",
@@ -186,6 +189,7 @@ function radial_profile_values(row::RadialProfileRow)
         row.initial_condition,
         row.backend,
         row.run_status,
+        row.coordinate_mode,
         row.z_slice_cm,
         row.radial_bin,
         row.r_over_r0_mid,
@@ -235,6 +239,7 @@ function comparison_summary_header()
         "initial_condition",
         "backend",
         "run_status",
+        "coordinate_mode",
         "section_count",
         "profile_count",
         "mean_abs_discrepancy_cm_s",
@@ -297,6 +302,7 @@ function comparison_summary_values(row::ComparisonSummaryRow)
         row.initial_condition,
         row.backend,
         row.run_status,
+        row.coordinate_mode,
         row.section_count,
         row.profile_count,
         row.mean_abs_error_cm_s,
@@ -387,6 +393,7 @@ function grid_sensitivity_summary_header()
         "initial_condition",
         "backend",
         "run_status",
+        "coordinate_mode",
         "target_time_s",
         "section_count",
         "valid_section_count",
@@ -423,6 +430,7 @@ function grid_sensitivity_summary_values(row::GridSensitivitySummaryRow)
         row.initial_condition,
         row.backend,
         row.run_status,
+        row.coordinate_mode,
         row.target_time_s,
         row.section_count,
         row.valid_section_count,
@@ -449,7 +457,7 @@ end
 
 function read_grid_sensitivity_summary_csv(path::String)
     headers, raw_rows = read_workflow_csv_table(path)
-    required_columns = filter(!=("case"), grid_sensitivity_summary_header())
+    required_columns = filter(column -> !(column in ("case", "coordinate_mode")), grid_sensitivity_summary_header())
     missing_columns = setdiff(required_columns, headers)
     if !isempty(missing_columns)
         throw(ArgumentError("grid sensitivity summary '$path' is missing columns: $(join(missing_columns, ", "))"))
@@ -474,6 +482,7 @@ function grid_sensitivity_summary_row_from_csv(row::Dict{String,String}, path::S
         required_csv_string(row, "initial_condition", path, line_number),
         required_csv_string(row, "backend", path, line_number),
         required_csv_string(row, "run_status", path, line_number),
+        get(row, "coordinate_mode", "reference"),
         required_csv_float(row, "target_time_s", path, line_number),
         required_csv_int(row, "section_count", path, line_number),
         required_csv_int(row, "valid_section_count", path, line_number),
@@ -592,6 +601,7 @@ function node_slab_sensitivity_header()
         "initial_condition",
         "backend",
         "run_status",
+        "coordinate_mode",
         "half_width_cm",
         "z_cm",
         "mean_u3d_cm_s",
@@ -621,6 +631,7 @@ function node_slab_sensitivity_values(row::NodeSlabSensitivityRow)
         row.initial_condition,
         row.backend,
         row.run_status,
+        row.coordinate_mode,
         row.half_width_cm,
         row.z_cm,
         row.mean_u3d_cm_s,

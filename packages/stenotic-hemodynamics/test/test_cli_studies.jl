@@ -230,6 +230,7 @@ end
     help_text = read(`$(joinpath(pwd(), "packages", "stenotic-hemodynamics", "bin", "stenotic-hemodynamics")) --help`, String)
     @test occursin("simulate", help_text)
     @test occursin("benchmark", help_text)
+    @test occursin("fsi", help_text)
     @test occursin("operator-validation", help_text)
 
     mktempdir() do dir
@@ -327,6 +328,34 @@ end
         @test isfile(result.summary_csv)
         @test isfile(result.summary_tex)
         @test all(row -> row.status == "pass", result.rows)
+    end
+
+    mktempdir() do dir
+        result = StenoticHemodynamics.run_cli([
+            "fsi",
+            "validate",
+            "--wall-mode",
+            "dynamic",
+            "--wall-tfinal",
+            "3e-5",
+            "--severities",
+            "23",
+            "--meshes",
+            "4x1x4",
+            "--output-dir",
+            dir,
+            "--overwrite",
+            "--parallel-workers",
+            "0",
+        ])
+        @test result isa StenoticHemodynamics.MembraneFSIValidationResult
+        @test only(result.rows).status == "ok"
+        @test only(result.rows).time_step_count == 3
+        @test isfile(result.summary_csv)
+        @test isfile(result.summary_tex)
+        @test isfile(result.manifest_json)
+        @test isfile(only(result.rows).profile_csv)
+        @test isfile(only(result.rows).history_csv)
     end
 
     mktempdir() do dir
