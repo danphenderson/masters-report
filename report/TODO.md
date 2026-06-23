@@ -8,6 +8,14 @@ cross-referencing the continuum fields and weak balances already established in
 Section~\ref{sec:continuum-description}, instead of restating continuum
 foundations inside the numerical-methods chapter.
 
+The native resolved-FSI package boundary has one manuscript-facing open
+requirement that must stay visible in editorial planning: exact Section 4.1
+Poiseuille-inlet / zero-outlet-stress boundary-mode reproduction is still
+deferred. Current native smoke evidence uses
+`pressure_drop_weak_inlet_outlet_gauge_smoke` local boundary loading, and the
+`poiseuille_inlet_zero_outlet_stress_section41` mode remains a fail-closed
+follow-up until implemented and validated.
+
 Validation for the source-only pass:
 
 - `git diff --check -- report/sections/05-numerical-methods/index.tex report/TODO.md`
@@ -65,8 +73,9 @@ literature review, numerical methods, or case-study interpretation unless a
 committee/advisor comment identifies a concrete issue. The expected next lane is
 either:
 
-1. final public PDF sync from the current source tree; or
-2. no-op closeout with only status reporting.
+1. final public PDF sync from the current source tree;
+2. a native resolved-FSI boundary wording check if package docs change again; or
+3. no-op closeout with only status reporting.
 
 ## Implementation Plan For Next Round
 
@@ -82,7 +91,35 @@ pipenv run ops-orchestrate status --json
 Confirm the only intended manuscript delta is the committed Section 5/TODO
 source patch, or explicitly classify any newer dirty files before acting.
 
-### Step 2 - Optional Public PDF Sync
+### Step 2 - Native Resolved-FSI Boundary Check
+
+If any package-native resolved-FSI docs or code changed since the last report
+closeout, run this active-manuscript scan before editing prose or syncing the
+PDF:
+
+```sh
+rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume" \
+  report/sections report/appendices report/frontmatter report/final-report.tex -g '*.tex' || true
+```
+
+Expected result: no active manuscript prose implies that the current native
+generator already reproduces the paper's Section 4.1 inlet/outlet boundary
+contract. If native resolved-FSI wording is added later, it must preserve these
+boundaries:
+
+- production may be described as carrying partitioned state within one run and
+  writing importer-compatible velocity/pressure/displacement bundles plus
+  manifest, diagnostics, and restart metadata;
+- restart metadata may include versioned `state_payload` audit data, but
+  persisted restart/resume remains unsupported and fail-closed;
+- current Gridap smoke evidence uses pressure-drop weak inlet/outlet loading and
+  is not exact Section 4.1 boundary reproduction;
+- exact `poiseuille_inlet_zero_outlet_stress_section41` boundary mode remains a
+  tracked open requirement until implemented and validated;
+- planned CLI expansion is dry-run/status-first and must not imply production
+  execution from CLI defaults.
+
+### Step 3 - Optional Public PDF Sync
 
 Only run this step if the next lane explicitly scopes the public artifact:
 
@@ -96,7 +133,7 @@ jq '{status, consumed_count: (.consumed_inputs|length), untracked_consumed_input
 Expected result: build status `passed`, consumed-input count `63` unless
 explained, no untracked consumed inputs, and matching public/scratch PDF hashes.
 
-### Step 3 - Final Rendered Claim-Boundary Scan
+### Step 4 - Final Rendered Claim-Boundary Scan
 
 After any PDF sync, run:
 
@@ -109,7 +146,7 @@ rg -n "backend parity|implementation-check|accepted-reference|validation workflo
 Expected result: no reader-visible internal process language, no clinical
 validation overclaim, and no release placeholders in rendered report text.
 
-### Step 4 - Visual Spot Check
+### Step 5 - Visual Spot Check
 
 Spot-check the public PDF if it is refreshed:
 
@@ -122,7 +159,7 @@ Spot-check the public PDF if it is refreshed:
 Fix only real rendered defects: broken cross-references, orphaned captions,
 overfull table text, stale reader-facing labels, or typo-level issues.
 
-### Step 5 - Commit Discipline
+### Step 6 - Commit Discipline
 
 For a source-only closeout, stage only:
 
@@ -155,6 +192,9 @@ Do not reopen:
 - the report spine or section order;
 - broad mathematical derivations;
 - new literature review sources;
+- manuscript wording that treats current native resolved-FSI pressure-drop smoke
+  evidence as exact Section 4.1 Poiseuille-inlet / zero-outlet-stress
+  reproduction;
 - bibliography entries or `public/references/source-inventory.tsv`;
 - public claim registers or reproducibility metadata;
 - package/runtime code;
