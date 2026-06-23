@@ -435,6 +435,9 @@ end
         @test all(row -> row.boundary_mode_class == "exact_section41", exact_rows)
         @test all(row -> row.section41_boundary_status == "implemented_smoke_validated", exact_rows)
         @test all(row -> occursin("exact_section41_boundary_mode_selected_smoke_validated", row.boundary_equivalence_status), exact_rows)
+        @test all(row -> occursin("parity ready is still artifact/operator readiness", row.boundary_equivalence_status), exact_rows)
+        @test all(row -> occursin("parity status is artifact/operator readiness only", row.status), exact_rows)
+        @test all(row -> occursin("not paper-grade reproduction", row.status), exact_rows)
     end
 end
 
@@ -459,6 +462,7 @@ end
         )
 
         @test artifact.artifact_status.ready
+        @test occursin("Section 4.1-scoped operator observation", artifact.artifact_status.status)
         @test artifact.imported_status.ready
         @test artifact.velocity_operator_status.ready
         @test artifact.pressure_operator_status.ready

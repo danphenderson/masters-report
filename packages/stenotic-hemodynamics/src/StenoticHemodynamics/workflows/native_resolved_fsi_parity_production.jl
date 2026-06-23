@@ -270,8 +270,19 @@ function native_resolved_fsi_production_parity_matrix_row(
         ready_row_count=Int(ready_row_count),
         max_mean_velocity_abs_difference_cm_s=Float64(max_mean_velocity_abs_difference_cm_s),
         max_mean_pressure_abs_difference_dyn_cm2=Float64(max_mean_pressure_abs_difference_dyn_cm2),
-        status=String(status),
+        status=native_resolved_fsi_production_parity_matrix_status(dry_run, status),
     )
+end
+
+function native_resolved_fsi_production_parity_matrix_status(
+    dry_run::NativeResolvedFSIProductionDryRunPlan,
+    status::AbstractString,
+)
+    row_status = String(status)
+    dry_run.boundary_mode == string(:poiseuille_inlet_zero_outlet_stress_section41) || return row_status
+    occursin("parity status is artifact/operator readiness only", row_status) && return row_status
+    return row_status *
+           "; parity status is artifact/operator readiness only, not paper-grade reproduction or validated Section 4.1 parity"
 end
 
 function native_resolved_fsi_production_parity_matrix_source_label(
@@ -669,8 +680,8 @@ function run_native_resolved_fsi_parity(
     )
         ready = isfile(observations_csv) && !isempty(rows) && isfile(summary_csv) && !isempty(summary_rows)
         status = ready ?
-            "ready: Section 4.1 observation and summary CSVs written using CrossSectionQuadratureOperator rows" :
-            "failed: Section 4.1 observation artifact CSVs were not written"
+            "ready: Section 4.1-scoped operator observation and summary CSVs written using CrossSectionQuadratureOperator rows" :
+            "failed: Section 4.1-scoped operator observation artifact CSVs were not written"
         return NativeResolvedFSIWorkflowStatus(ready, status)
     end
 
