@@ -1,5 +1,6 @@
 const NativeResolvedFSIMeshResolution = StenoticHemodynamics.NativeResolvedFSIMeshResolution
 const NativeResolvedFSINavierStokesSmokeResult = StenoticHemodynamics.NativeResolvedFSINavierStokesSmokeResult
+const NativeResolvedFSINavierStokesSmokeSolve = StenoticHemodynamics.NativeResolvedFSINavierStokesSmokeSolve
 const NativeResolvedFSINavierStokesSmokeSpec = StenoticHemodynamics.NativeResolvedFSINavierStokesSmokeSpec
 const NativeResolvedFSIPartitionedSmokeResult = StenoticHemodynamics.NativeResolvedFSIPartitionedSmokeResult
 const NativeResolvedFSIPartitionedSmokeSpec = StenoticHemodynamics.NativeResolvedFSIPartitionedSmokeSpec
@@ -12,10 +13,14 @@ const default_native_resolved_fsi_partitioned_smoke_output_dir =
     StenoticHemodynamics.default_native_resolved_fsi_partitioned_smoke_output_dir
 const default_native_resolved_fsi_smoke_output_dir = StenoticHemodynamics.default_native_resolved_fsi_smoke_output_dir
 const native_resolved_fsi_navier_stokes_smoke_spec = StenoticHemodynamics.native_resolved_fsi_navier_stokes_smoke_spec
+const native_resolved_fsi_outlet_gauge_pressure = StenoticHemodynamics.native_resolved_fsi_outlet_gauge_pressure
 const native_resolved_fsi_partitioned_smoke_spec = StenoticHemodynamics.native_resolved_fsi_partitioned_smoke_spec
 const native_resolved_fsi_mesh = StenoticHemodynamics.native_resolved_fsi_mesh
 const native_resolved_fsi_radial_wall_velocity_function =
     StenoticHemodynamics.native_resolved_fsi_radial_wall_velocity_function
+const native_resolved_fsi_sample_smoke_fields = StenoticHemodynamics.native_resolved_fsi_sample_smoke_fields
+const native_resolved_fsi_section41_poiseuille_inlet_velocity_function =
+    StenoticHemodynamics.native_resolved_fsi_section41_poiseuille_inlet_velocity_function
 const native_resolved_fsi_solve_navier_stokes = StenoticHemodynamics.native_resolved_fsi_solve_navier_stokes
 const native_resolved_fsi_smoke_spec = StenoticHemodynamics.native_resolved_fsi_smoke_spec
 const run_native_resolved_fsi_navier_stokes_smoke = StenoticHemodynamics.run_native_resolved_fsi_navier_stokes_smoke
@@ -70,13 +75,26 @@ const run_native_resolved_fsi_smoke = StenoticHemodynamics.run_native_resolved_f
     @test inward_velocity[2] ≈ -1.25 * wall_point[2] / radial_distance
     @test inward_velocity[3] == 0.0
 
-    section41_boundary_error = try
+    inlet_profile = native_resolved_fsi_section41_poiseuille_inlet_velocity_function(
+        mesh,
+        z -> StenoticHemodynamics.native_resolved_fsi_radius(mesh.case_spec, z),
+        45.0,
+    )
+    @test inlet_profile((0.0, 0.0, 0.0))[3] ≈ 45.0
+    @test inlet_profile((mesh.case_spec.rmax_cm, 0.0, 0.0))[3] ≈ 0.0 atol=1.0e-12
+    @test_throws ArgumentError native_resolved_fsi_section41_poiseuille_inlet_velocity_function(
+        mesh,
+        _ -> 0.0,
+        45.0,
+    )((0.0, 0.0, 0.0))
+
+    pressure_drop_error = try
         native_resolved_fsi_solve_navier_stokes(
             mesh;
-            inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+            inlet_outlet_boundary_mode=:pressure_drop_weak_inlet_outlet_gauge_smoke,
             dt_s=1.0e-4,
             tfinal_s=1.0e-4,
-            pressure_drop_dyn_cm2=40.0,
+            pressure_drop_dyn_cm2=0.0,
             picard_iteration_count=1,
             picard_tolerance=1.0e-8,
         )
@@ -84,9 +102,53 @@ const run_native_resolved_fsi_smoke = StenoticHemodynamics.run_native_resolved_f
     catch err
         err
     end
-    @test section41_boundary_error isa ArgumentError
-    @test occursin("Poiseuille inlet / zero-outlet-stress", sprint(showerror, section41_boundary_error))
-    @test occursin("deferred", sprint(showerror, section41_boundary_error))
+    @test pressure_drop_error isa ArgumentError
+    @test occursin("pressure_drop_dyn_cm2 must be positive", sprint(showerror, pressure_drop_error))
+
+    exact_solve = native_resolved_fsi_solve_navier_stokes(
+        mesh;
+        inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+        inlet_umax_cm_s=45.0,
+        dt_s=1.0e-4,
+        tfinal_s=1.0e-4,
+        pressure_drop_dyn_cm2=0.0,
+        picard_iteration_count=4,
+        picard_tolerance=1.0e-8,
+    )
+    @test exact_solve isa NativeResolvedFSINavierStokesSmokeSolve
+    @test exact_solve.inlet_outlet_boundary_mode == :poiseuille_inlet_zero_outlet_stress_section41
+    @test exact_solve.inlet_outlet_boundary_mode != :pressure_drop_weak_inlet_outlet_gauge_smoke
+    @test exact_solve.inlet_umax_cm_s ≈ 45.0
+    @test occursin("poiseuille_inlet_zero_outlet_stress_section41 active", exact_solve.inlet_outlet_boundary_status)
+    @test occursin("u_max=45.0 cm/s", exact_solve.inlet_outlet_boundary_status)
+    @test occursin("zero outlet stress", exact_solve.inlet_outlet_boundary_status)
+    @test occursin("natural traction", exact_solve.inlet_outlet_boundary_status)
+    @test occursin("no pressure-drop weak inlet/outlet loading", exact_solve.inlet_outlet_boundary_status)
+    @test !occursin("local smoke boundary evidence", exact_solve.inlet_outlet_boundary_status)
+
+    exact_velocity, exact_pressure, exact_sampling_fallback_count = native_resolved_fsi_sample_smoke_fields(
+        mesh,
+        exact_solve.velocity,
+        exact_solve.pressure,
+    )
+    exact_pressure, exact_gauge_offset = native_resolved_fsi_outlet_gauge_pressure(exact_pressure, mesh.tags.outlet_nodes)
+    @test all(isfinite, exact_velocity)
+    @test all(isfinite, exact_pressure)
+    @test exact_sampling_fallback_count >= 0
+    @test isfinite(exact_gauge_offset)
+
+    inlet_center_node = only(filter(node -> hypot(mesh.coordinates[node, 1], mesh.coordinates[node, 2]) <= 1.0e-12, mesh.tags.inlet_nodes))
+    inlet_wall_nodes = filter(node -> hypot(mesh.coordinates[node, 1], mesh.coordinates[node, 2]) > 1.0e-12, mesh.tags.inlet_nodes)
+    @test exact_velocity[inlet_center_node, 1] ≈ 0.0 atol=1.0e-9
+    @test exact_velocity[inlet_center_node, 2] ≈ 0.0 atol=1.0e-9
+    @test exact_velocity[inlet_center_node, 3] ≈ 45.0 atol=1.0e-8
+    @test !isempty(inlet_wall_nodes)
+    @test maximum(abs.(exact_velocity[inlet_wall_nodes, 1])) <= 1.0e-8
+    @test maximum(abs.(exact_velocity[inlet_wall_nodes, 2])) <= 1.0e-8
+    @test maximum(abs.(exact_velocity[inlet_wall_nodes, 3])) <= 1.0e-8
+    outlet_pressure_mean =
+        sum(exact_pressure[node] for node in mesh.tags.outlet_nodes) / length(mesh.tags.outlet_nodes)
+    @test abs(outlet_pressure_mean) <= 1.0e-9
 end
 
 @testset "StenoticHemodynamics native resolved-FSI fixed-wall Stokes smoke" begin
