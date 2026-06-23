@@ -292,8 +292,8 @@ summary and the largest section-wise discrepancies so that the main text can
 state the comparison result without turning the chapter into a diagnostic
 listing. The retained cross-dimensional observation is section-mean axial
 velocity on declared plane cuts. Radial distributions of axial velocity remain
-unevaluable as profile-closure evidence until the section and radial-bin
-operators are evaluated on identical axial cuts.
+secondary output until regenerated same-cut radial-profile evidence is reviewed
+and accepted for the report.
 
 \begin{table}[!htb]
     \centering
@@ -395,9 +395,11 @@ of the Canic membrane relation \cite[Eq.~(35)]{CanicEtAl2024Extended1DStenosis},
     \qquad
     C_0=\frac{Eh}{(1-\sigma^2)(R_0^*)^2}. &&
 \end{flalign*}
-Here $\eta_r$ is the radial displacement, $f_r$ is the radial fluid load in the
-wall-law gauge, and $R_0^*$ is the constant reference-radius convention recorded
-in the workflow manifest. The implementation also accepts a named positive,
+Here $\eta_r$ is the radial displacement, $f_r$ is the physical radial fluid
+load sampled on the wall, and $R_0^*$ is the constant reference-radius
+convention recorded in the workflow manifest. Outlet-gauge normalization is a
+diagnostic and export convention rather than the forcing convention for the
+partitioned membrane update. The implementation also accepts a named positive,
 sufficiently smooth reference-radius callback, so the membrane-FSI solve is not
 tied to the default Canic stenosis profile. The retained report comparison
 promotes the quasi-static summary table, wall-profile curves, and fixed-point
@@ -406,16 +408,18 @@ directory and manifest remain provenance records for regenerating the
 report-owned assets.
 
 The native resolved-FSI exact-boundary path is separate package-development
-diagnostic work, not a promoted report-evidence surface. Hybrid batch
-runner/process-thread support is interpreted as observability and batch-safety
-infrastructure only. It does not establish production parity, imported parity,
-moving-wall/ALE fidelity, durable restart or resume support, or
-manuscript-grade reproduction of Section~4.1 of Canic et al. The package-owned
-Lane 11 mathematical-contract gate blocks exact Section~4.1 reproduction claims
-until FEM-01 through FEM-04, GEOM-01, and OBS-01 are resolved and the report
-evidence is regenerated. Current Gridap-based resolved-flow language is
-therefore provisional development context rather than a backend-replacement or
-production-claim basis.
+diagnostic work, not a promoted report-evidence surface. Focused package tests
+now check the density-consistent transient and convection terms,
+symmetric-gradient Cauchy viscous form, boundary-aware pressure-space policy,
+physical wall-pressure forcing convention, exact Canic geometry, and same-cut
+radial-profile closure classifications. That retires the Lane 11 P0
+mathematical-contract blocker only at focused package-test scope. It does not
+establish the severity-23 preproduction execution gate, production parity,
+imported parity, moving-wall/ALE fidelity, durable restart or resume support,
+regenerated report tables, promoted radial-profile evidence, or
+manuscript-grade reproduction of Section~4.1 of Canic et al. Current
+Gridap-based resolved-flow language is therefore focused contract evidence
+rather than a backend-replacement or production-claim basis.
 
 The corresponding report-generation entry point is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]

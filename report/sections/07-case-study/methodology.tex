@@ -438,9 +438,10 @@ they are not the principal two-case comparison method.
 The 1D state directly supplies a section mean,
 $\bar u_{1D}(z,t)=q(z,t)/a(z,t)$, and physical flow
 $Q_{1D}(z,t)=\pi q(z,t)$. The implementation can also emit radial-profile
-rows using the same cut triangles. Those rows are treated as secondary output,
-and no radial-profile figure or localization claim is retained because the
-radial area-closure gate fails.
+rows using the same cut triangles, and the package audit now classifies
+same-cut area and flow closure. Those rows are treated as secondary output, and
+no radial-profile figure or localization claim is retained until regenerated
+report evidence is reviewed and accepted.
 
 The resolved-data loader also accepts pressure and displacement XDMF/HDF5
 companions for a velocity field. When the comparison is explicitly run in
