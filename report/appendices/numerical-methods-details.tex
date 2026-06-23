@@ -382,21 +382,22 @@ report-owned assets.
 The native resolved-FSI exact-boundary path is separate package-development
 diagnostic work, not a promoted report-evidence surface. Its current support
 establishes low-level smoke-scale and operator-readiness behavior, including
-status reporting for wall stability, the explicit membrane-oscillator time-step
-guard, and wall mass and stiffness scales. The 23\% exact-boundary case remains
-blocked at $dt_s=10^{-4}$ before solver artifacts are written; a short
-$dt_s=10^{-5}$ scratch probe reached a deformed-mesh orientation failure, and
-a longer $dt_s=10^{-5}$ probe was runtime-inconclusive. These diagnostics do
-not remediate the wall-stability blocker, and reducing $dt_s$ alone is
-therefore not treated as evidence for the retained comparison. The associated
-\texttt{state\_payload} is diagnostic metadata only and does not enable
-persisted restart or resume. The package diagnostics also distinguish FE
-pressure-nullspace hygiene from the outlet normalization applied after pressure
-sampling: the Gridap solve now uses a zero-mean pressure constraint, but that
-constraint did not reduce the exact-mode wall-load scale. A pressure-load
-plausibility gate can classify predicted radius inversion before wall-state
-mutation; it is diagnostic blocker evidence, not completed Section~4.1 native
-generation or accepted wall-stability remediation.
+status reporting for wall stability, FE pressure-nullspace hygiene, the
+explicit membrane-oscillator time-step guard, and wall mass and stiffness
+scales. Exact inlet/outlet mode now uses stationary no-slip wall data on the
+deformed geometry; the separate pressure-drop smoke mode retains prescribed
+radial wall-velocity data. The reduced membrane update is semi-implicit and is
+guarded by pressure-load plausibility checks before wall-state mutation. For the
+23\% exact-boundary case, a five-step development-mesh gate with
+$dt_s=10^{-4}$ and $t_{\mathrm{final}}=5\times10^{-4}$ wrote solver artifacts
+and reported positive current radii and tetrahedron orientation. This is
+short-development implementation evidence only: the full
+$t_{\mathrm{final}}=10^{-2}$ development run, preproduction and larger case-set
+generation, imported-data parity, and validated moving-boundary FSI claims
+remain deferred. The associated \texttt{state\_payload} is diagnostic metadata
+only and does not enable persisted restart or resume; FE pressure-nullspace
+status remains distinct from the outlet normalization applied after pressure
+sampling.
 
 The corresponding report-generation entry point is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
