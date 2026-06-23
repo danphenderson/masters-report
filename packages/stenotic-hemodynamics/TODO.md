@@ -24,29 +24,46 @@ Implemented and committed:
 - `ac04767 Track native resolved FSI boundary mode`
   - Current smoke results explicitly report
     `pressure_drop_weak_inlet_outlet_gauge_smoke`.
-  - The exact Section 4.1 `poiseuille_inlet_zero_outlet_stress_section41` mode
-    remains fail-closed and deferred.
+  - Its original exact-mode fail-closed placeholder is superseded by the
+    low-level Gridap implementation below.
+- `aafec81 Implement exact Section 4.1 Gridap boundary mode`
+- `9dd964b Test exact Section 4.1 Gridap boundary mode`
+  - The exact Section 4.1
+    `poiseuille_inlet_zero_outlet_stress_section41` boundary mode is
+    implemented and validated at tiny smoke-test scale in the low-level Gridap
+    boundary path.
+  - Partitioned production execution for that exact mode remains fail-closed
+    until the production solver threads the mode and pressure fallback through
+    every fluid solve.
 - `e4c1486 Document native resolved FSI CLI boundary`
   - Native production, dry-run, restart, parity, and observation helpers remain
     qualified Julia internals.
 - `2cbf835 Add native resolved FSI restart state payload`
   - Restart metadata can include versioned `state_payload` audit metadata.
   - Persisted restart/resume remains unsupported and fail-closed.
+- `cbf054f Propagate native FSI boundary status`
+  - Production dry-run, diagnostics, restart metadata, and parity/status rows
+    record boundary mode, boundary class, Section 4.1 evidence status, and
+    boundary-equivalence disclaimers.
+  - Exact-mode production remains fail-closed until Lane 9C threads the mode
+    through partitioned production.
 - `eb277f6 Refresh native resolved FSI follow-up plan`
   - Package/public docs and this planning surface were aligned to the current
     implementation boundary.
 
 ## Non-Negotiable Claim Boundary
 
-Exact Section 4.1 Poiseuille-inlet / zero-outlet-stress boundary mode remains
-an open implementation requirement.
+Exact Section 4.1 Poiseuille-inlet / zero-outlet-stress boundary mode is
+implemented and smoke-test validated only in the low-level native Gridap
+boundary path.
 
-Until that mode is implemented and validated:
+Until that mode is threaded through and validated in partitioned production:
 
 - native production/parity outputs are local implementation and observation
   artifacts, not exact Section 4.1 boundary reproduction;
 - manuscript/editorial prose must state that exact Section 4.1 inlet/outlet
-  boundary matching is deferred;
+  boundary support is low-level smoke-test evidence only, and production
+  reproduction remains deferred;
 - CLI/status surfaces must expose the boundary status clearly and must not
   imply paper-grade reproduction;
 - parity matrix `ready` states mean artifact/operator readiness, not boundary
@@ -77,14 +94,15 @@ earlier softer wording.
 
 ## Consolidated Fleet Findings
 
-- Exact Section 4.1 boundary mode is feasible but nontrivial: it needs a real
-  Poiseuille inlet profile, zero-outlet-stress handling, pressure nullspace or
-  gauge treatment, and Gridap tests.
-- The current `:poiseuille_inlet_zero_outlet_stress_section41` mode is a
-  fail-closed placeholder, not an implementation.
-- Production metadata currently records wall boundary mode and state payload,
-  but exact inlet/outlet boundary status should be threaded through production
-  diagnostics, restart metadata, and parity/status surfaces when the mode lands.
+- Exact Section 4.1 boundary mode now has low-level Gridap smoke-test support:
+  Poiseuille inlet profile, zero-outlet-stress natural traction behavior, and
+  explicit pressure gauge/normalization status.
+- Exact-mode partitioned production is still intentionally fail-closed until
+  the production runner passes the exact mode into each fluid solve and handles
+  pressure fallback without silently reusing pressure-drop weak loading.
+- Production metadata must continue to record wall boundary mode, inlet/outlet
+  boundary mode, Section 4.1 evidence status, and restart `state_payload`
+  limitations.
 - CLI expansion is in scope next round, but should be dry-run/status-first and
   should make boundary-mode status visible. Production execution from CLI must
   remain non-default and opt-in.
@@ -97,37 +115,19 @@ earlier softer wording.
 
 ### Lane 9A: Exact Section 4.1 Boundary Mode
 
-Priority: P0. This is the main implementation and manuscript claim gate.
+Status: completed at low-level Gridap smoke-test scope. Keep this lane as the
+regression baseline, not as a production/parity reproduction claim.
 
-Objective: implement the exact Section 4.1 Poiseuille-inlet /
-zero-outlet-stress boundary mode as an explicit native Gridap mode while
-preserving the existing pressure-drop smoke path.
+Completed evidence:
 
-Owned write scope:
-
-- `src/StenoticHemodynamics/adapters/native_resolved_fsi_gridap.jl`
-- `src/StenoticHemodynamics/adapters/native_resolved_fsi_types.jl`
-- `src/StenoticHemodynamics/adapters/native_resolved_fsi_partitioned.jl` only
-  if the mode must be threaded through partitioned solves.
-- `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl`
-  only if production specs/diagnostics need boundary-mode fields.
-- `test/test_native_resolved_fsi_smoke.jl`
-- `test/test_native_resolved_fsi_workflow.jl` only if production metadata is
-  changed.
-- Reader-facing docs only after code/tests land.
-
-Implementation requirements:
-
-1. Keep `:pressure_drop_weak_inlet_outlet_gauge_smoke` intact as the default.
-2. Replace the current fail-closed placeholder for
-   `:poiseuille_inlet_zero_outlet_stress_section41` with a real implementation.
-3. Use a Poiseuille inlet profile with the paper's `u_max = 45 cm/s` contract
-   or an explicitly parameterized equivalent that defaults to that value for
-   Section 4.1 plans.
-4. Implement zero-outlet-stress behavior without silently reusing the current
-   pressure-drop weak loading.
-5. Handle pressure nullspace/gauge behavior explicitly.
-6. Preserve finite-field, mesh, time, and importer round-trip guards.
+- `:pressure_drop_weak_inlet_outlet_gauge_smoke` remains the default smoke
+  path.
+- `:poiseuille_inlet_zero_outlet_stress_section41` no longer fails closed in
+  the low-level Gridap boundary path.
+- Tiny smoke tests verify Poiseuille inlet selection, `u_max = 45 cm/s`
+  status, zero-outlet-stress/natural-traction mode selection, and explicit
+  gauge/normalization wording.
+- Production execution for the exact mode remains fail-closed until Lane 9C.
 
 Validation:
 
@@ -135,22 +135,20 @@ Validation:
 packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_smoke.jl")'
 ```
 
-Acceptance:
+Regression guard:
 
-- Existing pressure-drop smoke tests still pass.
-- New tests prove the exact Section 4.1 mode no longer fails closed.
-- New tests verify inlet-profile enforcement and outlet/gauge behavior at the
-  tiny smoke-test scale.
-- Status strings distinguish exact Section 4.1 boundary evidence from local
-  pressure-drop smoke evidence.
+- Existing pressure-drop smoke tests must continue to pass.
+- Exact-mode smoke tests must continue to prove the exact mode is selected and
+  not silently falling back to pressure-drop loading.
 
 ### Lane 9B: Boundary Status Propagation
 
-Priority: P0 after 9A.
+Status: implemented in this round's package patch. Keep this lane as the
+metadata/status regression guard.
 
-Objective: propagate inlet/outlet boundary mode and Section 4.1 boundary status
-through production dry-run, diagnostics, restart metadata, parity/status rows,
-and docs.
+Objective: ensure inlet/outlet boundary mode and Section 4.1 boundary status
+remain visible through production dry-run, diagnostics, restart metadata, and
+parity/status rows.
 
 Owned write scope:
 
@@ -182,10 +180,55 @@ Acceptance:
 - Restart metadata remains fail-closed for persisted resume.
 - Parity/status rows separate artifact readiness from boundary reproduction.
 
-### Lane 9C: Dry-Run / Status CLI Expansion
+### Lane 9C: Exact Boundary Production Threading
 
-Priority: P1 after 9A/9B status surfaces exist, or earlier only if it reports
-boundary deferral explicitly.
+Priority: P0 after 9B, before any production-grade reproduction claim.
+
+Objective: thread `:poiseuille_inlet_zero_outlet_stress_section41` through the
+partitioned production runner so exact-mode production can execute without
+falling back to pressure-drop weak loading.
+
+Owned write scope:
+
+- `src/StenoticHemodynamics/adapters/native_resolved_fsi_partitioned.jl`
+- `src/StenoticHemodynamics/adapters/native_resolved_fsi_gridap.jl` only for
+  narrow boundary-mode plumbing or pressure fallback needed by production
+- `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl`
+- `test/test_native_resolved_fsi_smoke.jl`
+- `test/test_native_resolved_fsi_workflow.jl`
+
+Implementation requirements:
+
+1. Pass the selected inlet/outlet boundary mode into every production fluid
+   solve.
+2. Preserve the smoke path and its positive `pressure_drop_dyn_cm2` validation.
+3. For exact mode, do not require or apply pressure-drop weak loading.
+4. Make pressure gauge/fallback behavior explicit and distinguish it from
+   post-sampling outlet pressure normalization.
+5. Keep exact-mode production fail-closed unless all required boundary,
+   pressure, and finite-field guards are satisfied.
+6. Record `inlet_umax_cm_s` in restart boundary metadata before exact production
+   can write restart metadata.
+
+Validation:
+
+```bash
+packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_smoke.jl"); include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_workflow.jl")'
+git diff --check -- packages/stenotic-hemodynamics
+```
+
+Acceptance:
+
+- Exact-mode partitioned production no longer fails closed at tiny smoke scale.
+- Smoke-mode production behavior and labels are unchanged.
+- Restart metadata records enough boundary data, including `inlet_umax_cm_s`, to
+  validate exact-mode records.
+- Diagnostics still state smoke-test scale evidence, not paper-grade Section
+  4.1 numerical reproduction.
+
+### Lane 9D: Dry-Run / Status CLI Expansion
+
+Priority: P1 after 9B; production execution CLI exposure waits until 9C.
 
 Objective: add the first native resolved-FSI CLI exposure as a dry-run/status
 surface without exposing production execution by default.
@@ -217,13 +260,15 @@ git diff --check -- packages/stenotic-hemodynamics/README.md public/docs/julia-c
 Acceptance:
 
 - CLI can report planning/status information without running production.
-- CLI output cannot imply exact Section 4.1 reproduction unless 9A/9B support
-  that status.
+- CLI output cannot imply exact Section 4.1 reproduction unless the exact mode
+  is selected and the surface also reports its current production-readiness
+  boundary.
 - No public exports are added unless explicitly justified and tested.
 
-### Lane 9D: Manuscript / Documentation Synchronization
+### Lane 9E: Manuscript / Documentation Synchronization
 
-Priority: P1 after 9A/9B; coordinate with the editorial orchestrator.
+Priority: P1 after 9B and again after 9C; coordinate with the editorial
+orchestrator.
 
 Objective: keep manuscript-facing and public docs claims aligned with the
 implementation boundary.
@@ -236,8 +281,9 @@ Owned write scope:
 
 Implementation requirements:
 
-1. Before 9A lands, keep exact Section 4.1 boundary mode marked deferred.
-2. After 9A/9B land, update docs/manuscript only to the level supported by
+1. After 9A/9B, state low-level exact-boundary support and boundary-status
+   propagation, while keeping production reproduction deferred.
+2. After 9C lands, update docs/manuscript only to the level supported by
    tests and parity evidence.
 3. Continue separating generated-artifact evidence, observation-operator
    evidence, exact boundary-mode evidence, and paper-grade numerical
@@ -256,9 +302,9 @@ Acceptance:
 - Editorial coordinator receives an explicit sync note for any claim-boundary
   change.
 
-### Lane 9E: Restart Payload / Resume Stewardship
+### Lane 9F: Restart Payload / Resume Stewardship
 
-Priority: P2, can run in parallel with 9C if file locks stay disjoint.
+Priority: P2, can run in parallel with 9D if file locks stay disjoint.
 
 Objective: preserve the restart-reader and `state_payload` contract while
 persisted resume remains unsupported.
@@ -287,16 +333,62 @@ Acceptance:
 - Resume claims remain fail-closed.
 - Metadata schema remains backward-compatible.
 
+### Lane 9G: Workflow Directory Responsibility Split
+
+Priority: P2 after 9B, and preferably after 9D if CLI workflow surfaces are
+still moving.
+
+Objective: split the flat `src/StenoticHemodynamics/workflows/` directory into
+clearer responsibility subtrees without changing public commands, exports,
+workflow semantics, or artifact schemas.
+
+Owned write scope:
+
+- `src/StenoticHemodynamics/workflows/**`
+- `src/StenoticHemodynamics.jl`
+- focused workflow tests affected by include-path changes
+- package/public docs only if import paths or workflow ownership prose changes
+
+Implementation requirements:
+
+1. Inventory workflow files by responsibility before moving anything.
+2. Propose subdirectories that reflect stable domains, for example native
+   resolved-FSI, resolved-3D comparison/parity, verification, benchmarks,
+   studies, geometry exports, and validation workflows.
+3. Move files in small batches with include-order-preserving patches.
+4. Keep qualified internal names, public exports, CLI commands, artifact
+   filenames, and restart/importer schemas unchanged.
+5. Avoid mixing directory moves with behavior changes; behavior changes require
+   separate lanes.
+
+Validation:
+
+```bash
+packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_public_api.jl")'
+packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_workflow.jl"); include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_parity.jl")'
+git diff --check -- packages/stenotic-hemodynamics
+```
+
+Acceptance:
+
+- `workflows/` ownership is clearer and no longer one flat mixed-responsibility
+  surface.
+- Include order is explicit and tested.
+- Public API and CLI exposure remain unchanged.
+- No generated artifacts or manuscript files are touched.
+
 ## Execution Sequence
 
-1. Dispatch 9A first. It is the implementation and manuscript claim gate.
-2. Dispatch 9B immediately after 9A or as a supervised continuation if 9A
-   already touches production metadata.
-3. Dispatch 9C only after boundary-mode status is visible, unless the CLI is
-   explicitly status-only and reports the deferral.
-4. Dispatch 9D after any implementation status changes; coordinate with the
+1. Treat 9A and 9B as completed baseline/regression guards.
+2. Dispatch 9C first in the next implementation wave. It is the remaining
+   exact-boundary production blocker.
+3. Dispatch 9D as status-only CLI work after 9B if its file ownership is
+   disjoint; do not expose production execution through CLI until 9C lands.
+4. Dispatch 9E after any implementation status changes; coordinate with the
    editorial orchestrator before report/manuscript edits.
-5. Dispatch 9E opportunistically when restart metadata work is disjoint.
+5. Dispatch 9F opportunistically when restart metadata work is disjoint.
+6. Dispatch 9G as a structure-only refactor once active workflow behavior
+   lanes have stabilized.
 
 Round-boundary gates:
 
