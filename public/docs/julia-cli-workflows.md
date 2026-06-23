@@ -36,6 +36,12 @@ assets.
 | `benchmark` | Run package benchmark profiles. | Follow `public/docs/benchmark-pipeline.md`. |
 | `export-assets` | Export stenosis geometry/report CSV assets. | Follow report asset publication rules before rendering or staging outputs. |
 
+There is intentionally no native resolved-FSI production, dry-run, or restart
+CLI command. Those surfaces remain qualified Julia internals such as
+`StenoticHemodynamics.native_resolved_fsi_partitioned_production_dry_run(...)`;
+high-output generation is still guarded by spec objects, workflow plans, and
+dry-run checks.
+
 ## Simulation
 
 Use `simulate` for one forward solve:

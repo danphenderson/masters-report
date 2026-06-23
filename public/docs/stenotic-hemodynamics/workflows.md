@@ -168,12 +168,23 @@ contract, skip behavior, and report publication boundaries.
   - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl)
   - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_parity_production.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_parity_production.jl)
 - Entrypoints:
-  - Julia: `native_resolved_fsi_case_spec(...)`, `run_native_resolved_fsi_workflow(...)`, `run_native_resolved_fsi_parity(...)`, `native_resolved_fsi_production_workflow_plans(...)`, `run_native_resolved_fsi_partitioned_production(...)`
-  - No public CLI command is wired in `cli/dispatch.jl` at the time of writing
+  - Julia: `native_resolved_fsi_case_spec(...)`,
+    `run_native_resolved_fsi_workflow(...)`,
+    `run_native_resolved_fsi_parity(...)`,
+    `native_resolved_fsi_production_workflow_plans(...)`,
+    `native_resolved_fsi_partitioned_production_dry_run(...)`,
+    `native_resolved_fsi_read_restart_metadata(...)`,
+    `native_resolved_fsi_resume_partitioned_production(...)`,
+    `run_native_resolved_fsi_partitioned_production(...)`
+  - No public CLI command is wired in `cli/dispatch.jl`; production, dry-run,
+    and restart-identification access remains qualified Julia-internal for now
 - Surface: `qualified-internal`
 - Expected outputs and artifact class:
   - Ignored scratch schema-smoke outputs under `tmp/simulations/output/native-resolved-fsi/**`
   - Ignored scratch production-control manifests and snapshot bundles under `tmp/simulations/output/native-resolved-fsi-production/**`
+  - High-output generation remains guarded by explicit
+    `NativeResolvedFSIPartitionedProductionSpec` values, production workflow
+    plans, and dry-run checks
 - Optional-data behavior:
   - Mesh generation and native schema smoke are package-owned and do not require a public resolved-3D data root
   - Parity workflows compare against explicitly supplied bundle paths when present

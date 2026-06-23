@@ -104,6 +104,10 @@ The exported core workflow is:
 Study, benchmark, adapter, and report-asset helpers are intentionally qualified
 module internals, for example `StenoticHemodynamics.run_study(...)`. The CLI
 uses the same core protocol and owns ordinary CSV/SVG output writing.
+Native resolved-FSI production, dry-run, and restart-identification helpers are
+also Julia-qualified internal workflows for now; there is no production CLI
+command. High-output generation remains guarded by explicit spec objects and
+planning/dry-run surfaces.
 
 ## CLI Examples
 
@@ -261,6 +265,8 @@ means are emitted only as supplemental sensitivity rows.
 - Study summary CSVs use simple scalar fields and minimal CSV escaping.
 - The package does not provide a general-purpose 3D CFD solver, native resolved
   dataset generation, or clinical validation of stenosis metrics.
+- Native resolved-FSI production-control and dry-run surfaces are qualified
+  Julia internals, not public CLI commands.
 - Stationary Stokes initialization is a projection contract for the 1D state,
   not a transient FSI solve or direct finite-element field projection.
 - The model is a finite-volume reproduction for local experimentation, not a

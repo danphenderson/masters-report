@@ -346,6 +346,21 @@
     @test all(name -> isdefined(StenoticHemodynamics, name), qualified_internal_names)
     @test isempty(intersect(exported_names, qualified_internal_names))
 
+    native_production_boundary_names = Symbol[
+        :NativeResolvedFSIProductionDryRunPlan,
+        :native_resolved_fsi_partitioned_production_dry_run,
+        :native_resolved_fsi_read_restart_metadata,
+        :native_resolved_fsi_resume_partitioned_production,
+    ]
+    @test all(name -> isdefined(StenoticHemodynamics, name), native_production_boundary_names)
+    @test isempty(intersect(exported_names, native_production_boundary_names))
+
+    normalized_cli_command_names = replace.(split(StenoticHemodynamics.CLI_COMMAND_NAMES, ", "), "_" => "-")
+    @test !any(
+        name -> all(token -> occursin(token, name), ("native", "resolved", "fsi", "production")),
+        normalized_cli_command_names,
+    )
+
     private_partitioned_production_helpers = Symbol[
         :native_resolved_fsi_partitioned_production_manifest_path,
         :native_resolved_fsi_partitioned_production_manifest_row,
