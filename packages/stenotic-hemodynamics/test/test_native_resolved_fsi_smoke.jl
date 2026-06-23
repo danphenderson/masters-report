@@ -83,6 +83,9 @@ end
     @test default_spec isa NativeResolvedFSIPartitionedSmokeSpec
     @test default_spec.dt_s ≈ 1.0e-4 atol=1.0e-12
     @test default_spec.tfinal_s ≈ 1.0e-4 atol=1.0e-12
+    @test default_spec.coupling_iteration_count == 1
+    @test default_spec.coupling_tolerance ≈ 1.0e-8
+    @test default_spec.coupling_under_relaxation ≈ 1.0
     @test default_native_resolved_fsi_partitioned_smoke_output_dir(default_spec) ==
           joinpath(
         "tmp",
@@ -101,6 +104,10 @@ end
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(wall_density_g_cm3=0.0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(wall_damping_g_cm2_s=-1.0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(pressure_drop_dyn_cm2=0.0)
+    @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_iteration_count=0)
+    @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_tolerance=0.0)
+    @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_under_relaxation=0.0)
+    @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_under_relaxation=1.01)
 
     mktempdir() do dir
         spec = NativeResolvedFSIPartitionedSmokeSpec(
@@ -115,6 +122,9 @@ end
             picard_tolerance=1.0e-8,
             wall_density_g_cm3=1.0,
             wall_damping_g_cm2_s=0.0,
+            coupling_iteration_count=2,
+            coupling_tolerance=1.0e-30,
+            coupling_under_relaxation=0.5,
         )
         result = run_native_resolved_fsi_partitioned_smoke(spec)
 
@@ -124,12 +134,26 @@ end
         @test result.schema_status.ready
         @test result.time_status.ready
         @test result.field_status.ready
-        @test result.fluid_model == :partitioned_fixed_wall_fluid_moving_wall_output_smoke
+        @test occursin("prescribed radial wall-velocity Dirichlet", result.field_status.status)
+        @test !occursin("fixed-wall-fluid", result.field_status.status)
+        @test result.fluid_model == :partitioned_prescribed_wall_velocity_iterated_wall_output_smoke
         @test result.velocity_dofs > 0
         @test result.pressure_dofs > 0
         @test result.time_step_count == 1
         @test 1 <= result.max_picard_iterations_used <= spec.picard_iteration_count
         @test result.picard_converged
+        @test result.max_coupling_iterations_used == spec.coupling_iteration_count
+        @test isfinite(result.final_coupling_displacement_residual_cm)
+        @test result.final_coupling_displacement_residual_cm >= 0.0
+        @test !result.coupling_converged
+        @test result.fluid_wall_boundary_mode == :prescribed_radial_wall_velocity
+        @test length(result.coupling_residual_history) == result.time_step_count * spec.coupling_iteration_count
+        @test [row.coupling_iteration for row in result.coupling_residual_history] == [1, 2]
+        @test all(row -> row.under_relaxation ≈ spec.coupling_under_relaxation, result.coupling_residual_history)
+        @test all(
+            row -> row.fluid_wall_boundary_mode == "prescribed_radial_wall_velocity",
+            result.coupling_residual_history,
+        )
         @test result.post_update_fluid_refresh
         @test isfinite(result.final_picard_update_norm)
         @test result.final_picard_update_norm >= 0.0

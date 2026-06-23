@@ -11,7 +11,8 @@ const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_DEFAULT_DT_S = 1.0e-4
 const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_DEFAULT_TFINAL_S = 1.0e-4
 const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_DEFAULT_WALL_DENSITY_G_CM3 = 1.0
 const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_DEFAULT_WALL_DAMPING_G_CM2_S = 0.0
-const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_STAGE = :partitioned_fixed_wall_fluid_moving_wall_output_smoke
+const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_STAGE = :partitioned_prescribed_wall_velocity_iterated_wall_output_smoke
+const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_FLUID_WALL_BOUNDARY_MODE = :prescribed_radial_wall_velocity
 
 """
     NativeResolvedFSISmokeSpec(; kwargs...)
@@ -104,11 +105,13 @@ native_resolved_fsi_navier_stokes_smoke_spec(; kwargs...) = NativeResolvedFSINav
 """
     NativeResolvedFSIPartitionedSmokeSpec(; kwargs...)
 
-Typed configuration for the first staged partitioned native resolved-FSI smoke.
-Each coupling step advances a fixed-wall Navier-Stokes subproblem on the
-current lifted geometry, projects wall pressure onto the native axial stations,
-updates a reduced radial membrane state explicitly, and refreshes the fluid on
-the saved geometry for output. This is not a monolithic transient 3D FSI solve.
+Typed configuration for the staged partitioned native resolved-FSI smoke. Each
+coupling step advances Navier-Stokes subproblems on iterated lifted geometries
+with the current reduced wall velocity prescribed as a radial wall Dirichlet
+condition, projects wall pressure onto the native axial stations, updates a
+reduced radial membrane state explicitly with under-relaxation, and refreshes
+the fluid on the saved geometry for output. This is not a monolithic transient
+3D FSI solve.
 """
 struct NativeResolvedFSIPartitionedSmokeSpec
     case_spec::NativeResolvedFSICaseSpec
@@ -123,6 +126,9 @@ struct NativeResolvedFSIPartitionedSmokeSpec
     picard_tolerance::Float64
     wall_density_g_cm3::Float64
     wall_damping_g_cm2_s::Float64
+    coupling_iteration_count::Int
+    coupling_tolerance::Float64
+    coupling_under_relaxation::Float64
 end
 
 function NativeResolvedFSIPartitionedSmokeSpec(;
@@ -138,6 +144,9 @@ function NativeResolvedFSIPartitionedSmokeSpec(;
     picard_tolerance::Real = NATIVE_RESOLVED_FSI_NAVIER_STOKES_SMOKE_DEFAULT_PICARD_TOLERANCE,
     wall_density_g_cm3::Real = NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_DEFAULT_WALL_DENSITY_G_CM3,
     wall_damping_g_cm2_s::Real = NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_DEFAULT_WALL_DAMPING_G_CM2_S,
+    coupling_iteration_count::Integer = 1,
+    coupling_tolerance::Real = 1.0e-8,
+    coupling_under_relaxation::Real = 1.0,
 )
     return validate(NativeResolvedFSIPartitionedSmokeSpec(
         native_resolved_fsi_case_spec(case_id),
@@ -152,6 +161,9 @@ function NativeResolvedFSIPartitionedSmokeSpec(;
         Float64(picard_tolerance),
         Float64(wall_density_g_cm3),
         Float64(wall_damping_g_cm2_s),
+        Int(coupling_iteration_count),
+        Float64(coupling_tolerance),
+        Float64(coupling_under_relaxation),
     ))
 end
 
@@ -280,6 +292,11 @@ struct NativeResolvedFSIPartitionedSmokeResult
     max_picard_iterations_used::Int
     final_picard_update_norm::Float64
     picard_converged::Bool
+    max_coupling_iterations_used::Int
+    final_coupling_displacement_residual_cm::Float64
+    coupling_converged::Bool
+    fluid_wall_boundary_mode::Symbol
+    coupling_residual_history::Vector{NamedTuple}
     post_update_fluid_refresh::Bool
     wall_axial_coordinates_cm::Vector{Float64}
     wall_displacement_cm::Vector{Float64}
@@ -317,6 +334,11 @@ struct NativeResolvedFSIPartitionedSmokeSolve
     max_picard_iterations_used::Int
     final_picard_update_norm::Float64
     picard_converged::Bool
+    max_coupling_iterations_used::Int
+    final_coupling_displacement_residual_cm::Float64
+    coupling_converged::Bool
+    fluid_wall_boundary_mode::Symbol
+    coupling_residual_history::Vector{NamedTuple}
     post_update_fluid_refresh::Bool
     wall_axial_coordinates_cm::Vector{Float64}
     wall_displacement_cm::Vector{Float64}
@@ -383,6 +405,16 @@ function validate(spec::NativeResolvedFSIPartitionedSmokeSpec)
         throw(ArgumentError("native resolved-FSI partitioned smoke wall_damping_g_cm2_s must be finite"))
     spec.wall_damping_g_cm2_s >= 0.0 ||
         throw(ArgumentError("native resolved-FSI partitioned smoke wall_damping_g_cm2_s must be nonnegative"))
+    spec.coupling_iteration_count > 0 ||
+        throw(ArgumentError("native resolved-FSI partitioned smoke coupling_iteration_count must be positive"))
+    isfinite(spec.coupling_tolerance) ||
+        throw(ArgumentError("native resolved-FSI partitioned smoke coupling_tolerance must be finite"))
+    spec.coupling_tolerance > 0.0 ||
+        throw(ArgumentError("native resolved-FSI partitioned smoke coupling_tolerance must be positive"))
+    isfinite(spec.coupling_under_relaxation) ||
+        throw(ArgumentError("native resolved-FSI partitioned smoke coupling_under_relaxation must be finite"))
+    0.0 < spec.coupling_under_relaxation <= 1.0 ||
+        throw(ArgumentError("native resolved-FSI partitioned smoke coupling_under_relaxation must lie in (0, 1]"))
     return spec
 end
 
@@ -615,13 +647,14 @@ run_native_resolved_fsi(spec::NativeResolvedFSINavierStokesSmokeSpec) = run_nati
     run_native_resolved_fsi_partitioned_smoke(spec=NativeResolvedFSIPartitionedSmokeSpec())
 
 Run the first staged partitioned native resolved-FSI smoke on
-`NativeResolvedFSIMesh`. The fluid stage reuses the 2H fixed-wall
-backward-Euler/Picard Navier-Stokes solve on the current lifted geometry; wall
-pressure is projected onto the native axial stations, a reduced radial membrane
-state is updated explicitly with clamped endpoints, the established linear
-volumetric lift generates a nonzero displacement field, and a post-update fluid
-refresh is performed on the saved geometry for bundle output. This is a coarse
-partitioned smoke, not a monolithic paper-grade transient 3D FSI solve.
+`NativeResolvedFSIMesh`. The fluid stage reuses the 2H backward-Euler/Picard
+Navier-Stokes solve on the current lifted geometry with the reduced wall
+velocity prescribed radially on the wall boundary; wall pressure is projected
+onto the native axial stations, a reduced radial membrane state is updated
+explicitly with clamped endpoints, the established linear volumetric lift
+generates a nonzero displacement field, and a post-update fluid refresh is
+performed on the saved geometry for bundle output. This is a coarse partitioned
+smoke, not a monolithic paper-grade transient 3D FSI solve.
 """
 function run_native_resolved_fsi_partitioned_smoke(
     spec::NativeResolvedFSIPartitionedSmokeSpec = NativeResolvedFSIPartitionedSmokeSpec(),
@@ -687,6 +720,11 @@ function run_native_resolved_fsi_partitioned_smoke(
         solve_result.max_picard_iterations_used,
         solve_result.final_picard_update_norm,
         solve_result.picard_converged,
+        solve_result.max_coupling_iterations_used,
+        solve_result.final_coupling_displacement_residual_cm,
+        solve_result.coupling_converged,
+        solve_result.fluid_wall_boundary_mode,
+        solve_result.coupling_residual_history,
         solve_result.post_update_fluid_refresh,
         solve_result.wall_axial_coordinates_cm,
         solve_result.wall_displacement_cm,
@@ -728,6 +766,10 @@ function run_native_resolved_fsi_partitioned_smoke(
             solve_result.max_picard_iterations_used,
             solve_result.final_picard_update_norm,
             solve_result.picard_converged,
+            solve_result.max_coupling_iterations_used,
+            solve_result.final_coupling_displacement_residual_cm,
+            solve_result.coupling_converged,
+            solve_result.fluid_wall_boundary_mode,
             minimum_current_radius_cm,
             solve_result.minimum_signed_tetra_volume6,
             solve_result.post_update_fluid_refresh,

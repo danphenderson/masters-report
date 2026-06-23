@@ -217,6 +217,10 @@ function native_resolved_fsi_partitioned_smoke_field_status(
     max_picard_iterations_used::Int,
     final_picard_update_norm::Float64,
     picard_converged::Bool,
+    max_coupling_iterations_used::Int,
+    final_coupling_displacement_residual_cm::Float64,
+    coupling_converged::Bool,
+    fluid_wall_boundary_mode::Symbol,
     minimum_current_radius_cm::Float64,
     minimum_signed_tetra_volume6::Float64,
     post_update_fluid_refresh::Bool,
@@ -244,6 +248,9 @@ function native_resolved_fsi_partitioned_smoke_field_status(
     iteration_summary_ok = time_step_count > 0 &&
                            max_picard_iterations_used > 0 &&
                            isfinite(final_picard_update_norm)
+    coupling_summary_ok = max_coupling_iterations_used > 0 &&
+                          isfinite(final_coupling_displacement_residual_cm) &&
+                          fluid_wall_boundary_mode === NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_FLUID_WALL_BOUNDARY_MODE
     ready = finite_fields &&
             nontrivial_velocity &&
             nontrivial_pressure &&
@@ -254,10 +261,11 @@ function native_resolved_fsi_partitioned_smoke_field_status(
             positive_tetra_ok &&
             deformed_ok &&
             iteration_summary_ok &&
+            coupling_summary_ok &&
             picard_converged &&
             post_update_fluid_refresh
     status = ready ?
-        "staged partitioned fixed-wall-fluid/moving-wall-output smoke used lagged explicit membrane updates with R_ref = p.rmax, a post-update fluid refresh, finite solver-backed velocity/pressure, nonzero clamped displacement, positive radii, and non-inverted tetrahedra (coupled steps: $(time_step_count), max Picard iterations: $(max_picard_iterations_used), final update norm: $(final_picard_update_norm), wall-pressure projection fallbacks: $(pressure_projection_fallback_count), vertex fallbacks: $(sampling_fallback_count))" :
-        "partitioned smoke field checks failed, radii became non-positive, tetrahedra inverted, or the staged fluid refresh did not converge"
+        "staged partitioned prescribed radial wall-velocity Dirichlet smoke used lagged explicit membrane updates with R_ref = p.rmax, a post-update fluid refresh on deformed geometry, finite solver-backed velocity/pressure, nonzero clamped displacement, positive radii, and non-inverted tetrahedra (coupled steps: $(time_step_count), max coupling iterations used: $(max_coupling_iterations_used), final coupling displacement residual: $(final_coupling_displacement_residual_cm), coupling converged: $(coupling_converged), max Picard iterations: $(max_picard_iterations_used), final update norm: $(final_picard_update_norm), wall-pressure projection fallbacks: $(pressure_projection_fallback_count), vertex fallbacks: $(sampling_fallback_count))" :
+        "partitioned smoke field checks failed, prescribed wall-velocity boundary metadata was incomplete, radii became non-positive, tetrahedra inverted, or the staged fluid refresh did not converge"
     return NativeResolvedFSIWorkflowStatus(ready, status)
 end

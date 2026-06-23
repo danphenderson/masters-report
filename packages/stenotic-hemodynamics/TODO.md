@@ -32,6 +32,9 @@ The current local package work has delivered:
   - `snapshot_manifest.csv`
   - `snapshot_diagnostics.csv`
   - `restart_metadata.json`
+- Partitioned smoke depth now includes per-time-step coupling iteration caps,
+  under-relaxation, displacement residual history, and prescribed radial wall
+  velocity as Gridap wall Dirichlet data on the deformed geometry.
 - Restart-identification metadata that explicitly marks state-carrying resume
   as deferred.
 - Section 4.1 observation artifacts and skip-safe production parity plans.
@@ -43,7 +46,9 @@ The current local package work has delivered:
 Bounded interpretation:
 
 - Native generation still uses independent smoke-backed partitioned solves for
-  scheduled snapshots. It is not a monolithic transient ALE FSI method.
+  scheduled snapshots, but each partitioned smoke solve now feeds the current
+  reduced wall velocity into the fluid wall boundary. It is not a monolithic
+  transient ALE FSI method and does not include ALE mesh-velocity terms.
 - The production sidecars improve reproducibility and handoff, but do not yet
   provide state-carrying restart/resume.
 - Section 4.1 observation artifacts are operator/parity artifacts. They do not
@@ -78,51 +83,47 @@ Bounded interpretation:
   when they are intentional API-adjacent seams and update the boundary tests in
   the same lane.
 
-## Step 1: Solver-Depth Lanes
+## Step 1: Boundary, Restart, And Production Harness Lanes
 
-### Lane 6A: Coupling Iteration And Wall-Velocity Boundary Depth
+### Lane 7A: Wall Boundary Verification Harness
 
-Objective: move the partitioned native runner from single-pass wall update
-toward controlled coupling depth without claiming monolithic ALE FSI.
+Objective: protect the new prescribed radial wall-velocity Dirichlet path with
+direct tests before deeper production runs depend on it.
 
 Owned write scope:
 
-- `src/StenoticHemodynamics/adapters/native_resolved_fsi_partitioned.jl`
 - `src/StenoticHemodynamics/adapters/native_resolved_fsi_gridap.jl`
-- `src/StenoticHemodynamics/adapters/native_resolved_fsi_types.jl`
-- `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl`
+- `src/StenoticHemodynamics/adapters/native_resolved_fsi_partitioned.jl` only
+  if a helper must move out of the local solve closure.
 - `test/test_native_resolved_fsi_smoke.jl`
-- `test/test_native_resolved_fsi_workflow.jl`
 
 Implementation:
 
-1. Add per-time-step partitioned coupling iterations with an iteration cap,
-   under-relaxation, and displacement-residual tolerance.
-2. Record per-step and per-coupling-iteration residuals in diagnostics.
-3. Carry wall velocity consistently into the fluid boundary condition when the
-   moved-wall geometry is used. If full moving-wall boundary data remains out
-   of reach, add an explicit status that the fluid subsolve is still fixed-wall
-   while displacement output is updated.
-4. Preserve positive-radius, non-inverted-tetrahedron, finite-field, and output
-   guards.
-5. Keep tiny tests coarse and deterministic.
+1. Factor the radial wall-velocity boundary construction into a small internal
+   helper if that is the cleanest way to test it directly.
+2. Test centerline zeroing, axial clamping, finite-value rejection, and radial
+   direction/sign on representative wall points.
+3. Add one tiny partitioned smoke assertion that nonzero wall velocity is
+   recorded in the residual history or restart-visible state without requiring
+   an expensive production run.
+4. Keep the claim boundary explicit: prescribed wall Dirichlet data on deformed
+   geometry, not ALE mesh-velocity advection.
 
 Validation:
 
 ```bash
 packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_smoke.jl")'
-packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_workflow.jl")'
 ```
 
 Acceptance:
 
-- Coupling residuals are recorded for each coupled step.
-- Under-relaxation and iteration caps are tested.
-- Failures identify the time step, iteration, and guard that failed.
-- Status text distinguishes fixed-wall, prescribed-wall, and coupled-wall
-  behavior honestly.
+- The wall boundary helper cannot regress to a label-only status without test
+  failures.
+- Tests remain tiny and deterministic.
+- Status strings continue to avoid fixed-wall or monolithic-ALE claims for the
+  partitioned prescribed-wall path.
 
-### Lane 6B: Restart Metadata Reader And Resume Contract
+### Lane 7B: Restart Metadata Reader And Resume Contract
 
 Objective: make restart metadata truly reloadable through package-owned code
 before attempting state-carrying resume.
@@ -161,7 +162,7 @@ Acceptance:
 - Resume remains explicitly deferred unless a tested resumed run reproduces an
   uninterrupted coarse final bundle.
 
-### Lane 6C: Section 4.1 Production Harness And Dry Run
+### Lane 7C: Section 4.1 Production Harness And Dry Run
 
 Objective: give operators a deterministic plan surface for tiny test runs and
 deliberate larger Section 4.1 runs without accidental large-output generation.
@@ -205,7 +206,7 @@ Acceptance:
 
 ## Step 2: Parity, API, And Documentation Lanes
 
-### Lane 6D: Production Observation Artifact Hardening
+### Lane 7D: Production Observation Artifact Hardening
 
 Objective: turn the current observation CSV artifact into a stable surface for
 future report and comparison lanes.
@@ -238,7 +239,7 @@ Acceptance:
 - Native-only, imported-only, and paired parity cases are all covered by tests.
 - No optional external data are required.
 
-### Lane 6E: CLI Exposure Decision For Native Production
+### Lane 7E: CLI Exposure Decision For Native Production
 
 Objective: decide whether native resolved-FSI production remains qualified
 internal or gains a deliberately safe CLI surface.
@@ -271,7 +272,7 @@ Acceptance:
 - Existing public commands remain unchanged.
 - No expensive production run can be triggered accidentally from defaults.
 
-### Lane 6F: Native Resolved-FSI Documentation Refresh
+### Lane 7F: Native Resolved-FSI Documentation Refresh
 
 Objective: update public docs after the production-control, diagnostics, and
 observation artifact lanes without inflating numerical claims.
@@ -313,7 +314,7 @@ Acceptance:
 
 ## Step 3: Maintenance Lanes
 
-### Lane 6G: Dependency-Boundary Follow-Up
+### Lane 7G: Dependency-Boundary Follow-Up
 
 Owned write scope:
 
@@ -329,7 +330,7 @@ Acceptance:
 - HDF5/EzXML remain confined to resolved-3D I/O and writer surfaces.
 - SciML and YAML stay lazy where already designed.
 
-### Lane 6H: Scalar Genericity Continuation
+### Lane 7H: Scalar Genericity Continuation
 
 Owned write scope:
 
@@ -347,15 +348,16 @@ Acceptance:
 
 ## Dispatch Order
 
-1. Start with Lane 6A if the goal is solver depth.
-2. Run Lane 6B in parallel with 6A only if it stays in restart metadata reader
-   code and does not edit the adapter solver files.
-3. Run Lane 6D in parallel with 6A only if it stays in parity artifact files.
-4. Assign Lane 6C after 6A or after accepting that the next production harness
-   remains smoke-backed for one more round.
-5. Assign Lane 6E after the API/CLI intent is clear.
-6. Assign Lane 6F after the code lanes it documents have landed.
-7. Run maintenance lanes 6G and 6H only when their file ownership does not
+1. Start with Lane 7A if the goal is to protect the new prescribed wall
+   boundary scientifically before production-depth runs.
+2. Run Lane 7B in parallel with 7A only if it stays in restart metadata reader
+   code and does not edit adapter solver files.
+3. Run Lane 7D in parallel with 7A only if it stays in parity artifact files.
+4. Assign Lane 7C after 7A, or after accepting that production remains
+   smoke-backed while the boundary harness is still pending.
+5. Assign Lane 7E after the API/CLI intent is clear.
+6. Assign Lane 7F after the code lanes it documents have landed.
+7. Run maintenance lanes 7G and 7H only when their file ownership does not
    overlap active solver-depth work.
 
 Round-boundary gates:

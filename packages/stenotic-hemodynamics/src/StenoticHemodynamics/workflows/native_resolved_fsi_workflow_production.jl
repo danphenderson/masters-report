@@ -353,13 +353,6 @@ explicitly deferred.
 """
 function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIPartitionedProductionSpec)
     function validate_runner_scope(local_spec::NativeResolvedFSIPartitionedProductionSpec)
-        if local_spec.coupling_iteration_count != 1 ||
-           local_spec.coupling_under_relaxation != 1.0 ||
-           local_spec.coupling_tolerance != 1.0e-8
-            throw(ArgumentError(
-                "native resolved-FSI partitioned production runner reuses the current single-pass partitioned smoke driver; nonlinear coupling iterations and under-relaxation are deferred to a later state-carrying production lane",
-            ))
-        end
         if any(time_s -> time_s <= 0.0, local_spec.snapshot_times_s)
             throw(ArgumentError(
                 "native resolved-FSI partitioned production runner requires positive snapshot times; t=0 initial-condition bundle output is not implemented",
@@ -447,6 +440,9 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             picard_tolerance=local_spec.picard_tolerance,
             wall_density_g_cm3=local_spec.wall_density_g_cm3,
             wall_damping_g_cm2_s=local_spec.wall_damping_g_cm2_s,
+            coupling_iteration_count=local_spec.coupling_iteration_count,
+            coupling_tolerance=local_spec.coupling_tolerance,
+            coupling_under_relaxation=local_spec.coupling_under_relaxation,
         )
         smoke_result = run_native_resolved_fsi_partitioned_smoke(smoke_spec)
         ready = smoke_result.schema_status.ready &&
@@ -546,6 +542,14 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             final_picard_update_norm=smoke_result.final_picard_update_norm,
             solver_convergence_ready=solver_convergence_ready,
             picard_converged=smoke_result.picard_converged,
+            coupling_iteration_count=local_spec.coupling_iteration_count,
+            coupling_tolerance=local_spec.coupling_tolerance,
+            coupling_under_relaxation=local_spec.coupling_under_relaxation,
+            max_coupling_iterations_used=smoke_result.max_coupling_iterations_used,
+            final_coupling_displacement_residual_cm=smoke_result.final_coupling_displacement_residual_cm,
+            coupling_converged=smoke_result.coupling_converged,
+            coupling_residual_count=length(smoke_result.coupling_residual_history),
+            fluid_wall_boundary_mode=string(smoke_result.fluid_wall_boundary_mode),
             post_update_fluid_refresh=smoke_result.post_update_fluid_refresh,
             wall_update_ready=wall_ready,
             wall_displacement_min_cm=minimum(smoke_result.wall_displacement_cm),
@@ -591,6 +595,8 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
                 all(
                     row ->
                         row.solver_convergence_ready &&
+                        row.max_coupling_iterations_used > 0 &&
+                        isfinite(row.final_coupling_displacement_residual_cm) &&
                         row.wall_update_ready &&
                         row.output_ready &&
                         row.importer_roundtrip_ready,
@@ -621,8 +627,26 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
                 "velocity_xdmf" => snapshot.smoke_result.velocity_xdmf,
                 "pressure_xdmf" => snapshot.smoke_result.pressure_xdmf,
                 "displacement_xdmf" => snapshot.smoke_result.displacement_xdmf,
+                "max_coupling_iterations_used" => snapshot.smoke_result.max_coupling_iterations_used,
+                "final_coupling_displacement_residual_cm" =>
+                    snapshot.smoke_result.final_coupling_displacement_residual_cm,
+                "coupling_converged" => snapshot.smoke_result.coupling_converged,
+                "fluid_wall_boundary_mode" => string(snapshot.smoke_result.fluid_wall_boundary_mode),
                 "status" => snapshot.status.status,
             ) for (index, snapshot) in enumerate(snapshot_results)
+        ]
+        coupling_residual_history = Any[
+            Dict{String,Any}(
+                "time_step_index" => row.time_step_index,
+                "coupling_iteration" => row.coupling_iteration,
+                "time_start_s" => row.time_start_s,
+                "time_end_s" => row.time_end_s,
+                "displacement_residual_cm" => row.displacement_residual_cm,
+                "coupling_tolerance_cm" => row.coupling_tolerance_cm,
+                "under_relaxation" => row.under_relaxation,
+                "converged" => row.converged,
+                "fluid_wall_boundary_mode" => row.fluid_wall_boundary_mode,
+            ) for row in final_smoke.coupling_residual_history
         ]
         return Dict{String,Any}(
             "case_id" => string(local_spec.case_spec.case_id),
@@ -641,6 +665,16 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "current_snapshot_time_s" => final_snapshot.snapshot_time_s,
             "current_saved_time_s" => final_smoke.saved_time_s,
             "current_smoke_time_step_count" => final_smoke.time_step_count,
+            "coupling_iteration_count" => local_spec.coupling_iteration_count,
+            "coupling_tolerance" => local_spec.coupling_tolerance,
+            "coupling_under_relaxation" => local_spec.coupling_under_relaxation,
+            "max_coupling_iterations_used" => final_smoke.max_coupling_iterations_used,
+            "final_coupling_displacement_residual_cm" =>
+                final_smoke.final_coupling_displacement_residual_cm,
+            "coupling_converged" => final_smoke.coupling_converged,
+            "coupling_residual_history" => coupling_residual_history,
+            "fluid_wall_boundary_mode" => string(final_smoke.fluid_wall_boundary_mode),
+            "wall_velocity_fluid_bc_status" => "prescribed_radial_wall_velocity_on_deformed_geometry",
             "current_wall_displacement_cm" => copy(final_smoke.wall_displacement_cm),
             "current_wall_velocity_cm_s" => copy(final_smoke.wall_velocity_cm_s),
             "current_wall_pressure_dyn_cm2" => copy(final_smoke.wall_pressure_dyn_cm2),
@@ -702,11 +736,13 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             snapshot ->
                 snapshot.smoke_result.field_status.ready &&
                 snapshot.smoke_result.post_update_fluid_refresh &&
-                snapshot.smoke_result.fluid_model === :partitioned_fixed_wall_fluid_moving_wall_output_smoke,
+                snapshot.smoke_result.fluid_model === NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_STAGE &&
+                snapshot.smoke_result.fluid_wall_boundary_mode ===
+                    NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_FLUID_WALL_BOUNDARY_MODE,
             snapshot_results,
         )
         status = ready ?
-            "production snapshot harness reused independent smoke-backed staggered partitioned solves for each requested time; diagnostics are per-snapshot smoke summaries, while restart/state carry, validated Section 4.1 parity, and monolithic ALE coupling remain out of scope" :
+            "production snapshot harness reused independent smoke-backed staggered partitioned solves for each requested time with prescribed radial wall-velocity Dirichlet data on deformed geometry; diagnostics are per-snapshot smoke summaries with coupling residuals, while restart/state carry, validated Section 4.1 parity, and monolithic ALE coupling remain out of scope" :
             "production-depth partitioned native driver did not complete the bounded smoke-backed method contract"
         return NativeResolvedFSIWorkflowStatus(ready, status)
     end

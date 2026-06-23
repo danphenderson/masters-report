@@ -115,6 +115,7 @@ function native_resolved_fsi_solve_navier_stokes(
     picard_iteration_count::Integer,
     picard_tolerance::Real,
     initial_velocity_dofs = nothing,
+    wall_velocity_at = nothing,
 )
     dt_value = Float64(dt_s)
     tfinal_value = Float64(tfinal_s)
@@ -140,10 +141,32 @@ function native_resolved_fsi_solve_navier_stokes(
     reffe_u = ReferenceFE(lagrangian, VectorValue{3,Float64}, order)
     reffe_p = ReferenceFE(lagrangian, Float64, order - 1)
     zero_velocity(x) = VectorValue(0.0, 0.0, 0.0)
+    length_cm = mesh.case_spec.length_cm
+    radial_eps = max(mesh.case_spec.rmax_cm, 1.0) * 1.0e-12
+    wall_velocity_function = if wall_velocity_at === nothing
+        zero_velocity
+    else
+        function prescribed_radial_wall_velocity(x)
+            x1 = Float64(x[1])
+            x2 = Float64(x[2])
+            z = clamp(Float64(x[3]), 0.0, length_cm)
+            radial_distance = hypot(x1, x2)
+            radial_distance > radial_eps || return VectorValue(0.0, 0.0, 0.0)
+            radial_speed = Float64(wall_velocity_at(z))
+            isfinite(radial_speed) || throw(ArgumentError(
+                "native resolved-FSI Navier-Stokes wall velocity profile must return finite values",
+            ))
+            return VectorValue(
+                radial_speed * x1 / radial_distance,
+                radial_speed * x2 / radial_distance,
+                0.0,
+            )
+        end
+    end
     zero_pressure(x) = 0.0
     V = TestFESpace(model, reffe_u, labels=labels, dirichlet_tags="wall", conformity=:H1)
     Q = TestFESpace(model, reffe_p, labels=labels, conformity=:H1)
-    U = TrialFESpace(V, zero_velocity)
+    U = TrialFESpace(V, wall_velocity_function)
     P = TrialFESpace(Q)
     X = MultiFieldFESpace([U, P])
     Y = MultiFieldFESpace([V, Q])
@@ -158,7 +181,7 @@ function native_resolved_fsi_solve_navier_stokes(
     dΓin = Measure(Γin, degree)
     dΓout = Measure(Γout, degree)
 
-    velocity_state = native_resolved_fsi_navier_stokes_initial_velocity_state(U, zero_velocity, initial_velocity_dofs)
+    velocity_state = native_resolved_fsi_navier_stokes_initial_velocity_state(U, wall_velocity_function, initial_velocity_dofs)
     pressure_state = interpolate_everywhere(zero_pressure, P)
     time_s = 0.0
     time_step_count = 0
@@ -229,9 +252,9 @@ function native_resolved_fsi_solve_navier_stokes(
     )
 end
 
-function native_resolved_fsi_navier_stokes_initial_velocity_state(U, zero_velocity, initial_velocity_dofs)
+function native_resolved_fsi_navier_stokes_initial_velocity_state(U, wall_velocity_function, initial_velocity_dofs)
     if initial_velocity_dofs === nothing
-        return interpolate_everywhere(zero_velocity, U)
+        return interpolate_everywhere(wall_velocity_function, U)
     end
     values = Float64[Float64(value) for value in initial_velocity_dofs]
     return FEFunction(U, values)
@@ -244,4 +267,3 @@ end
 function native_resolved_fsi_smoke_velocity_update_norm(velocity_next, velocity_previous)
     return sqrt(sum(abs2, get_free_dof_values(velocity_next) .- get_free_dof_values(velocity_previous)))
 end
-

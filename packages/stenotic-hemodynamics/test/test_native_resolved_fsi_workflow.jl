@@ -290,6 +290,7 @@ end
         @test result.smoke_result.field_status.ready
         @test occursin("production snapshot harness", result.method_status.status)
         @test occursin("independent smoke-backed", result.method_status.status)
+        @test occursin("prescribed radial wall-velocity Dirichlet", result.method_status.status)
         @test occursin("monolithic ALE", result.method_status.status)
         @test occursin("per-snapshot smoke summaries", result.method_status.status)
         @test occursin("snapshot manifest", result.output_status.status)
@@ -311,17 +312,29 @@ end
         @test diagnostic_row.wall_update_ready
         @test diagnostic_row.output_ready
         @test diagnostic_row.importer_roundtrip_ready
+        @test diagnostic_row.coupling_iteration_count == 1
+        @test diagnostic_row.max_coupling_iterations_used == 1
+        @test isfinite(diagnostic_row.final_coupling_displacement_residual_cm)
+        @test diagnostic_row.fluid_wall_boundary_mode == "prescribed_radial_wall_velocity"
         @test diagnostic_row.wall_displacement_max_cm > 0.0
         @test diagnostic_row.minimum_current_radius_cm > 0.0
         @test diagnostic_row.minimum_signed_tetra_volume6 > 0.0
         diagnostic_lines = readlines(result.diagnostics_csv)
         @test length(diagnostic_lines) == 2
         @test occursin("solver_convergence_ready", diagnostic_lines[1])
+        @test occursin("max_coupling_iterations_used", diagnostic_lines[1])
+        @test occursin("fluid_wall_boundary_mode", diagnostic_lines[1])
         @test occursin("wall_update_ready", diagnostic_lines[1])
         @test occursin(",ready", diagnostic_lines[2])
         @test result.restart_metadata["snapshot_manifest_csv"] == result.manifest_csv
         @test result.restart_metadata["diagnostics_csv"] == result.diagnostics_csv
         @test result.restart_metadata["restart_provenance"] == "independent_smoke_backed_snapshots"
+        @test result.restart_metadata["max_coupling_iterations_used"] == result.smoke_result.max_coupling_iterations_used
+        @test result.restart_metadata["fluid_wall_boundary_mode"] == "prescribed_radial_wall_velocity"
+        @test result.restart_metadata["wall_velocity_fluid_bc_status"] ==
+              "prescribed_radial_wall_velocity_on_deformed_geometry"
+        @test length(result.restart_metadata["coupling_residual_history"]) ==
+              length(result.smoke_result.coupling_residual_history)
         @test result.restart_metadata["resume_supported"] == false
         @test result.restart_metadata["resume_status"] == "deferred"
         @test result.restart_metadata["current_snapshot_time_s"] ≈ result.saved_time_s
@@ -330,6 +343,7 @@ end
         restart_metadata_text = read(result.restart_metadata_json, String)
         @test occursin("\"resume_supported\": false", restart_metadata_text)
         @test occursin("\"restart_provenance\": \"independent_smoke_backed_snapshots\"", restart_metadata_text)
+        @test occursin("\"fluid_wall_boundary_mode\": \"prescribed_radial_wall_velocity\"", restart_metadata_text)
     end
 
     mktempdir() do dir
@@ -378,21 +392,50 @@ end
         @test multi_result.restart_metadata["resume_supported"] == false
     end
 
-    coupling_iteration_spec = NativeResolvedFSIPartitionedProductionSpec(
-        resolution=resolution,
-        dt_s=1.0e-4,
-        tfinal_s=1.0e-4,
-        snapshot_times_s=[1.0e-4],
-        coupling_iteration_count=2,
-    )
-    coupling_error = try
-        run_native_resolved_fsi_partitioned_production(coupling_iteration_spec)
-        nothing
-    catch err
-        err
+    mktempdir() do dir
+        coupling_iteration_spec = NativeResolvedFSIPartitionedProductionSpec(
+            resolution=resolution,
+            output_root=joinpath(dir, "production"),
+            dt_s=1.0e-4,
+            tfinal_s=1.0e-4,
+            snapshot_times_s=[1.0e-4],
+            coupling_iteration_count=2,
+            coupling_tolerance=1.0e-30,
+            coupling_under_relaxation=0.5,
+        )
+        coupling_result = run_native_resolved_fsi_partitioned_production(coupling_iteration_spec)
+        @test coupling_result.output_status.ready
+        @test coupling_result.method_status.ready
+        @test coupling_result.smoke_result.max_coupling_iterations_used == 2
+        @test !coupling_result.smoke_result.coupling_converged
+        @test coupling_result.smoke_result.fluid_wall_boundary_mode == :prescribed_radial_wall_velocity
+        @test length(coupling_result.smoke_result.coupling_residual_history) == 2
+        @test all(
+            row -> row.under_relaxation ≈ coupling_iteration_spec.coupling_under_relaxation,
+            coupling_result.smoke_result.coupling_residual_history,
+        )
+        @test all(
+            row -> row.fluid_wall_boundary_mode == "prescribed_radial_wall_velocity",
+            coupling_result.smoke_result.coupling_residual_history,
+        )
+        coupling_diagnostic_row = only(coupling_result.diagnostic_rows)
+        @test coupling_diagnostic_row.coupling_iteration_count == 2
+        @test coupling_diagnostic_row.coupling_under_relaxation ≈ 0.5
+        @test coupling_diagnostic_row.max_coupling_iterations_used == 2
+        @test coupling_diagnostic_row.coupling_residual_count == 2
+        @test coupling_diagnostic_row.fluid_wall_boundary_mode == "prescribed_radial_wall_velocity"
+        coupling_diagnostic_header = first(readlines(coupling_result.diagnostics_csv))
+        @test occursin("final_coupling_displacement_residual_cm", coupling_diagnostic_header)
+        @test occursin("fluid_wall_boundary_mode", coupling_diagnostic_header)
+        @test coupling_result.restart_metadata["coupling_iteration_count"] == 2
+        @test coupling_result.restart_metadata["coupling_under_relaxation"] ≈ 0.5
+        @test coupling_result.restart_metadata["max_coupling_iterations_used"] == 2
+        @test coupling_result.restart_metadata["fluid_wall_boundary_mode"] == "prescribed_radial_wall_velocity"
+        @test coupling_result.restart_metadata["wall_velocity_fluid_bc_status"] ==
+              "prescribed_radial_wall_velocity_on_deformed_geometry"
+        @test length(coupling_result.restart_metadata["coupling_residual_history"]) == 2
+        @test occursin("prescribed radial wall-velocity Dirichlet", coupling_result.method_status.status)
     end
-    @test coupling_error isa ArgumentError
-    @test occursin("under-relaxation", sprint(showerror, coupling_error))
 
     zero_snapshot_spec = NativeResolvedFSIPartitionedProductionSpec(
         resolution=resolution,
