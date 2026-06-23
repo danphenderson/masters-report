@@ -57,6 +57,11 @@ Implemented and committed:
   `batch_failure.json` sidecars, and reports step/time/radius/mesh/field/
   coupling/path status for long batch runs. This is observability and batch
   safety, not preproduction execution evidence.
+- `2c765ee`: native resolved-FSI batch prep now supports process-level batch
+  execution with per-worker thread requests, records process/thread provenance
+  in dry-run/status/restart/benchmark artifacts, and threads only deterministic
+  helper loops. Gridap field evaluation remains serial until thread-safety and
+  phase-profiling evidence justify widening that boundary.
 
 ## Non-Negotiable Claim Boundary
 
@@ -78,6 +83,10 @@ Implemented and committed:
   unsupported and fail-closed.
 - CLI/status surfaces must continue to expose these boundaries and must not
   imply paper-grade reproduction.
+- Status strings such as `exact_section41`, `implemented_smoke_validated`, and
+  `zero_outlet_stress_natural_traction` must be treated as provisional
+  implementation labels and downgraded before any reader-facing claim until
+  Lane 11 FEM-01 through FEM-04 pass.
 - Native resolved-FSI production arrays and Gridap adapter surfaces remain
   `Float64`-oriented unless a future lane explicitly generalizes them. Local
   scalar helpers should avoid unnecessary downcasts when they can preserve
@@ -92,11 +101,12 @@ Implemented and committed:
 - Lane 10C preflight dry-run matrix completed as status-only planning evidence.
   In the current checkout, `sev23`, `sev40`, and `sev50` development,
   preproduction, and production-target single-snapshot plans all reported
-  snapshot-count and payload guards passing, no required override flags, and
-  exact-boundary status `implemented_smoke_validated`. Imported bundles were
-  observed for `sev23` and `sev40`; `sev50` remains expected-skip unless a
-  bundle is explicitly supplied. This did not run production or write solver
-  outputs.
+  snapshot-count and payload guards passing, no required override flags, and a
+  provisional exact-boundary status string. Imported bundles were observed for
+  `sev23` and `sev40`; `sev50` remains expected-skip unless a bundle is
+  explicitly supplied. This did not run production or write solver outputs, and
+  Lane 11 now blocks promoting those status strings to mathematical or
+  manuscript-grade Section 4.1 claims.
 - Lane 10C development execution probes reached the exact-boundary partitioned
   production path for `sev23` at `(40, 3, 16)`, `dt_s=1e-4`. Earlier probes
   failed closed at time steps 2-4 before writing solver artifacts because the
@@ -173,27 +183,105 @@ Implemented and committed:
 
 ## Remaining Dispatch Priority
 
+### Lane 11: Mathematical Contract Alignment
+
+Priority: P0 before native Section 4.1 preproduction execution, production
+execution, imported parity promotion, or manuscript-facing reproduction claims.
+
+Objective: align the native resolved-FSI mathematical contract, geometry,
+observation operators, model names, and status language before using the
+batch-safe runner for Section 4.1 evidence. Treat this lane as a claim gate,
+not a wording-only cleanup.
+
+Required P0 items:
+
+- FEM-01: make the transient convection term density-consistent in
+  `src/StenoticHemodynamics/adapters/native_resolved_fsi_gridap.jl`, or
+  explicitly density-divide the whole weak form and test that convention.
+- FEM-02: implement the symmetric-gradient Newtonian Cauchy traction form for
+  zero-stress language, or downgrade all `zero_outlet_stress` / exact-status
+  strings until the traction form is present and tested.
+- FEM-03: implement a boundary-aware pressure-space policy. Use a zero-mean
+  pressure space only when pressure is genuinely defined up to an additive
+  constant; avoid unconditional `constraint=:zeromean` under pressure/traction
+  boundary contracts where an absolute pressure reference is physically fixed.
+- FEM-04: implement transmural or full-traction wall loading for the membrane
+  handoff. Do not gauge-normalize wall pressure before using it as physical
+  wall forcing unless the formulation explicitly proves that convention.
+- GEOM-01: unify exact Canic case geometry across native resolved and reduced
+  comparison surfaces. `sev23` / imported case `77` must use
+  `delta_r_cm=0.0406`, `rmin_cm=0.1394`; imported case `60` uses
+  `delta_r_cm=0.072`, `rmin_cm=0.108`.
+- OBS-01: repair the radial-profile closure audit by computing section and
+  radial-bin observations on identical axial cuts and classifying each row as
+  `not_evaluated`, `failed_area_closure`, `failed_flow_closure`, or `passed`.
+
+Required P1 items:
+
+- FEM-05: add quadrature sensitivity and backflow/open-boundary diagnostics for
+  the native Navier-Stokes adapter.
+- OBS-02: document and test the radial-coordinate convention and excluded-area
+  policy used by radial-bin observations.
+- OBS-03: rename current `radial_profile_velocity` surfaces to axial or
+  reconstructed axial velocity terminology so the observation name matches the
+  quantity.
+- MODEL-01: rename `ClassicalNoSlip1DModel` to
+  `ClassicalParabolicOneDModel`, keeping the current CLI alias deprecated and
+  tested for compatibility.
+- MODEL-02: split the ambiguous `pressure()` API into evolution-pressure and
+  diagnostic-pressure conventions.
+- FSI-01: classify the current native path as repeated deformed-domain fluid
+  solves with a reduced membrane update, not monolithic ALE.
+
+Acceptance criteria:
+
+- Status strings and dry-run/CLI/parity rows no longer imply exact Section 4.1
+  boundary equivalence until FEM-01 through FEM-04 are implemented and tested.
+- The integrated mathematical-contract suite covers density scaling, traction
+  form, pressure-space policy, wall-load convention, global mass balance, exact
+  case geometry, and radial area/flow closure classification.
+- Existing smoke, workflow, parity, public API, and extension-contract tests
+  remain green or are updated with explicit, bounded claim-language changes.
+- Public/docs and report synchronization occurs only after package tests land;
+  report files remain under editorial ownership.
+
+Validation:
+
+- Start with `pipenv run ops-orchestrate status --json`.
+- Run focused Julia tests for every touched surface, including
+  `test_native_resolved_fsi_smoke.jl`,
+  `test_native_resolved_fsi_workflow.jl`,
+  `test_native_resolved_fsi_parity.jl`, `test_public_api.jl`, and
+  `test_extension_contracts.jl` when status/API/dependency boundaries move.
+- Add or update dedicated mathematical-contract tests for FEM-01 through
+  FEM-04, GEOM-01, and OBS-01.
+- Run `git diff --check -- packages/stenotic-hemodynamics public/docs`.
+
 ### Lane 10C Follow-Up: Sev23 Preproduction Batch Execution
 
-Priority: P0 before claiming native reproduction.
+Priority: P1 after Lane 11 passes. This lane remains P0 relative to any native
+reproduction claim, but it must not start until mathematical-contract alignment
+has either landed or explicitly downgraded the affected claims.
 
 Objective: use the batch-safe runner to execute the exact-boundary `sev23`
 preproduction gate from
 `public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`
-without broadening numerical semantics.
+without broadening numerical semantics or bypassing Lane 11.
 
 Recommended dispatch order:
 
-1. Start from the completed status-only dry-run matrix. Refresh it only if
+1. Confirm Lane 11 status first. If any P0 mathematical-contract item is still
+   open, stop and keep this lane as dry-run/planning only.
+2. Start from the completed status-only dry-run matrix. Refresh it only if
    case parameters, guard policy, imported-data roots, or output schedules
    change.
-2. Treat the `sev23` full development gate (`tfinal_s=1e-2`) as completed for
+3. Treat the `sev23` full development gate (`tfinal_s=1e-2`) as completed for
    artifact readiness, with the explicit caveat that one-iteration coupling
    was bounded but not converged. Diagnostics must continue to report the
    failing station, pressure load, radius, mass/stiffness/damping, stability
    scale, wall-boundary handoff mode, coupling status, and deformed-mesh
    cell/volume details when mesh orientation fails.
-3. Launch the exact-boundary `sev23` preproduction gate with the batch-prep
+4. Launch the exact-boundary `sev23` preproduction gate with the batch-prep
    sidecars enabled. Validate finite fields, wall displacement, pressure
    normalization, importer round-trip, `batch_status.*`,
    `batch_benchmark.json`, restart/checkpoint metadata, observation rows, and
@@ -202,14 +290,14 @@ Recommended dispatch order:
    the `(80, 4, 24)`, `T=0.1` preproduction run is expected to be many hours
    and must be scheduled as long-running compute work, not assumed
    interactive.
-4. Execute the full case set at the production target mesh
+5. Execute the full case set at the production target mesh
    `(axial=120, radial=5, angular=32)`, `dt_s=1e-4`, `T=1.0 s`, final snapshot
    only, with `u_max=45 cm/s` and
    `:poiseuille_inlet_zero_outlet_stress_section41`.
-5. Run imported-data parity as a separate skip-safe lane. `sev23` maps to
+6. Run imported-data parity as a separate skip-safe lane. `sev23` maps to
    imported case `77`, `sev40` maps to `60`, and `sev50` remains expected-skip
    unless a bundle is explicitly supplied.
-6. Send the manuscript owner a claim-readiness handoff only after the roadmap
+7. Send the manuscript owner a claim-readiness handoff only after the roadmap
    gates pass; do not edit report/manuscript files from package lanes.
 
 Validation is lane-specific. At minimum, start with dry-run/status output and
