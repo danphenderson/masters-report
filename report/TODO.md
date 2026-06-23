@@ -41,7 +41,11 @@ evidence; it did not execute production or write solver outputs. A first
 production path, then failed closed at time step 2 before writing solver
 artifacts because the explicit wall update produced a non-positive current
 radius. This is a wall-state stability/pressure-load blocker, not Section 4.1
-reproduction evidence and not a boundary-mode success claim. Package
+reproduction evidence and not a boundary-mode success claim. A Gridap zero-mean
+pressure constraint did not change the pressure scale; a short fixed-wall
+exact-boundary warm start plus `coupling_under_relaxation=0.1` reached two
+development-mesh steps but still failed at step 3, so warm start or relaxation
+alone is not accepted remediation. Package
 restart/resume planning now lives in
 `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`;
 that design keeps current `state_payload` as audit metadata and keeps persisted
@@ -133,7 +137,7 @@ closeout, run this active-manuscript scan before editing prose or syncing the
 PDF:
 
 ```sh
-rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|wall-pressure|inlet_umax|fsi native-status|native-status|observation-artifact|workflow" \
+rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|wall-pressure|inlet_umax|fsi native-status|native-status|observation-artifact|workflow|wall stability|non-positive|warm start|under-relaxation|under_relaxation|zero-mean" \
   report/sections report/appendices report/frontmatter report/final-report.tex -g '*.tex' || true
 ```
 
@@ -185,6 +189,9 @@ later, it must preserve these boundaries:
 - the attempted `sev23` development production-path run is currently blocked
   by explicit wall-update stability/pressure-load failure at time step 2 and
   must not be described as completed native generation;
+- zero-mean pressure, fixed-wall warm start, and under-relaxation probes are
+  diagnostic evidence for the blocker, not accepted remediation and not
+  generated Section 4.1 evidence;
 - restart/resume design now lives in
   `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`;
   it is future implementation guidance, not active persisted resume support;
