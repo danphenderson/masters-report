@@ -3,8 +3,7 @@
 Date: 2026-06-23
 
 This is the current implementation plan for `packages/stenotic-hemodynamics`.
-Treat the live checkout as authority before dispatch. This plan is optimized for
-supervised fleet execution after the exact-boundary and status-CLI wave.
+Treat the live checkout as authority before dispatch.
 
 ## Current Baseline
 
@@ -17,15 +16,22 @@ Implemented and committed:
   boundary-equivalence disclaimers propagated through production dry-run,
   diagnostics, restart metadata, and parity/status rows.
 - `1832e1e`: exact boundary mode threaded through the tiny partitioned
-  production smoke-scale harness. Exact-mode production disables
-  pressure-drop wall-pressure fallback and requires direct finite pressure
-  sampling.
+  production smoke-scale harness. Exact-mode production disables pressure-drop
+  wall-pressure fallback and requires direct finite pressure sampling.
 - `f972368`: parity/status wording bounded so `ready` means
   artifact/operator readiness, not paper-grade reproduction or validated
   Section 4.1 parity.
 - `d6ba01e`: `fsi native-status` CLI added as a status-only dry-run surface.
   It reports guard status, output paths, boundary status, and imported-bundle
   status without running production or writing solver outputs.
+- `362940d`: workflow files split into responsibility subdirectories under
+  `src/StenoticHemodynamics/workflows/` without changing behavior, exports,
+  CLI commands, artifact filenames, restart/importer schemas, or public API.
+- `f7934bb`: package/public docs synced to the post-9C/9D/10A evidence
+  boundary.
+- `fc8bbad`: local native resolved-FSI sampling helpers now preserve finite
+  real scalar pressure/velocity values instead of downcasting before the
+  existing `Float64` production-array boundary.
 - Lane 9F restart stewardship audit: no patch required after 9C. Old metadata
   remains readable, exact metadata requires positive `inlet_umax_cm_s`,
   `state_payload` remains versioned audit metadata, and persisted resume
@@ -33,8 +39,8 @@ Implemented and committed:
 
 ## Non-Negotiable Claim Boundary
 
-- Exact Section 4.1 boundary-mode support now exists in the low-level Gridap
-  path and in the tiny partitioned production smoke-scale harness.
+- Exact Section 4.1 boundary-mode support exists in the low-level Gridap path
+  and in the tiny partitioned production smoke-scale harness.
 - This is not paper-grade Section 4.1 numerical reproduction, not validated
   parity against imported external data, and not monolithic ALE FSI.
 - `:pressure_drop_weak_inlet_outlet_gauge_smoke` remains local smoke/loading
@@ -48,6 +54,10 @@ Implemented and committed:
   unsupported and fail-closed.
 - CLI/status surfaces must continue to expose these boundaries and must not
   imply paper-grade reproduction.
+- Native resolved-FSI production arrays and Gridap adapter surfaces remain
+  `Float64`-oriented unless a future lane explicitly generalizes them. Local
+  scalar helpers should avoid unnecessary downcasts when they can preserve
+  `AbstractFloat` values safely.
 
 ## Orchestration Rules
 
@@ -60,6 +70,7 @@ Implemented and committed:
 - Treat the live dirty tree as authority.
 - Use one writer per disjoint file set. Workers must stop before expanding
   scope.
+- Prefer structural boundaries before new CLI/API surface area.
 - Review worker diffs and handback validation. Do not repeat worker tests
   unless integration risk demands it or the orchestrator edits after handback.
 - Preserve public exports, CLI command semantics, artifact filenames, importer
@@ -70,100 +81,21 @@ Implemented and committed:
 - Do not touch unrelated dirty state, including `public/reproducibility` or
   `report/**`, unless explicitly assigned.
 
-## Next Dispatch Priority
-
-### Lane 10A: Workflow Directory Responsibility Split
-
-Priority: P0 structural gate before more CLI/API expansion.
-
-Objective: split the flat `src/StenoticHemodynamics/workflows/` directory into
-clear responsibility subtrees without changing behavior.
-
-Rationale: this should have preceded the 9D CLI surface. The CLI now exposes
-only a narrow status facade, so the correction is to stabilize workflow module
-ownership next before adding any further user-facing surface.
-
-Owned write scope:
-
-- `packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/**`
-- `packages/stenotic-hemodynamics/src/StenoticHemodynamics.jl`
-- focused workflow/public API tests affected by include-path changes
-- package/public docs only for path/ownership references affected by the move
-
-Implementation requirements:
-
-1. Inventory all current workflow files and group them into stable domains:
-   native resolved-FSI, resolved-3D comparison/parity, verification, benchmarks,
-   studies, geometry exports, membrane-FSI validation, operator validation, and
-   shared workflow utilities.
-2. Move files in small include-order-preserving batches.
-3. Keep qualified internal names, public exports, CLI commands, artifact
-   filenames, restart/importer schemas, and runtime behavior unchanged.
-4. Avoid behavior changes. Any discovered behavior issue becomes a follow-up
-   lane unless required to preserve includes/tests after the move.
-5. Update path references in package/public docs only after code tests pass.
-
-Validation:
-
-```bash
-packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_public_api.jl")'
-packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_workflow.jl"); include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_parity.jl")'
-git diff --check -- packages/stenotic-hemodynamics public/docs
-```
-
-Acceptance:
-
-- Workflow ownership is visibly clearer and no longer one flat mixed-purpose
-  directory.
-- Include order remains explicit and tested.
-- Public API and CLI command exposure are unchanged.
-- No generated artifacts or manuscript files are touched.
-
-### Lane 10B: Native Resolved-FSI Docs Claim Sync
-
-Priority: P1 after 10A, or in parallel only if docs files do not overlap
-10A path updates.
-
-Objective: update package/public docs to the current evidence boundary after
-9C/9D while avoiding stale path references after 10A.
-
-Owned write scope:
-
-- `packages/stenotic-hemodynamics/README.md`
-- `public/docs/julia-cli-workflows.md`
-- `public/docs/stenotic-hemodynamics/workflows.md`
-- `public/docs/stenotic-hemodynamics/native-resolved-fsi-design.md`
-- `public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`
-
-Requirements:
-
-1. State that `fsi native-status` is status-only and never runs production.
-2. State that exact boundary mode is threaded through tiny production
-   smoke-scale evidence, but paper-grade Section 4.1 reproduction remains
-   deferred.
-3. Keep parity/status wording bounded to artifact/operator readiness.
-4. Preserve restart `state_payload` as audit metadata only.
-5. Do not edit manuscript/report files; send an editorial sync note if wording
-   implications change.
-
-Validation:
-
-```bash
-pipenv run ops-orchestrate docs-contract
-git diff --check -- packages/stenotic-hemodynamics public/docs
-```
+## Remaining Dispatch Priority
 
 ### Lane 10C: Production-Scale Section 4.1 Validation Plan
 
-Priority: P1 planning lane after 10A, before claiming native reproduction.
+Priority: P0 planning lane before claiming native reproduction.
 
-Objective: convert smoke-scale exact-boundary support into a production-scale
-validation roadmap without overclaiming.
+Objective: convert smoke-scale exact-boundary support into an implementation
+and validation roadmap for production-scale native Section 4.1 evidence without
+overclaiming.
 
 Owned write scope:
 
 - `packages/stenotic-hemodynamics/TODO.md`
-- optional new package/public docs under `public/docs/stenotic-hemodynamics/**`
+- optional new package/public docs under
+  `public/docs/stenotic-hemodynamics/**`
 
 Requirements:
 
@@ -174,12 +106,20 @@ Requirements:
    pressure normalization, importer round-trip, observation rows, and parity
    summaries.
 3. Separate operator-readiness, smoke-scale evidence, production-scale native
-   generation, and imported-data parity.
+   generation, imported-data parity, and manuscript claim readiness.
 4. Keep missing optional external bundles skip-safe.
+5. Include compute/output guard expectations and required override flags for
+   any non-smoke run.
+
+Validation:
+
+```bash
+git diff --check -- packages/stenotic-hemodynamics/TODO.md public/docs/stenotic-hemodynamics
+```
 
 ### Lane 10D: Restart Resume Implementation Design
 
-Priority: P2 design-only unless explicitly promoted.
+Priority: P1 design-only unless explicitly promoted.
 
 Objective: design true persisted restart/resume support while preserving the
 current fail-closed contract.
@@ -200,7 +140,7 @@ Requirements:
 
 ### Lane 10E: CLI Surface Follow-Up After Workflow Split
 
-Priority: P2 after 10A and 10B.
+Priority: P2 after 10C claim/validation planning.
 
 Objective: decide whether `fsi native-status` should stay under `fsi` or move
 behind a workflow-specific facade after directory restructuring.
@@ -217,4 +157,36 @@ Validation:
 ```bash
 packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_public_api.jl")'
 git diff --check -- packages/stenotic-hemodynamics public/docs
+```
+
+### Lane 10F: Scalar-Genericity Boundary Follow-Up
+
+Priority: P2, disjoint from production-scale validation unless code paths
+overlap.
+
+Objective: continue the scalar-genericity cleanup without pretending the full
+native resolved-FSI stack is generic.
+
+Owned write scope:
+
+- `packages/stenotic-hemodynamics/src/StenoticHemodynamics/adapters/native_resolved_fsi_*.jl`
+- focused native resolved-FSI tests
+- optional docs note if restrictions change
+
+Requirements:
+
+1. Inventory local helper-level `Float64(...)` conversions in native
+   resolved-FSI adapters.
+2. Preserve `AbstractFloat`/`Real` values in pure scalar helpers when doing so
+   does not change array schemas, writer schemas, or Gridap solve contracts.
+3. Keep production arrays, HDF5/XDMF schema values, and Gridap solve adapters
+   `Float64` unless a future lane explicitly generalizes them.
+4. Add focused `Float32`/`BigFloat` helper tests for any generalized helper.
+5. Document remaining `Float64` restrictions instead of papering over them.
+
+Validation:
+
+```bash
+packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_smoke.jl")'
+git diff --check -- packages/stenotic-hemodynamics
 ```
