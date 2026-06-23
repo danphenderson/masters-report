@@ -1,28 +1,25 @@
-# Next-Round Mathematical and Numerical Narrative Plan
+# Final Submission Closeout Plan
 
 ## Current Status
 
-The public report PDF has been refreshed and committed from the current report
-source.
+The targeted mathematical/numerical narrative pass is complete. Section 5.1 now
+introduces finite-element incompressible-flow and FSI discretization by
+cross-referencing the continuum fields and weak balances already established in
+Section~\ref{sec:continuum-description}, instead of restating continuum
+foundations inside the numerical-methods chapter.
 
-- Build command: `pipenv run ops-build-report --outdir /tmp/masters-report-build`
-- Build result: `passed`
-- Consumed report inputs: `63`
-- Untracked consumed inputs: none
-- Synced PDF: `public/final-report.pdf`
-- Synced PDF SHA-256:
-  `c0d76a37e34142499c7fdfb3628459eb805468f48af05768069d126935f1d3a7`
-- PDF refresh commit: `7920835 Refresh final report PDF`
+Validation for the source-only pass:
 
-The mathematical and numerical narrative is committee-ready at an overall
-`A` to near-`A+` level. The next round should be a small source-only editorial
-pass, not another broad rewrite. The only concrete prose-audit finding from
-`pipenv run ops-audit-report-prose --json` is a low-severity topic-ownership
-warning in `report/sections/05-numerical-methods/index.tex:65`: the opening of
-the FEM/FSI subsection restates continuum-foundation language inside the
-numerical-methods chapter.
-
-The rendered-text scan of the refreshed PDF found no reader-visible matches for:
+- `git diff --check -- report/sections/05-numerical-methods/index.tex report/TODO.md`
+  passed.
+- `pipenv run ops-audit-report-prose --json` returned zero findings.
+- `pipenv run ops-audit-references` passed.
+- `pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf`
+  passed.
+- Scratch build consumed `63` report inputs and reported no untracked consumed
+  inputs.
+- Rendered-text scan of `/tmp/masters-report-build/final-report.pdf` found no
+  matches for:
 
 ```text
 backend parity
@@ -34,16 +31,15 @@ Newtonian wall
 clinical validation result
 reference standard
 pending_final_release
-TODO
-FIXME
 ```
 
-The live dirty tree may include unrelated Julia package/runtime files under
-`packages/stenotic-hemodynamics/**`. Those files are outside this editorial lane
-and must not be staged, normalized, or reverted as part of the next report prose
-pass.
+`public/final-report.pdf` was intentionally not refreshed during this
+source-only pass. The last synced PDF commit remains
+`7920835 Refresh final report PDF`; the current source tree now has a small
+new TeX improvement that should be synced into the public PDF only if the next
+lane explicitly requests an artifact refresh.
 
-## Audit Grades
+## Current Grades
 
 | Area | Grade | Editorial assessment |
 | --- | --- | --- |
@@ -52,7 +48,7 @@ pass.
 | 2 Continuum | A | Mathematically precise and well organized; dense, but appropriate for the audience. |
 | 3 Model hierarchy | A+ | Retained-state and dimension language are explicit and useful. |
 | 4 Closures/observables | A+ | Constitutive roles, wall closure, geometry, boundary data, and observables are cleanly separated. |
-| 5 Numerical methods | A | Strong stencil and evidence standard; one subsection opening should cross-reference continuum setup rather than restating it. |
+| 5 Numerical methods | A+ | Stencil language, method-family distinctions, and FEM/FSI weak-form ownership are now cleanly aligned. |
 | 6 Synthesis | A | Compact proposition-family summary; effective as a bridge to the case study. |
 | 7 Case-study overview | A+ | The chapter opens with positive evidence, negative limitation, and comparison target. |
 | 7.1 Methodology | A | Model contract leads; table/equation density remains high but defensible. |
@@ -64,16 +60,17 @@ pass.
 
 ## Next Round Objective
 
-Lift the numerical-methods narrative from `A` to `A+` by resolving the Section 5
-topic-ownership warning and checking the case-study numerical narrative for
-only concrete cadence defects. Preserve all mathematical claims, citations,
-tables, figures, labels, numerical values, public claim registers, bibliography
-metadata, package files, generated assets, and `public/final-report.pdf` unless
-the next instruction explicitly widens scope.
+Treat the manuscript as final-submission material. Do not reopen broad prose,
+literature review, numerical methods, or case-study interpretation unless a
+committee/advisor comment identifies a concrete issue. The expected next lane is
+either:
 
-## Implementation Plan
+1. final public PDF sync from the current source tree; or
+2. no-op closeout with only status reporting.
 
-### Step 1 - Re-Anchor and Protect Unrelated Work
+## Implementation Plan For Next Round
+
+### Step 1 - Re-Anchor
 
 Run:
 
@@ -82,137 +79,78 @@ git status --short
 pipenv run ops-orchestrate status --json
 ```
 
-Confirm any dirty `packages/stenotic-hemodynamics/**` files are unrelated to the
-report prose lane. Do not stage or edit them.
+Confirm the only intended manuscript delta is the committed Section 5/TODO
+source patch, or explicitly classify any newer dirty files before acting.
 
-### Step 2 - Patch the Section 5.1 Opening
+### Step 2 - Optional Public PDF Sync
 
-Edit only `report/sections/05-numerical-methods/index.tex`.
-
-Target: the first paragraph of
-`\subsection{Finite-Element Incompressible Flow and FSI}` around line 65.
-
-Required change:
-
-- Make the paragraph begin from the continuum fields and weak-form setup already
-  established in Section~\ref{sec:continuum-description}.
-- Avoid restating Navier--Stokes or Stokes foundations as if Section 5 owns the
-  continuum derivation.
-- Preserve the claim that the FEM/FSI numerical assertion is a mixed weak-form
-  and interface-coupling assertion, not simply a mesh assertion.
-- Preserve the existing citation to `GaldiEtAl2008HemodynamicalFlows`.
-- Preserve the stiffness/sparsity/stencil paragraph that follows.
-
-Suggested replacement shape:
-
-```tex
-With the continuum fields and weak balances fixed in
-Section~\ref{sec:continuum-description}, a resolved finite-element calculation
-discretizes the weak incompressible-flow or FSI problem. The numerical claim is
-therefore a mixed weak-form and interface-coupling claim, not simply a mesh
-claim. A finite-element realization chooses discrete velocity and pressure
-spaces ...
-```
-
-Adjust the final wording to fit local cadence and avoid duplicate "weak" usage.
-Do not introduce new citations or derivations.
-
-### Step 3 - Run the Prose Audit Before Any Wider Edit
-
-Run:
+Only run this step if the next lane explicitly scopes the public artifact:
 
 ```sh
-pipenv run ops-audit-report-prose --json > /tmp/report-prose-audit.json
-jq '{chunks, context_files, files_seen, primary_files, findings: [.findings[] | {path,line,severity,rule,message}]}' \
-  /tmp/report-prose-audit.json
+pipenv run ops-build-report --outdir /tmp/masters-report-build
+shasum -a 256 public/final-report.pdf /tmp/masters-report-build/final-report.pdf
+jq '{status, consumed_count: (.consumed_inputs|length), untracked_consumed_inputs, synced_pdf, warning_counts}' \
+  /tmp/masters-report-build/report-build-summary.json
 ```
 
-Expected result: the Section 5 topic-owner warning is gone. If a different
-low-severity finding appears, inspect it before editing. If the tool still flags
-the same paragraph, make one more local Section 5 adjustment rather than
-rewriting Section 2 or Section 7.
+Expected result: build status `passed`, consumed-input count `63` unless
+explained, no untracked consumed inputs, and matching public/scratch PDF hashes.
 
-### Step 4 - Bounded Case-Study Cadence Check
+### Step 3 - Final Rendered Claim-Boundary Scan
 
-Do not reopen Section 7 by default. Review only for concrete mathematical or
-numerical narrative defects introduced by the previous prose passes:
+After any PDF sync, run:
 
 ```sh
-rg -n "not validation|diagnostic|finite-volume|MMS|rest-state|23\\%|40\\%|observation operator|membrane" \
-  report/sections/07-case-study -g '*.tex'
+pdftotext -layout public/final-report.pdf /tmp/final-report-release-check.txt
+rg -n "backend parity|implementation-check|accepted-reference|validation workflow|regeneration command|Newtonian wall|clinical validation result|reference standard|pending_final_release|TODO|FIXME" \
+  /tmp/final-report-release-check.txt || true
 ```
 
-Allowed edits:
+Expected result: no reader-visible internal process language, no clinical
+validation overclaim, and no release placeholders in rendered report text.
 
-- one-sentence transition repairs;
-- obvious typo or duplicated-word fixes;
-- wording that makes verification, comparison, and validation boundaries more
-  precise without changing the claim.
+### Step 4 - Visual Spot Check
 
-Disallowed edits:
+Spot-check the public PDF if it is refreshed:
 
-- moving generated table assets;
-- changing numerical values;
-- adding new citations;
-- adding new validation language;
-- refreshing the public PDF.
+- Section 5 opening pages around the FEM/FSI subsection;
+- Section 7 opening pages;
+- Section 7 verification and comparison tables;
+- Appendix G package-benchmark material;
+- Appendix H software and AI-use disclosure.
 
-If no concrete defect appears, leave Section 7 unchanged.
+Fix only real rendered defects: broken cross-references, orphaned captions,
+overfull table text, stale reader-facing labels, or typo-level issues.
 
-### Step 5 - Leave Source Labels Alone Unless They Become Reader-Facing
+### Step 5 - Commit Discipline
 
-The source scan may still find stable TeX labels such as
-`app:num-rheology-descriptor-details` or `app:num-secondary-implementation-checks`.
-These are not reader-facing manuscript prose. Do not rename them just to satisfy
-a raw source-string search; label churn is only worth doing if a rendered
-caption, heading, or paragraph exposes the same implementation-facing wording.
-
-### Step 6 - Validate the Source-Only Patch
-
-Run:
+For a source-only closeout, stage only:
 
 ```sh
-git diff --check -- report/sections/05-numerical-methods/index.tex report/TODO.md
-pipenv run ops-audit-report-prose --json > /tmp/report-prose-audit.json
-jq '{findings: [.findings[] | {path,line,severity,rule,message}]}' /tmp/report-prose-audit.json
-pipenv run ops-audit-references
-pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
-pdftotext -layout /tmp/masters-report-build/final-report.pdf /tmp/final-report-next-narrative.txt
-rg -n "backend parity|implementation-check|accepted-reference|validation workflow|regeneration command|Newtonian wall|clinical validation result|reference standard|pending_final_release" \
-  /tmp/final-report-next-narrative.txt || true
+git add report/sections/05-numerical-methods/index.tex report/TODO.md
 ```
 
-Expected result:
-
-- no whitespace errors;
-- no new bibliography or source-inventory work;
-- report build passes;
-- `untracked_consumed_inputs` remains empty;
-- rendered claim-boundary scan is clean;
-- `public/final-report.pdf` remains unchanged in this source-only next round.
-
-### Step 7 - Commit Discipline
-
-Stage only the report-source files edited in the next round. The expected source
-patch is:
+For a later PDF-sync lane, stage only:
 
 ```sh
-git add report/sections/05-numerical-methods/index.tex
+git add public/final-report.pdf
 ```
 
-If the next round updates this plan after implementation, also stage
-`report/TODO.md`. Do not stage unrelated Julia package/runtime files or refresh
-`public/final-report.pdf` unless explicitly requested.
-
-Suggested commit subject for the next source-only patch:
+Suggested source patch commit subject:
 
 ```text
 Tighten numerical methods continuum bridge
 ```
 
+Suggested PDF sync commit subject:
+
+```text
+Refresh final report PDF
+```
+
 ## Do Not Reopen
 
-The next round should not reopen:
+Do not reopen:
 
 - the report spine or section order;
 - broad mathematical derivations;
@@ -221,8 +159,9 @@ The next round should not reopen:
 - public claim registers or reproducibility metadata;
 - package/runtime code;
 - raw data under `public/var/data/**`;
-- generated report assets;
-- the synced public PDF.
+- generated report assets, unless a build reports a missing consumed input;
+- `public/final-report.pdf`, unless the next instruction explicitly requests a
+  synced artifact refresh.
 
 ## Live Layout Guardrails
 

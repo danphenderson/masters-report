@@ -62,12 +62,12 @@ algebraic equations together.
 \subsection{Finite-Element Incompressible Flow and FSI}
 \label{subsec:numerical-methods-fem-fsi}
 
-Resolved hemodynamic models commonly start from incompressible Navier--Stokes or
-Stokes equations, optionally coupled to a deforming wall. The numerical claim is
-therefore a mixed weak-form and interface-coupling claim, not simply a mesh
-claim. A finite-element
-realization writes those equations in weak form, chooses discrete velocity and
-pressure spaces, and solves the resulting saddle-point problem. The mixed
+With the continuum fields and balances fixed in
+Section~\ref{sec:continuum-description}, a resolved finite-element calculation
+discretizes the corresponding weak incompressible-flow or FSI problem. The
+numerical claim is therefore a mixed weak-form and interface-coupling claim, not
+simply a mesh claim. A finite-element realization chooses discrete velocity and
+pressure spaces and solves the resulting saddle-point problem. The mixed
 velocity--pressure pair is not a cosmetic choice: the discrete spaces must
 control the pressure null mode and avoid spurious pressure oscillations. Stable
 Taylor--Hood-type pairs, divergence-conforming constructions, or equal-order
