@@ -405,13 +405,12 @@ $2.317$~cm/s in maximum mean velocity difference and $813.906$~dyn/cm$^2$ in
 maximum mean pressure difference. That artifact is therefore
 operator-readiness and discrepancy-classification evidence, not imported-data
 parity. Preproduction, larger case-set generation, and validated
-moving-boundary FSI claims remain deferred. Production metadata writes explicit
-schema-v1 diagnostic fields and the restart reader validates the schema-v2
-checkpoint-manifest shape, but durable FE-state serialization and
-reconstruction are not implemented; the associated \texttt{state\_payload}
-remains diagnostic metadata and does not enable persisted restart or resume. FE
-pressure-nullspace status remains distinct from the outlet normalization applied
-after pressure sampling.
+moving-boundary FSI claims remain deferred. Production metadata now writes
+schema-v2 checkpoint sidecars with manifest role, path, byte-size, and SHA-256
+checks, but durable FE-state serialization and reconstruction are not
+implemented; the sidecars remain diagnostic metadata and do not enable persisted
+restart or resume. FE pressure-nullspace status remains distinct from the outlet
+normalization applied after pressure sampling.
 
 The corresponding report-generation entry point is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]

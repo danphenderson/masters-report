@@ -8,80 +8,63 @@ cross-referencing the continuum fields and weak balances already established in
 Section~\ref{sec:continuum-description}, instead of restating continuum
 foundations inside the numerical-methods chapter.
 
-The native resolved-FSI package boundary has one manuscript-facing open
-requirement that must stay visible in editorial planning after the exact-mode
-production-threading lane. The low-level native Gridap Navier--Stokes adapter
-has smoke-tested exact Section 4.1 inlet/outlet boundary-mode support:
-`poiseuille_inlet_zero_outlet_stress_section41` applies a strong inlet
-Dirichlet Poiseuille velocity with $u_{\max}=45\,\mathrm{cm/s}$, omits weak
-pressure-drop inlet/outlet loading, leaves the outlet as natural zero traction,
-and records an internal diagnostic boundary-status string. The exact mode is now
-threaded through the tiny partitioned production smoke-scale harness and
-validated at that scope; boundary-status fields propagate through production
-dry-run plans, production diagnostics and restart metadata, and parity/status
-rows. This remains smoke-scale implementation evidence, not exact Section 4.1
-numerical reproduction, production-scale parity, monolithic ALE/membrane FSI
-validation, or paper-grade reproduction. Manuscript prose may state the bounded
-low-level and smoke-scale partitioned support, but must not claim exact
-Section 4.1 numerical reproduction or parity against the imported paper data.
-The package also exposes `fsi native-status` as a status-only CLI surface: it
-reports dry-run/status fields and boundary status, but it does not run native
-resolved-FSI production or write solver outputs. Production execution,
-restart/resume, parity execution, and observation-artifact generation remain
-qualified Julia internals. Workflow source files have also moved into
-responsibility subdirectories under
-`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/`; future
-source-path references should use the new subdirectory paths. The package
-roadmap now records production-scale Section 4.1 validation planning in
-`public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`;
-that document is a roadmap, not completed reproduction evidence. A status-only
-dry-run matrix for `sev23`, `sev40`, and `sev50` now exists as package planning
-evidence; it did not execute production or write solver outputs. Exact-mode
-development probes reached the partitioned production path for `sev23` at
-`(40, 3, 16)`, `dt_s=1e-4`. Earlier probes failed closed at time steps 2--4
-before writing solver artifacts because the moving-wall/explicit membrane
-handoff produced non-positive current radii. The current reduced path now uses
-stationary no-slip wall solves on deformed geometry for exact inlet/outlet
-mode and advances the reduced membrane with a semi-implicit update; the full
-development-mesh gate (`tfinal_s=1e-2`, final snapshot only) completed, wrote
-solver artifacts, and reported finite fields, positive current radii, positive
-tetrahedron orientation, direct finite wall-pressure sampling, and exact
-stationary-wall handoff metadata. The run used one coupling iteration per step
-and records bounded but non-converged coupling history. This is development
-artifact-readiness evidence only, not completed Section 4.1 numerical
-reproduction, not production-scale native generation, not imported-data parity,
-and not monolithic ALE or moving-wall FSI validation. Package dry-run/status
-surfaces expose `wall_stability_status`;
-this is diagnostic/status evidence, not completed native generation. Package
-diagnostics also expose `pressure_nullspace_status` for the active Gridap
-zero-mean pressure constraint; scratch probing showed this is pressure-gauge
-hygiene only and does not resolve the exact-boundary wall-load scale by itself.
-A fail-fast pressure-load plausibility gate now classifies predicted radius
-inversion before wall-state mutation and reports the semi-implicit wall
-increment used by the current reduced update. Package
-restart/resume planning now lives in
-`public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`;
-current package metadata now writes explicit schema-v1 audit fields and the
-reader validates schema-v2 checkpoint-manifest shape, but current
-`state_payload` remains audit metadata and persisted resume remains fail-closed
-until durable state serialization, a reconstruction runner, sidecar ownership,
-and validation tests land. Recent package scalar-helper cleanup preserves local
-`Float32`/`BigFloat`
-sampling values where safe, but production arrays, Gridap solve surfaces, and
-XDMF/HDF5 schemas remain `Float64`-oriented.
+The public report artifact is synced to the current active TeX. The latest PDF
+refresh ran:
 
-Validation for the source-only pass:
+```sh
+pipenv run ops-build-report --outdir /tmp/masters-report-build
+```
 
-- `git diff --check -- report/sections/05-numerical-methods/index.tex report/TODO.md`
-  passed.
-- `pipenv run ops-audit-report-prose --json` returned zero findings.
-- `pipenv run ops-audit-references` passed.
-- `pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf`
-  passed.
-- Scratch build consumed `63` report inputs and reported no untracked consumed
-  inputs.
-- Rendered-text scan of `/tmp/masters-report-build/final-report.pdf` found no
-  matches for:
+The build passed, consumed `63` report inputs, reported no untracked consumed
+inputs, and synced `public/final-report.pdf` with SHA-256:
+
+```text
+a7646013b30307a5adc33d3cecc78a743f9f38e61b4fc025dc5a6993d82d634f
+```
+
+`shasum -a 256 public/final-report.pdf /tmp/masters-report-build/final-report.pdf`
+confirmed that the public PDF and scratch PDF match.
+
+The active manuscript reflects the current native resolved-FSI boundary through
+Appendix~G only. The package-side status through `9692072 Add native FSI
+checkpoint sidecars` is:
+
+- the exact Section 4.1 inlet/outlet mode is implemented in the native Gridap
+  path and has development artifact-readiness evidence at `sev23`,
+  `(40, 3, 16)`, `dt_s=1e-4`, `tfinal_s=1e-2`;
+- the reduced exact-mode path uses stationary no-slip wall data on deformed
+  geometry, a semi-implicit reduced membrane update, direct finite
+  wall-pressure sampling, and pressure-load plausibility diagnostics;
+- the completed development gate wrote native velocity, pressure, and
+  displacement bundles plus sidecars, but used one coupling iteration per step
+  and recorded bounded non-converged coupling history;
+- the development-output parity artifact loaded the imported observations and
+  wrote native observation/summary CSVs, but it recorded nonzero discrepancies;
+- this is development artifact-readiness and discrepancy-classification
+  evidence only, not preproduction, production-scale native generation,
+  imported-data parity, Section 4.1 numerical reproduction, monolithic ALE, or
+  validated moving-boundary FSI;
+- production metadata now writes schema-v2 checkpoint sidecars with manifest
+  role/path/SHA/byte-size checks, but these sidecars are durable diagnostic
+  metadata only;
+- actual persisted restart/resume remains unsupported until FE-state
+  serialization and a reconstruction runner are implemented.
+
+A check-in was sent to the principal package/developer thread after the PDF
+refresh. Use any later response from that thread as coordination input, but do
+not let the package lane edit `report/**` or `public/final-report.pdf`.
+
+Validation already completed for this refreshed state:
+
+- `pipenv run ops-build-report --outdir /tmp/masters-report-build` passed and
+  synced `public/final-report.pdf`;
+- scratch/public PDF hashes matched;
+- active-TeX prose audit returned zero findings after the Appendix~G native
+  resolved-FSI checkpoint-sidecar wording update;
+- rendered-text scan of the refreshed public PDF returned no matches for the
+  internal process and overclaim terms listed below.
+
+Rendered-text scan terms for the final artifact remain:
 
 ```text
 backend parity
@@ -94,12 +77,6 @@ clinical validation result
 reference standard
 pending_final_release
 ```
-
-`public/final-report.pdf` was intentionally not refreshed during this
-source-only pass. The last synced PDF commit remains
-`7920835 Refresh final report PDF`; the current source tree now has a small
-new TeX improvement that should be synced into the public PDF only if the next
-lane explicitly requests an artifact refresh.
 
 ## Current Grades
 
@@ -127,10 +104,10 @@ literature review, numerical methods, or case-study interpretation unless a
 committee/advisor comment identifies a concrete issue. The expected next lane is
 either:
 
-1. final public PDF sync from the current source tree;
+1. a rendered-PDF spot check against the freshly synced public artifact;
 2. a native resolved-FSI boundary-status wording check if package docs change
    again; or
-3. no-op closeout with only status reporting.
+3. no-op closeout with only status reporting and commit discipline.
 
 ## Implementation Plan For Next Round
 
@@ -144,7 +121,8 @@ pipenv run ops-orchestrate status --json
 ```
 
 Confirm the only intended manuscript delta is the committed Section 5/TODO
-source patch, or explicitly classify any newer dirty files before acting.
+source/PDF closeout, or explicitly classify any newer dirty files before
+acting.
 
 ### Step 2 - Native Resolved-FSI Boundary Check
 
@@ -153,7 +131,7 @@ closeout, run this active-manuscript scan before editing prose or syncing the
 PDF:
 
 ```sh
-rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|pressure_nullspace_status|pressure_gauge_status|wall-pressure|pressure-load|plausibility gate|inlet_umax|fsi native-status|native-status|observation-artifact|workflow|wall stability|wall_stability_status|non-positive|stationary no-slip|stationary_wall_on_deformed_geometry|semi-implicit|moving-wall|ALE|development artifact|bounded coupling|coupling_converged|short-development|warm start|under-relaxation|under_relaxation|zero-mean|dt_s=1e-5|smaller-dt_s|deformed-mesh|orientation failure|runtime-inconclusive" \
+rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|checkpoint sidecar|checkpoint manifest|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|pressure_nullspace_status|pressure_gauge_status|wall-pressure|pressure-load|plausibility gate|inlet_umax|fsi native-status|native-status|observation-artifact|workflow|wall stability|wall_stability_status|non-positive|stationary no-slip|stationary_wall_on_deformed_geometry|semi-implicit|moving-wall|ALE|development artifact|bounded coupling|coupling_converged|short-development|warm start|under-relaxation|under_relaxation|zero-mean|dt_s=1e-5|smaller-dt_s|deformed-mesh|orientation failure|runtime-inconclusive" \
   report/sections report/appendices report/frontmatter report/final-report.tex -g '*.tex' || true
 ```
 
@@ -165,10 +143,10 @@ later, it must preserve these boundaries:
 - production may be described as carrying partitioned state within one run and
   writing importer-compatible velocity/pressure/displacement bundles plus
   manifest, diagnostics, and restart metadata;
-- restart metadata may include versioned `state_payload` audit data and
+- restart metadata may include versioned diagnostic state payloads and
   boundary/status fields, including `inlet_umax_cm_s`; schema-v2 checkpoint
-  manifests may be validated by the reader, but persisted restart/resume
-  remains unsupported and fail-closed;
+  sidecars may be written and validated by manifest role/path/SHA/byte-size
+  checks, but persisted restart/resume remains unsupported and fail-closed;
 - the low-level native Gridap Navier--Stokes adapter has smoke-tested exact
   Section 4.1 boundary-mode support through
   `poiseuille_inlet_zero_outlet_stress_section41`;
@@ -224,7 +202,7 @@ later, it must preserve these boundaries:
   gate and must not be presented as completed Section 4.1 native generation;
 - restart/resume design now lives in
   `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`;
-  schema-v1 audit metadata and schema-v2 checkpoint-manifest validation are
+  schema-v2 checkpoint sidecars are durable diagnostic metadata and
   package-side implementation details, not active persisted resume support;
 - scalar-helper genericity changes preserve local `Float32`/`BigFloat` sampling
   values where safe, but manuscript text must not imply the native resolved-FSI
@@ -232,7 +210,8 @@ later, it must preserve these boundaries:
 
 ### Step 3 - Optional Public PDF Sync
 
-Only run this step if the next lane explicitly scopes the public artifact:
+The public PDF is currently synced. Run this step only if active TeX changes
+again or if the next lane explicitly requests a new public-artifact refresh:
 
 ```sh
 pipenv run ops-build-report --outdir /tmp/masters-report-build
@@ -272,28 +251,29 @@ overfull table text, stale reader-facing labels, or typo-level issues.
 
 ### Step 6 - Commit Discipline
 
-For a source-only closeout, stage only:
+For a TODO-only closeout, stage only:
 
 ```sh
-git add report/sections/05-numerical-methods/index.tex report/TODO.md
+git add report/TODO.md
 ```
 
-For a later PDF-sync lane, stage only:
+For a PDF-sync closeout after active TeX changed, stage only the refreshed
+artifact and any intentionally edited report planning/prose files:
 
 ```sh
-git add public/final-report.pdf
+git add public/final-report.pdf report/TODO.md
 ```
 
-Suggested source patch commit subject:
+Suggested TODO-only commit subject:
 
 ```text
-Tighten numerical methods continuum bridge
+Refresh final submission TODO
 ```
 
-Suggested PDF sync commit subject:
+Suggested PDF/TODO sync commit subject:
 
 ```text
-Refresh final report PDF
+Refresh final report PDF and closeout plan
 ```
 
 ## Do Not Reopen
