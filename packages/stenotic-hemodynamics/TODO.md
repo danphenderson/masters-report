@@ -52,6 +52,28 @@ Bounded interpretation:
 - Section 4.1 artifacts are generated-artifact and local observation-operator
   evidence. They do not prove paper-grade numerical reproduction.
 
+Current code audit notes for this dispatch:
+
+- `run_native_resolved_fsi_partitioned_production(...)` still loops over
+  `snapshot_times_s` and calls one smoke solve per snapshot from rest. Lane 8A
+  must remove that behavior from the default production path.
+- `native_resolved_fsi_solve_partitioned_smoke(...)` already carries wall
+  displacement, wall velocity, current radii, pressure history, coupling
+  residuals, and velocity free-DOF state inside one solve. Lane 8A should expose
+  a snapshot-series path from that implementation rather than duplicate the
+  membrane update in workflow code.
+- `native_resolved_fsi_read_restart_metadata(...)` currently accepts only
+  `restart_provenance == "independent_smoke_backed_snapshots"` and
+  `resume_supported == false`. Lane 8C must be sequenced after 8A so it can
+  parse the new state-carrying provenance while keeping old metadata
+  understandable.
+- The dry-run plan reports size estimates and paths, but it does not yet say
+  which guard override flags would be required for a larger Section 4.1 run.
+  Lane 8E should harden that after the production metadata shape settles.
+- At this handoff, unrelated dirty report/ops files may be present in the
+  working tree. Leave them unstaged unless a later user assignment explicitly
+  owns that surface.
+
 ## Orchestration Rules
 
 - Start with:
@@ -329,13 +351,28 @@ Acceptance:
 
 ## Dispatch Order
 
-1. Run 8A and 8B sequentially if both need Gridap/partitioned adapter files.
-2. Run 8C in parallel with 8B only if 8B does not edit production workflow or
-   restart files.
-3. Run 8D in parallel with 8C only if file locks stay disjoint.
-4. Run 8E after 8A and 8C so it can reflect final production metadata.
+Wave 1:
+
+1. Run 8A as the only writer on partitioned solver, production workflow,
+   native resolved-FSI type/result structs, and smoke/workflow tests.
+2. Run 8D concurrently with 8A only if it stays within parity production and
+   parity tests. It must stop before touching production workflow, restart,
+   Gridap, smoke tests, or docs.
+
+Wave 2:
+
+3. After 8A is reviewed and committed, run 8B and 8C concurrently only if their
+   file locks remain exactly disjoint:
+   - 8B owns Gridap/type boundary-status smoke evidence and the Section 4.1
+     reproduction doc.
+   - 8C owns restart reader/metadata contract and workflow/public-API tests.
+4. Run 8E after 8A and 8C so dry-run guard statuses match the final
+   state-carrying metadata and restart contract.
+
+Wave 3:
+
 5. Run 8F after production behavior is stable.
-6. Run 8G last.
+6. Run 8G last, after code/status surfaces and CLI posture are final.
 
 Round-boundary gates:
 
