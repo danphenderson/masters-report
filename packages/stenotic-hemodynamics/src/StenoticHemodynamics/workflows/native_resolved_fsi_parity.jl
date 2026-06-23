@@ -1,0 +1,759 @@
+const NATIVE_RESOLVED_FSI_PARITY_DEFAULT_COORDINATE_MODE = "deformed"
+const NATIVE_RESOLVED_FSI_PARITY_DEFAULT_TIME_S = 1.0
+
+"""
+    NativeResolvedFSIParitySpec(...; kwargs...)
+
+Typed bundle-to-bundle parity configuration for native resolved-FSI fixtures or
+optional imported external fields. This harness compares importer-loaded
+velocity/pressure/displacement bundles and makes its scope explicit: it does
+not claim full Section 4.1 transient Navier-Stokes plus membrane parity.
+"""
+struct NativeResolvedFSIParitySpec <: AbstractStudySpec
+    native_case::Resolved3DCaseSpec
+    imported_case::Resolved3DCaseSpec
+    require_imported::Bool
+    coordinate_mode::String
+    sample_z_cm::Vector{Float64}
+    radial_profile_z_cm::Vector{Float64}
+    radial_bin_count::Int
+    node_slab_half_widths_cm::Vector{Float64}
+    geometry_atol_cm::Float64
+    time_atol_s::Float64
+    velocity_atol_cm_s::Float64
+    pressure_atol_dyn_cm2::Float64
+    displacement_atol_cm::Float64
+    operator_atol::Float64
+end
+
+function NativeResolvedFSIParitySpec(
+    native_case::Resolved3DCaseSpec,
+    imported_case::Resolved3DCaseSpec;
+    require_imported::Bool = false,
+    coordinate_mode::AbstractString = NATIVE_RESOLVED_FSI_PARITY_DEFAULT_COORDINATE_MODE,
+    sample_z_cm::AbstractVector{<:Real} = Float64[],
+    radial_profile_z_cm::AbstractVector{<:Real} = Float64[],
+    radial_bin_count::Integer = 4,
+    node_slab_half_widths_cm::AbstractVector{<:Real} = [DEFAULT_NODE_SLAB_HALF_WIDTH_CM],
+    geometry_atol_cm::Real = 1.0e-9,
+    time_atol_s::Real = -1.0,
+    velocity_atol_cm_s::Real = 1.0e-9,
+    pressure_atol_dyn_cm2::Real = 1.0e-9,
+    displacement_atol_cm::Real = 1.0e-9,
+    operator_atol::Real = 1.0e-9,
+)
+    time_atol_value = time_atol_s < 0 ? max(native_case.time_atol, imported_case.time_atol) : Float64(time_atol_s)
+    return validate(NativeResolvedFSIParitySpec(
+        native_case,
+        imported_case,
+        require_imported,
+        native_resolved_fsi_parity_coordinate_mode(coordinate_mode),
+        Float64[Float64(value) for value in sample_z_cm],
+        Float64[Float64(value) for value in radial_profile_z_cm],
+        Int(radial_bin_count),
+        Float64[Float64(value) for value in node_slab_half_widths_cm],
+        Float64(geometry_atol_cm),
+        Float64(time_atol_value),
+        Float64(velocity_atol_cm_s),
+        Float64(pressure_atol_dyn_cm2),
+        Float64(displacement_atol_cm),
+        Float64(operator_atol),
+    ))
+end
+
+function NativeResolvedFSIParitySpec(
+    native_velocity_xdmf::AbstractString,
+    imported_velocity_xdmf::AbstractString;
+    native_case_label::AbstractString = "native",
+    imported_case_label::AbstractString = "imported",
+    native_severity::Real = 23.0,
+    imported_severity::Real = native_severity,
+    native_pressure_xdmf::AbstractString = default_companion_xdmf_path(native_velocity_xdmf, "pressure.xdmf"),
+    imported_pressure_xdmf::AbstractString = default_companion_xdmf_path(imported_velocity_xdmf, "pressure.xdmf"),
+    native_displacement_xdmf::AbstractString = default_companion_xdmf_path(native_velocity_xdmf, "displace.xdmf"),
+    imported_displacement_xdmf::AbstractString = default_companion_xdmf_path(imported_velocity_xdmf, "displace.xdmf"),
+    native_target_time::Real = NATIVE_RESOLVED_FSI_PARITY_DEFAULT_TIME_S,
+    imported_target_time::Real = native_target_time,
+    native_time_atol::Real = 1.0e-9,
+    imported_time_atol::Real = native_time_atol,
+    kwargs...,
+)
+    native_case = Resolved3DCaseSpec(
+        native_case_label,
+        native_severity,
+        native_velocity_xdmf;
+        pressure_xdmf=native_pressure_xdmf,
+        displacement_xdmf=native_displacement_xdmf,
+        target_time=native_target_time,
+        time_atol=native_time_atol,
+    )
+    imported_case = Resolved3DCaseSpec(
+        imported_case_label,
+        imported_severity,
+        imported_velocity_xdmf;
+        pressure_xdmf=imported_pressure_xdmf,
+        displacement_xdmf=imported_displacement_xdmf,
+        target_time=imported_target_time,
+        time_atol=imported_time_atol,
+    )
+    return NativeResolvedFSIParitySpec(native_case, imported_case; kwargs...)
+end
+
+native_resolved_fsi_parity_spec(args...; kwargs...) = NativeResolvedFSIParitySpec(args...; kwargs...)
+
+"""
+    NativeResolvedFSIParityStatus
+
+Per-category parity status for schema, geometry, time, velocity, pressure,
+displacement, or operator comparisons. `skipped=true` is reserved for expected
+missing-external-data paths; `ready=true` means the category matched within its
+configured tolerance.
+"""
+struct NativeResolvedFSIParityStatus
+    ready::Bool
+    skipped::Bool
+    discrepancy_count::Int
+    max_abs_difference::Float64
+    status::String
+end
+
+"""
+    NativeResolvedFSIParityResult
+
+Return bundle from [`run_native_resolved_fsi_parity`](@ref). The result keeps
+the loaded native/imported bundles, the operator coordinate mode used for
+velocity observations, and separate discrepancy/status categories for schema,
+geometry, time, velocity, pressure, displacement, and observation operators.
+"""
+struct NativeResolvedFSIParityResult
+    spec::NativeResolvedFSIParitySpec
+    native_bundle::Union{Nothing,Resolved3DFieldBundle}
+    imported_bundle::Union{Nothing,Resolved3DFieldBundle}
+    native_operator_field::Union{Nothing,Resolved3DVelocityField}
+    imported_operator_field::Union{Nothing,Resolved3DVelocityField}
+    schema_status::NativeResolvedFSIParityStatus
+    geometry_status::NativeResolvedFSIParityStatus
+    time_status::NativeResolvedFSIParityStatus
+    velocity_status::NativeResolvedFSIParityStatus
+    pressure_status::NativeResolvedFSIParityStatus
+    displacement_status::NativeResolvedFSIParityStatus
+    operator_status::NativeResolvedFSIParityStatus
+end
+
+workflow_kind(::NativeResolvedFSIParitySpec) = "native_resolved_fsi_parity"
+
+function validate(spec::NativeResolvedFSIParitySpec)
+    spec.coordinate_mode in ("reference", "deformed") ||
+        throw(ArgumentError("native resolved-FSI parity coordinate_mode must be reference or deformed"))
+    spec.radial_bin_count > 0 || throw(ArgumentError("native resolved-FSI parity radial_bin_count must be positive"))
+    !isempty(spec.node_slab_half_widths_cm) ||
+        throw(ArgumentError("native resolved-FSI parity needs at least one node slab half width"))
+    all(isfinite, spec.sample_z_cm) || throw(ArgumentError("native resolved-FSI parity sample_z_cm must be finite"))
+    all(isfinite, spec.radial_profile_z_cm) ||
+        throw(ArgumentError("native resolved-FSI parity radial_profile_z_cm must be finite"))
+    all(>(0.0), spec.node_slab_half_widths_cm) ||
+        throw(ArgumentError("native resolved-FSI parity node slab half widths must be positive"))
+    spec.geometry_atol_cm >= 0.0 || throw(ArgumentError("native resolved-FSI parity geometry_atol_cm must be nonnegative"))
+    spec.time_atol_s >= 0.0 || throw(ArgumentError("native resolved-FSI parity time_atol_s must be nonnegative"))
+    spec.velocity_atol_cm_s >= 0.0 ||
+        throw(ArgumentError("native resolved-FSI parity velocity_atol_cm_s must be nonnegative"))
+    spec.pressure_atol_dyn_cm2 >= 0.0 ||
+        throw(ArgumentError("native resolved-FSI parity pressure_atol_dyn_cm2 must be nonnegative"))
+    spec.displacement_atol_cm >= 0.0 ||
+        throw(ArgumentError("native resolved-FSI parity displacement_atol_cm must be nonnegative"))
+    spec.operator_atol >= 0.0 || throw(ArgumentError("native resolved-FSI parity operator_atol must be nonnegative"))
+    return spec
+end
+
+"""
+    run_native_resolved_fsi_parity(spec)
+
+Load native and imported bundles through `load_resolved3d_field_bundle(...;
+require_pressure=true, require_displacement=true)`, compare their schema,
+geometry, time, and nodewise fields, then reuse the existing velocity
+observation operators where they currently apply. Pressure/displacement
+operator parity remains explicitly deferred until the package owns those
+operators.
+"""
+function run_native_resolved_fsi_parity(spec::NativeResolvedFSIParitySpec)
+    validate(spec)
+
+    native_bundle = native_resolved_fsi_parity_load_required_case(spec.native_case, "native")
+    imported_bundle, imported_issue = native_resolved_fsi_parity_load_imported_case(spec.imported_case, spec.require_imported)
+    native_operator_field = resolved3d_velocity_field_from_bundle(native_bundle, spec.coordinate_mode)
+
+    if imported_bundle === nothing
+        imported_operator_field = nothing
+        schema_status = native_resolved_fsi_parity_issue_status("schema", imported_issue)
+        geometry_status = native_resolved_fsi_parity_issue_status("geometry", imported_issue)
+        time_status = native_resolved_fsi_parity_issue_status("time", imported_issue)
+        velocity_status = native_resolved_fsi_parity_issue_status("velocity", imported_issue)
+        pressure_status = native_resolved_fsi_parity_issue_status("pressure", imported_issue)
+        displacement_status = native_resolved_fsi_parity_issue_status("displacement", imported_issue)
+        operator_status = native_resolved_fsi_parity_issue_status("operator", imported_issue)
+        return NativeResolvedFSIParityResult(
+            spec,
+            native_bundle,
+            nothing,
+            native_operator_field,
+            imported_operator_field,
+            schema_status,
+            geometry_status,
+            time_status,
+            velocity_status,
+            pressure_status,
+            displacement_status,
+            operator_status,
+        )
+    end
+
+    imported_operator_field = resolved3d_velocity_field_from_bundle(imported_bundle, spec.coordinate_mode)
+
+    schema_status = native_resolved_fsi_parity_schema_status(native_bundle, imported_bundle)
+    geometry_status = native_resolved_fsi_parity_geometry_status(native_bundle, imported_bundle, spec.geometry_atol_cm)
+    time_status = native_resolved_fsi_parity_time_status(native_bundle, imported_bundle, spec.time_atol_s)
+    velocity_status = native_resolved_fsi_parity_velocity_status(native_bundle, imported_bundle, spec.velocity_atol_cm_s)
+    pressure_status = native_resolved_fsi_parity_pressure_status(native_bundle, imported_bundle, spec.pressure_atol_dyn_cm2)
+    displacement_status = native_resolved_fsi_parity_displacement_status(
+        native_bundle,
+        imported_bundle,
+        spec.displacement_atol_cm,
+    )
+    operator_status = native_resolved_fsi_parity_operator_status(
+        native_operator_field,
+        imported_operator_field,
+        spec,
+    )
+
+    return NativeResolvedFSIParityResult(
+        spec,
+        native_bundle,
+        imported_bundle,
+        native_operator_field,
+        imported_operator_field,
+        schema_status,
+        geometry_status,
+        time_status,
+        velocity_status,
+        pressure_status,
+        displacement_status,
+        operator_status,
+    )
+end
+
+run_native_resolved_fsi(spec::NativeResolvedFSIParitySpec) = run_native_resolved_fsi_parity(spec)
+
+function run_native_resolved_fsi_parity(
+    native_case::Resolved3DCaseSpec,
+    imported_case::Resolved3DCaseSpec;
+    kwargs...,
+)
+    return run_native_resolved_fsi_parity(NativeResolvedFSIParitySpec(native_case, imported_case; kwargs...))
+end
+
+function run_native_resolved_fsi_parity(
+    native_velocity_xdmf::AbstractString,
+    imported_velocity_xdmf::AbstractString;
+    kwargs...,
+)
+    return run_native_resolved_fsi_parity(NativeResolvedFSIParitySpec(native_velocity_xdmf, imported_velocity_xdmf; kwargs...))
+end
+
+function native_resolved_fsi_parity_coordinate_mode(value::AbstractString)
+    mode = replace(lowercase(strip(String(value))), "_" => "-")
+    mode in ("reference", "deformed") || throw(ArgumentError("coordinate_mode must be reference or deformed"))
+    return mode
+end
+
+function native_resolved_fsi_parity_load_required_case(case_spec::Resolved3DCaseSpec, label::String)
+    missing = native_resolved_fsi_parity_missing_paths(case_spec)
+    isempty(missing) || throw(ArgumentError("$label bundle is missing required three-field XDMF inputs: $(join(missing, ", "))"))
+    return load_resolved3d_field_bundle(case_spec; require_pressure=true, require_displacement=true)
+end
+
+function native_resolved_fsi_parity_load_imported_case(case_spec::Resolved3DCaseSpec, require_imported::Bool)
+    missing = native_resolved_fsi_parity_missing_paths(case_spec)
+    if !isempty(missing)
+        message = "imported bundle is missing required three-field XDMF inputs: $(join(missing, ", "))"
+        require_imported && throw(ArgumentError(message))
+        return nothing, native_resolved_fsi_parity_status(false, true, 0, NaN, message)
+    end
+
+    try
+        return load_resolved3d_field_bundle(case_spec; require_pressure=true, require_displacement=true), nothing
+    catch error
+        require_imported && rethrow()
+        return nothing, native_resolved_fsi_parity_status(
+            false,
+            false,
+            1,
+            NaN,
+            "imported bundle could not be loaded through load_resolved3d_field_bundle: $(sprint(showerror, error))",
+        )
+    end
+end
+
+function native_resolved_fsi_parity_missing_paths(case_spec::Resolved3DCaseSpec)
+    missing = String[]
+    for (label, path) in (
+        ("velocity", case_spec.velocity_xdmf),
+        ("pressure", case_spec.pressure_xdmf),
+        ("displacement", case_spec.displacement_xdmf),
+    )
+        if isempty(path) || !isfile(path)
+            pretty_path = isempty(path) ? "<empty>" : path
+            push!(missing, "$label=$pretty_path")
+        end
+    end
+    return missing
+end
+
+function native_resolved_fsi_parity_issue_status(label::String, issue::NativeResolvedFSIParityStatus)
+    prefix = issue.skipped ? "skipped" : "unavailable"
+    return native_resolved_fsi_parity_status(
+        false,
+        issue.skipped,
+        issue.discrepancy_count,
+        issue.max_abs_difference,
+        "$prefix: $label parity did not run because $(issue.status)",
+    )
+end
+
+function native_resolved_fsi_parity_schema_status(
+    native_bundle::Resolved3DFieldBundle,
+    imported_bundle::Resolved3DFieldBundle,
+)
+    comparisons = (
+        ("coordinate dimensions", size(native_bundle.velocity.coordinates), size(imported_bundle.velocity.coordinates)),
+        ("topology dimensions", size(native_bundle.velocity.topology), size(imported_bundle.velocity.topology)),
+        ("velocity dimensions", size(native_bundle.velocity.velocity), size(imported_bundle.velocity.velocity)),
+        ("pressure dimensions", size(native_resolved_fsi_parity_required_pressure(native_bundle)), size(native_resolved_fsi_parity_required_pressure(imported_bundle))),
+        ("displacement dimensions", size(native_resolved_fsi_parity_required_displacement(native_bundle)), size(native_resolved_fsi_parity_required_displacement(imported_bundle))),
+    )
+    discrepancy_count = count(comparison -> comparison[2] != comparison[3], comparisons)
+    ready = discrepancy_count == 0
+    status = ready ?
+        "schema parity matched across velocity/pressure/displacement bundle dimensions" :
+        "schema parity found $discrepancy_count dimension mismatches between native and imported bundles"
+    return native_resolved_fsi_parity_status(ready, false, discrepancy_count, ready ? 0.0 : NaN, status)
+end
+
+function native_resolved_fsi_parity_geometry_status(
+    native_bundle::Resolved3DFieldBundle,
+    imported_bundle::Resolved3DFieldBundle,
+    atol::Float64,
+)
+    native_coordinates = native_bundle.velocity.coordinates
+    imported_coordinates = imported_bundle.velocity.coordinates
+    native_topology = native_bundle.velocity.topology
+    imported_topology = imported_bundle.velocity.topology
+
+    size(native_coordinates) == size(imported_coordinates) || return native_resolved_fsi_parity_status(
+        false,
+        false,
+        1,
+        NaN,
+        "geometry parity requires matching coordinate dimensions",
+    )
+    size(native_topology) == size(imported_topology) || return native_resolved_fsi_parity_status(
+        false,
+        false,
+        1,
+        NaN,
+        "geometry parity requires matching topology dimensions",
+    )
+
+    coordinate_discrepancies, max_coordinate_difference = native_resolved_fsi_parity_diff_summary(
+        native_coordinates,
+        imported_coordinates,
+        atol,
+    )
+    topology_discrepancies = native_resolved_fsi_parity_exact_difference_count(native_topology, imported_topology)
+    discrepancy_count = coordinate_discrepancies + topology_discrepancies
+    ready = discrepancy_count == 0
+    status = ready ?
+        "reference geometry/topology matched within $(atol) cm" :
+        "geometry parity found $coordinate_discrepancies coordinate entries above tolerance and $topology_discrepancies topology mismatches"
+    return native_resolved_fsi_parity_status(ready, false, discrepancy_count, max_coordinate_difference, status)
+end
+
+function native_resolved_fsi_parity_time_status(
+    native_bundle::Resolved3DFieldBundle,
+    imported_bundle::Resolved3DFieldBundle,
+    atol::Float64,
+)
+    native_pressure_meta = native_resolved_fsi_parity_required_metadata(native_bundle.pressure_metadata, "native pressure")
+    imported_pressure_meta = native_resolved_fsi_parity_required_metadata(imported_bundle.pressure_metadata, "imported pressure")
+    native_displacement_meta = native_resolved_fsi_parity_required_metadata(native_bundle.displacement_metadata, "native displacement")
+    imported_displacement_meta = native_resolved_fsi_parity_required_metadata(imported_bundle.displacement_metadata, "imported displacement")
+
+    differences = [
+        abs(native_bundle.velocity.metadata.time - imported_bundle.velocity.metadata.time),
+        abs(native_pressure_meta.time - imported_pressure_meta.time),
+        abs(native_displacement_meta.time - imported_displacement_meta.time),
+    ]
+    discrepancy_count = count(>(atol), differences)
+    ready = discrepancy_count == 0
+    max_difference = isempty(differences) ? 0.0 : maximum(differences)
+    status = ready ?
+        "native and imported bundles share velocity/pressure/displacement time stamps within $(atol) s" :
+        "time parity found $discrepancy_count metadata differences above $(atol) s"
+    return native_resolved_fsi_parity_status(ready, false, discrepancy_count, max_difference, status)
+end
+
+function native_resolved_fsi_parity_velocity_status(
+    native_bundle::Resolved3DFieldBundle,
+    imported_bundle::Resolved3DFieldBundle,
+    atol::Float64,
+)
+    comparable, reason = native_resolved_fsi_parity_nodewise_comparable(native_bundle, imported_bundle)
+    comparable || return native_resolved_fsi_parity_status(false, false, 1, NaN, "velocity parity did not run because $reason")
+
+    discrepancies, max_difference = native_resolved_fsi_parity_diff_summary(
+        native_bundle.velocity.velocity,
+        imported_bundle.velocity.velocity,
+        atol,
+    )
+    ready = discrepancies == 0
+    status = ready ?
+        "nodewise velocity parity matched within $(atol) cm/s" :
+        "nodewise velocity parity found $discrepancies entries above $(atol) cm/s"
+    return native_resolved_fsi_parity_status(ready, false, discrepancies, max_difference, status)
+end
+
+function native_resolved_fsi_parity_pressure_status(
+    native_bundle::Resolved3DFieldBundle,
+    imported_bundle::Resolved3DFieldBundle,
+    atol::Float64,
+)
+    comparable, reason = native_resolved_fsi_parity_nodewise_comparable(native_bundle, imported_bundle)
+    comparable || return native_resolved_fsi_parity_status(false, false, 1, NaN, "pressure parity did not run because $reason")
+
+    native_pressure = native_resolved_fsi_parity_required_pressure(native_bundle)
+    imported_pressure = native_resolved_fsi_parity_required_pressure(imported_bundle)
+    discrepancies, max_difference = native_resolved_fsi_parity_diff_summary(native_pressure, imported_pressure, atol)
+    ready = discrepancies == 0
+    status = ready ?
+        "nodewise pressure parity matched within $(atol) dyn/cm^2" :
+        "nodewise pressure parity found $discrepancies entries above $(atol) dyn/cm^2"
+    return native_resolved_fsi_parity_status(ready, false, discrepancies, max_difference, status)
+end
+
+function native_resolved_fsi_parity_displacement_status(
+    native_bundle::Resolved3DFieldBundle,
+    imported_bundle::Resolved3DFieldBundle,
+    atol::Float64,
+)
+    comparable, reason = native_resolved_fsi_parity_nodewise_comparable(native_bundle, imported_bundle)
+    comparable || return native_resolved_fsi_parity_status(false, false, 1, NaN, "displacement parity did not run because $reason")
+
+    native_displacement = native_resolved_fsi_parity_required_displacement(native_bundle)
+    imported_displacement = native_resolved_fsi_parity_required_displacement(imported_bundle)
+    native_deformed = native_resolved_fsi_parity_required_deformed_coordinates(native_bundle)
+    imported_deformed = native_resolved_fsi_parity_required_deformed_coordinates(imported_bundle)
+
+    displacement_discrepancies, max_displacement_difference = native_resolved_fsi_parity_diff_summary(
+        native_displacement,
+        imported_displacement,
+        atol,
+    )
+    deformed_discrepancies, max_deformed_difference = native_resolved_fsi_parity_diff_summary(
+        native_deformed,
+        imported_deformed,
+        atol,
+    )
+
+    discrepancy_count = displacement_discrepancies + deformed_discrepancies
+    ready = discrepancy_count == 0
+    max_difference = max(max_displacement_difference, max_deformed_difference)
+    status = ready ?
+        "nodewise displacement and derived deformed coordinates matched within $(atol) cm" :
+        "displacement parity found $displacement_discrepancies displacement entries and $deformed_discrepancies derived deformed-coordinate entries above $(atol) cm"
+    return native_resolved_fsi_parity_status(ready, false, discrepancy_count, max_difference, status)
+end
+
+function native_resolved_fsi_parity_operator_status(
+    native_field::Resolved3DVelocityField,
+    imported_field::Resolved3DVelocityField,
+    spec::NativeResolvedFSIParitySpec,
+)
+    z_samples = isempty(spec.sample_z_cm) ?
+        native_resolved_fsi_parity_default_sample_z(native_field, imported_field) :
+        spec.sample_z_cm
+    profile_z_samples = isempty(spec.radial_profile_z_cm) ?
+        native_resolved_fsi_parity_default_profile_z(native_field, imported_field) :
+        spec.radial_profile_z_cm
+
+    isempty(z_samples) && return native_resolved_fsi_parity_status(
+        false,
+        false,
+        1,
+        NaN,
+        "operator parity requires an overlapping z-range between the native and imported fields",
+    )
+
+    discrepancy_count = Ref(0)
+    numeric_differences = Float64[]
+    quadrature_operator = CrossSectionQuadratureOperator()
+
+    for z in z_samples
+        native_observation = section_observation(native_field, z, quadrature_operator)
+        imported_observation = section_observation(imported_field, z, quadrature_operator)
+        native_resolved_fsi_parity_compare_bool!(discrepancy_count, native_observation.area_valid, imported_observation.area_valid)
+        native_resolved_fsi_parity_compare_exact!(discrepancy_count, native_observation.cut_status, imported_observation.cut_status)
+        native_resolved_fsi_parity_compare_exact!(discrepancy_count, native_observation.intersection_count, imported_observation.intersection_count)
+        native_resolved_fsi_parity_compare_scalar!(
+            numeric_differences,
+            discrepancy_count,
+            native_observation.area_cm2,
+            imported_observation.area_cm2,
+            spec.operator_atol,
+        )
+        native_resolved_fsi_parity_compare_scalar!(
+            numeric_differences,
+            discrepancy_count,
+            native_observation.flow_cm3_s,
+            imported_observation.flow_cm3_s,
+            spec.operator_atol,
+        )
+        native_resolved_fsi_parity_compare_scalar!(
+            numeric_differences,
+            discrepancy_count,
+            native_observation.mean_velocity_cm_s,
+            imported_observation.mean_velocity_cm_s,
+            spec.operator_atol,
+        )
+    end
+
+    for half_width in spec.node_slab_half_widths_cm
+        operator = NodeSlabOperator(half_width_cm=half_width)
+        for z in z_samples
+            native_observation = section_observation(native_field, z, operator)
+            imported_observation = section_observation(imported_field, z, operator)
+            native_resolved_fsi_parity_compare_exact!(discrepancy_count, native_observation.cut_status, imported_observation.cut_status)
+            native_resolved_fsi_parity_compare_exact!(discrepancy_count, native_observation.node_count, imported_observation.node_count)
+            native_resolved_fsi_parity_compare_scalar!(
+                numeric_differences,
+                discrepancy_count,
+                native_observation.mean_velocity_cm_s,
+                imported_observation.mean_velocity_cm_s,
+                spec.operator_atol,
+            )
+            native_resolved_fsi_parity_compare_scalar!(
+                numeric_differences,
+                discrepancy_count,
+                native_observation.observed_radius_cm,
+                imported_observation.observed_radius_cm,
+                spec.operator_atol,
+            )
+        end
+    end
+
+    for z in profile_z_samples
+        radius_scale = native_resolved_fsi_parity_profile_radius_scale(native_field, imported_field, z, spec)
+        if !isfinite(radius_scale) || radius_scale <= 0.0
+            discrepancy_count[] += 1
+            continue
+        end
+        native_profiles = radial_profile_observations(native_field, z, radius_scale, spec.radial_bin_count, quadrature_operator)
+        imported_profiles = radial_profile_observations(imported_field, z, radius_scale, spec.radial_bin_count, quadrature_operator)
+        for bin in eachindex(native_profiles, imported_profiles)
+            native_row = native_profiles[bin]
+            imported_row = imported_profiles[bin]
+            native_resolved_fsi_parity_compare_bool!(discrepancy_count, native_row.area_valid, imported_row.area_valid)
+            native_resolved_fsi_parity_compare_exact!(discrepancy_count, native_row.intersection_count, imported_row.intersection_count)
+            native_resolved_fsi_parity_compare_scalar!(
+                numeric_differences,
+                discrepancy_count,
+                native_row.mean_velocity_cm_s,
+                imported_row.mean_velocity_cm_s,
+                spec.operator_atol,
+            )
+            native_resolved_fsi_parity_compare_scalar!(
+                numeric_differences,
+                discrepancy_count,
+                native_row.velocity_variance_cm2_s2,
+                imported_row.velocity_variance_cm2_s2,
+                spec.operator_atol,
+            )
+        end
+    end
+
+    max_difference = isempty(numeric_differences) ? 0.0 : maximum(numeric_differences)
+    if discrepancy_count[] > 0
+        return native_resolved_fsi_parity_status(
+            false,
+            false,
+            discrepancy_count[],
+            max_difference,
+            "velocity observation parity found $(discrepancy_count[]) section/radial/node-slab discrepancies above $(spec.operator_atol)",
+        )
+    end
+
+    # The current operator seam only consumes `Resolved3DVelocityField`, so a
+    # zero-discrepancy velocity check is still only partial parity.
+    return native_resolved_fsi_parity_status(
+        false,
+        false,
+        0,
+        max_difference,
+        "deferred: velocity section/radial/node-slab observations matched within $(spec.operator_atol), but pressure/displacement operator parity and full Section 4.1 transient/grid-sensitivity parity remain deferred",
+    )
+end
+
+function native_resolved_fsi_parity_default_sample_z(
+    native_field::Resolved3DVelocityField,
+    imported_field::Resolved3DVelocityField,
+)
+    z_min, z_max = native_resolved_fsi_parity_overlap_bounds(native_field, imported_field)
+    z_min <= z_max || return Float64[]
+    span = z_max - z_min
+    span <= 1.0e-12 && return [z_min]
+    return [z_min + 0.25 * span, z_min + 0.5 * span, z_min + 0.75 * span]
+end
+
+function native_resolved_fsi_parity_default_profile_z(
+    native_field::Resolved3DVelocityField,
+    imported_field::Resolved3DVelocityField,
+)
+    z_min, z_max = native_resolved_fsi_parity_overlap_bounds(native_field, imported_field)
+    z_min <= z_max || return Float64[]
+    return [0.5 * (z_min + z_max)]
+end
+
+function native_resolved_fsi_parity_overlap_bounds(
+    native_field::Resolved3DVelocityField,
+    imported_field::Resolved3DVelocityField,
+)
+    native_z = view(native_field.coordinates, :, 3)
+    imported_z = view(imported_field.coordinates, :, 3)
+    z_min = max(minimum(native_z), minimum(imported_z))
+    z_max = min(maximum(native_z), maximum(imported_z))
+    return z_min, z_max
+end
+
+function native_resolved_fsi_parity_profile_radius_scale(
+    native_field::Resolved3DVelocityField,
+    imported_field::Resolved3DVelocityField,
+    z::Float64,
+    spec::NativeResolvedFSIParitySpec,
+)
+    half_width = maximum(spec.node_slab_half_widths_cm)
+    node_slab = NodeSlabOperator(half_width_cm=half_width)
+    native_radius = section_observation(native_field, z, node_slab).observed_radius_cm
+    imported_radius = section_observation(imported_field, z, node_slab).observed_radius_cm
+    radii = [radius for radius in (native_radius, imported_radius) if isfinite(radius) && radius > 0.0]
+    isempty(radii) && return NaN
+    return maximum(radii)
+end
+
+function native_resolved_fsi_parity_nodewise_comparable(
+    native_bundle::Resolved3DFieldBundle,
+    imported_bundle::Resolved3DFieldBundle,
+)
+    size(native_bundle.velocity.coordinates) == size(imported_bundle.velocity.coordinates) ||
+        return false, "coordinate dimensions differ"
+    size(native_bundle.velocity.topology) == size(imported_bundle.velocity.topology) ||
+        return false, "topology dimensions differ"
+    native_bundle.velocity.topology == imported_bundle.velocity.topology ||
+        return false, "topology values differ"
+    return true, ""
+end
+
+function native_resolved_fsi_parity_diff_summary(native_values, imported_values, atol::Float64)
+    size(native_values) == size(imported_values) || throw(DimensionMismatch("parity diff summary requires matching dimensions"))
+    discrepancy_count = 0
+    max_difference = 0.0
+    for index in eachindex(native_values)
+        difference = abs(Float64(native_values[index]) - Float64(imported_values[index]))
+        max_difference = max(max_difference, difference)
+        difference > atol && (discrepancy_count += 1)
+    end
+    return discrepancy_count, max_difference
+end
+
+function native_resolved_fsi_parity_exact_difference_count(native_values, imported_values)
+    size(native_values) == size(imported_values) || throw(DimensionMismatch("exact parity comparison requires matching dimensions"))
+    discrepancy_count = 0
+    for index in eachindex(native_values)
+        native_values[index] == imported_values[index] || (discrepancy_count += 1)
+    end
+    return discrepancy_count
+end
+
+function native_resolved_fsi_parity_compare_scalar!(
+    numeric_differences::Vector{Float64},
+    discrepancy_count::Base.RefValue{Int},
+    native_value,
+    imported_value,
+    atol::Float64,
+)
+    if isnan(native_value) && isnan(imported_value)
+        return nothing
+    end
+    if isfinite(native_value) && isfinite(imported_value)
+        difference = abs(Float64(native_value) - Float64(imported_value))
+        push!(numeric_differences, difference)
+        difference > atol && (discrepancy_count[] += 1)
+        return nothing
+    end
+    push!(numeric_differences, Inf)
+    discrepancy_count[] += 1
+    return nothing
+end
+
+function native_resolved_fsi_parity_compare_exact!(
+    discrepancy_count::Base.RefValue{Int},
+    native_value,
+    imported_value,
+)
+    native_value == imported_value || (discrepancy_count[] += 1)
+    return nothing
+end
+
+function native_resolved_fsi_parity_compare_bool!(
+    discrepancy_count::Base.RefValue{Int},
+    native_value::Bool,
+    imported_value::Bool,
+)
+    native_value == imported_value || (discrepancy_count[] += 1)
+    return nothing
+end
+
+function native_resolved_fsi_parity_status(
+    ready::Bool,
+    skipped::Bool,
+    discrepancy_count::Integer,
+    max_abs_difference::Real,
+    status::AbstractString,
+)
+    max_difference = skipped ? NaN : Float64(max_abs_difference)
+    return NativeResolvedFSIParityStatus(
+        ready,
+        skipped,
+        Int(discrepancy_count),
+        max_difference,
+        String(status),
+    )
+end
+
+function native_resolved_fsi_parity_required_metadata(metadata::Union{Nothing,XDMFFieldMetadata}, label::String)
+    metadata === nothing && error("$label metadata should exist after requiring the three-field bundle")
+    return metadata
+end
+
+function native_resolved_fsi_parity_required_pressure(bundle::Resolved3DFieldBundle)
+    bundle.pressure === nothing && error("pressure field should exist after requiring the three-field bundle")
+    return bundle.pressure
+end
+
+function native_resolved_fsi_parity_required_displacement(bundle::Resolved3DFieldBundle)
+    bundle.displacement === nothing && error("displacement field should exist after requiring the three-field bundle")
+    return bundle.displacement
+end
+
+function native_resolved_fsi_parity_required_deformed_coordinates(bundle::Resolved3DFieldBundle)
+    bundle.deformed_coordinates === nothing &&
+        error("deformed coordinates should exist after requiring the displacement field")
+    return bundle.deformed_coordinates
+end
