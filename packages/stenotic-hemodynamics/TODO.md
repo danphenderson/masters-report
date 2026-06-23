@@ -28,14 +28,21 @@ Recent commits established:
   - Missing imported bundles remain expected skips.
 - `65c01ad Refine native resolved FSI depth dispatch`
   - The current orchestration rules use disjoint write locks by file set.
+- `15ee331 Report native resolved FSI dry-run guards`
+  - Dry-run plans report whether default snapshot-count and output-payload
+    guards are satisfied and list required override flags.
+- `ac04767 Track native resolved FSI boundary mode`
+  - Smoke results report local pressure-drop weak inlet/outlet boundary
+    evidence and fail closed for the deferred exact Section 4.1
+    Poiseuille-inlet/zero-outlet-stress mode.
 
 Current bounded interpretation:
 
 - State is now carried within one production run, but restart from saved
   metadata is still unsupported.
-- The fluid solve still uses pressure-drop-driven local smoke boundary
+- The fluid solve explicitly reports pressure-drop-driven local smoke boundary
   evidence. Exact Section 4.1 Poiseuille inlet and zero-outlet-stress parity
-  remain unclaimed.
+  remain deferred and unclaimed.
 - The partitioned fluid solve prescribes radial wall velocity on deformed
   geometry, but it does not include ALE mesh-velocity terms.
 - Native production/dry-run/restart/parity helpers remain qualified Julia
@@ -66,82 +73,7 @@ Current bounded interpretation:
 - Leave report, reproducibility, scratch, and optional external-data files
   untouched unless explicitly assigned.
 
-## Wave 2: Boundary And Guard Hardening
-
-Wave 2 lanes may run concurrently if their file locks remain exactly disjoint.
-
-### Lane 8B: Paper Boundary-Condition Gap Audit
-
-Objective: make the Section 4.1 inlet/outlet boundary gap executable and
-tracked before claiming stronger paper parity.
-
-Owned write scope:
-
-- `src/StenoticHemodynamics/adapters/native_resolved_fsi_gridap.jl`
-- `src/StenoticHemodynamics/adapters/native_resolved_fsi_types.jl`
-- `test/test_native_resolved_fsi_smoke.jl`
-- `public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`
-
-Implementation:
-
-1. Add explicit boundary-condition mode/status for the current
-   pressure-drop-driven smoke solve versus the paper's Poiseuille inlet and
-   zero-outlet-stress contract.
-2. Add a small test that the current mode is local smoke boundary evidence,
-   not exact Section 4.1 boundary reproduction.
-3. If a low-risk Poiseuille-inlet strong Dirichlet option fits the current
-   Gridap spaces, add it behind an explicit internal option and keep the
-   default unchanged.
-4. Do not remove the existing pressure-drop smoke path.
-
-Validation:
-
-```bash
-packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_smoke.jl")'
-git diff --check -- public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md
-```
-
-Acceptance:
-
-- Status and docs distinguish local smoke boundary conditions from exact
-  Section 4.1 boundary reproduction.
-- Any new boundary mode is opt-in and tested.
-
-### Lane 8E: Production Guard Calibration
-
-Objective: make dry-run output-volume and mesh-count estimates actionable for
-larger Section 4.1 runs without generating large files in tests.
-
-Owned write scope:
-
-- `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl`
-- `test/test_native_resolved_fsi_workflow.jl`
-
-Implementation:
-
-1. Add dry-run status fields for whether snapshot count and output payload are
-   within default guards.
-2. Report exact override flags needed for large runs:
-   `allow_many_snapshots` and/or `allow_large_output`.
-3. Add tests for guard-ready and guard-blocked dry-run plans.
-4. Keep all tests coarse and avoid high-resolution production execution.
-
-Validation:
-
-```bash
-packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_workflow.jl")'
-```
-
-Acceptance:
-
-- Dry-run output identifies whether execution would require
-  `allow_many_snapshots`, `allow_large_output`, or neither.
-- No test generates large bundles.
-
-## Wave 3: API, Restart Payload, And Docs
-
-Run these after Wave 2 lands unless a worker requests a safe disjoint
-expansion.
+## Remaining Lanes
 
 ### Lane 8F: CLI Exposure Reassessment
 
@@ -244,12 +176,13 @@ Acceptance:
 
 ## Dispatch Order
 
-1. Dispatch 8B and 8E concurrently only while the owned files stay disjoint.
-2. Review and commit 8B and 8E separately if their diffs remain independent.
-3. Dispatch 8F after 8E clarifies production/dry-run guard posture.
-4. Dispatch 8H after 8E unless 8E requests the restart metadata surface as a
-   required expansion.
-5. Dispatch 8G last so docs reflect the final state.
+1. Dispatch 8F and 8H concurrently only while file locks remain disjoint:
+   - 8F owns public API/CLI posture and reader-facing CLI docs.
+   - 8H owns restart metadata/workflow internals and workflow tests. It must
+     stop before editing `test/test_public_api.jl` unless 8F has returned or
+     the orchestrator explicitly grants that expansion.
+2. Review and commit 8F and 8H separately if their diffs remain independent.
+3. Dispatch 8G last so docs reflect the final state.
 
 Round-boundary gates:
 
