@@ -86,6 +86,11 @@ Implemented and committed:
   artifacts: the explicit wall update produced a non-positive current radius.
   The blocker is wall-state stability/pressure-load scaling, not boundary-mode
   selection, dry-run guard policy, importer schema, or output volume.
+  Scratch probes showed that a Gridap zero-mean pressure constraint does not
+  change the scale; a short fixed-wall exact-boundary warm start plus
+  `coupling_under_relaxation=0.1` reaches two development-mesh steps but still
+  fails at step 3. Do not treat warm start or relaxation alone as the full
+  remediation.
 - Lane 10D records the persisted restart/resume design in
   `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`.
   The design keeps current `state_payload` as audit metadata and keeps resume
