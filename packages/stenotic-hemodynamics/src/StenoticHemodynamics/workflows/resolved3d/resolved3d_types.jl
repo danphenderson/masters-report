@@ -1,5 +1,6 @@
 # Keep the resolved-3D contract surface as one include target for
-# `workflows/resolved3d_compare.jl` and `workflows/resolved3d_outputs.jl` while
+# `workflows/resolved3d/resolved3d_compare.jl` and
+# `workflows/resolved3d/resolved3d_outputs.jl` while
 # splitting type-only responsibilities into smaller files.
 include("resolved3d_types_core.jl")
 include("resolved3d_types_comparison.jl")

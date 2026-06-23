@@ -1,6 +1,6 @@
 using Printf
 
-const PROJECT_ROOT = normpath(joinpath(@__DIR__, "..", "..", "..", ".."))
+const PROJECT_ROOT = normpath(joinpath(@__DIR__, "..", "..", "..", "..", ".."))
 const DEFAULT_GEOMETRY_OUTPUT_DIR = joinpath(PROJECT_ROOT, "report", "assets", "data", "stenosis-geometry")
 const ANALYTIC_SEVERITIES = (0.0, 23.0, 40.0, 50.0, 73.0)
 const TRAJECTORY_SEVERITIES = (23.0, 50.0, 73.0)

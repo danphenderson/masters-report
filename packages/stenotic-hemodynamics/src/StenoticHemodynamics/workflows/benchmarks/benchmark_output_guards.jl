@@ -62,7 +62,8 @@ function canonical_package_benchmark_path(path::String)
     return normalized
 end
 
-package_benchmark_repo_root() = canonical_package_benchmark_path(joinpath(@__DIR__, "..", "..", "..", "..", ".."))
+package_benchmark_repo_root() =
+    canonical_package_benchmark_path(joinpath(@__DIR__, "..", "..", "..", "..", "..", ".."))
 
 function package_benchmark_protected_roots(repo_root::String = package_benchmark_repo_root())
     return [

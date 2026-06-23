@@ -416,11 +416,11 @@ The current implementation lives on these source surfaces:
 | `src/StenoticHemodynamics/adapters/native_resolved_fsi_partitioned.jl` | Partitioned smoke wall update, pressure sampling, lifted-geometry solve orchestration, and reduced wall-state output. |
 | `src/StenoticHemodynamics/adapters/native_resolved_fsi_sampling.jl` | Node sampling, fallback sampling, and outlet gauge normalization for smoke bundles. |
 | `src/StenoticHemodynamics/adapters/native_resolved_fsi_roundtrip.jl` | Resolved-3D writer/importer round-trip checks for schema and smoke bundles. |
-| `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow.jl` | Schema workflow spec construction, scratch output planning, synthetic fields, displacement lift, and writer round trip. |
-| `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl` | Partitioned production spec policy, production dry-run, state-carrying in-run snapshot runner, manifest, diagnostics, and restart metadata writer. |
-| `src/StenoticHemodynamics/workflows/native_resolved_fsi_restart.jl` | Current and legacy restart-metadata reader and fail-closed persisted-resume stub. |
-| `src/StenoticHemodynamics/workflows/native_resolved_fsi_parity.jl` | Native/imported three-field parity and observation operators. |
-| `src/StenoticHemodynamics/workflows/native_resolved_fsi_parity_production.jl` | Production observation artifact and summary CSV writer, including `section41_observation_summary.csv`. |
+| `src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow.jl` | Schema workflow spec construction, scratch output planning, synthetic fields, displacement lift, and writer round trip. |
+| `src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow_production.jl` | Partitioned production spec policy, production dry-run, state-carrying in-run snapshot runner, manifest, diagnostics, and restart metadata writer. |
+| `src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_restart.jl` | Current and legacy restart-metadata reader and fail-closed persisted-resume stub. |
+| `src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity.jl` | Native/imported three-field parity and observation operators. |
+| `src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity_production.jl` | Production observation artifact and summary CSV writer, including `section41_observation_summary.csv`. |
 
 This keeps the native resolved-FSI surface additive and avoids repurposing
 `stokes_ic.jl` or the membrane validation workflow into something stronger
@@ -506,7 +506,7 @@ later local choice.
 The implementation reuses these existing surfaces or patterns:
 
 - `NativeResolvedFSIMesh`, `NativeResolvedFSIGeometry`, and the stable tag
-  contract from `workflows/native_resolved_fsi_mesh.jl`;
+  contract from `workflows/native_resolved_fsi/native_resolved_fsi_mesh.jl`;
 - `Resolved3DWriterPaths`, `Resolved3DWriterResult`, and
   `write_resolved3d_field_bundle(...)` from `adapters/resolved3d_writer.jl`;
 - `wall_stiffness(...)`, `wall_reference_radius(...)`, and

@@ -14,10 +14,10 @@ sit on top of that core solver path.
 ## Simulation And Studies
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies_types.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies_outputs.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies_outputs.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/refinement.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/refinement.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies_types.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies_outputs.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies_outputs.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/refinement.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/refinement.jl)
 - Entrypoints:
   - CLI: `study severity`, `study grid`, `study refinement`
   - Julia: `run_study(...)`, `run_refinement_study(...)`, with spec types such as `SeveritySweepSpec`, `GridConvergenceStudySpec`, and `RefinementStudySpec`
@@ -34,10 +34,10 @@ sit on top of that core solver path.
 ## Verification: MMS, Rest State, And P/H Refinement
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification_mms_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification_mms_types.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification_rest_state_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification_rest_state_types.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification_ph_refinement.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification_ph_refinement.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_mms_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_mms_types.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_rest_state_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_rest_state_types.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_ph_refinement.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_ph_refinement.jl)
 - Entrypoints:
   - CLI: `verify mms`, `verify rest`, `verify ph-refinement`
   - Julia: `run_manufactured_verification(...)`, `run_rest_state_drift(...)`, `run_ph_refinement_demo(...)`
@@ -52,8 +52,8 @@ sit on top of that core solver path.
 ## Membrane-FSI Validation
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi_validation.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi_validation.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi_validation_spec.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi_validation_spec.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi/membrane_fsi_validation.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi/membrane_fsi_validation.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi/membrane_fsi_validation_spec.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi/membrane_fsi_validation_spec.jl)
 - Entrypoints:
   - CLI: `fsi validate`
   - Julia: `run_membrane_fsi_validation(...)`, `MembraneFSIValidationSpec(...)`
@@ -72,8 +72,8 @@ fluid solve.
 ## Stationary-Stokes Refinement
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/stationary_stokes_refinement.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/stationary_stokes_refinement.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/stationary_stokes_refinement_spec.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/stationary_stokes_refinement_spec.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/stationary_stokes_refinement.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/stationary_stokes_refinement.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/stationary_stokes_refinement_spec.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/stationary_stokes_refinement_spec.jl)
 - Entrypoints:
   - CLI: `stokes refine`
   - Julia: `run_stationary_stokes_refinement(...)`, `StationaryStokesRefinementSpec(...)`
@@ -88,7 +88,7 @@ fluid solve.
 ## Geometry Export
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/geometry_exports.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/geometry_exports.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/geometry_exports/geometry_exports.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/geometry_exports/geometry_exports.jl)
 - Entrypoints:
   - CLI: `export-assets`
   - Julia: `export_all(...)`, `export_stenosis_geometry_figures(...)`, `GeometryExportOptions(...)`
@@ -105,10 +105,10 @@ fluid solve.
 ## Resolved-3D Import, Comparison, And Report Assets
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d_compare.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d_compare.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d_types_comparison.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d_types_comparison.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d_types_grid_sensitivity.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d_types_grid_sensitivity.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d_types_contracts.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d_types_contracts.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_compare.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_compare.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_comparison.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_comparison.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_grid_sensitivity.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_grid_sensitivity.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_contracts.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_contracts.jl)
 - Entrypoints:
   - CLI: `compare-3d`
   - Julia: `run_comparison(...)`, `run_grid_sensitivity(...)`, `run_available_resolved3d_comparison(...)`, `run_available_resolved3d_grid_sensitivity(...)`
@@ -128,8 +128,8 @@ contract, skip behavior, and report publication boundaries.
 ## Operator Validation
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation_types.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation/operator_validation.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation/operator_validation.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation/operator_validation_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation/operator_validation_types.jl)
 - Entrypoints:
   - CLI: `operator-validation`
   - Julia: `run_operator_validation(...)`, `OperatorValidationSpec(...)`
@@ -144,8 +144,8 @@ contract, skip behavior, and report publication boundaries.
 ## Package Benchmarks
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmark_spec.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmark_spec.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks/benchmarks.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks/benchmarks.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks/benchmark_spec.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks/benchmark_spec.jl)
 - Entrypoints:
   - CLI: `benchmark`
   - Julia: `run_package_benchmark(...)`, `PackageBenchmarkSpec(...)`
@@ -162,12 +162,12 @@ contract, skip behavior, and report publication boundaries.
 ## Native Resolved-FSI Mesh, Smoke, Production Sidecars, And Parity
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_mesh.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_mesh.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_parity.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_parity.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_parity_production.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_parity_production.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_restart.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_restart.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_mesh.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_mesh.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow_production.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow_production.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity_production.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity_production.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_restart.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_restart.jl)
 - Entrypoints:
   - Julia: `native_resolved_fsi_case_spec(...)`,
     `run_native_resolved_fsi_workflow(...)`,
