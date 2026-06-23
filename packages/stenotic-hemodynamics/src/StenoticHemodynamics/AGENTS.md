@@ -1,18 +1,19 @@
 # StenoticHemodynamics Source Agent Instructions
 
-This file governs importable Julia source under
-`packages/stenotic-hemodynamics/src/StenoticHemodynamics/**`. It supplements the
-root `AGENTS.md`; package-root docs, tests, launcher scripts, report assets,
-Python ops tooling, commits, and pull requests remain governed by the root
-guide unless a narrower instruction file applies.
+This file gives local guidance for importable Julia source under
+`packages/stenotic-hemodynamics/src/StenoticHemodynamics/**`. It layers on top
+of the root `AGENTS.md`, which remains the authority for repository-wide setup,
+validation, artifact policy, commits, and pull requests. Keep this file focused:
+it should help agents make source edits that fit the package architecture
+without repeating the whole contributor guide.
 
 ## Scope
 
-Treat this tree as package source for the `StenoticHemodynamics` Julia module.
-Keep edits local to the source layer being changed, and avoid normalizing
-unrelated files in the currently dirty package tree. Do not use this scoped
-guide as permission to refresh generated report artifacts or rewrite package
-documentation outside `src/StenoticHemodynamics/**`.
+Treat this directory as the implementation body of the `StenoticHemodynamics`
+Julia module. Package-root docs, tests, launcher scripts, report assets, Python
+ops tooling, and publication workflows are outside this scoped guide unless a
+task explicitly widens the lane. When the package tree is already dirty, assume
+unrelated edits belong to another lane and leave them untouched.
 
 ## Layer Boundaries
 
@@ -20,8 +21,8 @@ documentation outside `src/StenoticHemodynamics/**`.
   closures, initial-condition descriptors, results, and diagnostics.
 - `numerics/` owns spatial methods, state layout, fluxes, kernels, time
   stepping, backend dispatch, and solver contracts.
-- `io/` owns CSV, JSON, manifest, checksum, overwrite, and table-writing
-  helpers shared by workflows.
+- `io/` owns CSV, JSON, manifest, checksum, overwrite, and table-writing helpers
+  shared by workflows.
 - `adapters/` owns optional external integrations and format translation.
 - `workflows/` owns reproducible research workflows built from typed specs,
   results, runners, and writers.
@@ -29,23 +30,21 @@ documentation outside `src/StenoticHemodynamics/**`.
 
 ## Source Change Rules
 
-Preserve typed Julia protocols and multiple-dispatch boundaries. Add new
-behavior through small specs, result types, validators, or methods that match
-the existing layer contract. Keep optional dependencies isolated in adapters or
-workflow code, preferably behind narrow `require_*` helpers. Keep CLI files
-thin: parse flags, construct typed package inputs, call source APIs, and print
-locations or summaries. Do not put report publication policy, destructive
-cleanup, file-format escaping, or solver logic in the CLI layer. Do not put
-workflow orchestration, asset publishing, CLI parsing, or optional dependency
-loading in `core/` or `numerics/`.
+Prefer small, typed Julia changes that preserve the package's dispatch
+protocols. Add behavior through focused specs, result types, validators, or
+methods that match the owning layer. Keep optional dependencies isolated in
+adapters or workflows, usually behind narrow `require_*` helpers. Keep CLI code
+thin: parse inputs, construct typed package values, call source APIs, and report
+outputs. Core and numerics should stay independent of command parsing, asset
+publishing, report policy, and external data-format details.
 
 ## Validation
 
 For source edits, run `pipenv run ops-julia-check` from the repository root.
 For CLI or experiment-facing behavior, add a focused smoke check through
-`pipenv run ops-experiment ...` when practical and write outputs to ignored
-scratch paths. Run broader `ops-release-check`, Python, or report gates only
-when the change crosses into those surfaces.
+`pipenv run ops-experiment ...` when practical, with outputs written to ignored
+scratch paths. Use broader Python, report, or release gates only when the change
+crosses into those surfaces.
 
 ## Scratch Discipline
 
