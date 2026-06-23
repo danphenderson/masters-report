@@ -74,7 +74,7 @@ function native_resolved_fsi_partitioned_wall_pressure_at_plane(
     resolution = mesh.geometry.resolution
     plane_node_count = native_resolved_fsi_nodes_per_plane(resolution)
     offset = (plane_index - 1) * plane_node_count
-    acc = 0.0
+    acc = nothing
     count = 0
     for sector in 1:resolution.angular
         node = offset + native_resolved_fsi_plane_node_index(resolution, resolution.radial, sector)
@@ -86,7 +86,7 @@ function native_resolved_fsi_partitioned_wall_pressure_at_plane(
             wall_radius_at_z=wall_radius_at_z,
         )
         if value !== nothing
-            acc += value
+            acc = acc === nothing ? value : acc + value
             count += 1
         end
     end

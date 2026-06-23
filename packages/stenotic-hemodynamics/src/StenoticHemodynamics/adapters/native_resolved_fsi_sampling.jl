@@ -107,7 +107,10 @@ function native_resolved_fsi_smoke_axial_epsilon(mesh::NativeResolvedFSIMesh)
     return min(0.25 * axial_spacing, max(mesh.case_spec.length_cm * 1.0e-6, 1.0e-8))
 end
 
-function native_resolved_fsi_outlet_gauge_pressure(pressure::Vector{Float64}, outlet_nodes::Vector{Int})
+function native_resolved_fsi_outlet_gauge_pressure(
+    pressure::AbstractVector{<:Real},
+    outlet_nodes::AbstractVector{<:Integer},
+)
     isempty(outlet_nodes) && throw(ArgumentError("native resolved-FSI smoke outlet node set must not be empty"))
     gauge_offset = sum(pressure[node] for node in outlet_nodes) / length(outlet_nodes)
     isfinite(gauge_offset) || throw(ArgumentError("native resolved-FSI smoke outlet gauge offset must be finite"))

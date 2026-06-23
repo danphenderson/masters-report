@@ -50,6 +50,21 @@ const run_native_resolved_fsi_smoke = StenoticHemodynamics.run_native_resolved_f
         sample_point,
     ) === nothing
 
+    float32_gauged_pressure, float32_gauge_offset =
+        native_resolved_fsi_outlet_gauge_pressure(Float32[2.0, 4.0, 6.0], Int32[2, 3])
+    @test eltype(float32_gauged_pressure) === Float32
+    @test float32_gauge_offset isa Float32
+    @test float32_gauge_offset == Float32(5.0)
+    @test float32_gauged_pressure == Float32[-3.0, -1.0, 1.0]
+    big_gauged_pressure, big_gauge_offset = native_resolved_fsi_outlet_gauge_pressure(
+        BigFloat[BigFloat("2.0"), BigFloat("4.0"), BigFloat("6.0")],
+        [2, 3],
+    )
+    @test eltype(big_gauged_pressure) === BigFloat
+    @test big_gauge_offset isa BigFloat
+    @test big_gauge_offset == BigFloat("5.0")
+    @test big_gauged_pressure == BigFloat[BigFloat("-3.0"), BigFloat("-1.0"), BigFloat("1.0")]
+
     big_pressure, big_used_fallback =
         StenoticHemodynamics.native_resolved_fsi_partitioned_wall_pressure_at_station(
             _ -> BigFloat("12.5"),
@@ -92,6 +107,26 @@ const run_native_resolved_fsi_smoke = StenoticHemodynamics.run_native_resolved_f
         6;
         allow_pressure_fallback=false,
     )
+
+    mesh = native_resolved_fsi_mesh(:sev23, NativeResolvedFSIMeshResolution(axial=2, radial=1, angular=6))
+    float32_plane_pressure = StenoticHemodynamics.native_resolved_fsi_partitioned_wall_pressure_at_plane(
+        mesh,
+        _ -> Float32(3.5),
+        1,
+        Matrix{Float32}(mesh.coordinates),
+        z -> Float32(StenoticHemodynamics.native_resolved_fsi_radius(mesh.case_spec, z)),
+    )
+    @test float32_plane_pressure isa Float32
+    @test float32_plane_pressure == Float32(3.5)
+    big_plane_pressure = StenoticHemodynamics.native_resolved_fsi_partitioned_wall_pressure_at_plane(
+        mesh,
+        _ -> BigFloat("8.75"),
+        1,
+        mesh.coordinates,
+        z -> StenoticHemodynamics.native_resolved_fsi_radius(mesh.case_spec, z),
+    )
+    @test big_plane_pressure isa BigFloat
+    @test big_plane_pressure == BigFloat("8.75")
 end
 
 @testset "StenoticHemodynamics native resolved-FSI radial wall velocity helper" begin
