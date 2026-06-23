@@ -287,7 +287,12 @@ end
         @test plans[1].imported_available
         @test plans[2].imported_available
         @test !plans[3].imported_available
+        @test plans[1].boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke"
+        @test plans[1].boundary_mode_class == "local_smoke_loading"
+        @test plans[1].section41_boundary_status == "deferred_or_not_selected"
+        @test occursin("not_exact_section41_boundary_equivalence", plans[1].boundary_equivalence_status)
         @test occursin("ready", plans[1].status)
+        @test occursin("boundary_equivalence_status=", plans[1].status)
         @test occursin("ready", plans[2].status)
         @test occursin("expected-skip", plans[3].status)
         @test occursin("sev50", plans[3].status)
@@ -310,6 +315,9 @@ end
               joinpath(dry_run.output_dir, "section41-observations", "section41_observations.csv")
         @test dry_run.parity_summary_csv ==
               joinpath(dry_run.output_dir, "section41-observations", "section41_observation_summary.csv")
+        @test dry_run.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke"
+        @test dry_run.section41_boundary_status == "deferred_or_not_selected"
+        @test occursin("not_exact_section41_boundary_equivalence", dry_run.boundary_equivalence_status)
         @test !ispath(dry_run.output_dir)
         @test !ispath(dirname(dry_run.parity_summary_csv))
         @test ispath(joinpath(dir, "77", "velocity.xdmf"))
@@ -364,6 +372,10 @@ end
         @test all(row -> row.qualification == "qualified-internal", rows)
         @test all(row -> row.source in ("native", "imported", "parity"), rows)
         @test all(row -> row.quantity in ("velocity", "pressure"), rows)
+        @test all(row -> row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke", rows)
+        @test all(row -> row.boundary_mode_class == "local_smoke_loading", rows)
+        @test all(row -> row.section41_boundary_status == "deferred_or_not_selected", rows)
+        @test all(row -> occursin("not_exact_section41_boundary_equivalence", row.boundary_equivalence_status), rows)
         @test count(row -> row.case_id == "sev23", rows) == 6
         @test count(row -> row.case_id == "sev40", rows) == 6
         @test count(row -> row.case_id == "sev50", rows) == 4
@@ -406,7 +418,23 @@ end
         @test [(row.case_id, row.source, row.quantity) for row in planned_rows] ==
               sort([(row.case_id, row.source, row.quantity) for row in planned_rows])
         @test all(row -> row.row_count == 0, planned_rows)
+        @test all(row -> row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke", planned_rows)
         @test !ispath(dry_runs[1].output_dir)
+
+        exact_workflow_plan = only(native_resolved_fsi_production_workflow_plans(
+            case_ids=(:sev23,),
+            output_root=joinpath(dir, "exact-production"),
+            inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+            pressure_drop_dyn_cm2=0.0,
+        ))
+        exact_rows = native_resolved_fsi_production_parity_matrix_rows(
+            workflow_plans=[exact_workflow_plan],
+            imported_data_root=joinpath(dir, "missing-imported"),
+        )
+        @test all(row -> row.boundary_mode == "poiseuille_inlet_zero_outlet_stress_section41", exact_rows)
+        @test all(row -> row.boundary_mode_class == "exact_section41", exact_rows)
+        @test all(row -> row.section41_boundary_status == "implemented_smoke_validated", exact_rows)
+        @test all(row -> occursin("exact_section41_boundary_mode_selected_smoke_validated", row.boundary_equivalence_status), exact_rows)
     end
 end
 
@@ -450,6 +478,10 @@ end
         @test all(row -> row.operator_name == "CrossSectionQuadratureOperator", artifact.observation_rows)
         @test all(row -> row.coordinate_mode == "deformed", artifact.observation_rows)
         @test all(row -> row.area_valid, artifact.observation_rows)
+        @test all(row -> row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke", artifact.observation_rows)
+        @test all(row -> row.boundary_mode_class == "local_smoke_loading", artifact.observation_rows)
+        @test all(row -> row.section41_boundary_status == "deferred_or_not_selected", artifact.observation_rows)
+        @test all(row -> occursin("not_exact_section41_boundary_equivalence", row.boundary_equivalence_status), artifact.observation_rows)
         parity_rows = [row for row in artifact.observation_rows if row.source == "parity"]
         @test all(row -> row.paired_source == "native:imported", parity_rows)
         @test all(row -> isapprox(row.mean_velocity_abs_difference_cm_s, 0.0; atol=1.0e-12), parity_rows)
@@ -464,6 +496,8 @@ end
         )
         @test occursin("mean_velocity_abs_difference_cm_s", lines[1])
         @test occursin("mean_pressure_abs_difference_dyn_cm2", lines[1])
+        @test occursin("boundary_mode", lines[1])
+        @test occursin("boundary_equivalence_status", lines[1])
         @test any(occursin(",native,velocity,", line) for line in lines[2:end])
         @test any(occursin(",imported,pressure,", line) for line in lines[2:end])
         @test any(occursin(",parity,velocity_pressure,", line) for line in lines[2:end])
@@ -475,6 +509,9 @@ end
         @test count(row -> row.source == "native", artifact.summary_rows) == 2
         @test count(row -> row.source == "imported", artifact.summary_rows) == 2
         @test count(row -> row.source == "parity", artifact.summary_rows) == 2
+        @test all(row -> row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke", artifact.summary_rows)
+        @test all(row -> row.boundary_mode_class == "local_smoke_loading", artifact.summary_rows)
+        @test all(row -> row.section41_boundary_status == "deferred_or_not_selected", artifact.summary_rows)
         parity_velocity_summary = only(row for row in artifact.summary_rows if row.source == "parity" && row.quantity == "velocity")
         parity_pressure_summary = only(row for row in artifact.summary_rows if row.source == "parity" && row.quantity == "pressure")
         @test parity_velocity_summary.row_count == 3
@@ -491,9 +528,9 @@ end
         summary_lines = readlines(artifact.summary_csv)
         @test length(summary_lines) == 7
         @test summary_lines[1] ==
-            "case_id,source,quantity,row_count,ready_row_count,max_mean_velocity_abs_difference_cm_s,max_mean_pressure_abs_difference_dyn_cm2,status"
-        @test any(occursin(",parity,velocity,3,3,0.0,NaN,", line) for line in summary_lines[2:end])
-        @test any(occursin(",parity,pressure,3,3,NaN,0.0,", line) for line in summary_lines[2:end])
+            "case_id,source,quantity,row_count,ready_row_count,max_mean_velocity_abs_difference_cm_s,max_mean_pressure_abs_difference_dyn_cm2,boundary_mode,boundary_mode_class,section41_boundary_status,boundary_equivalence_status,status"
+        @test any(occursin(",parity,velocity,3,3,0.0,NaN,pressure_drop_weak_inlet_outlet_gauge_smoke,", line) for line in summary_lines[2:end])
+        @test any(occursin(",parity,pressure,3,3,NaN,0.0,pressure_drop_weak_inlet_outlet_gauge_smoke,", line) for line in summary_lines[2:end])
     end
 end
 
@@ -529,6 +566,7 @@ end
         ]
         @test observation_sort_keys == sort(observation_sort_keys)
         @test all(row -> row.source == "native", artifact.observation_rows)
+        @test all(row -> row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke", artifact.observation_rows)
         @test count(row -> row.quantity == "velocity", artifact.observation_rows) == 2
         @test count(row -> row.quantity == "pressure", artifact.observation_rows) == 2
         @test all(row -> row.area_valid, artifact.observation_rows)
@@ -542,6 +580,7 @@ end
         @test all(row -> row.row_count == 2, native_summary_rows)
         @test all(row -> row.ready_row_count == 2, native_summary_rows)
         @test all(row -> row.status == "ready", native_summary_rows)
+        @test all(row -> row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke", artifact.summary_rows)
         @test Set(row.quantity for row in imported_summary_rows) == Set(["velocity", "pressure"])
         @test all(row -> row.row_count == 0, imported_summary_rows)
         @test all(row -> row.ready_row_count == 0, imported_summary_rows)
@@ -551,8 +590,8 @@ end
         @test all(row -> occursin("missing required three-field XDMF inputs", row.status), imported_summary_rows)
         summary_lines = readlines(artifact.summary_csv)
         @test length(summary_lines) == 5
-        @test any(occursin(",imported,velocity,0,0,NaN,NaN,", line) for line in summary_lines[2:end])
-        @test any(occursin(",imported,pressure,0,0,NaN,NaN,", line) for line in summary_lines[2:end])
+        @test any(occursin(",imported,velocity,0,0,NaN,NaN,pressure_drop_weak_inlet_outlet_gauge_smoke,", line) for line in summary_lines[2:end])
+        @test any(occursin(",imported,pressure,0,0,NaN,NaN,pressure_drop_weak_inlet_outlet_gauge_smoke,", line) for line in summary_lines[2:end])
         @test any(occursin("expected-skip", line) for line in summary_lines[2:end])
     end
 end

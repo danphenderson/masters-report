@@ -28,6 +28,7 @@ function native_resolved_fsi_read_restart_metadata(path::AbstractString)
     if provenance == "state_carrying_partitioned"
         native_resolved_fsi_require_restart_metadata_value(metadata, "state_carrying_restart", true)
     end
+    native_resolved_fsi_validate_restart_boundary_status_if_present(metadata)
 
     manifest_csv = native_resolved_fsi_require_restart_metadata_string(metadata, "snapshot_manifest_csv")
     diagnostics_csv = native_resolved_fsi_require_restart_metadata_string(metadata, "diagnostics_csv")
@@ -76,6 +77,10 @@ function native_resolved_fsi_read_restart_metadata(path::AbstractString)
                 context="native resolved-FSI restart metadata snapshot_outputs[$(index)]",
             )
         end
+        native_resolved_fsi_validate_restart_boundary_status_if_present(
+            snapshot_output;
+            context="native resolved-FSI restart metadata snapshot_outputs[$(index)]",
+        )
     end
     if haskey(metadata, "state_payload")
         native_resolved_fsi_validate_restart_state_payload(metadata)
@@ -224,6 +229,40 @@ function native_resolved_fsi_require_restart_metadata_vector(metadata::Dict{Stri
     value isa AbstractVector ||
         throw(ArgumentError("native resolved-FSI restart metadata '$(key)' must be an array"))
     return value
+end
+
+const NATIVE_RESOLVED_FSI_RESTART_BOUNDARY_STATUS_KEYS = (
+    "boundary_mode",
+    "boundary_mode_class",
+    "inlet_condition_status",
+    "outlet_condition_status",
+    "pressure_gauge_status",
+    "section41_boundary_status",
+    "boundary_status",
+    "boundary_equivalence_status",
+)
+
+function native_resolved_fsi_validate_restart_boundary_status_if_present(
+    metadata::Dict{String,Any};
+    context::String = "native resolved-FSI restart metadata",
+)
+    any(key -> haskey(metadata, key), NATIVE_RESOLVED_FSI_RESTART_BOUNDARY_STATUS_KEYS) || return nothing
+    mode = native_resolved_fsi_require_restart_metadata_string(metadata, "boundary_mode"; context=context)
+    boundary_status = native_resolved_fsi_boundary_status_fields(Symbol(mode))
+    expected_values = Dict{String,String}(
+        "boundary_mode" => boundary_status.boundary_mode,
+        "boundary_mode_class" => boundary_status.boundary_mode_class,
+        "inlet_condition_status" => boundary_status.inlet_condition_status,
+        "outlet_condition_status" => boundary_status.outlet_condition_status,
+        "pressure_gauge_status" => boundary_status.pressure_gauge_status,
+        "section41_boundary_status" => boundary_status.section41_boundary_status,
+        "boundary_status" => boundary_status.boundary_status,
+        "boundary_equivalence_status" => native_resolved_fsi_boundary_equivalence_status(boundary_status),
+    )
+    for (key, expected) in expected_values
+        native_resolved_fsi_require_restart_metadata_value(metadata, key, expected; context=context)
+    end
+    return nothing
 end
 
 function native_resolved_fsi_validate_restart_state_payload(metadata::Dict{String,Any})

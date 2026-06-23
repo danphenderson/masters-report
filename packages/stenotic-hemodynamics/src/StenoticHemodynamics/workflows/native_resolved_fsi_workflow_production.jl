@@ -9,6 +9,67 @@ const NATIVE_RESOLVED_FSI_PARTITIONED_PRODUCTION_DEFAULT_WALL_DENSITY_G_CM3 = 1.
 const NATIVE_RESOLVED_FSI_PARTITIONED_PRODUCTION_DEFAULT_WALL_DAMPING_G_CM2_S = 0.0
 const NATIVE_RESOLVED_FSI_PRODUCTION_STIFFNESS_POLICIES = (:canic_membrane_c0,)
 const NATIVE_RESOLVED_FSI_PRODUCTION_REFERENCE_RADIUS_POLICIES = (:params_rmax,)
+const NATIVE_RESOLVED_FSI_PRODUCTION_INLET_OUTLET_BOUNDARY_MODES = (
+    :pressure_drop_weak_inlet_outlet_gauge_smoke,
+    :poiseuille_inlet_zero_outlet_stress_section41,
+)
+const NATIVE_RESOLVED_FSI_PRODUCTION_DEFAULT_INLET_OUTLET_BOUNDARY_MODE =
+    :pressure_drop_weak_inlet_outlet_gauge_smoke
+const NATIVE_RESOLVED_FSI_PRODUCTION_SECTION41_INLET_UMAX_CM_S = 45.0
+
+function native_resolved_fsi_production_boundary_mode(value::Union{Symbol,AbstractString})
+    mode = Symbol(value)
+    mode in NATIVE_RESOLVED_FSI_PRODUCTION_INLET_OUTLET_BOUNDARY_MODES || throw(ArgumentError(
+        "native resolved-FSI partitioned production inlet_outlet_boundary_mode must be one of " *
+        "$(NATIVE_RESOLVED_FSI_PRODUCTION_INLET_OUTLET_BOUNDARY_MODES); got $(repr(mode))",
+    ))
+    return mode
+end
+
+function native_resolved_fsi_boundary_status_fields(
+    mode::Union{Symbol,AbstractString};
+    inlet_umax_cm_s::Real = NATIVE_RESOLVED_FSI_PRODUCTION_SECTION41_INLET_UMAX_CM_S,
+)
+    boundary_mode = native_resolved_fsi_production_boundary_mode(mode)
+    inlet_umax = Float64(inlet_umax_cm_s)
+    isfinite(inlet_umax) ||
+        throw(ArgumentError("native resolved-FSI boundary status inlet_umax_cm_s must be finite"))
+    if boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke
+        return (
+            boundary_mode=string(boundary_mode),
+            boundary_mode_class="local_smoke_loading",
+            inlet_condition_status="pressure_drop_weak_loading_not_poiseuille_profile",
+            outlet_condition_status="outlet_gauge_pressure_reference_not_zero_outlet_stress_evidence",
+            pressure_gauge_status="post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint",
+            section41_boundary_status="deferred_or_not_selected",
+            boundary_status="local smoke boundary evidence only; not exact Section 4.1 boundary reproduction",
+        )
+    end
+    inlet_umax > 0.0 ||
+        throw(ArgumentError("native resolved-FSI exact Section 4.1 boundary status inlet_umax_cm_s must be positive"))
+    inlet_condition_status = isapprox(
+        inlet_umax,
+        NATIVE_RESOLVED_FSI_PRODUCTION_SECTION41_INLET_UMAX_CM_S;
+        atol=0.0,
+        rtol=1.0e-12,
+    ) ? "poiseuille_profile_umax_45_cm_s" : "poiseuille_profile_custom_umax_cm_s"
+    return (
+        boundary_mode=string(boundary_mode),
+        boundary_mode_class="exact_section41",
+        inlet_condition_status=inlet_condition_status,
+        outlet_condition_status="zero_outlet_stress_natural_traction",
+        pressure_gauge_status="post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint",
+        section41_boundary_status="implemented_smoke_validated",
+        boundary_status="exact Section 4.1 boundary mode selected; low-level Gridap mode is smoke-test validated, production equivalence still requires partitioned-production threading evidence",
+    )
+end
+
+function native_resolved_fsi_boundary_equivalence_status(boundary_status::NamedTuple)
+    if boundary_status.boundary_mode == string(:poiseuille_inlet_zero_outlet_stress_section41)
+        return "exact_section41_boundary_mode_selected_smoke_validated; parity ready is still artifact/operator readiness until production artifacts record this mode"
+    end
+    return "not_exact_section41_boundary_equivalence; parity ready is artifact/operator readiness only"
+end
 
 """
     NativeResolvedFSIPartitionedProductionSpec(; kwargs...)
@@ -28,6 +89,8 @@ struct NativeResolvedFSIPartitionedProductionSpec
     snapshot_times_s::Vector{Float64}
     time_atol::Float64
     overwrite::Bool
+    inlet_outlet_boundary_mode::Symbol
+    inlet_umax_cm_s::Float64
     pressure_drop_dyn_cm2::Float64
     picard_iteration_count::Int
     picard_tolerance::Float64
@@ -51,6 +114,8 @@ function NativeResolvedFSIPartitionedProductionSpec(;
     snapshot_times_s = (tfinal_s,),
     time_atol::Real = 1.0e-12,
     overwrite::Bool = false,
+    inlet_outlet_boundary_mode::Union{Symbol,AbstractString} = NATIVE_RESOLVED_FSI_PRODUCTION_DEFAULT_INLET_OUTLET_BOUNDARY_MODE,
+    inlet_umax_cm_s::Real = NATIVE_RESOLVED_FSI_PRODUCTION_SECTION41_INLET_UMAX_CM_S,
     pressure_drop_dyn_cm2::Real = 40.0,
     picard_iteration_count::Integer = NATIVE_RESOLVED_FSI_PARTITIONED_PRODUCTION_DEFAULT_PICARD_ITERATION_COUNT,
     picard_tolerance::Real = NATIVE_RESOLVED_FSI_PARTITIONED_PRODUCTION_DEFAULT_PICARD_TOLERANCE,
@@ -73,6 +138,8 @@ function NativeResolvedFSIPartitionedProductionSpec(;
         Float64[Float64(time_s) for time_s in snapshot_times_s],
         Float64(time_atol),
         overwrite,
+        native_resolved_fsi_production_boundary_mode(inlet_outlet_boundary_mode),
+        Float64(inlet_umax_cm_s),
         Float64(pressure_drop_dyn_cm2),
         Int(picard_iteration_count),
         Float64(picard_tolerance),
@@ -116,10 +183,22 @@ function validate(spec::NativeResolvedFSIPartitionedProductionSpec)
         spec.allow_many_snapshots || throw(ArgumentError(
             "native resolved-FSI partitioned production requested $(length(spec.snapshot_times_s)) snapshots; set allow_many_snapshots=true to exceed $(NATIVE_RESOLVED_FSI_PRODUCTION_MAX_SNAPSHOT_COUNT)",
         ))
+    spec.inlet_outlet_boundary_mode in NATIVE_RESOLVED_FSI_PRODUCTION_INLET_OUTLET_BOUNDARY_MODES || throw(ArgumentError(
+        "native resolved-FSI partitioned production inlet_outlet_boundary_mode must be one of " *
+        "$(NATIVE_RESOLVED_FSI_PRODUCTION_INLET_OUTLET_BOUNDARY_MODES)",
+    ))
+    isfinite(spec.inlet_umax_cm_s) ||
+        throw(ArgumentError("native resolved-FSI partitioned production inlet_umax_cm_s must be finite"))
+    if spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
+        spec.inlet_umax_cm_s > 0.0 ||
+            throw(ArgumentError("native resolved-FSI partitioned production inlet_umax_cm_s must be positive for exact Section 4.1 mode"))
+    end
     isfinite(spec.pressure_drop_dyn_cm2) ||
         throw(ArgumentError("native resolved-FSI partitioned production pressure_drop_dyn_cm2 must be finite"))
-    spec.pressure_drop_dyn_cm2 > 0.0 ||
-        throw(ArgumentError("native resolved-FSI partitioned production pressure_drop_dyn_cm2 must be positive"))
+    if spec.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke
+        spec.pressure_drop_dyn_cm2 > 0.0 ||
+            throw(ArgumentError("native resolved-FSI partitioned production pressure_drop_dyn_cm2 must be positive"))
+    end
     spec.picard_iteration_count > 0 ||
         throw(ArgumentError("native resolved-FSI partitioned production picard_iteration_count must be positive"))
     isfinite(spec.picard_tolerance) ||
@@ -270,6 +349,14 @@ struct NativeResolvedFSIProductionDryRunPlan
     restart_metadata_json::String
     parity_observations_csv::String
     parity_summary_csv::String
+    boundary_mode::String
+    boundary_mode_class::String
+    inlet_condition_status::String
+    outlet_condition_status::String
+    pressure_gauge_status::String
+    section41_boundary_status::String
+    boundary_status::String
+    boundary_equivalence_status::String
     imported_case
     imported_available::Bool
     status::String
@@ -308,6 +395,8 @@ function NativeResolvedFSIProductionWorkflowPlan(
         snapshot_times_s=(workflow_spec.output_time_s,),
         time_atol=workflow_spec.time_atol,
         overwrite=workflow_spec.overwrite,
+        inlet_outlet_boundary_mode=NATIVE_RESOLVED_FSI_PRODUCTION_DEFAULT_INLET_OUTLET_BOUNDARY_MODE,
+        inlet_umax_cm_s=workflow_spec.inlet_umax_cm_s,
         pressure_drop_dyn_cm2=workflow_spec.pressure_drop_dyn_cm2,
     )
     return NativeResolvedFSIProductionWorkflowPlan(case_spec, workflow_spec, String(status), production_spec)
@@ -331,6 +420,7 @@ function native_resolved_fsi_production_workflow_plans(;
     snapshot_times_s = (tfinal_s,),
     time_atol::Real = 1.0e-12,
     overwrite::Bool = false,
+    inlet_outlet_boundary_mode::Union{Symbol,AbstractString} = NATIVE_RESOLVED_FSI_PRODUCTION_DEFAULT_INLET_OUTLET_BOUNDARY_MODE,
     inlet_umax_cm_s::Real = 45.0,
     pressure_drop_dyn_cm2::Real = 40.0,
     picard_iteration_count::Integer = NATIVE_RESOLVED_FSI_PARTITIONED_PRODUCTION_DEFAULT_PICARD_ITERATION_COUNT,
@@ -361,6 +451,8 @@ function native_resolved_fsi_production_workflow_plans(;
             snapshot_times_s=snapshot_times_s,
             time_atol=time_atol,
             overwrite=overwrite,
+            inlet_outlet_boundary_mode=inlet_outlet_boundary_mode,
+            inlet_umax_cm_s=inlet_umax_cm_s,
             pressure_drop_dyn_cm2=pressure_drop_dyn_cm2,
             picard_iteration_count=picard_iteration_count,
             picard_tolerance=picard_tolerance,
@@ -386,7 +478,15 @@ function native_resolved_fsi_production_workflow_plans(;
             displacement_mode=mode,
             synthetic_lift_amplitude_cm=synthetic_lift_amplitude_cm,
         )
-        status = "Section 4.1 native production plan for $(case_spec.paper_label) through T=$(last(production_spec.snapshot_times_s)) s; production runner support advances one coarse state-carrying partitioned native FSI snapshot series for the requested schedule, while the legacy workflow_spec remains schema-only; this is not a paper-grade reproduction or monolithic ALE solve"
+        boundary_status = native_resolved_fsi_boundary_status_fields(
+            production_spec.inlet_outlet_boundary_mode;
+            inlet_umax_cm_s=production_spec.inlet_umax_cm_s,
+        )
+        status = if production_spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
+            "Section 4.1 native production plan for $(case_spec.paper_label) through T=$(last(production_spec.snapshot_times_s)) s; exact inlet/outlet boundary mode is status-visible and low-level smoke-test validated, but production runner execution is fail-closed until partitioned-production threading and pressure fallback land; boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); this is not a paper-grade reproduction or monolithic ALE solve"
+        else
+            "Section 4.1 native production plan for $(case_spec.paper_label) through T=$(last(production_spec.snapshot_times_s)) s; production runner support advances one coarse state-carrying partitioned native FSI snapshot series for the requested schedule using local pressure-drop smoke inlet/outlet loading, while the legacy workflow_spec remains schema-only; boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); this is not a paper-grade reproduction or monolithic ALE solve"
+        end
         push!(plans, NativeResolvedFSIProductionWorkflowPlan(case_spec, workflow_spec, status, production_spec))
     end
     return plans
@@ -419,11 +519,20 @@ function native_resolved_fsi_partitioned_production_dry_run(
     expected_node_count = (resolution.axial + 1) * (1 + resolution.radial * resolution.angular)
     expected_tetrahedron_count = 3 * resolution.axial * resolution.angular * (2 * resolution.radial - 1)
     guard_report = native_resolved_fsi_partitioned_production_default_guard_report(spec)
+    boundary_status = native_resolved_fsi_boundary_status_fields(
+        spec.inlet_outlet_boundary_mode;
+        inlet_umax_cm_s=spec.inlet_umax_cm_s,
+    )
+    boundary_equivalence_status = native_resolved_fsi_boundary_equivalence_status(boundary_status)
     override_status = isempty(guard_report.required_override_flags) ?
         "default guards satisfied; required override flags: none" :
         "default guards would block production without required override flags: $(join(guard_report.required_override_flags, ", "))"
     imported_status = parity_plan.imported_available ? "imported bundle available" : "imported bundle expected-skip"
-    status = "dry-run ready: no production solver executed and no files written; $(override_status); $(imported_status); production execution remains opt-in through explicit production specs and output-volume overrides"
+    execution_status =
+        spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41 ?
+        "production execution remains fail-closed until partitioned-production boundary threading and pressure fallback land" :
+        "production execution remains opt-in through explicit production specs and output-volume overrides"
+    status = "dry-run ready: no production solver executed and no files written; $(override_status); $(imported_status); boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); $(execution_status)"
     return NativeResolvedFSIProductionDryRunPlan(
         plan,
         spec.case_spec.case_id,
@@ -442,6 +551,14 @@ function native_resolved_fsi_partitioned_production_dry_run(
         joinpath(output_dir, "restart_metadata.json"),
         native_resolved_fsi_production_parity_observations_csv(parity_plan),
         native_resolved_fsi_production_parity_summary_csv(parity_plan),
+        boundary_status.boundary_mode,
+        boundary_status.boundary_mode_class,
+        boundary_status.inlet_condition_status,
+        boundary_status.outlet_condition_status,
+        boundary_status.pressure_gauge_status,
+        boundary_status.section41_boundary_status,
+        boundary_status.boundary_status,
+        boundary_equivalence_status,
         parity_plan.imported_case,
         parity_plan.imported_available,
         status,
@@ -464,6 +581,13 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
         if any(time_s -> time_s <= 0.0, local_spec.snapshot_times_s)
             throw(ArgumentError(
                 "native resolved-FSI partitioned production runner requires positive snapshot times; t=0 initial-condition bundle output is not implemented",
+            ))
+        end
+        if local_spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
+            throw(ArgumentError(
+                "native resolved-FSI partitioned production exact Section 4.1 inlet/outlet mode is status-visible but fail-closed: " *
+                "the low-level Gridap mode is smoke-test validated, but partitioned production has not yet threaded " *
+                "poiseuille_inlet_zero_outlet_stress_section41 through fluid solves and pressure fallback",
             ))
         end
         return local_spec
@@ -495,6 +619,8 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             string(local_spec.dt_s),
             string(local_spec.tfinal_s),
             join(string.(local_spec.snapshot_times_s), ","),
+            string(local_spec.inlet_outlet_boundary_mode),
+            string(local_spec.inlet_umax_cm_s),
             string(local_spec.pressure_drop_dyn_cm2),
             string(local_spec.picard_iteration_count),
             string(local_spec.picard_tolerance),
@@ -522,6 +648,8 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             snapshot_times_s=[snapshot_time_s],
             time_atol=local_spec.time_atol,
             overwrite=local_spec.overwrite,
+            inlet_outlet_boundary_mode=local_spec.inlet_outlet_boundary_mode,
+            inlet_umax_cm_s=local_spec.inlet_umax_cm_s,
             pressure_drop_dyn_cm2=local_spec.pressure_drop_dyn_cm2,
             picard_iteration_count=local_spec.picard_iteration_count,
             picard_tolerance=local_spec.picard_tolerance,
@@ -638,6 +766,10 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
 
     function manifest_row(local_spec::NativeResolvedFSIPartitionedProductionSpec, snapshot_result::NamedTuple)
         smoke_result = snapshot_result.smoke_result
+        boundary_status = native_resolved_fsi_boundary_status_fields(
+            smoke_result.inlet_outlet_boundary_mode;
+            inlet_umax_cm_s=local_spec.inlet_umax_cm_s,
+        )
         return (
             string(local_spec.case_spec.case_id),
             snapshot_result.snapshot_time_s,
@@ -650,6 +782,10 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             size(smoke_result.mesh.topology, 1),
             smoke_result.estimated_field_payload_bytes,
             snapshot_result.status.ready ? "ready" : "failed",
+            boundary_status.boundary_mode,
+            boundary_status.boundary_mode_class,
+            boundary_status.section41_boundary_status,
+            native_resolved_fsi_boundary_equivalence_status(boundary_status),
         )
     end
 
@@ -670,6 +806,10 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "tetrahedron_count",
             "estimated_field_payload_bytes",
             "status",
+            "boundary_mode",
+            "boundary_mode_class",
+            "section41_boundary_status",
+            "boundary_equivalence_status",
         )
         rows = (manifest_row(local_spec, snapshot_result) for snapshot_result in snapshot_results)
         return write_csv_table(path, header, rows; overwrite=local_spec.overwrite)
@@ -705,6 +845,10 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             smoke_result.time_status.ready &&
             smoke_result.field_status.ready
         wall_ready = wall_update_ready(smoke_result)
+        boundary_status = native_resolved_fsi_boundary_status_fields(
+            smoke_result.inlet_outlet_boundary_mode;
+            inlet_umax_cm_s=local_spec.inlet_umax_cm_s,
+        )
         return (
             case_id=string(local_spec.case_spec.case_id),
             snapshot_index=snapshot_index,
@@ -727,6 +871,14 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             coupling_converged=smoke_result.coupling_converged,
             coupling_residual_count=length(smoke_result.coupling_residual_history),
             fluid_wall_boundary_mode=string(smoke_result.fluid_wall_boundary_mode),
+            boundary_mode=boundary_status.boundary_mode,
+            boundary_mode_class=boundary_status.boundary_mode_class,
+            inlet_condition_status=boundary_status.inlet_condition_status,
+            outlet_condition_status=boundary_status.outlet_condition_status,
+            pressure_gauge_status=boundary_status.pressure_gauge_status,
+            section41_boundary_status=boundary_status.section41_boundary_status,
+            boundary_status=boundary_status.boundary_status,
+            boundary_equivalence_status=native_resolved_fsi_boundary_equivalence_status(boundary_status),
             post_update_fluid_refresh=smoke_result.post_update_fluid_refresh,
             wall_update_ready=wall_ready,
             wall_displacement_min_cm=minimum(smoke_result.wall_displacement_cm),
@@ -795,8 +947,17 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
         final_snapshot = snapshot_results[end]
         final_smoke = final_snapshot.smoke_result
         resolution = local_spec.resolution
-        snapshot_outputs = Any[
-            Dict{String,Any}(
+        final_boundary_status = native_resolved_fsi_boundary_status_fields(
+            final_smoke.inlet_outlet_boundary_mode;
+            inlet_umax_cm_s=local_spec.inlet_umax_cm_s,
+        )
+        snapshot_outputs = Any[]
+        for (index, snapshot) in enumerate(snapshot_results)
+            snapshot_boundary_status = native_resolved_fsi_boundary_status_fields(
+                snapshot.smoke_result.inlet_outlet_boundary_mode;
+                inlet_umax_cm_s=local_spec.inlet_umax_cm_s,
+            )
+            push!(snapshot_outputs, Dict{String,Any}(
                 "snapshot_index" => index,
                 "snapshot_time_s" => snapshot.snapshot_time_s,
                 "saved_time_s" => snapshot.smoke_result.saved_time_s,
@@ -811,9 +972,18 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
                     snapshot.smoke_result.final_coupling_displacement_residual_cm,
                 "coupling_converged" => snapshot.smoke_result.coupling_converged,
                 "fluid_wall_boundary_mode" => string(snapshot.smoke_result.fluid_wall_boundary_mode),
+                "boundary_mode" => snapshot_boundary_status.boundary_mode,
+                "boundary_mode_class" => snapshot_boundary_status.boundary_mode_class,
+                "inlet_condition_status" => snapshot_boundary_status.inlet_condition_status,
+                "outlet_condition_status" => snapshot_boundary_status.outlet_condition_status,
+                "pressure_gauge_status" => snapshot_boundary_status.pressure_gauge_status,
+                "section41_boundary_status" => snapshot_boundary_status.section41_boundary_status,
+                "boundary_status" => snapshot_boundary_status.boundary_status,
+                "boundary_equivalence_status" =>
+                    native_resolved_fsi_boundary_equivalence_status(snapshot_boundary_status),
                 "status" => snapshot.status.status,
-            ) for (index, snapshot) in enumerate(snapshot_results)
-        ]
+            ))
+        end
         coupling_residual_history = Any[
             Dict{String,Any}(
                 "time_step_index" => row.time_step_index,
@@ -867,6 +1037,14 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "coupling_residual_history" => coupling_residual_history,
             "fluid_wall_boundary_mode" => string(final_smoke.fluid_wall_boundary_mode),
             "wall_velocity_fluid_bc_status" => "prescribed_radial_wall_velocity_on_deformed_geometry",
+            "boundary_mode" => final_boundary_status.boundary_mode,
+            "boundary_mode_class" => final_boundary_status.boundary_mode_class,
+            "inlet_condition_status" => final_boundary_status.inlet_condition_status,
+            "outlet_condition_status" => final_boundary_status.outlet_condition_status,
+            "pressure_gauge_status" => final_boundary_status.pressure_gauge_status,
+            "section41_boundary_status" => final_boundary_status.section41_boundary_status,
+            "boundary_status" => final_boundary_status.boundary_status,
+            "boundary_equivalence_status" => native_resolved_fsi_boundary_equivalence_status(final_boundary_status),
             "current_wall_displacement_cm" => copy(final_smoke.wall_displacement_cm),
             "current_wall_velocity_cm_s" => copy(final_smoke.wall_velocity_cm_s),
             "current_wall_pressure_dyn_cm2" => copy(final_smoke.wall_pressure_dyn_cm2),

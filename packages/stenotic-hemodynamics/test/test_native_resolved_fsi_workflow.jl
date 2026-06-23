@@ -127,6 +127,8 @@ end
     @test default_spec.snapshot_times_s == [1.0]
     @test default_spec.wall_stiffness_policy === :canic_membrane_c0
     @test default_spec.wall_reference_radius_policy === :params_rmax
+    @test default_spec.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke
+    @test default_spec.inlet_umax_cm_s ≈ 45.0
     @test default_spec.coupling_iteration_count == 1
     @test default_spec.coupling_under_relaxation == 1.0
     @test default_native_resolved_fsi_partitioned_production_output_dir(default_spec) ==
@@ -158,6 +160,7 @@ end
     @test tiny_spec.coupling_iteration_count == 2
     @test tiny_spec.coupling_tolerance ≈ 1.0e-7
     @test tiny_spec.coupling_under_relaxation ≈ 0.5
+    @test tiny_spec.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke
     @test default_native_resolved_fsi_partitioned_production_output_dir(tiny_spec) ==
           joinpath(
         "tmp/native-production-test",
@@ -180,6 +183,21 @@ end
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(wall_damping_g_cm2_s=-1.0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(wall_stiffness_policy=:constant_c0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(wall_reference_radius_policy=:local_radius)
+    @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(inlet_outlet_boundary_mode=:unsupported)
+    @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(inlet_umax_cm_s=NaN)
+    @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(
+        inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+        inlet_umax_cm_s=0.0,
+        pressure_drop_dyn_cm2=0.0,
+    )
+    @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(pressure_drop_dyn_cm2=0.0)
+    exact_boundary_spec = NativeResolvedFSIPartitionedProductionSpec(
+        inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+        pressure_drop_dyn_cm2=0.0,
+    )
+    @test exact_boundary_spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
+    @test exact_boundary_spec.inlet_umax_cm_s ≈ 45.0
+    @test exact_boundary_spec.pressure_drop_dyn_cm2 == 0.0
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(coupling_iteration_count=0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(coupling_tolerance=0.0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(coupling_under_relaxation=0.0)
@@ -299,11 +317,21 @@ end
               joinpath(expected_output_dir, "section41-observations", "section41_observations.csv")
         @test dry_run.parity_summary_csv ==
               joinpath(expected_output_dir, "section41-observations", "section41_observation_summary.csv")
+        @test dry_run.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke"
+        @test dry_run.boundary_mode_class == "local_smoke_loading"
+        @test dry_run.inlet_condition_status == "pressure_drop_weak_loading_not_poiseuille_profile"
+        @test dry_run.outlet_condition_status == "outlet_gauge_pressure_reference_not_zero_outlet_stress_evidence"
+        @test dry_run.pressure_gauge_status == "post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint"
+        @test dry_run.section41_boundary_status == "deferred_or_not_selected"
+        @test occursin("local smoke boundary evidence", dry_run.boundary_status)
+        @test occursin("not_exact_section41_boundary_equivalence", dry_run.boundary_equivalence_status)
         @test dry_run.imported_case.case_label == "77"
         @test !dry_run.imported_available
         @test occursin("dry-run ready", dry_run.status)
         @test occursin("no production solver executed", dry_run.status)
         @test occursin("no files written", dry_run.status)
+        @test occursin("boundary_mode=pressure_drop_weak_inlet_outlet_gauge_smoke", dry_run.status)
+        @test occursin("section41_boundary_status=deferred_or_not_selected", dry_run.status)
         @test occursin("required override flags: none", dry_run.status)
         @test !ispath(dry_run.output_dir)
         @test !ispath(dirname(dry_run.parity_observations_csv))
@@ -335,6 +363,36 @@ end
         @test blocked_dry_run.required_override_flags == ["allow_many_snapshots", "allow_large_output"]
         @test occursin("allow_many_snapshots, allow_large_output", blocked_dry_run.status)
         @test !ispath(blocked_dry_run.output_dir)
+
+        exact_plan = only(native_resolved_fsi_production_workflow_plans(
+            case_ids=(:sev23,),
+            resolution=resolution,
+            output_root=joinpath(dir, "exact-production"),
+            dt_s=1.0e-4,
+            tfinal_s=2.0e-4,
+            snapshot_times_s=[2.0e-4],
+            inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+            inlet_umax_cm_s=45.0,
+            pressure_drop_dyn_cm2=0.0,
+        ))
+        exact_dry_run = native_resolved_fsi_partitioned_production_dry_run(
+            exact_plan;
+            imported_data_root=joinpath(dir, "missing-imported"),
+        )
+        @test exact_dry_run.boundary_mode == "poiseuille_inlet_zero_outlet_stress_section41"
+        @test exact_dry_run.boundary_mode_class == "exact_section41"
+        @test exact_dry_run.inlet_condition_status == "poiseuille_profile_umax_45_cm_s"
+        @test exact_dry_run.outlet_condition_status == "zero_outlet_stress_natural_traction"
+        @test exact_dry_run.pressure_gauge_status ==
+              "post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint"
+        @test exact_dry_run.section41_boundary_status == "implemented_smoke_validated"
+        @test occursin("low-level Gridap mode is smoke-test validated", exact_dry_run.boundary_status)
+        @test occursin("exact_section41_boundary_mode_selected_smoke_validated", exact_dry_run.boundary_equivalence_status)
+        @test occursin("production runner execution is fail-closed", exact_plan.status)
+        @test occursin("section41_boundary_status=implemented_smoke_validated", exact_plan.status)
+        @test occursin("boundary_mode=poiseuille_inlet_zero_outlet_stress_section41", exact_dry_run.status)
+        @test occursin("section41_boundary_status=implemented_smoke_validated", exact_dry_run.status)
+        @test occursin("production execution remains fail-closed", exact_dry_run.status)
     end
 end
 
@@ -391,9 +449,12 @@ end
             manifest_lines[1],
             "case_id,snapshot_time_s,output_dir,velocity_xdmf,pressure_xdmf,displacement_xdmf,provenance,node_count,tetrahedron_count,estimated_field_payload_bytes,status",
         )
+        @test occursin("boundary_mode", manifest_lines[1])
+        @test occursin("section41_boundary_status", manifest_lines[1])
+        @test occursin("boundary_equivalence_status", manifest_lines[1])
         @test occursin("sev23,0.0001", manifest_lines[2])
         @test occursin(",state_carrying_partitioned,", manifest_lines[2])
-        @test occursin(",ready", manifest_lines[2])
+        @test occursin(",ready,pressure_drop_weak_inlet_outlet_gauge_smoke,local_smoke_loading,deferred_or_not_selected,", manifest_lines[2])
         diagnostic_row = only(result.diagnostic_rows)
         @test diagnostic_row.output_dir == result.output_dir
         @test diagnostic_row.provenance == "state_carrying_partitioned"
@@ -405,6 +466,16 @@ end
         @test diagnostic_row.max_coupling_iterations_used == 1
         @test isfinite(diagnostic_row.final_coupling_displacement_residual_cm)
         @test diagnostic_row.fluid_wall_boundary_mode == "prescribed_radial_wall_velocity"
+        @test diagnostic_row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke"
+        @test diagnostic_row.boundary_mode_class == "local_smoke_loading"
+        @test diagnostic_row.inlet_condition_status == "pressure_drop_weak_loading_not_poiseuille_profile"
+        @test diagnostic_row.outlet_condition_status ==
+              "outlet_gauge_pressure_reference_not_zero_outlet_stress_evidence"
+        @test diagnostic_row.pressure_gauge_status ==
+              "post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint"
+        @test diagnostic_row.section41_boundary_status == "deferred_or_not_selected"
+        @test occursin("local smoke boundary evidence", diagnostic_row.boundary_status)
+        @test occursin("not_exact_section41_boundary_equivalence", diagnostic_row.boundary_equivalence_status)
         @test diagnostic_row.wall_displacement_max_cm > 0.0
         @test diagnostic_row.minimum_current_radius_cm > 0.0
         @test diagnostic_row.minimum_signed_tetra_volume6 > 0.0
@@ -413,6 +484,8 @@ end
         @test occursin("solver_convergence_ready", diagnostic_lines[1])
         @test occursin("max_coupling_iterations_used", diagnostic_lines[1])
         @test occursin("fluid_wall_boundary_mode", diagnostic_lines[1])
+        @test occursin("boundary_mode", diagnostic_lines[1])
+        @test occursin("section41_boundary_status", diagnostic_lines[1])
         @test occursin("wall_update_ready", diagnostic_lines[1])
         @test occursin("provenance", diagnostic_lines[1])
         @test occursin(",ready", diagnostic_lines[2])
@@ -424,6 +497,16 @@ end
         @test result.restart_metadata["fluid_wall_boundary_mode"] == "prescribed_radial_wall_velocity"
         @test result.restart_metadata["wall_velocity_fluid_bc_status"] ==
               "prescribed_radial_wall_velocity_on_deformed_geometry"
+        @test result.restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
+        @test result.restart_metadata["boundary_mode_class"] == "local_smoke_loading"
+        @test result.restart_metadata["inlet_condition_status"] == "pressure_drop_weak_loading_not_poiseuille_profile"
+        @test result.restart_metadata["outlet_condition_status"] ==
+              "outlet_gauge_pressure_reference_not_zero_outlet_stress_evidence"
+        @test result.restart_metadata["pressure_gauge_status"] ==
+              "post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint"
+        @test result.restart_metadata["section41_boundary_status"] == "deferred_or_not_selected"
+        @test occursin("local smoke boundary evidence", result.restart_metadata["boundary_status"])
+        @test occursin("not_exact_section41_boundary_equivalence", result.restart_metadata["boundary_equivalence_status"])
         @test length(result.restart_metadata["coupling_residual_history"]) ==
               length(result.smoke_result.coupling_residual_history)
         @test result.restart_metadata["resume_supported"] == false
@@ -451,7 +534,13 @@ end
         @test occursin("\"state_payload\"", restart_metadata_text)
         @test occursin("\"schema_version\": 1", restart_metadata_text)
         @test occursin("\"fluid_wall_boundary_mode\": \"prescribed_radial_wall_velocity\"", restart_metadata_text)
+        @test occursin("\"boundary_mode\": \"pressure_drop_weak_inlet_outlet_gauge_smoke\"", restart_metadata_text)
+        @test occursin("\"section41_boundary_status\": \"deferred_or_not_selected\"", restart_metadata_text)
         @test only(result.restart_metadata["snapshot_outputs"])["provenance"] == "state_carrying_partitioned"
+        @test only(result.restart_metadata["snapshot_outputs"])["boundary_mode"] ==
+              "pressure_drop_weak_inlet_outlet_gauge_smoke"
+        @test only(result.restart_metadata["snapshot_outputs"])["section41_boundary_status"] ==
+              "deferred_or_not_selected"
 
         parsed_restart_metadata = native_resolved_fsi_read_restart_metadata(result.restart_metadata_json)
         @test parsed_restart_metadata isa Dict{String,Any}
@@ -461,6 +550,9 @@ end
         @test parsed_restart_metadata["state_carrying_restart"] == true
         @test parsed_restart_metadata["resume_supported"] == false
         @test parsed_restart_metadata["resume_status"] == "deferred"
+        @test parsed_restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
+        @test parsed_restart_metadata["boundary_mode_class"] == "local_smoke_loading"
+        @test parsed_restart_metadata["section41_boundary_status"] == "deferred_or_not_selected"
         parsed_state_payload = parsed_restart_metadata["state_payload"]
         @test parsed_state_payload["schema_version"] == 1
         @test parsed_state_payload["saved_time_s"] ≈ result.saved_time_s
@@ -480,6 +572,8 @@ end
         @test parsed_snapshot_output["displacement_xdmf"] == result.smoke_result.displacement_xdmf
         @test parsed_snapshot_output["provenance"] == "state_carrying_partitioned"
         @test parsed_snapshot_output["time_step_count"] == result.smoke_result.time_step_count
+        @test parsed_snapshot_output["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
+        @test parsed_snapshot_output["section41_boundary_status"] == "deferred_or_not_selected"
 
         resume_error = try
             native_resolved_fsi_resume_partitioned_production(result.restart_metadata_json)
@@ -515,6 +609,19 @@ end
         @test invalid_error isa ArgumentError
         @test occursin("snapshot_outputs[1]", sprint(showerror, invalid_error))
         @test occursin("requires 'time_step_count'", sprint(showerror, invalid_error))
+
+        invalid_boundary_metadata = deepcopy(result.restart_metadata)
+        invalid_boundary_metadata["section41_boundary_status"] = "implemented_smoke_validated"
+        invalid_boundary_metadata_path = joinpath(dir, "invalid-boundary-restart-metadata.json")
+        StenoticHemodynamics.write_json(invalid_boundary_metadata_path, invalid_boundary_metadata; overwrite=true)
+        invalid_boundary_error = try
+            native_resolved_fsi_read_restart_metadata(invalid_boundary_metadata_path)
+            nothing
+        catch err
+            err
+        end
+        @test invalid_boundary_error isa ArgumentError
+        @test occursin("section41_boundary_status", sprint(showerror, invalid_boundary_error))
 
         missing_payload_field_metadata = deepcopy(result.restart_metadata)
         delete!(missing_payload_field_metadata["state_payload"], "final_wall_velocity_cm_s")
@@ -576,7 +683,10 @@ end
         @test occursin("snapshot-t0p0001", manifest_lines[2])
         @test occursin("snapshot-t0p0002", manifest_lines[3])
         @test all(occursin(",state_carrying_partitioned,", line) for line in manifest_lines[2:end])
-        @test all(endswith(line, ",ready") for line in manifest_lines[2:end])
+        @test all(
+            occursin(",ready,pressure_drop_weak_inlet_outlet_gauge_smoke,local_smoke_loading,deferred_or_not_selected,", line)
+            for line in manifest_lines[2:end]
+        )
         @test occursin("state-carrying partitioned solve", multi_result.method_status.status)
         @test multi_result.diagnostics_status.ready
         @test multi_result.restart_status.ready
@@ -595,7 +705,13 @@ end
         @test multi_result.restart_metadata["restart_provenance"] == "state_carrying_partitioned"
         @test multi_result.restart_metadata["state_carrying_restart"] == true
         @test multi_result.restart_metadata["resume_supported"] == false
+        @test multi_result.restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
+        @test multi_result.restart_metadata["section41_boundary_status"] == "deferred_or_not_selected"
         @test [snapshot["time_step_count"] for snapshot in multi_result.restart_metadata["snapshot_outputs"]] == [1, 2]
+        @test all(
+            snapshot -> snapshot["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke",
+            multi_result.restart_metadata["snapshot_outputs"],
+        )
         @test multi_result.restart_metadata["state_payload"]["last_snapshot_index"] == 2
         @test multi_result.restart_metadata["state_payload"]["saved_time_s"] ≈ multi_result.saved_time_s
         @test multi_result.restart_metadata["state_payload"]["final_wall_displacement_cm"] ==
@@ -614,6 +730,7 @@ end
         @test parsed_multi_restart_metadata["restart_provenance"] == "state_carrying_partitioned"
         @test parsed_multi_restart_metadata["state_carrying_restart"] == true
         @test [snapshot["time_step_count"] for snapshot in parsed_multi_restart_metadata["snapshot_outputs"]] == [1, 2]
+        @test parsed_multi_restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
         @test parsed_multi_restart_metadata["state_payload"]["last_snapshot_index"] == 2
     end
 
@@ -651,6 +768,7 @@ end
         legacy_metadata = native_resolved_fsi_read_restart_metadata(legacy_metadata_path)
         @test legacy_metadata["restart_provenance"] == "independent_smoke_backed_snapshots"
         @test !haskey(only(legacy_metadata["snapshot_outputs"]), "time_step_count")
+        @test !haskey(legacy_metadata, "boundary_mode")
     end
 
     mktempdir() do dir
@@ -694,9 +812,29 @@ end
         @test coupling_result.restart_metadata["fluid_wall_boundary_mode"] == "prescribed_radial_wall_velocity"
         @test coupling_result.restart_metadata["wall_velocity_fluid_bc_status"] ==
               "prescribed_radial_wall_velocity_on_deformed_geometry"
+        @test coupling_result.restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
+        @test coupling_result.restart_metadata["section41_boundary_status"] == "deferred_or_not_selected"
         @test length(coupling_result.restart_metadata["coupling_residual_history"]) == 2
         @test occursin("prescribed radial wall-velocity Dirichlet", coupling_result.method_status.status)
     end
+
+    exact_production_spec = NativeResolvedFSIPartitionedProductionSpec(
+        resolution=resolution,
+        inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+        pressure_drop_dyn_cm2=0.0,
+        dt_s=1.0e-4,
+        tfinal_s=1.0e-4,
+        snapshot_times_s=[1.0e-4],
+    )
+    exact_production_error = try
+        run_native_resolved_fsi_partitioned_production(exact_production_spec)
+        nothing
+    catch err
+        err
+    end
+    @test exact_production_error isa ArgumentError
+    @test occursin("fail-closed", sprint(showerror, exact_production_error))
+    @test occursin("partitioned production has not yet threaded", sprint(showerror, exact_production_error))
 
     zero_snapshot_spec = NativeResolvedFSIPartitionedProductionSpec(
         resolution=resolution,

@@ -9,6 +9,10 @@ struct NativeResolvedFSIProductionParityPlan
     workflow_plan::NativeResolvedFSIProductionWorkflowPlan
     imported_case::Resolved3DCaseSpec
     imported_available::Bool
+    boundary_mode::String
+    boundary_mode_class::String
+    section41_boundary_status::String
+    boundary_equivalence_status::String
     status::String
 end
 
@@ -34,14 +38,28 @@ function native_resolved_fsi_production_parity_plans(;
             time_atol=imported_time_atol,
         )
         imported_available = isempty(native_resolved_fsi_parity_missing_paths(imported_case))
+        boundary_status = native_resolved_fsi_boundary_status_fields(
+            workflow_plan.production_spec.inlet_outlet_boundary_mode;
+            inlet_umax_cm_s=workflow_plan.production_spec.inlet_umax_cm_s,
+        )
+        boundary_equivalence_status = native_resolved_fsi_boundary_equivalence_status(boundary_status)
         status = if imported_available
-            "ready: native production plan for $(workflow_plan.case_spec.paper_label) is paired with imported case $(imported_case.case_label)"
+            "ready: native production plan for $(workflow_plan.case_spec.paper_label) is paired with imported case $(imported_case.case_label); boundary_equivalence_status=$(boundary_equivalence_status)"
         elseif isempty(imported_case.velocity_xdmf)
             "expected-skip: no default imported Section 4.1 bundle contract is wired for $(workflow_plan.case_spec.case_id)"
         else
             "expected-skip: imported bundle $(imported_case.case_label) is not present locally"
         end
-        push!(plans, NativeResolvedFSIProductionParityPlan(workflow_plan, imported_case, imported_available, status))
+        push!(plans, NativeResolvedFSIProductionParityPlan(
+            workflow_plan,
+            imported_case,
+            imported_available,
+            boundary_status.boundary_mode,
+            boundary_status.boundary_mode_class,
+            boundary_status.section41_boundary_status,
+            boundary_equivalence_status,
+            status,
+        ))
     end
     return plans
 end
@@ -244,6 +262,10 @@ function native_resolved_fsi_production_parity_matrix_row(
         imported_available=dry_run.imported_available,
         observations_csv=dry_run.parity_observations_csv,
         summary_csv=dry_run.parity_summary_csv,
+        boundary_mode=dry_run.boundary_mode,
+        boundary_mode_class=dry_run.boundary_mode_class,
+        section41_boundary_status=dry_run.section41_boundary_status,
+        boundary_equivalence_status=dry_run.boundary_equivalence_status,
         row_count=Int(row_count),
         ready_row_count=Int(ready_row_count),
         max_mean_velocity_abs_difference_cm_s=Float64(max_mean_velocity_abs_difference_cm_s),
@@ -334,6 +356,10 @@ function run_native_resolved_fsi_parity(
         mean_pressure_abs_difference_dyn_cm2::Float64 = NaN,
         status::String = "ready",
     )
+        boundary_status = native_resolved_fsi_boundary_status_fields(
+            plan.workflow_plan.production_spec.inlet_outlet_boundary_mode;
+            inlet_umax_cm_s=plan.workflow_plan.production_spec.inlet_umax_cm_s,
+        )
         return (
             case_id=string(plan.workflow_plan.case_spec.case_id),
             case_label=case_label,
@@ -355,6 +381,10 @@ function run_native_resolved_fsi_parity(
             flow_abs_difference_cm3_s=flow_abs_difference_cm3_s,
             mean_velocity_abs_difference_cm_s=mean_velocity_abs_difference_cm_s,
             mean_pressure_abs_difference_dyn_cm2=mean_pressure_abs_difference_dyn_cm2,
+            boundary_mode=boundary_status.boundary_mode,
+            boundary_mode_class=boundary_status.boundary_mode_class,
+            section41_boundary_status=boundary_status.section41_boundary_status,
+            boundary_equivalence_status=native_resolved_fsi_boundary_equivalence_status(boundary_status),
             status=status,
         )
     end
@@ -498,6 +528,10 @@ function run_native_resolved_fsi_parity(
         max_mean_pressure_abs_difference_dyn_cm2::Float64 = NaN,
         status::String,
     )
+        boundary_status = native_resolved_fsi_boundary_status_fields(
+            plan.workflow_plan.production_spec.inlet_outlet_boundary_mode;
+            inlet_umax_cm_s=plan.workflow_plan.production_spec.inlet_umax_cm_s,
+        )
         return (
             case_id=case_id,
             source=source,
@@ -506,6 +540,10 @@ function run_native_resolved_fsi_parity(
             ready_row_count=ready_row_count,
             max_mean_velocity_abs_difference_cm_s=max_mean_velocity_abs_difference_cm_s,
             max_mean_pressure_abs_difference_dyn_cm2=max_mean_pressure_abs_difference_dyn_cm2,
+            boundary_mode=boundary_status.boundary_mode,
+            boundary_mode_class=boundary_status.boundary_mode_class,
+            section41_boundary_status=boundary_status.section41_boundary_status,
+            boundary_equivalence_status=native_resolved_fsi_boundary_equivalence_status(boundary_status),
             status=status,
         )
     end
