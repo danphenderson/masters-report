@@ -9,12 +9,17 @@ Section~\ref{sec:continuum-description}, instead of restating continuum
 foundations inside the numerical-methods chapter.
 
 The native resolved-FSI package boundary has one manuscript-facing open
-requirement that must stay visible in editorial planning: exact Section 4.1
-Poiseuille-inlet / zero-outlet-stress boundary-mode reproduction is still
-deferred. Current native smoke evidence uses
-`pressure_drop_weak_inlet_outlet_gauge_smoke` local boundary loading, and the
-`poiseuille_inlet_zero_outlet_stress_section41` mode remains a fail-closed
-follow-up until implemented and validated.
+requirement that must stay visible in editorial planning after Lane 9A. The
+low-level native Gridap Navier--Stokes adapter now has smoke-tested exact
+Section 4.1 inlet/outlet boundary-mode support:
+`poiseuille_inlet_zero_outlet_stress_section41` applies a strong inlet
+Dirichlet Poiseuille velocity with $u_{\max}=45\,\mathrm{cm/s}$, omits weak
+pressure-drop inlet/outlet loading, leaves the outlet as natural zero traction,
+and records an internal diagnostic boundary-status string. Production-level
+Section 4.1 reproduction is still pending Lane 9B boundary-status propagation
+and partitioned/production integration. Manuscript prose must therefore not
+claim that native production, parity artifacts, CLI defaults, or restart
+metadata reproduce the Section 4.1 boundary conditions yet.
 
 Validation for the source-only pass:
 
@@ -74,7 +79,8 @@ committee/advisor comment identifies a concrete issue. The expected next lane is
 either:
 
 1. final public PDF sync from the current source tree;
-2. a native resolved-FSI boundary wording check if package docs change again; or
+2. a native resolved-FSI boundary-status wording check if package docs change
+   again; or
 3. no-op closeout with only status reporting.
 
 ## Implementation Plan For Next Round
@@ -102,20 +108,27 @@ rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poi
   report/sections report/appendices report/frontmatter report/final-report.tex -g '*.tex' || true
 ```
 
-Expected result: no active manuscript prose implies that the current native
-generator already reproduces the paper's Section 4.1 inlet/outlet boundary
-contract. If native resolved-FSI wording is added later, it must preserve these
-boundaries:
+Expected result: active manuscript prose should not imply that native
+production, parity, CLI, or restart paths already reproduce the paper's Section
+4.1 inlet/outlet boundary contract. If native resolved-FSI wording is added
+later, it must preserve these boundaries:
 
 - production may be described as carrying partitioned state within one run and
   writing importer-compatible velocity/pressure/displacement bundles plus
   manifest, diagnostics, and restart metadata;
 - restart metadata may include versioned `state_payload` audit data, but
   persisted restart/resume remains unsupported and fail-closed;
-- current Gridap smoke evidence uses pressure-drop weak inlet/outlet loading and
-  is not exact Section 4.1 boundary reproduction;
-- exact `poiseuille_inlet_zero_outlet_stress_section41` boundary mode remains a
-  tracked open requirement until implemented and validated;
+- the low-level native Gridap Navier--Stokes adapter has smoke-tested exact
+  Section 4.1 boundary-mode support through
+  `poiseuille_inlet_zero_outlet_stress_section41`;
+- `pressure_drop_weak_inlet_outlet_gauge_smoke` remains a separate local
+  pressure-drop loading smoke mode and is not exact Section 4.1 boundary
+  reproduction;
+- production-level Section 4.1 reproduction remains pending Lane 9B
+  boundary-status propagation and partitioned/production integration;
+- native production, parity artifacts, CLI defaults, and restart metadata must
+  not be described as reproducing Section 4.1 boundary conditions until that
+  integration exists and is validated;
 - planned CLI expansion is dry-run/status-first and must not imply production
   execution from CLI defaults.
 
@@ -192,9 +205,9 @@ Do not reopen:
 - the report spine or section order;
 - broad mathematical derivations;
 - new literature review sources;
-- manuscript wording that treats current native resolved-FSI pressure-drop smoke
-  evidence as exact Section 4.1 Poiseuille-inlet / zero-outlet-stress
-  reproduction;
+- manuscript wording that treats native production, parity artifacts, CLI
+  defaults, restart metadata, or the separate pressure-drop smoke mode as exact
+  Section 4.1 Poiseuille-inlet / zero-outlet-stress reproduction;
 - bibliography entries or `public/references/source-inventory.tsv`;
 - public claim registers or reproducibility metadata;
 - package/runtime code;
