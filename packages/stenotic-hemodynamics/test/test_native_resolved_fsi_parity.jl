@@ -1,8 +1,11 @@
 const NativeResolvedFSIParityResult = StenoticHemodynamics.NativeResolvedFSIParityResult
 const NativeResolvedFSIParitySpec = StenoticHemodynamics.NativeResolvedFSIParitySpec
 const NativeResolvedFSIParityStatus = StenoticHemodynamics.NativeResolvedFSIParityStatus
+const NativeResolvedFSIProductionDryRunPlan = StenoticHemodynamics.NativeResolvedFSIProductionDryRunPlan
 const NativeResolvedFSIProductionParityPlan = StenoticHemodynamics.NativeResolvedFSIProductionParityPlan
 const Resolved3DCaseSpec = StenoticHemodynamics.Resolved3DCaseSpec
+const native_resolved_fsi_partitioned_production_dry_run =
+    StenoticHemodynamics.native_resolved_fsi_partitioned_production_dry_run
 const native_resolved_fsi_production_parity_plans = StenoticHemodynamics.native_resolved_fsi_production_parity_plans
 const native_resolved_fsi_production_workflow_plans = StenoticHemodynamics.native_resolved_fsi_production_workflow_plans
 const run_native_resolved_fsi_parity = StenoticHemodynamics.run_native_resolved_fsi_parity
@@ -286,6 +289,28 @@ end
         @test occursin("ready", plans[2].status)
         @test occursin("expected-skip", plans[3].status)
         @test occursin("sev50", plans[3].status)
+    end
+end
+
+@testset "StenoticHemodynamics native resolved-FSI production dry-run imported parity paths" begin
+    mktempdir() do dir
+        write_native_resolved_fsi_parity_fixture(dir, "77")
+        workflow_plan = only(native_resolved_fsi_production_workflow_plans(
+            case_ids=(:sev23,),
+            output_root=joinpath(dir, "production"),
+        ))
+        dry_run = native_resolved_fsi_partitioned_production_dry_run(workflow_plan; imported_data_root=dir)
+
+        @test dry_run isa NativeResolvedFSIProductionDryRunPlan
+        @test dry_run.imported_available
+        @test dry_run.imported_case.case_label == "77"
+        @test dry_run.parity_observations_csv ==
+              joinpath(dry_run.output_dir, "section41-observations", "section41_observations.csv")
+        @test dry_run.parity_summary_csv ==
+              joinpath(dry_run.output_dir, "section41-observations", "section41_observation_summary.csv")
+        @test !ispath(dry_run.output_dir)
+        @test !ispath(dirname(dry_run.parity_summary_csv))
+        @test ispath(joinpath(dir, "77", "velocity.xdmf"))
     end
 end
 

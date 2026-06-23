@@ -79,6 +79,31 @@ function native_resolved_fsi_production_imported_case(
     throw(ArgumentError("unsupported native Section 4.1 case id $(repr(case_id))"))
 end
 
+function native_resolved_fsi_production_parity_output_dir(
+    plan::NativeResolvedFSIProductionParityPlan;
+    output_dir::AbstractString = "",
+)
+    !isempty(output_dir) && return String(output_dir)
+    return joinpath(
+        default_native_resolved_fsi_partitioned_production_output_dir(plan.workflow_plan.production_spec),
+        "section41-observations",
+    )
+end
+
+function native_resolved_fsi_production_parity_observations_csv(
+    plan::NativeResolvedFSIProductionParityPlan;
+    output_dir::AbstractString = "",
+)
+    return joinpath(native_resolved_fsi_production_parity_output_dir(plan; output_dir), "section41_observations.csv")
+end
+
+function native_resolved_fsi_production_parity_summary_csv(
+    plan::NativeResolvedFSIProductionParityPlan;
+    output_dir::AbstractString = "",
+)
+    return joinpath(native_resolved_fsi_production_parity_output_dir(plan; output_dir), "section41_observation_summary.csv")
+end
+
 """
     run_native_resolved_fsi_parity(plan, native_case; output_dir="", kwargs...)
 
@@ -97,19 +122,15 @@ function run_native_resolved_fsi_parity(
     kwargs...,
 )
     function artifact_output_dir()
-        !isempty(output_dir) && return String(output_dir)
-        return joinpath(
-            default_native_resolved_fsi_partitioned_production_output_dir(plan.workflow_plan.production_spec),
-            "section41-observations",
-        )
+        return native_resolved_fsi_production_parity_output_dir(plan; output_dir)
     end
 
     function artifact_csv_path()
-        return joinpath(artifact_output_dir(), "section41_observations.csv")
+        return native_resolved_fsi_production_parity_observations_csv(plan; output_dir)
     end
 
     function artifact_summary_csv_path()
-        return joinpath(artifact_output_dir(), "section41_observation_summary.csv")
+        return native_resolved_fsi_production_parity_summary_csv(plan; output_dir)
     end
 
     function native_only_sample_z(field::Resolved3DVelocityField)

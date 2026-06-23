@@ -243,6 +243,33 @@ struct NativeResolvedFSIProductionWorkflowPlan
     production_spec::NativeResolvedFSIPartitionedProductionSpec
 end
 
+"""
+    NativeResolvedFSIProductionDryRunPlan
+
+Side-effect-free Section 4.1 production dry-run record. It resolves the native
+production bundle paths, sidecar paths, estimated mesh/output size, and planned
+imported parity case without running the production solver or writing files.
+"""
+struct NativeResolvedFSIProductionDryRunPlan
+    workflow_plan::NativeResolvedFSIProductionWorkflowPlan
+    case_id::Symbol
+    mesh_resolution::NativeResolvedFSIMeshResolution
+    expected_node_count::Int
+    expected_tetrahedron_count::Int
+    snapshot_times_s::Vector{Float64}
+    estimated_field_payload_bytes::BigInt
+    output_dir::String
+    snapshot_output_dirs::Vector{String}
+    manifest_csv::String
+    diagnostics_csv::String
+    restart_metadata_json::String
+    parity_observations_csv::String
+    parity_summary_csv::String
+    imported_case
+    imported_available::Bool
+    status::String
+end
+
 function NativeResolvedFSIProductionWorkflowPlan(
     case_spec::NativeResolvedFSICaseSpec,
     workflow_spec::NativeResolvedFSIWorkflowSpec,
@@ -339,6 +366,55 @@ function native_resolved_fsi_production_workflow_plans(;
         push!(plans, NativeResolvedFSIProductionWorkflowPlan(case_spec, workflow_spec, status, production_spec))
     end
     return plans
+end
+
+"""
+    native_resolved_fsi_partitioned_production_dry_run(plan; imported_data_root=default_resolved3d_data_root())
+
+Resolve the output and parity artifact contract for one Section 4.1 production
+workflow plan without running the native production solver and without writing
+any files. High-resolution execution remains gated by explicit production
+specs and their normal output-volume validation/overrides.
+"""
+function native_resolved_fsi_partitioned_production_dry_run(
+    plan::NativeResolvedFSIProductionWorkflowPlan;
+    imported_data_root::AbstractString = default_resolved3d_data_root(),
+)
+    spec = validate(plan.production_spec)
+    resolution = spec.resolution
+    output_dir = default_native_resolved_fsi_partitioned_production_output_dir(spec)
+    snapshot_output_dirs = if length(spec.snapshot_times_s) == 1
+        String[output_dir]
+    else
+        String[joinpath(output_dir, "snapshot-t$(path_token(snapshot_time_s))") for snapshot_time_s in spec.snapshot_times_s]
+    end
+    parity_plan = only(native_resolved_fsi_production_parity_plans(
+        workflow_plans=[plan],
+        imported_data_root=String(imported_data_root),
+    ))
+    expected_node_count = (resolution.axial + 1) * (1 + resolution.radial * resolution.angular)
+    expected_tetrahedron_count = 3 * resolution.axial * resolution.angular * (2 * resolution.radial - 1)
+    imported_status = parity_plan.imported_available ? "imported bundle available" : "imported bundle expected-skip"
+    status = "dry-run ready: no production solver executed and no files written; $(imported_status); production execution remains opt-in through explicit production specs and output-volume overrides"
+    return NativeResolvedFSIProductionDryRunPlan(
+        plan,
+        spec.case_spec.case_id,
+        resolution,
+        expected_node_count,
+        expected_tetrahedron_count,
+        copy(spec.snapshot_times_s),
+        native_resolved_fsi_partitioned_production_estimated_field_payload_bytes(spec),
+        output_dir,
+        snapshot_output_dirs,
+        joinpath(output_dir, "snapshot_manifest.csv"),
+        joinpath(output_dir, "snapshot_diagnostics.csv"),
+        joinpath(output_dir, "restart_metadata.json"),
+        native_resolved_fsi_production_parity_observations_csv(parity_plan),
+        native_resolved_fsi_production_parity_summary_csv(parity_plan),
+        parity_plan.imported_case,
+        parity_plan.imported_available,
+        status,
+    )
 end
 
 """

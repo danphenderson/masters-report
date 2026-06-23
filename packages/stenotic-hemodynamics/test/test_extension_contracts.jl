@@ -1,3 +1,5 @@
+isdefined(@__MODULE__, :assert_finite_positive_state) || include("test_helpers.jl")
+
 const EXTENSION_CONTRACT_PACKAGE_ROOT = normpath(joinpath(@__DIR__, ".."))
 const EXTENSION_CONTRACT_SRC_ROOT = joinpath(EXTENSION_CONTRACT_PACKAGE_ROOT, "src", "StenoticHemodynamics")
 const EXTENSION_CONTRACT_TEST_ROOT = joinpath(EXTENSION_CONTRACT_PACKAGE_ROOT, "test")
@@ -63,6 +65,18 @@ function extension_contract_scan_direct_imports(files::Vector{String}, module_na
     return hits
 end
 
+function extension_contract_scan_line_pattern(files::Vector{String}, pattern::Regex)
+    hits = Dict{String,Vector{Int}}()
+    for file in files
+        lines = Int[]
+        for (line_number, line) in enumerate(eachline(file))
+            occursin(pattern, line) && push!(lines, line_number)
+        end
+        isempty(lines) || (hits[relpath(file, EXTENSION_CONTRACT_PACKAGE_ROOT)] = lines)
+    end
+    return hits
+end
+
 function extension_contract_disallowed_sites(
     sites::Dict{String,Vector{Int}},
     allowed_relpaths::AbstractSet{String},
@@ -88,11 +102,22 @@ function extension_contract_no_violations(policy::String, sites::Dict{String,Vec
     return false
 end
 
+function extension_contract_package_file(relpath::String)
+    return joinpath(EXTENSION_CONTRACT_PACKAGE_ROOT, relpath)
+end
+
 @testset "StenoticHemodynamics extension contracts" begin
     @testset "dependency boundary imports" begin
         src_files = extension_contract_julia_files(EXTENSION_CONTRACT_SRC_ROOT)
         test_files = extension_contract_julia_files(EXTENSION_CONTRACT_TEST_ROOT)
         src_and_test_files = sort!(vcat(src_files, test_files))
+
+        native_resolved_fsi_adapter = joinpath("src", "StenoticHemodynamics", "adapters", "native_resolved_fsi.jl")
+        native_resolved_fsi_gridap_surface =
+            joinpath("src", "StenoticHemodynamics", "adapters", "native_resolved_fsi_gridap.jl")
+        restart_metadata_reader =
+            joinpath("src", "StenoticHemodynamics", "workflows", "native_resolved_fsi_restart.jl")
+        openbf_protocol_adapter = joinpath("src", "StenoticHemodynamics", "adapters", "openbf_protocol.jl")
 
         for module_name in ("SciMLBase", "OrdinaryDiffEq")
             hits = extension_contract_scan_direct_imports(src_files, module_name)
@@ -104,9 +129,31 @@ end
 
         yaml_hits = extension_contract_scan_direct_imports(src_files, "YAML")
         @test extension_contract_no_violations(
-            "YAML should not be imported directly in src; keep lazy loading behind src/StenoticHemodynamics/adapters/openbf_protocol.jl.",
+            "YAML should not be imported directly in src; keep lazy loading behind src/StenoticHemodynamics/adapters/openbf_protocol.jl and reuse that loader for restart metadata.",
             yaml_hits,
         )
+
+        for module_name in ("JSON", "JSON3")
+            json_hits = extension_contract_scan_direct_imports(src_files, module_name)
+            @test extension_contract_no_violations(
+                "$module_name should not be imported directly in src; restart metadata JSON is parsed through the existing lazy YAML loader because JSON is valid YAML.",
+                json_hits,
+            )
+        end
+        json_lazy_loader_hits = extension_contract_scan_line_pattern(
+            src_files,
+            r"\bJSON3?_UUID\b|PkgId\([^)]*\"JSON3?\"",
+        )
+        @test extension_contract_no_violations(
+            "JSON/JSON3 lazy loaders should not be added; restart metadata reading must reuse the existing YAML loader.",
+            json_lazy_loader_hits,
+        )
+
+        restart_source = read(extension_contract_package_file(restart_metadata_reader), String)
+        openbf_source = read(extension_contract_package_file(openbf_protocol_adapter), String)
+        @test occursin("function load_yaml_file", openbf_source)
+        @test occursin("load_yaml_file(path_string)", restart_source)
+        @test occursin("JSON is valid YAML", restart_source)
 
         hdf5_violations = extension_contract_disallowed_sites(
             extension_contract_scan_direct_imports(src_and_test_files, "HDF5"),
@@ -136,15 +183,21 @@ end
             extension_contract_scan_direct_imports(src_files, "Gridap"),
             Set([
                 joinpath("src", "StenoticHemodynamics", "adapters", "stokes_ic.jl"),
-                joinpath("src", "StenoticHemodynamics", "adapters", "native_resolved_fsi.jl"),
+                native_resolved_fsi_adapter,
                 joinpath("src", "StenoticHemodynamics", "workflows", "stationary_stokes_refinement_gridap.jl"),
                 joinpath("src", "StenoticHemodynamics", "workflows", "geometry_export_stokes_common.jl"),
             ]),
         )
         @test extension_contract_no_violations(
-            "Gridap imports should stay confined to Gridap adapter seams and stationary-Stokes geometry-export helpers.",
+            "Gridap imports should stay confined to native/stokes adapter seams and stationary-Stokes workflow helpers.",
             gridap_violations,
         )
+
+        native_adapter_source = read(extension_contract_package_file(native_resolved_fsi_adapter), String)
+        native_gridap_source = read(extension_contract_package_file(native_resolved_fsi_gridap_surface), String)
+        @test occursin("include(\"native_resolved_fsi_gridap.jl\")", native_adapter_source)
+        @test occursin("native_resolved_fsi_radial_wall_velocity_function", native_gridap_source)
+        @test occursin("dirichlet_tags=\"wall\"", native_gridap_source)
     end
 
     @testset "spatial method traits" begin

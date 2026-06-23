@@ -1,6 +1,7 @@
 const NativeResolvedFSIWorkflowSpec = StenoticHemodynamics.NativeResolvedFSIWorkflowSpec
 const NativeResolvedFSIWorkflowResult = StenoticHemodynamics.NativeResolvedFSIWorkflowResult
 const NativeResolvedFSIMeshResolution = StenoticHemodynamics.NativeResolvedFSIMeshResolution
+const NativeResolvedFSIProductionDryRunPlan = StenoticHemodynamics.NativeResolvedFSIProductionDryRunPlan
 const NativeResolvedFSIProductionWorkflowPlan = StenoticHemodynamics.NativeResolvedFSIProductionWorkflowPlan
 const NativeResolvedFSIPartitionedProductionResult = StenoticHemodynamics.NativeResolvedFSIPartitionedProductionResult
 const NativeResolvedFSIPartitionedProductionSpec = StenoticHemodynamics.NativeResolvedFSIPartitionedProductionSpec
@@ -12,6 +13,8 @@ const default_native_resolved_fsi_output_dir = StenoticHemodynamics.default_nati
 const native_resolved_fsi_case_spec = StenoticHemodynamics.native_resolved_fsi_case_spec
 const native_resolved_fsi_lifted_displacement = StenoticHemodynamics.native_resolved_fsi_lifted_displacement
 const native_resolved_fsi_mesh = StenoticHemodynamics.native_resolved_fsi_mesh
+const native_resolved_fsi_partitioned_production_dry_run =
+    StenoticHemodynamics.native_resolved_fsi_partitioned_production_dry_run
 const native_resolved_fsi_partitioned_production_estimated_field_payload_bytes =
     StenoticHemodynamics.native_resolved_fsi_partitioned_production_estimated_field_payload_bytes
 const native_resolved_fsi_partitioned_production_spec =
@@ -251,6 +254,55 @@ end
         @test all(plan -> plan.production_spec.snapshot_times_s == [1.0e-4, 2.0e-4], tiny_plans)
         @test all(plan -> plan.production_spec.coupling_iteration_count == 2, tiny_plans)
         @test all(plan -> plan.production_spec.coupling_under_relaxation ≈ 0.5, tiny_plans)
+    end
+end
+
+@testset "StenoticHemodynamics native resolved-FSI production dry run" begin
+    resolution = NativeResolvedFSIMeshResolution(axial=4, radial=2, angular=10)
+    mktempdir() do dir
+        plan = only(native_resolved_fsi_production_workflow_plans(
+            case_ids=(:sev23,),
+            resolution=resolution,
+            output_root=joinpath(dir, "production"),
+            dt_s=1.0e-4,
+            tfinal_s=2.0e-4,
+            snapshot_times_s=[1.0e-4, 2.0e-4],
+            time_atol=1.0e-12,
+        ))
+        dry_run = native_resolved_fsi_partitioned_production_dry_run(
+            plan;
+            imported_data_root=joinpath(dir, "missing-imported"),
+        )
+
+        expected_output_dir = default_native_resolved_fsi_partitioned_production_output_dir(plan.production_spec)
+        @test dry_run isa NativeResolvedFSIProductionDryRunPlan
+        @test dry_run.workflow_plan === plan
+        @test dry_run.case_id === :sev23
+        @test dry_run.mesh_resolution == resolution
+        @test dry_run.expected_node_count == (resolution.axial + 1) * (1 + resolution.radial * resolution.angular)
+        @test dry_run.expected_tetrahedron_count == 3 * resolution.axial * resolution.angular * (2 * resolution.radial - 1)
+        @test dry_run.snapshot_times_s == [1.0e-4, 2.0e-4]
+        @test dry_run.estimated_field_payload_bytes ==
+              native_resolved_fsi_partitioned_production_estimated_field_payload_bytes(plan.production_spec)
+        @test dry_run.output_dir == expected_output_dir
+        @test dry_run.snapshot_output_dirs == [
+            joinpath(expected_output_dir, "snapshot-t0p0001"),
+            joinpath(expected_output_dir, "snapshot-t0p0002"),
+        ]
+        @test dry_run.manifest_csv == joinpath(expected_output_dir, "snapshot_manifest.csv")
+        @test dry_run.diagnostics_csv == joinpath(expected_output_dir, "snapshot_diagnostics.csv")
+        @test dry_run.restart_metadata_json == joinpath(expected_output_dir, "restart_metadata.json")
+        @test dry_run.parity_observations_csv ==
+              joinpath(expected_output_dir, "section41-observations", "section41_observations.csv")
+        @test dry_run.parity_summary_csv ==
+              joinpath(expected_output_dir, "section41-observations", "section41_observation_summary.csv")
+        @test dry_run.imported_case.case_label == "77"
+        @test !dry_run.imported_available
+        @test occursin("dry-run ready", dry_run.status)
+        @test occursin("no production solver executed", dry_run.status)
+        @test occursin("no files written", dry_run.status)
+        @test !ispath(dry_run.output_dir)
+        @test !ispath(dirname(dry_run.parity_observations_csv))
     end
 end
 
