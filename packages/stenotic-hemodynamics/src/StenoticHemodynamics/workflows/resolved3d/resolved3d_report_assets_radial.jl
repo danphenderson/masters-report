@@ -22,7 +22,7 @@ end
 
 Write the radial-profile audit CSV plus per-case radial `.dat` assets for the
 requested coordinate mode. Per-case `.dat` files are emitted only for severities
-whose audit status is `ok`.
+whose audit status is `passed`.
 """
 function write_report_radial_profile_assets(
     output_dir::String,
@@ -37,7 +37,7 @@ function write_report_radial_profile_assets(
     audit_rows = radial_profile_audit_rows(primary_rows, rows, section_rows, summary_rows; coordinate_mode=coordinate_mode)
     audit_path = joinpath(output_dir, "radial-profile-audit-$(coordinate_mode).csv")
     push!(paths, write_radial_profile_audit_csv(audit_path, audit_rows; overwrite=overwrite))
-    passed_severities = Set(row.severity for row in audit_rows if row.status == "ok")
+    passed_severities = Set(row.severity for row in audit_rows if row.status == "passed")
     for severity in sort(collect(passed_severities))
         case_rows = [row for row in primary_rows if row.severity == severity && row.coordinate_mode == coordinate_mode]
         isempty(case_rows) && continue
@@ -131,7 +131,7 @@ function radial_profile_audit_rows(
                 coordinate_mode=coordinate_mode,
             )
             if !isempty(case_message)
-                status = "failed"
+                status = "not_evaluated"
                 message = isempty(message) ? case_message : string(message, "; ", case_message)
             end
             push!(rows, (
@@ -157,7 +157,7 @@ function radial_profile_audit_rows(
                 area_mismatch_rel=NaN,
                 reconstructed_mean_abs_error_cm_s=NaN,
                 summary_mean_abs_delta_cm_s=summary_delta,
-                status="failed",
+                status="not_evaluated",
                 message=case_message,
             ))
         end
@@ -171,10 +171,11 @@ function radial_profile_slice_audit(
     severity::Float64,
     coordinate_mode::String,
 )
-    isempty(rows) && return ("failed", "no rows", NaN, NaN)
+    isempty(rows) && return ("not_evaluated", "no radial rows", NaN, NaN)
     finite_required = all(row ->
             isfinite(row.r_over_r0_mid) &&
             isfinite(row.area_cm2) &&
+            isfinite(row.flow_3d_cm3_s) &&
             isfinite(row.mean_u3d_cm_s) &&
             isfinite(row.mean_u1d_cm_s) &&
             isfinite(row.abs_velocity_error_cm_s),
@@ -192,9 +193,18 @@ function radial_profile_slice_audit(
             row.area_valid,
         section_rows,
     )
-    section_area = section_index === nothing ? NaN : section_rows[section_index].area_cm2
+    section = section_index === nothing ? nothing : section_rows[section_index]
+    section_area = section === nothing ? NaN : section.area_cm2
+    section_flow = section === nothing ? NaN : section.flow_3d_cm3_s
     radial_area = sum(row.area_cm2 for row in rows)
+    radial_flow = sum(row.flow_3d_cm3_s for row in rows)
     area_mismatch = isfinite(section_area) && section_area > 0.0 ? abs(radial_area - section_area) / section_area : NaN
+    flow_mismatch = if isfinite(section_flow) && isfinite(radial_flow)
+        abs(section_flow) > eps(Float64) ? abs(radial_flow - section_flow) / abs(section_flow) :
+            (abs(radial_flow) <= eps(Float64) ? 0.0 : Inf)
+    else
+        NaN
+    end
     reconstructed_error = radial_area > 0.0 ?
         sum(row.area_cm2 * row.abs_velocity_error_cm_s for row in rows) / radial_area :
         NaN
@@ -203,9 +213,21 @@ function radial_profile_slice_audit(
     positive_bins || push!(failures, "nonpositive or invalid bin area")
     bin_count >= 20 || push!(failures, "fewer than 20 radial bins")
     monotone_radius || push!(failures, "nonmonotone normalized radius")
-    isfinite(area_mismatch) && area_mismatch <= 0.01 || push!(failures, "radial area closure exceeds 1%")
-    status = isempty(failures) ? "ok" : "failed"
-    return (status, join(failures, "; "), area_mismatch, reconstructed_error)
+    section === nothing && push!(failures, "matching section row unavailable at radial z-slice")
+    isfinite(section_area) && section_area > 0.0 || push!(failures, "section area unavailable")
+    isfinite(section_flow) || push!(failures, "section flow unavailable")
+    isfinite(radial_area) && radial_area > 0.0 || push!(failures, "radial area unavailable")
+    isfinite(radial_flow) || push!(failures, "radial flow unavailable")
+    if !isempty(failures)
+        return ("not_evaluated", join(failures, "; "), area_mismatch, reconstructed_error)
+    end
+    if area_mismatch > 0.01
+        return ("failed_area_closure", "radial area closure exceeds 1%", area_mismatch, reconstructed_error)
+    end
+    if flow_mismatch > 0.01
+        return ("failed_flow_closure", "radial flow closure exceeds 1%", area_mismatch, reconstructed_error)
+    end
+    return ("passed", "", area_mismatch, reconstructed_error)
 end
 
 function write_radial_profile_audit_csv(path::String, rows; overwrite::Bool = false)

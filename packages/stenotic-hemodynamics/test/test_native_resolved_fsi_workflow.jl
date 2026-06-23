@@ -374,6 +374,7 @@ end
         @test dry_run.outlet_condition_status == "outlet_gauge_pressure_reference_not_zero_outlet_stress_evidence"
         @test dry_run.pressure_gauge_status == "post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint"
         @test occursin("gridap_zero_mean_pressure_constraint_active", dry_run.pressure_nullspace_status)
+        @test occursin("additive_nullspace", dry_run.pressure_nullspace_status)
         @test occursin("local_smoke_loading_only", dry_run.pressure_nullspace_status)
         @test dry_run.section41_boundary_status == "deferred_or_not_selected"
         @test occursin("local smoke boundary evidence", dry_run.boundary_status)
@@ -387,7 +388,10 @@ end
         @test occursin("no files written", dry_run.status)
         @test occursin("boundary_mode=pressure_drop_weak_inlet_outlet_gauge_smoke", dry_run.status)
         @test occursin("section41_boundary_status=deferred_or_not_selected", dry_run.status)
-        @test occursin("pressure_nullspace_status=gridap_zero_mean_pressure_constraint_active", dry_run.status)
+        @test occursin(
+            "pressure_nullspace_status=gridap_zero_mean_pressure_constraint_active_additive_nullspace",
+            dry_run.status,
+        )
         @test occursin("wall_stability_status=", dry_run.status)
         @test occursin("parallel_workers=$(StenoticHemodynamics.default_case_workers())", dry_run.status)
         @test occursin("threads_per_worker=1", dry_run.status)
@@ -461,7 +465,11 @@ end
         @test exact_dry_run.outlet_condition_status == "zero_outlet_stress_natural_traction"
         @test exact_dry_run.pressure_gauge_status ==
               "post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint"
-        @test occursin("gridap_zero_mean_pressure_constraint_active", exact_dry_run.pressure_nullspace_status)
+        @test occursin("no_gridap_zero_mean_pressure_constraint", exact_dry_run.pressure_nullspace_status)
+        @test occursin(
+            "exact_natural_cauchy_traction_pressure_reference",
+            exact_dry_run.pressure_nullspace_status,
+        )
         @test occursin("not_wall_stability_remediation", exact_dry_run.pressure_nullspace_status)
         @test exact_dry_run.section41_boundary_status == "implemented_smoke_validated"
         @test occursin("partitioned production smoke-scale threading evidence", exact_dry_run.boundary_status)
@@ -476,7 +484,7 @@ end
         @test occursin("section41_boundary_status=implemented_smoke_validated", exact_plan.status)
         @test occursin("boundary_mode=poiseuille_inlet_zero_outlet_stress_section41", exact_dry_run.status)
         @test occursin("section41_boundary_status=implemented_smoke_validated", exact_dry_run.status)
-        @test occursin("pressure_nullspace_status=gridap_zero_mean_pressure_constraint_active", exact_dry_run.status)
+        @test occursin("pressure_nullspace_status=no_gridap_zero_mean_pressure_constraint", exact_dry_run.status)
         @test occursin("sev23_development_exact_boundary_artifact_gate_passed_tfinal0p01", exact_dry_run.status)
         @test occursin("production execution is available only through explicit production specs", exact_dry_run.status)
     end
@@ -568,6 +576,7 @@ end
         @test diagnostic_row.pressure_gauge_status ==
               "post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint"
         @test occursin("gridap_zero_mean_pressure_constraint_active", diagnostic_row.pressure_nullspace_status)
+        @test occursin("additive_nullspace", diagnostic_row.pressure_nullspace_status)
         @test occursin("local_smoke_loading_only", diagnostic_row.pressure_nullspace_status)
         @test diagnostic_row.section41_boundary_status == "deferred_or_not_selected"
         @test occursin("local smoke boundary evidence", diagnostic_row.boundary_status)
@@ -648,10 +657,22 @@ end
         @test result.restart_metadata["pressure_gauge_status"] ==
               "post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint"
         @test occursin("gridap_zero_mean_pressure_constraint_active", result.restart_metadata["pressure_nullspace_status"])
+        @test occursin("additive_nullspace", result.restart_metadata["pressure_nullspace_status"])
         @test occursin("local_smoke_loading_only", result.restart_metadata["pressure_nullspace_status"])
         @test result.restart_metadata["section41_boundary_status"] == "deferred_or_not_selected"
         @test occursin("local smoke boundary evidence", result.restart_metadata["boundary_status"])
         @test occursin("not_exact_section41_boundary_equivalence", result.restart_metadata["boundary_equivalence_status"])
+        @test occursin(
+            "physical_wall_forcing_pressure",
+            result.restart_metadata["wall_pressure_projection_status"],
+        )
+        @test occursin(
+            "outlet_gauge_normalization_export_only_not_membrane_forcing",
+            result.restart_metadata["wall_pressure_projection_status"],
+        )
+        @test occursin("physical_wall_forcing_pressure", result.restart_metadata["wall_pressure_forcing_status"])
+        @test result.restart_metadata["pressure_gauge_convention"] ==
+              "outlet_gauge_normalization_export_only_not_membrane_forcing"
         @test length(result.restart_metadata["coupling_residual_history"]) ==
               length(result.smoke_result.coupling_residual_history)
         @test result.restart_metadata["resume_supported"] == false
@@ -688,6 +709,10 @@ end
         @test state_payload["final_wall_velocity_cm_s"] == result.smoke_result.wall_velocity_cm_s
         @test state_payload["current_radii_cm"] == result.smoke_result.current_radii_cm
         @test state_payload["final_wall_pressure_dyn_cm2"] == result.smoke_result.wall_pressure_dyn_cm2
+        @test state_payload["final_physical_wall_forcing_pressure_dyn_cm2"] ==
+              result.smoke_result.wall_pressure_dyn_cm2
+        @test state_payload["pressure_gauge_convention"] ==
+              "outlet_gauge_normalization_export_only_not_membrane_forcing"
         @test state_payload["solver_provenance"] == "state_carrying_partitioned"
         @test state_payload["state_carrying_in_run"] == true
         @test state_payload["resume_supported"] == false
@@ -704,13 +729,18 @@ end
         @test occursin("\"schema_version\": 1", restart_metadata_text)
         @test occursin("\"fluid_wall_boundary_mode\": \"prescribed_radial_wall_velocity\"", restart_metadata_text)
         @test occursin("\"boundary_mode\": \"pressure_drop_weak_inlet_outlet_gauge_smoke\"", restart_metadata_text)
-        @test occursin("\"pressure_nullspace_status\": \"gridap_zero_mean_pressure_constraint_active", restart_metadata_text)
+        @test occursin(
+            "\"pressure_nullspace_status\": \"gridap_zero_mean_pressure_constraint_active_additive_nullspace",
+            restart_metadata_text,
+        )
         @test occursin("\"section41_boundary_status\": \"deferred_or_not_selected\"", restart_metadata_text)
         @test only(result.restart_metadata["snapshot_outputs"])["provenance"] == "state_carrying_partitioned"
         @test only(result.restart_metadata["snapshot_outputs"])["boundary_mode"] ==
               "pressure_drop_weak_inlet_outlet_gauge_smoke"
         @test only(result.restart_metadata["snapshot_outputs"])["section41_boundary_status"] ==
               "deferred_or_not_selected"
+        @test only(result.restart_metadata["snapshot_outputs"])["pressure_gauge_convention"] ==
+              "outlet_gauge_normalization_export_only_not_membrane_forcing"
 
         parsed_restart_metadata = native_resolved_fsi_read_restart_metadata(result.restart_metadata_json)
         @test parsed_restart_metadata isa Dict{String,Any}
@@ -728,7 +758,14 @@ end
         @test parsed_restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
         @test parsed_restart_metadata["boundary_mode_class"] == "local_smoke_loading"
         @test occursin("gridap_zero_mean_pressure_constraint_active", parsed_restart_metadata["pressure_nullspace_status"])
+        @test occursin("additive_nullspace", parsed_restart_metadata["pressure_nullspace_status"])
         @test parsed_restart_metadata["section41_boundary_status"] == "deferred_or_not_selected"
+        @test occursin(
+            "physical_wall_forcing_pressure",
+            parsed_restart_metadata["wall_pressure_projection_status"],
+        )
+        @test parsed_restart_metadata["pressure_gauge_convention"] ==
+              "outlet_gauge_normalization_export_only_not_membrane_forcing"
         parsed_state_payload = parsed_restart_metadata["state_payload"]
         @test parsed_state_payload["schema_version"] == 1
         @test parsed_state_payload["saved_time_s"] ≈ result.saved_time_s
@@ -737,6 +774,10 @@ end
         @test parsed_state_payload["final_wall_velocity_cm_s"] == result.smoke_result.wall_velocity_cm_s
         @test parsed_state_payload["current_radii_cm"] == result.smoke_result.current_radii_cm
         @test parsed_state_payload["final_wall_pressure_dyn_cm2"] == result.smoke_result.wall_pressure_dyn_cm2
+        @test parsed_state_payload["final_physical_wall_forcing_pressure_dyn_cm2"] ==
+              result.smoke_result.wall_pressure_dyn_cm2
+        @test parsed_state_payload["pressure_gauge_convention"] ==
+              "outlet_gauge_normalization_export_only_not_membrane_forcing"
         @test parsed_state_payload["solver_provenance"] == "state_carrying_partitioned"
         @test parsed_state_payload["state_carrying_in_run"] == true
         @test parsed_state_payload["resume_supported"] == false
@@ -1194,7 +1235,9 @@ end
         @test exact_production_result.smoke_result.pressure_projection_fallback_count == 0
         @test occursin("stationary no-slip wall", exact_production_result.method_status.status)
         @test occursin("exact Section 4.1 inlet/outlet boundary mode", exact_production_result.method_status.status)
+        @test occursin("physical wall-forcing pressure", exact_production_result.method_status.status)
         @test occursin("pressure-drop fallback disabled", exact_production_result.method_status.status)
+        @test occursin("outlet-gauge pressure normalization is export-only", exact_production_result.method_status.status)
         @test occursin("paper-grade Section 4.1 parity", exact_production_result.method_status.status)
         @test occursin("remain out of scope", exact_production_result.method_status.status)
         exact_diagnostic_row = only(exact_production_result.diagnostic_rows)
@@ -1203,12 +1246,34 @@ end
         @test exact_diagnostic_row.boundary_mode_class == "exact_section41"
         @test exact_diagnostic_row.inlet_condition_status == "poiseuille_profile_umax_45_cm_s"
         @test exact_diagnostic_row.outlet_condition_status == "zero_outlet_stress_natural_traction"
-        @test occursin("gridap_zero_mean_pressure_constraint_active", exact_diagnostic_row.pressure_nullspace_status)
+        @test occursin(
+            "no_gridap_zero_mean_pressure_constraint",
+            exact_diagnostic_row.pressure_nullspace_status,
+        )
+        @test occursin(
+            "exact_natural_cauchy_traction_pressure_reference",
+            exact_diagnostic_row.pressure_nullspace_status,
+        )
         @test occursin("not_wall_stability_remediation", exact_diagnostic_row.pressure_nullspace_status)
         @test occursin(
             "pressure_drop_resistance_fallback_disabled",
             exact_diagnostic_row.wall_pressure_projection_status,
         )
+        @test occursin(
+            "direct_finite_physical_wall_forcing_pressure_sampling_required",
+            exact_diagnostic_row.wall_pressure_projection_status,
+        )
+        @test occursin(
+            "outlet_gauge_normalization_export_only_not_membrane_forcing",
+            exact_diagnostic_row.wall_pressure_projection_status,
+        )
+        @test occursin("physical_wall_forcing_pressure", exact_diagnostic_row.wall_pressure_forcing_status)
+        @test exact_diagnostic_row.pressure_gauge_convention ==
+              "outlet_gauge_normalization_export_only_not_membrane_forcing"
+        @test exact_diagnostic_row.physical_wall_forcing_pressure_min_dyn_cm2 ==
+              exact_diagnostic_row.wall_pressure_min_dyn_cm2
+        @test exact_diagnostic_row.physical_wall_forcing_pressure_max_dyn_cm2 ==
+              exact_diagnostic_row.wall_pressure_max_dyn_cm2
         @test exact_diagnostic_row.section41_boundary_status == "implemented_smoke_validated"
         @test occursin("exact_section41_boundary_mode_selected_smoke_validated", exact_diagnostic_row.boundary_equivalence_status)
         @test exact_diagnostic_row.pressure_projection_fallback_count == 0
@@ -1220,7 +1285,11 @@ end
         @test exact_production_result.restart_metadata["boundary_mode"] ==
               "poiseuille_inlet_zero_outlet_stress_section41"
         @test occursin(
-            "gridap_zero_mean_pressure_constraint_active",
+            "no_gridap_zero_mean_pressure_constraint",
+            exact_production_result.restart_metadata["pressure_nullspace_status"],
+        )
+        @test occursin(
+            "exact_natural_cauchy_traction_pressure_reference",
             exact_production_result.restart_metadata["pressure_nullspace_status"],
         )
         @test occursin("not_wall_stability_remediation", exact_production_result.restart_metadata["pressure_nullspace_status"])
@@ -1228,22 +1297,44 @@ end
             "pressure_drop_resistance_fallback_disabled",
             exact_production_result.restart_metadata["wall_pressure_projection_status"],
         )
+        @test occursin(
+            "direct_finite_physical_wall_forcing_pressure_sampling_required",
+            exact_production_result.restart_metadata["wall_pressure_projection_status"],
+        )
+        @test occursin(
+            "outlet_gauge_normalization_export_only_not_membrane_forcing",
+            exact_production_result.restart_metadata["wall_pressure_projection_status"],
+        )
+        @test occursin(
+            "physical_wall_forcing_pressure",
+            exact_production_result.restart_metadata["wall_pressure_forcing_status"],
+        )
+        @test exact_production_result.restart_metadata["pressure_gauge_convention"] ==
+              "outlet_gauge_normalization_export_only_not_membrane_forcing"
+        @test exact_production_result.restart_metadata["current_physical_wall_forcing_pressure_dyn_cm2"] ==
+              exact_production_result.smoke_result.wall_pressure_dyn_cm2
         @test exact_production_result.restart_metadata["section41_boundary_status"] == "implemented_smoke_validated"
         exact_snapshot_metadata = only(exact_production_result.restart_metadata["snapshot_outputs"])
         @test exact_snapshot_metadata["inlet_umax_cm_s"] ≈ 45.0
         @test exact_snapshot_metadata["boundary_mode"] == "poiseuille_inlet_zero_outlet_stress_section41"
-        @test occursin("gridap_zero_mean_pressure_constraint_active", exact_snapshot_metadata["pressure_nullspace_status"])
+        @test occursin("no_gridap_zero_mean_pressure_constraint", exact_snapshot_metadata["pressure_nullspace_status"])
         @test occursin("pressure_drop_resistance_fallback_disabled", exact_snapshot_metadata["wall_pressure_projection_status"])
+        @test occursin("physical_wall_forcing_pressure", exact_snapshot_metadata["wall_pressure_forcing_status"])
+        @test exact_snapshot_metadata["pressure_gauge_convention"] ==
+              "outlet_gauge_normalization_export_only_not_membrane_forcing"
         parsed_exact_metadata = native_resolved_fsi_read_restart_metadata(
             exact_production_result.restart_metadata_json,
         )
         @test parsed_exact_metadata["inlet_umax_cm_s"] ≈ 45.0
         @test parsed_exact_metadata["boundary_mode"] == "poiseuille_inlet_zero_outlet_stress_section41"
-        @test occursin("gridap_zero_mean_pressure_constraint_active", parsed_exact_metadata["pressure_nullspace_status"])
+        @test occursin("no_gridap_zero_mean_pressure_constraint", parsed_exact_metadata["pressure_nullspace_status"])
         @test occursin(
             "pressure_drop_resistance_fallback_disabled",
             parsed_exact_metadata["wall_pressure_projection_status"],
         )
+        @test occursin("physical_wall_forcing_pressure", parsed_exact_metadata["wall_pressure_forcing_status"])
+        @test parsed_exact_metadata["pressure_gauge_convention"] ==
+              "outlet_gauge_normalization_export_only_not_membrane_forcing"
         exact_restart_metadata_fixture_path(filename) =
             joinpath(dirname(exact_production_result.restart_metadata_json), filename)
 
@@ -1274,6 +1365,33 @@ end
         end
         @test invalid_projection_error isa ArgumentError
         @test occursin("wall_pressure_projection_status", sprint(showerror, invalid_projection_error))
+
+        invalid_forcing_metadata = deepcopy(exact_production_result.restart_metadata)
+        invalid_forcing_metadata["wall_pressure_forcing_status"] = "outlet_gauge_wall_pressure_used_for_forcing"
+        invalid_forcing_path =
+            exact_restart_metadata_fixture_path("invalid-wall-pressure-forcing-restart-metadata.json")
+        StenoticHemodynamics.write_json(invalid_forcing_path, invalid_forcing_metadata; overwrite=true)
+        invalid_forcing_error = try
+            native_resolved_fsi_read_restart_metadata(invalid_forcing_path)
+            nothing
+        catch err
+            err
+        end
+        @test invalid_forcing_error isa ArgumentError
+        @test occursin("wall_pressure_forcing_status", sprint(showerror, invalid_forcing_error))
+
+        invalid_gauge_metadata = deepcopy(exact_production_result.restart_metadata)
+        invalid_gauge_metadata["pressure_gauge_convention"] = "outlet_gauge_pressure_used_for_membrane_forcing"
+        invalid_gauge_path = exact_restart_metadata_fixture_path("invalid-pressure-gauge-restart-metadata.json")
+        StenoticHemodynamics.write_json(invalid_gauge_path, invalid_gauge_metadata; overwrite=true)
+        invalid_gauge_error = try
+            native_resolved_fsi_read_restart_metadata(invalid_gauge_path)
+            nothing
+        catch err
+            err
+        end
+        @test invalid_gauge_error isa ArgumentError
+        @test occursin("pressure_gauge_convention", sprint(showerror, invalid_gauge_error))
     end
 
     mktempdir() do dir

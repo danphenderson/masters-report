@@ -360,6 +360,8 @@ const NATIVE_RESOLVED_FSI_RESTART_BOUNDARY_STATUS_KEYS = (
     "outlet_condition_status",
     "pressure_gauge_status",
     "wall_pressure_projection_status",
+    "wall_pressure_forcing_status",
+    "pressure_gauge_convention",
     "section41_boundary_status",
     "boundary_status",
     "boundary_equivalence_status",
@@ -416,6 +418,22 @@ function native_resolved_fsi_validate_restart_boundary_status_if_present(
             metadata,
             "wall_pressure_projection_status",
             native_resolved_fsi_wall_pressure_projection_status(mode_symbol);
+            context=context,
+        )
+    end
+    if haskey(metadata, "wall_pressure_forcing_status")
+        native_resolved_fsi_require_restart_metadata_value(
+            metadata,
+            "wall_pressure_forcing_status",
+            native_resolved_fsi_wall_pressure_forcing_status(mode_symbol);
+            context=context,
+        )
+    end
+    if haskey(metadata, "pressure_gauge_convention")
+        native_resolved_fsi_require_restart_metadata_value(
+            metadata,
+            "pressure_gauge_convention",
+            "outlet_gauge_normalization_export_only_not_membrane_forcing";
             context=context,
         )
     end

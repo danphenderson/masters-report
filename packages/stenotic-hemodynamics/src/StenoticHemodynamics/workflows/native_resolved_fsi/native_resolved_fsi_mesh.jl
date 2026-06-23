@@ -2,6 +2,10 @@ const SECTION41_NATIVE_CASE_IDS = (:sev23, :sev40, :sev50)
 const SECTION41_NATIVE_BOUNDARY_TAG_NAMES = (:inlet, :outlet, :wall, :interior)
 const SECTION41_LENGTH_CM = 6.0
 const SECTION41_RMAX_CM = 0.18
+const SECTION41_IMPORTED_CASE_TO_NATIVE_CASE = Dict(
+    "77" => :sev23,
+    "60" => :sev40,
+)
 
 """
     NativeResolvedFSICaseSpec
@@ -159,6 +163,31 @@ function native_resolved_fsi_case_spec(severity::Real)
 end
 
 native_resolved_fsi_case_specs() = [native_resolved_fsi_case_spec(case_id) for case_id in SECTION41_NATIVE_CASE_IDS]
+
+"""
+    native_resolved_fsi_imported_case_spec(case_label) -> Union{NativeResolvedFSICaseSpec,Nothing}
+
+Return the exact native Section 4.1 geometry associated with a known imported
+resolved-3D case label. Unknown labels return `nothing` so generic comparison
+fixtures keep their explicit severity contract.
+"""
+function native_resolved_fsi_imported_case_spec(case_label::AbstractString)
+    token = strip(String(case_label))
+    case_id = get(SECTION41_IMPORTED_CASE_TO_NATIVE_CASE, token, nothing)
+    case_id === nothing && return nothing
+    return native_resolved_fsi_case_spec(case_id)
+end
+
+"""
+    native_resolved_fsi_reduced_geometry_severity(case_spec) -> Float64
+
+Return the reduced-model severity value that reproduces the exact native
+Canic geometry amplitude `delta_r_cm` through the legacy
+`rmax * severity / 100` parameterization.
+"""
+function native_resolved_fsi_reduced_geometry_severity(case_spec::NativeResolvedFSICaseSpec)
+    return 100.0 * case_spec.delta_r_cm / case_spec.rmax_cm
+end
 
 """
     native_resolved_fsi_throat_z(case_spec; atol=1e-12, maxiter=256) -> Float64

@@ -62,6 +62,70 @@ function native_resolved_fsi_inlet_outlet_boundary_mode(value::Union{Symbol,Abst
     return mode
 end
 
+"""
+    native_resolved_fsi_pressure_space_policy(mode)
+
+Internal Gridap pressure-space policy for the native resolved-FSI smoke
+operators. The pressure unknown remains a dynamic pressure in dyn/cm^2; outlet
+pressure normalization after sampling is an export gauge and is separate from
+the FE pressure space.
+"""
+function native_resolved_fsi_pressure_space_policy(mode::Union{Symbol,AbstractString})
+    mode_value = native_resolved_fsi_inlet_outlet_boundary_mode(mode)
+    if mode_value === :pressure_drop_weak_inlet_outlet_gauge_smoke
+        return (
+            gridap_constraint=:zeromean,
+            pressure_reference=:additive_nullspace,
+            status="Gridap zero-mean pressure constraint active because the weak pressure-drop loading leaves pressure up to an additive constant; post-sampling outlet pressure normalization is an export gauge",
+        )
+    end
+    if mode_value === :poiseuille_inlet_zero_outlet_stress_section41
+        return (
+            gridap_constraint=nothing,
+            pressure_reference=:natural_cauchy_traction_absolute_pressure,
+            status="no Gridap zero-mean pressure constraint: the Poiseuille-inlet / natural Cauchy-traction outlet contract fixes or interprets absolute pressure; post-sampling outlet pressure normalization is an export gauge only",
+        )
+    end
+    throw(ArgumentError("unsupported native resolved-FSI inlet/outlet boundary mode $(repr(mode_value))"))
+end
+
+function native_resolved_fsi_pressure_test_space(model, reffe_p, labels, mode::Union{Symbol,AbstractString})
+    pressure_policy = native_resolved_fsi_pressure_space_policy(mode)
+    if pressure_policy.gridap_constraint === :zeromean
+        return TestFESpace(model, reffe_p, labels=labels, conformity=:H1, constraint=:zeromean)
+    end
+    return TestFESpace(model, reffe_p, labels=labels, conformity=:H1)
+end
+
+"""
+    native_resolved_fsi_navier_stokes_weak_form_coefficients(rho, mu, dt_s)
+
+Coefficients for the force-density Navier-Stokes weak form. Pressure is not
+divided by density, so the transient and Picard convection terms carry `rho`
+and the Newtonian Cauchy stress uses dynamic viscosity `mu`.
+"""
+function native_resolved_fsi_navier_stokes_weak_form_coefficients(rho::Real, mu::Real, dt_s::Real)
+    rho_value = Float64(rho)
+    mu_value = Float64(mu)
+    dt_value = Float64(dt_s)
+    isfinite(rho_value) && rho_value > 0.0 ||
+        throw(ArgumentError("native resolved-FSI Navier-Stokes weak form requires positive finite density"))
+    isfinite(mu_value) && mu_value > 0.0 ||
+        throw(ArgumentError("native resolved-FSI Navier-Stokes weak form requires positive finite dynamic viscosity"))
+    isfinite(dt_value) && dt_value > 0.0 ||
+        throw(ArgumentError("native resolved-FSI Navier-Stokes weak form requires positive finite dt_s"))
+    return (
+        transient_mass=rho_value / dt_value,
+        previous_step_mass=rho_value / dt_value,
+        convection_density=rho_value,
+        cauchy_viscous_stress=2.0 * mu_value,
+        dynamic_pressure=1.0,
+        boundary_traction=1.0,
+    )
+end
+
+native_resolved_fsi_cauchy_viscous_inner(mu::Real, u, v) = 2.0 * Float64(mu) * (ε(v) ⊙ ε(u))
+
 function native_resolved_fsi_section41_poiseuille_inlet_velocity_function(
     mesh::NativeResolvedFSIMesh,
     wall_radius_at_z,
@@ -91,15 +155,18 @@ function native_resolved_fsi_inlet_outlet_boundary_status(
 )
     if mode === :pressure_drop_weak_inlet_outlet_gauge_smoke
         return "pressure_drop_weak_inlet_outlet_gauge_smoke active: weak pressure-drop inlet loading " *
-               "with Gridap zero-mean pressure constraint and post-sampling outlet-gauge pressure normalization; " *
+               "with force-density dynamic-pressure units, symmetric-gradient Newtonian Cauchy stress, " *
+               "$(native_resolved_fsi_pressure_space_policy(mode).status); " *
                "local smoke boundary evidence only, " *
-               "not exact Section 4.1 Poiseuille inlet / zero-outlet-stress reproduction"
+               "not exact Section 4.1 Poiseuille-inlet reproduction"
     end
     if mode === :poiseuille_inlet_zero_outlet_stress_section41
         return "poiseuille_inlet_zero_outlet_stress_section41 active: strong inlet Dirichlet " *
-               "Poiseuille profile with u_max=$(Float64(inlet_umax_cm_s)) cm/s, zero outlet stress " *
-               "as the natural traction boundary, Gridap zero-mean pressure constraint, " *
-               "post-sampling outlet pressure gauge normalization, and no pressure-drop weak inlet/outlet loading"
+               "Poiseuille profile with u_max=$(Float64(inlet_umax_cm_s)) cm/s, force-density " *
+               "dynamic-pressure units, symmetric-gradient Newtonian Cauchy stress, zero outlet stress " *
+               "as the natural traction boundary for the Cauchy stress ((-pI + 2mu*epsilon(u))n = 0), " *
+               "$(native_resolved_fsi_pressure_space_policy(mode).status), " *
+               "and no pressure-drop weak inlet/outlet loading"
     end
     throw(ArgumentError("unsupported native resolved-FSI inlet/outlet boundary mode $(repr(mode))"))
 end
@@ -115,7 +182,12 @@ function native_resolved_fsi_solve_fixed_wall_stokes(mesh::NativeResolvedFSIMesh
     reffe_p = ReferenceFE(lagrangian, Float64, order - 1)
     zero_velocity(x) = VectorValue(0.0, 0.0, 0.0)
     V = TestFESpace(model, reffe_u, labels=labels, dirichlet_tags="wall", conformity=:H1)
-    Q = TestFESpace(model, reffe_p, labels=labels, conformity=:H1)
+    Q = native_resolved_fsi_pressure_test_space(
+        model,
+        reffe_p,
+        labels,
+        :pressure_drop_weak_inlet_outlet_gauge_smoke,
+    )
     U = TrialFESpace(V, zero_velocity)
     P = TrialFESpace(Q)
     X = MultiFieldFESpace([U, P])
@@ -131,7 +203,8 @@ function native_resolved_fsi_solve_fixed_wall_stokes(mesh::NativeResolvedFSIMesh
     dΓin = Measure(Γin, degree)
     dΓout = Measure(Γout, degree)
 
-    a((u, pfield), (v, q)) = ∫(mu * (∇(v) ⊙ ∇(u)) - (∇ ⋅ v) * pfield + q * (∇ ⋅ u)) * dΩ
+    a((u, pfield), (v, q)) =
+        ∫(native_resolved_fsi_cauchy_viscous_inner(mu, u, v) - (∇ ⋅ v) * pfield + q * (∇ ⋅ u)) * dΩ
     l((v, q)) = ∫(-spec.pressure_drop_dyn_cm2 * (v ⋅ n_in)) * dΓin + ∫(-0.0 * (v ⋅ n_out)) * dΓout
 
     velocity_h, pressure_h = solve(AffineFEOperator(a, l, X, Y))
@@ -254,7 +327,7 @@ function native_resolved_fsi_solve_navier_stokes(
     else
         TestFESpace(model, reffe_u, labels=labels, dirichlet_tags=["wall", "inlet"], conformity=:H1)
     end
-    Q = TestFESpace(model, reffe_p, labels=labels, conformity=:H1, constraint=:zeromean)
+    Q = native_resolved_fsi_pressure_test_space(model, reffe_p, labels, inlet_outlet_boundary_mode_value)
     U = if inlet_outlet_boundary_mode_value === :pressure_drop_weak_inlet_outlet_gauge_smoke
         TrialFESpace(V, wall_velocity_function)
     else
@@ -294,21 +367,23 @@ function native_resolved_fsi_solve_navier_stokes(
 
         for iteration in 1:picard_iteration_count_value
             velocity_advector = velocity_iterate
+            weak_form_coefficients =
+                native_resolved_fsi_navier_stokes_weak_form_coefficients(rho, mu, dt_step)
             a((u, pfield), (v, q)) =
                 ∫(
-                    (rho / dt_step) * (v ⋅ u) +
-                    mu * (∇(v) ⊙ ∇(u)) +
-                    v ⋅ ((∇(u)) ⋅ velocity_advector) -
-                    (∇ ⋅ v) * pfield +
+                    weak_form_coefficients.transient_mass * (v ⋅ u) +
+                    weak_form_coefficients.cauchy_viscous_stress * (ε(v) ⊙ ε(u)) +
+                    weak_form_coefficients.convection_density * (v ⋅ ((∇(u)) ⋅ velocity_advector)) -
+                    weak_form_coefficients.dynamic_pressure * (∇ ⋅ v) * pfield +
                     q * (∇ ⋅ u)
                 ) * dΩ
             l((v, q)) =
                 if inlet_outlet_boundary_mode_value === :pressure_drop_weak_inlet_outlet_gauge_smoke
-                    ∫((rho / dt_step) * (v ⋅ velocity_previous_step)) * dΩ +
-                    ∫(-pressure_drop_value * (v ⋅ n_in)) * dΓin +
+                    ∫(weak_form_coefficients.previous_step_mass * (v ⋅ velocity_previous_step)) * dΩ +
+                    ∫(-weak_form_coefficients.boundary_traction * pressure_drop_value * (v ⋅ n_in)) * dΓin +
                     ∫(-0.0 * (v ⋅ n_out)) * dΓout
                 else
-                    ∫((rho / dt_step) * (v ⋅ velocity_previous_step)) * dΩ +
+                    ∫(weak_form_coefficients.previous_step_mass * (v ⋅ velocity_previous_step)) * dΩ +
                     ∫(0.0 * (v ⋅ n_out)) * dΓout
                 end
 

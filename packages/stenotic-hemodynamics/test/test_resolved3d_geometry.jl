@@ -320,7 +320,7 @@ end
         severity=23.0,
         coordinate_mode="reference",
     )
-    @test status == "ok"
+    @test status == "passed"
     @test isempty(message)
     @test area_mismatch ≈ 0.0 atol=1.0e-14
     @test reconstructed_error ≈ 2.0
@@ -331,7 +331,7 @@ end
         severity=23.0,
         coordinate_mode="reference",
     )
-    @test status_short == "failed"
+    @test status_short == "not_evaluated"
     @test occursin("fewer than 20 radial bins", message_short)
 end
 

@@ -323,23 +323,32 @@ using StenoticHemodynamics
         :default_native_resolved_fsi_partitioned_smoke_output_dir,
         :default_native_resolved_fsi_smoke_output_dir,
         :native_resolved_fsi_case_spec,
+        :native_resolved_fsi_imported_case_spec,
         :native_resolved_fsi_mesh,
+        :native_resolved_fsi_navier_stokes_weak_form_coefficients,
         :native_resolved_fsi_navier_stokes_smoke_spec,
+        :native_resolved_fsi_partitioned_diagnostic_outlet_gauge_pressure_profile,
+        :native_resolved_fsi_partitioned_physical_wall_pressure_profile,
         :native_resolved_fsi_partitioned_production_dry_run,
         :native_resolved_fsi_partitioned_production_default_guard_report,
         :native_resolved_fsi_partitioned_production_estimated_field_payload_bytes,
         :native_resolved_fsi_partitioned_production_spec,
         :native_resolved_fsi_partitioned_smoke_spec,
+        :native_resolved_fsi_partitioned_validate_physical_wall_pressure_profile,
         :native_resolved_fsi_parity_spec,
+        :native_resolved_fsi_pressure_space_policy,
         :native_resolved_fsi_boundary_equivalence_status,
         :native_resolved_fsi_boundary_status_fields,
+        :native_resolved_fsi_reduced_geometry_severity,
         :native_resolved_fsi_production_boundary_mode,
         :native_resolved_fsi_production_parity_matrix_rows,
         :native_resolved_fsi_production_parity_plans,
         :native_resolved_fsi_production_workflow_plans,
         :native_resolved_fsi_read_restart_metadata,
         :native_resolved_fsi_resume_partitioned_production,
+        :native_resolved_fsi_wall_pressure_forcing_status,
         :native_resolved_fsi_wall_pressure_projection_status,
+        :resolved3d_exact_canic_geometry_severity,
         :NativeResolvedFSINavierStokesSmokeSpec,
         :NativeResolvedFSIPartitionedSmokeSpec,
         :run_native_resolved_fsi_parity,
@@ -482,7 +491,8 @@ using StenoticHemodynamics
         @test occursin("section41_boundary_status,implemented_smoke_validated", text)
         @test occursin("section41_boundary_status=implemented_smoke_validated", text)
         @test occursin("boundary_equivalence_status,exact_section41_boundary_mode_selected_smoke_validated", text)
-        @test occursin("pressure_nullspace_status,gridap_zero_mean_pressure_constraint_active", text)
+        @test occursin("pressure_nullspace_status,no_gridap_zero_mean_pressure_constraint", text)
+        @test occursin("exact_natural_cauchy_traction_pressure_reference", text)
         @test occursin("not_wall_stability_remediation", text)
         @test occursin("wall_stability_status,explicit_membrane_oscillator_dt_guard", text)
         @test occursin("sev23_development_exact_boundary_artifact_gate_passed_tfinal0p01", text)

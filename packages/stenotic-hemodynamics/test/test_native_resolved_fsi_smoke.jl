@@ -13,8 +13,17 @@ const default_native_resolved_fsi_partitioned_smoke_output_dir =
     StenoticHemodynamics.default_native_resolved_fsi_partitioned_smoke_output_dir
 const default_native_resolved_fsi_smoke_output_dir = StenoticHemodynamics.default_native_resolved_fsi_smoke_output_dir
 const native_resolved_fsi_navier_stokes_smoke_spec = StenoticHemodynamics.native_resolved_fsi_navier_stokes_smoke_spec
+const native_resolved_fsi_navier_stokes_weak_form_coefficients =
+    StenoticHemodynamics.native_resolved_fsi_navier_stokes_weak_form_coefficients
 const native_resolved_fsi_outlet_gauge_pressure = StenoticHemodynamics.native_resolved_fsi_outlet_gauge_pressure
 const native_resolved_fsi_partitioned_smoke_spec = StenoticHemodynamics.native_resolved_fsi_partitioned_smoke_spec
+const native_resolved_fsi_partitioned_diagnostic_outlet_gauge_pressure_profile =
+    StenoticHemodynamics.native_resolved_fsi_partitioned_diagnostic_outlet_gauge_pressure_profile
+const native_resolved_fsi_partitioned_physical_wall_pressure_profile =
+    StenoticHemodynamics.native_resolved_fsi_partitioned_physical_wall_pressure_profile
+const native_resolved_fsi_partitioned_validate_physical_wall_pressure_profile =
+    StenoticHemodynamics.native_resolved_fsi_partitioned_validate_physical_wall_pressure_profile
+const native_resolved_fsi_pressure_space_policy = StenoticHemodynamics.native_resolved_fsi_pressure_space_policy
 const native_resolved_fsi_mesh = StenoticHemodynamics.native_resolved_fsi_mesh
 const native_resolved_fsi_radial_wall_velocity_function =
     StenoticHemodynamics.native_resolved_fsi_radial_wall_velocity_function
@@ -129,6 +138,42 @@ const run_native_resolved_fsi_smoke = StenoticHemodynamics.run_native_resolved_f
     @test big_plane_pressure == BigFloat("8.75")
 end
 
+@testset "StenoticHemodynamics native resolved-FSI FEM adapter mathematical contract helpers" begin
+    weak_form_coefficients = native_resolved_fsi_navier_stokes_weak_form_coefficients(1.06, 0.0424, 0.25)
+    @test weak_form_coefficients.transient_mass ≈ 1.06 / 0.25
+    @test weak_form_coefficients.previous_step_mass ≈ 1.06 / 0.25
+    @test weak_form_coefficients.convection_density ≈ 1.06
+    @test weak_form_coefficients.cauchy_viscous_stress ≈ 2.0 * 0.0424
+    @test weak_form_coefficients.dynamic_pressure == 1.0
+    @test weak_form_coefficients.boundary_traction == 1.0
+    @test_throws ArgumentError native_resolved_fsi_navier_stokes_weak_form_coefficients(0.0, 0.0424, 0.25)
+    @test_throws ArgumentError native_resolved_fsi_navier_stokes_weak_form_coefficients(1.06, 0.0, 0.25)
+    @test_throws ArgumentError native_resolved_fsi_navier_stokes_weak_form_coefficients(1.06, 0.0424, 0.0)
+
+    weak_pressure_policy = native_resolved_fsi_pressure_space_policy(:pressure_drop_weak_inlet_outlet_gauge_smoke)
+    @test weak_pressure_policy.gridap_constraint === :zeromean
+    @test weak_pressure_policy.pressure_reference === :additive_nullspace
+    @test occursin("Gridap zero-mean pressure constraint active", weak_pressure_policy.status)
+    @test occursin("post-sampling outlet pressure normalization is an export gauge", weak_pressure_policy.status)
+
+    exact_pressure_policy = native_resolved_fsi_pressure_space_policy(:poiseuille_inlet_zero_outlet_stress_section41)
+    @test exact_pressure_policy.gridap_constraint === nothing
+    @test exact_pressure_policy.pressure_reference === :natural_cauchy_traction_absolute_pressure
+    @test occursin("no Gridap zero-mean pressure constraint", exact_pressure_policy.status)
+    @test occursin("natural Cauchy-traction outlet contract", exact_pressure_policy.status)
+    @test occursin("export gauge only", exact_pressure_policy.status)
+
+    exact_boundary_status = StenoticHemodynamics.native_resolved_fsi_inlet_outlet_boundary_status(
+        :poiseuille_inlet_zero_outlet_stress_section41;
+        inlet_umax_cm_s=45.0,
+    )
+    @test occursin("force-density dynamic-pressure units", exact_boundary_status)
+    @test occursin("symmetric-gradient Newtonian Cauchy stress", exact_boundary_status)
+    @test occursin("(-pI + 2mu*epsilon(u))n = 0", exact_boundary_status)
+    @test occursin("no Gridap zero-mean pressure constraint", exact_boundary_status)
+    @test !occursin("Gridap zero-mean pressure constraint active", exact_boundary_status)
+end
+
 @testset "StenoticHemodynamics native resolved-FSI radial wall velocity helper" begin
     resolution = NativeResolvedFSIMeshResolution(axial=2, radial=1, angular=6)
     mesh = native_resolved_fsi_mesh(:sev23, resolution)
@@ -223,9 +268,15 @@ end
     @test exact_solve.inlet_umax_cm_s ≈ 45.0
     @test occursin("poiseuille_inlet_zero_outlet_stress_section41 active", exact_solve.inlet_outlet_boundary_status)
     @test occursin("u_max=45.0 cm/s", exact_solve.inlet_outlet_boundary_status)
+    @test occursin("force-density dynamic-pressure units", exact_solve.inlet_outlet_boundary_status)
+    @test occursin("symmetric-gradient Newtonian Cauchy stress", exact_solve.inlet_outlet_boundary_status)
     @test occursin("zero outlet stress", exact_solve.inlet_outlet_boundary_status)
     @test occursin("natural traction", exact_solve.inlet_outlet_boundary_status)
+    @test occursin("(-pI + 2mu*epsilon(u))n = 0", exact_solve.inlet_outlet_boundary_status)
+    @test occursin("no Gridap zero-mean pressure constraint", exact_solve.inlet_outlet_boundary_status)
+    @test occursin("export gauge only", exact_solve.inlet_outlet_boundary_status)
     @test occursin("no pressure-drop weak inlet/outlet loading", exact_solve.inlet_outlet_boundary_status)
+    @test !occursin("Gridap zero-mean pressure constraint active", exact_solve.inlet_outlet_boundary_status)
     @test !occursin("local smoke boundary evidence", exact_solve.inlet_outlet_boundary_status)
 
     exact_velocity, exact_pressure, exact_sampling_fallback_count = native_resolved_fsi_sample_smoke_fields(
@@ -359,6 +410,46 @@ end
     )
     @test exact_spec_policy.inlet_outlet_boundary_mode == :poiseuille_inlet_zero_outlet_stress_section41
     @test exact_spec_policy.pressure_drop_dyn_cm2 == 0.0
+
+    contract_mesh = native_resolved_fsi_mesh(:sev23, resolution)
+    raw_wall_pressure, raw_wall_pressure_fallbacks = native_resolved_fsi_partitioned_physical_wall_pressure_profile(
+        contract_mesh,
+        x -> 1000.0 + 2.0 * Float64(x[3]),
+        copy(contract_mesh.geometry.reference_radii_cm);
+        pressure_drop_dyn_cm2=40.0,
+    )
+    expected_raw_wall_pressure = [1000.0 + 2.0 * z for z in contract_mesh.geometry.axial_coordinates_cm]
+    @test raw_wall_pressure_fallbacks == 0
+    @test raw_wall_pressure ≈ expected_raw_wall_pressure
+    diagnostic_outlet_gauged_pressure =
+        native_resolved_fsi_partitioned_diagnostic_outlet_gauge_pressure_profile(raw_wall_pressure)
+    @test diagnostic_outlet_gauged_pressure == raw_wall_pressure .- raw_wall_pressure[end]
+    @test diagnostic_outlet_gauged_pressure[end] == 0.0
+    @test raw_wall_pressure[end] != 0.0
+    @test raw_wall_pressure != diagnostic_outlet_gauged_pressure
+    @test_throws ArgumentError native_resolved_fsi_partitioned_validate_physical_wall_pressure_profile([1.0, NaN])
+
+    physical_wall_forcing_pressure = [100.0, 120.0, 110.0]
+    outlet_gauged_wall_pressure =
+        native_resolved_fsi_partitioned_diagnostic_outlet_gauge_pressure_profile(physical_wall_forcing_pressure)
+    forcing_displacement_probe = zeros(3)
+    forcing_velocity_probe = zeros(3)
+    forcing_radii_probe = fill(1.0, 3)
+    StenoticHemodynamics.native_resolved_fsi_partitioned_wall_state!(
+        forcing_displacement_probe,
+        forcing_velocity_probe,
+        forcing_radii_probe,
+        fill(1.0, 3),
+        physical_wall_forcing_pressure,
+        2.0,
+        0.0,
+        0.0,
+        0.01,
+    )
+    @test forcing_velocity_probe[2] ≈ 0.01 * physical_wall_forcing_pressure[2] / 2.0
+    @test forcing_velocity_probe[2] != 0.01 * outlet_gauged_wall_pressure[2] / 2.0
+    @test forcing_displacement_probe[2] ≈ 0.01 * forcing_velocity_probe[2]
+
     wall_update_diagnostics = StenoticHemodynamics.native_resolved_fsi_partitioned_wall_update_diagnostics(
         [0.0, 1.0],
         [0.18, 0.16],
@@ -375,6 +466,7 @@ end
     @test occursin("min_station_index=1", wall_update_diagnostics)
     @test occursin("candidate_radius_cm=-0.01", wall_update_diagnostics)
     @test occursin("wall_pressure_dyn_cm2=-2.0e7", wall_update_diagnostics)
+    @test occursin("physical_wall_forcing_pressure_dyn_cm2=-2.0e7", wall_update_diagnostics)
     @test occursin("explicit_stability_dt_limit_s=", wall_update_diagnostics)
     displacement_probe = [0.0, 0.0, 0.0]
     velocity_probe = [0.0, 0.0, 0.0]
@@ -534,8 +626,12 @@ end
         @test exact_result.section41_boundary_status.ready
         @test occursin("poiseuille_inlet_zero_outlet_stress_section41 active", exact_result.section41_boundary_status.status)
         @test occursin("u_max=45.0 cm/s", exact_result.section41_boundary_status.status)
+        @test occursin("force-density dynamic-pressure units", exact_result.section41_boundary_status.status)
+        @test occursin("symmetric-gradient Newtonian Cauchy stress", exact_result.section41_boundary_status.status)
         @test occursin("zero outlet stress", exact_result.section41_boundary_status.status)
-        @test occursin("Gridap zero-mean pressure constraint", exact_result.section41_boundary_status.status)
+        @test occursin("no Gridap zero-mean pressure constraint", exact_result.section41_boundary_status.status)
+        @test occursin("export gauge only", exact_result.section41_boundary_status.status)
+        @test !occursin("Gridap zero-mean pressure constraint active", exact_result.section41_boundary_status.status)
         @test occursin("no pressure-drop weak inlet/outlet loading", exact_result.section41_boundary_status.status)
         @test exact_result.pressure_projection_fallback_count == 0
         @test exact_result.fluid_wall_boundary_mode == :stationary_wall_on_deformed_geometry

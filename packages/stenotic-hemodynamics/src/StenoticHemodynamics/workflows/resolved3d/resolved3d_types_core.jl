@@ -21,6 +21,12 @@ struct Resolved3DCaseSpec
     time_atol::Float64
 end
 
+function resolved3d_exact_canic_geometry_severity(case_label, fallback_severity::Real)
+    case_spec = native_resolved_fsi_imported_case_spec(string(case_label))
+    case_spec === nothing && return Float64(fallback_severity)
+    return native_resolved_fsi_reduced_geometry_severity(case_spec)
+end
+
 function Resolved3DCaseSpec(
     case_label,
     severity,
@@ -30,7 +36,7 @@ function Resolved3DCaseSpec(
     target_time::Real = 0.9995,
     time_atol::Real = 1.0e-3,
 )
-    severity_value = Float64(severity)
+    severity_value = resolved3d_exact_canic_geometry_severity(case_label, severity)
     target_time_value = Float64(target_time)
     time_atol_value = Float64(time_atol)
     target_time_value >= 0.0 || throw(ArgumentError("target_time must be nonnegative"))

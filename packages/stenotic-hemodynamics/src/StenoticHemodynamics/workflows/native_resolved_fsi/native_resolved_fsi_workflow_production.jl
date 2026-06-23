@@ -91,17 +91,25 @@ end
 function native_resolved_fsi_wall_pressure_projection_status(boundary_mode::Union{Symbol,AbstractString})
     mode = native_resolved_fsi_production_boundary_mode(boundary_mode)
     if mode === :poiseuille_inlet_zero_outlet_stress_section41
-        return "direct_finite_wall_pressure_sampling_required; pressure_drop_resistance_fallback_disabled; wall_pressure_profile_outlet_gauged_before_membrane_update"
+        return "direct_finite_physical_wall_forcing_pressure_sampling_required; pressure_drop_resistance_fallback_disabled; outlet_gauge_normalization_export_only_not_membrane_forcing"
     end
-    return "direct_wall_pressure_sampling_with_pressure_drop_resistance_fallback_if_needed; wall_pressure_profile_outlet_gauged_before_membrane_update"
+    return "physical_wall_forcing_pressure_direct_sampling_with_pressure_drop_resistance_fallback_if_needed; outlet_gauge_normalization_export_only_not_membrane_forcing"
+end
+
+function native_resolved_fsi_wall_pressure_forcing_status(boundary_mode::Union{Symbol,AbstractString})
+    mode = native_resolved_fsi_production_boundary_mode(boundary_mode)
+    if mode === :poiseuille_inlet_zero_outlet_stress_section41
+        return "physical_wall_forcing_pressure_raw_direct_finite_sampling_required; fallback_disabled; post_sampling_outlet_gauge_pressure_export_only"
+    end
+    return "physical_wall_forcing_pressure_raw_sampling_or_resistance_fallback; post_sampling_outlet_gauge_pressure_export_only"
 end
 
 function native_resolved_fsi_pressure_nullspace_status(boundary_mode::Union{Symbol,AbstractString})
     mode = native_resolved_fsi_production_boundary_mode(boundary_mode)
     if mode === :poiseuille_inlet_zero_outlet_stress_section41
-        return "gridap_zero_mean_pressure_constraint_active; post_sampling_outlet_mean_normalization_remains_export_gauge; not_wall_stability_remediation"
+        return "no_gridap_zero_mean_pressure_constraint; post_sampling_outlet_mean_normalization_remains_export_gauge; exact_natural_cauchy_traction_pressure_reference; not_wall_stability_remediation"
     end
-    return "gridap_zero_mean_pressure_constraint_active; post_sampling_outlet_mean_normalization_remains_export_gauge; local_smoke_loading_only"
+    return "gridap_zero_mean_pressure_constraint_active_additive_nullspace; post_sampling_outlet_mean_normalization_remains_export_gauge; local_smoke_loading_only"
 end
 
 """
@@ -1493,6 +1501,8 @@ function run_native_resolved_fsi_partitioned_production(
                 native_resolved_fsi_pressure_nullspace_status(smoke_result.inlet_outlet_boundary_mode),
             wall_pressure_projection_status=
                 native_resolved_fsi_wall_pressure_projection_status(smoke_result.inlet_outlet_boundary_mode),
+            wall_pressure_forcing_status=
+                native_resolved_fsi_wall_pressure_forcing_status(smoke_result.inlet_outlet_boundary_mode),
             section41_boundary_status=boundary_status.section41_boundary_status,
             boundary_status=boundary_status.boundary_status,
             boundary_equivalence_status=native_resolved_fsi_boundary_equivalence_status(boundary_status),
@@ -1504,6 +1514,9 @@ function run_native_resolved_fsi_partitioned_production(
             wall_velocity_max_cm_s=maximum(smoke_result.wall_velocity_cm_s),
             wall_pressure_min_dyn_cm2=minimum(smoke_result.wall_pressure_dyn_cm2),
             wall_pressure_max_dyn_cm2=maximum(smoke_result.wall_pressure_dyn_cm2),
+            physical_wall_forcing_pressure_min_dyn_cm2=minimum(smoke_result.wall_pressure_dyn_cm2),
+            physical_wall_forcing_pressure_max_dyn_cm2=maximum(smoke_result.wall_pressure_dyn_cm2),
+            pressure_gauge_convention="outlet_gauge_normalization_export_only_not_membrane_forcing",
             minimum_current_radius_cm=smoke_result.minimum_current_radius_cm,
             minimum_signed_tetra_volume6=smoke_result.minimum_signed_tetra_volume6,
             pressure_projection_fallback_count=smoke_result.pressure_projection_fallback_count,
@@ -1590,6 +1603,10 @@ function run_native_resolved_fsi_partitioned_production(
             "wall_velocity_cm_s" => copy(final_smoke.wall_velocity_cm_s),
             "current_radii_cm" => copy(final_smoke.current_radii_cm),
             "wall_pressure_dyn_cm2" => copy(final_smoke.wall_pressure_dyn_cm2),
+            "physical_wall_forcing_pressure_dyn_cm2" => copy(final_smoke.wall_pressure_dyn_cm2),
+            "pressure_gauge_convention" => "outlet_gauge_normalization_export_only_not_membrane_forcing",
+            "wall_pressure_forcing_status" =>
+                native_resolved_fsi_wall_pressure_forcing_status(final_smoke.inlet_outlet_boundary_mode),
             "wall_mass_g_cm2" => final_smoke.wall_mass_g_cm2,
             "wall_stiffness_c0_dyn_cm3" => final_smoke.wall_stiffness_c0_dyn_cm3,
             "wall_damping_g_cm2_s" => final_smoke.wall_damping_g_cm2_s,
@@ -1725,6 +1742,9 @@ function run_native_resolved_fsi_partitioned_production(
                     native_resolved_fsi_pressure_nullspace_status(snapshot.smoke_result.inlet_outlet_boundary_mode),
                 "wall_pressure_projection_status" =>
                     native_resolved_fsi_wall_pressure_projection_status(snapshot.smoke_result.inlet_outlet_boundary_mode),
+                "wall_pressure_forcing_status" =>
+                    native_resolved_fsi_wall_pressure_forcing_status(snapshot.smoke_result.inlet_outlet_boundary_mode),
+                "pressure_gauge_convention" => "outlet_gauge_normalization_export_only_not_membrane_forcing",
                 "section41_boundary_status" => snapshot_boundary_status.section41_boundary_status,
                 "boundary_status" => snapshot_boundary_status.boundary_status,
                 "boundary_equivalence_status" =>
@@ -1753,6 +1773,8 @@ function run_native_resolved_fsi_partitioned_production(
             "final_wall_velocity_cm_s" => copy(final_smoke.wall_velocity_cm_s),
             "current_radii_cm" => copy(final_smoke.current_radii_cm),
             "final_wall_pressure_dyn_cm2" => copy(final_smoke.wall_pressure_dyn_cm2),
+            "final_physical_wall_forcing_pressure_dyn_cm2" => copy(final_smoke.wall_pressure_dyn_cm2),
+            "pressure_gauge_convention" => "outlet_gauge_normalization_export_only_not_membrane_forcing",
             "solver_provenance" => "state_carrying_partitioned",
             "state_carrying_in_run" => true,
             "resume_supported" => false,
@@ -1800,12 +1822,16 @@ function run_native_resolved_fsi_partitioned_production(
                 native_resolved_fsi_pressure_nullspace_status(final_smoke.inlet_outlet_boundary_mode),
             "wall_pressure_projection_status" =>
                 native_resolved_fsi_wall_pressure_projection_status(final_smoke.inlet_outlet_boundary_mode),
+            "wall_pressure_forcing_status" =>
+                native_resolved_fsi_wall_pressure_forcing_status(final_smoke.inlet_outlet_boundary_mode),
+            "pressure_gauge_convention" => "outlet_gauge_normalization_export_only_not_membrane_forcing",
             "section41_boundary_status" => final_boundary_status.section41_boundary_status,
             "boundary_status" => final_boundary_status.boundary_status,
             "boundary_equivalence_status" => native_resolved_fsi_boundary_equivalence_status(final_boundary_status),
             "current_wall_displacement_cm" => copy(final_smoke.wall_displacement_cm),
             "current_wall_velocity_cm_s" => copy(final_smoke.wall_velocity_cm_s),
             "current_wall_pressure_dyn_cm2" => copy(final_smoke.wall_pressure_dyn_cm2),
+            "current_physical_wall_forcing_pressure_dyn_cm2" => copy(final_smoke.wall_pressure_dyn_cm2),
             "current_geometry_status" => final_smoke.geometry_status.status,
             "current_minimum_radius_cm" => final_smoke.minimum_current_radius_cm,
             "current_minimum_signed_tetra_volume6" => final_smoke.minimum_signed_tetra_volume6,
@@ -1893,9 +1919,9 @@ function run_native_resolved_fsi_partitioned_production(
                 snapshot_results,
         )
         ready_status = if exact_boundary_mode
-            "production snapshot harness advanced one state-carrying partitioned solve through each requested time with stationary no-slip wall solves on deformed geometry and exact Section 4.1 inlet/outlet boundary mode; direct finite wall-pressure sampling was required with pressure-drop fallback disabled; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, paper-grade Section 4.1 parity, and monolithic ALE coupling remain out of scope"
+            "production snapshot harness advanced one state-carrying partitioned solve through each requested time with stationary no-slip wall solves on deformed geometry and exact Section 4.1 inlet/outlet boundary mode; direct finite physical wall-forcing pressure sampling was required with pressure-drop fallback disabled, and outlet-gauge pressure normalization is export-only; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, paper-grade Section 4.1 parity, and monolithic ALE coupling remain out of scope"
         else
-            "production snapshot harness advanced one state-carrying partitioned solve through each requested time with prescribed radial wall-velocity Dirichlet data on deformed geometry; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, validated Section 4.1 parity, and monolithic ALE coupling remain out of scope"
+            "production snapshot harness advanced one state-carrying partitioned solve through each requested time with prescribed radial wall-velocity Dirichlet data on deformed geometry; physical wall-forcing pressure uses raw sampling or the pressure-drop resistance fallback, while outlet-gauge pressure normalization is export-only; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, validated Section 4.1 parity, and monolithic ALE coupling remain out of scope"
         end
         status = ready ?
             ready_status :

@@ -8,7 +8,7 @@ function native_resolved_fsi_partitioned_radius_profile(
     return z -> native_resolved_fsi_interpolate_wall_lift(axial_coordinates_cm, radii_cm, z)
 end
 
-function native_resolved_fsi_partitioned_wall_pressure_profile(
+function native_resolved_fsi_partitioned_physical_wall_pressure_profile(
     mesh::NativeResolvedFSIMesh,
     pressure_h,
     current_radii_cm::Vector{Float64};
@@ -61,7 +61,43 @@ function native_resolved_fsi_partitioned_wall_pressure_profile(
         end
         fallback_count += used_fallback ? 1 : 0
     end
-    return gauge_normalized_pressure_profile(pressure_values), fallback_count
+    return native_resolved_fsi_partitioned_validate_physical_wall_pressure_profile(pressure_values), fallback_count
+end
+
+function native_resolved_fsi_partitioned_wall_pressure_profile(
+    mesh::NativeResolvedFSIMesh,
+    pressure_h,
+    current_radii_cm::Vector{Float64};
+    coordinates::AbstractMatrix{<:Real} = mesh.coordinates,
+    wall_radius_at_z = z -> native_resolved_fsi_radius(mesh.case_spec, z),
+    pressure_drop_dyn_cm2::Real,
+    allow_pressure_fallback::Bool = true,
+)
+    return native_resolved_fsi_partitioned_physical_wall_pressure_profile(
+        mesh,
+        pressure_h,
+        current_radii_cm;
+        coordinates=coordinates,
+        wall_radius_at_z=wall_radius_at_z,
+        pressure_drop_dyn_cm2=pressure_drop_dyn_cm2,
+        allow_pressure_fallback=allow_pressure_fallback,
+    )
+end
+
+function native_resolved_fsi_partitioned_diagnostic_outlet_gauge_pressure_profile(
+    physical_wall_forcing_pressure_dyn_cm2::Vector{Float64},
+)
+    return gauge_normalized_pressure_profile(physical_wall_forcing_pressure_dyn_cm2)
+end
+
+function native_resolved_fsi_partitioned_validate_physical_wall_pressure_profile(
+    physical_wall_forcing_pressure_dyn_cm2::Vector{Float64},
+)
+    all(isfinite, physical_wall_forcing_pressure_dyn_cm2) || throw(ArgumentError(
+        "native resolved-FSI partitioned physical wall forcing pressure must be finite; " *
+        "outlet-gauge-normalized pressure is diagnostic/export only and is not valid membrane forcing",
+    ))
+    return physical_wall_forcing_pressure_dyn_cm2
 end
 
 function native_resolved_fsi_partitioned_wall_pressure_at_plane(
@@ -262,20 +298,21 @@ function native_resolved_fsi_partitioned_wall_state!(
     wall_velocity_cm_s::Vector{Float64},
     current_radii_cm::Vector{Float64},
     reference_radii_cm::Vector{Float64},
-    wall_pressure_dyn_cm2::Vector{Float64},
+    physical_wall_forcing_pressure_dyn_cm2::Vector{Float64},
     wall_mass_g_cm2::Float64,
     wall_stiffness_c0_dyn_cm3::Float64,
     wall_damping_g_cm2_s::Float64,
     dt_step_s::Float64,
 )
-    all(isfinite, wall_pressure_dyn_cm2) ||
-        throw(ArgumentError("native resolved-FSI partitioned smoke wall pressure must be finite"))
+    native_resolved_fsi_partitioned_validate_physical_wall_pressure_profile(
+        physical_wall_forcing_pressure_dyn_cm2,
+    )
     denominator = wall_mass_g_cm2 + dt_step_s * wall_damping_g_cm2_s + dt_step_s^2 * wall_stiffness_c0_dyn_cm3
     denominator > 0.0 ||
         throw(ArgumentError("native resolved-FSI partitioned smoke semi-implicit wall denominator must be positive"))
     predicted_velocity_cm_s =
         (wall_mass_g_cm2 .* wall_velocity_cm_s .+
-         dt_step_s .* (wall_pressure_dyn_cm2 .- wall_stiffness_c0_dyn_cm3 .* wall_displacement_cm)) ./ denominator
+         dt_step_s .* (physical_wall_forcing_pressure_dyn_cm2 .- wall_stiffness_c0_dyn_cm3 .* wall_displacement_cm)) ./ denominator
     clamp_membrane_endpoints!(predicted_velocity_cm_s)
     predicted_displacement_cm = wall_displacement_cm .+ dt_step_s .* predicted_velocity_cm_s
     clamp_membrane_endpoints!(predicted_displacement_cm)
@@ -287,16 +324,18 @@ function native_resolved_fsi_partitioned_wall_state!(
     end
     if minimum(predicted_radii_cm) <= 0.0
         min_radius_cm, min_radius_index = findmin(predicted_radii_cm)
-        max_abs_wall_pressure_dyn_cm2 = maximum(abs, wall_pressure_dyn_cm2)
+        max_abs_wall_pressure_dyn_cm2 = maximum(abs, physical_wall_forcing_pressure_dyn_cm2)
         static_pressure_displacement_cm = wall_stiffness_c0_dyn_cm3 > 0.0 ?
-                                          wall_pressure_dyn_cm2[min_radius_index] / wall_stiffness_c0_dyn_cm3 : NaN
+                                          physical_wall_forcing_pressure_dyn_cm2[min_radius_index] /
+                                          wall_stiffness_c0_dyn_cm3 : NaN
         semi_implicit_displacement_increment_cm =
             predicted_displacement_cm[min_radius_index] - wall_displacement_cm[min_radius_index]
         throw(ArgumentError(
             "native resolved-FSI partitioned smoke pressure-load plausibility gate predicted a non-positive radius before applying the wall update; " *
             "min_station_index=$(min_radius_index), predicted_radius_cm=$(min_radius_cm), " *
             "reference_radius_cm=$(reference_radii_cm[min_radius_index]), " *
-            "wall_pressure_dyn_cm2=$(wall_pressure_dyn_cm2[min_radius_index]), " *
+            "wall_pressure_dyn_cm2=$(physical_wall_forcing_pressure_dyn_cm2[min_radius_index]), " *
+            "physical_wall_forcing_pressure_dyn_cm2=$(physical_wall_forcing_pressure_dyn_cm2[min_radius_index]), " *
             "max_abs_wall_pressure_dyn_cm2=$(max_abs_wall_pressure_dyn_cm2), " *
             "static_pressure_displacement_cm=$(static_pressure_displacement_cm), " *
             "semi_implicit_displacement_increment_cm=$(semi_implicit_displacement_increment_cm), " *
@@ -317,7 +356,7 @@ end
 function native_resolved_fsi_partitioned_wall_update_diagnostics(
     wall_axial_coordinates_cm::Vector{Float64},
     reference_radii_cm::Vector{Float64},
-    wall_pressure_dyn_cm2::Vector{Float64},
+    physical_wall_forcing_pressure_dyn_cm2::Vector{Float64},
     wall_displacement_cm::Vector{Float64},
     wall_velocity_cm_s::Vector{Float64},
     current_radii_cm::Vector{Float64},
@@ -327,24 +366,26 @@ function native_resolved_fsi_partitioned_wall_update_diagnostics(
     dt_step_s::Float64;
     radius_label::String = "candidate_radius_cm",
 )
-    length(wall_axial_coordinates_cm) == length(reference_radii_cm) == length(wall_pressure_dyn_cm2) ==
+    length(wall_axial_coordinates_cm) == length(reference_radii_cm) == length(physical_wall_forcing_pressure_dyn_cm2) ==
         length(wall_displacement_cm) == length(wall_velocity_cm_s) == length(current_radii_cm) ||
         return "wall-update diagnostics unavailable because wall-state vector lengths differ"
     isempty(current_radii_cm) && return "wall-update diagnostics unavailable because wall state is empty"
     min_radius_cm, min_radius_index = findmin(current_radii_cm)
-    abs_wall_pressure = abs.(wall_pressure_dyn_cm2)
+    abs_wall_pressure = abs.(physical_wall_forcing_pressure_dyn_cm2)
     max_abs_wall_pressure_dyn_cm2, max_abs_pressure_index = findmax(abs_wall_pressure)
     stability_dt_limit_s = wall_mass_g_cm2 > 0.0 && wall_stiffness_c0_dyn_cm3 > 0.0 ?
                            1.9 * sqrt(wall_mass_g_cm2 / wall_stiffness_c0_dyn_cm3) : NaN
     static_pressure_displacement_cm = wall_stiffness_c0_dyn_cm3 > 0.0 ?
-                                      wall_pressure_dyn_cm2[min_radius_index] / wall_stiffness_c0_dyn_cm3 : NaN
+                                      physical_wall_forcing_pressure_dyn_cm2[min_radius_index] /
+                                      wall_stiffness_c0_dyn_cm3 : NaN
     return "wall-update diagnostics: min_station_index=$(min_radius_index), " *
            "z_cm=$(wall_axial_coordinates_cm[min_radius_index]), " *
            "reference_radius_cm=$(reference_radii_cm[min_radius_index]), " *
            "$(radius_label)=$(min_radius_cm), " *
            "wall_displacement_cm=$(wall_displacement_cm[min_radius_index]), " *
            "wall_velocity_cm_s=$(wall_velocity_cm_s[min_radius_index]), " *
-           "wall_pressure_dyn_cm2=$(wall_pressure_dyn_cm2[min_radius_index]), " *
+           "wall_pressure_dyn_cm2=$(physical_wall_forcing_pressure_dyn_cm2[min_radius_index]), " *
+           "physical_wall_forcing_pressure_dyn_cm2=$(physical_wall_forcing_pressure_dyn_cm2[min_radius_index]), " *
            "static_pressure_displacement_cm=$(static_pressure_displacement_cm), " *
            "max_abs_wall_pressure_dyn_cm2=$(max_abs_wall_pressure_dyn_cm2), " *
            "max_abs_pressure_station_index=$(max_abs_pressure_index), " *
@@ -431,7 +472,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
     pressure_projection_fallback_count = 0
     velocity_dofs_previous = nothing
     fluid_state = nothing
-    wall_pressure_dyn_cm2 = zeros(Float64, length(wall_axial_coordinates_cm))
+    physical_wall_forcing_pressure_dyn_cm2 = zeros(Float64, length(wall_axial_coordinates_cm))
     minimum_signed_tetra_volume6 = native_resolved_fsi_partitioned_smoke_validate_deformed_mesh(mesh, mesh.coordinates, current_radii_cm)
     max_coupling_iterations_used = 0
     final_coupling_displacement_residual_cm = 0.0
@@ -494,16 +535,17 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     initial_velocity_dofs=coupling_velocity_dofs,
                 )
                 coupling_velocity_dofs = native_resolved_fsi_copy_free_dof_values(fluid_state.velocity)
-                wall_pressure_dyn_cm2, step_pressure_fallback_count = native_resolved_fsi_partitioned_wall_pressure_profile(
-                    mesh,
-                    fluid_state.pressure,
-                    iteration_radii_cm;
-                    coordinates=deformed_coordinates,
-                    wall_radius_at_z=wall_radius_at_z,
-                    pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
-                    allow_pressure_fallback=
-                        controls.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke,
-                )
+                physical_wall_forcing_pressure_dyn_cm2, step_pressure_fallback_count =
+                    native_resolved_fsi_partitioned_physical_wall_pressure_profile(
+                        mesh,
+                        fluid_state.pressure,
+                        iteration_radii_cm;
+                        coordinates=deformed_coordinates,
+                        wall_radius_at_z=wall_radius_at_z,
+                        pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
+                        allow_pressure_fallback=
+                            controls.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke,
+                    )
                 pressure_projection_fallback_count += step_pressure_fallback_count
 
                 candidate_displacement_cm = copy(step_start_displacement_cm)
@@ -515,7 +557,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                         candidate_velocity_cm_s,
                         candidate_radii_cm,
                         reference_radii_cm,
-                        wall_pressure_dyn_cm2,
+                        physical_wall_forcing_pressure_dyn_cm2,
                         wall_mass_g_cm2,
                         wall_stiffness_c0_dyn_cm3,
                         spec.wall_damping_g_cm2_s,
@@ -525,7 +567,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     diagnostics = native_resolved_fsi_partitioned_wall_update_diagnostics(
                         wall_axial_coordinates_cm,
                         reference_radii_cm,
-                        wall_pressure_dyn_cm2,
+                        physical_wall_forcing_pressure_dyn_cm2,
                         candidate_displacement_cm,
                         candidate_velocity_cm_s,
                         candidate_radii_cm,
@@ -559,7 +601,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     diagnostics = native_resolved_fsi_partitioned_wall_update_diagnostics(
                         wall_axial_coordinates_cm,
                         reference_radii_cm,
-                        wall_pressure_dyn_cm2,
+                        physical_wall_forcing_pressure_dyn_cm2,
                         relaxed_displacement_cm,
                         relaxed_velocity_cm_s,
                         relaxed_radii_cm,
@@ -610,7 +652,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                 wall_state_finite =
                     all(isfinite, wall_displacement_cm) &&
                     all(isfinite, wall_velocity_cm_s) &&
-                    all(isfinite, wall_pressure_dyn_cm2) &&
+                    all(isfinite, physical_wall_forcing_pressure_dyn_cm2) &&
                     all(isfinite, current_radii_cm)
                 progress_callback((
                     event="time_step_completed",
@@ -623,8 +665,11 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     minimum_signed_tetra_volume6=minimum_signed_tetra_volume6,
                     wall_displacement_min_cm=minimum(wall_displacement_cm),
                     wall_displacement_max_cm=maximum(wall_displacement_cm),
-                    wall_pressure_min_dyn_cm2=minimum(wall_pressure_dyn_cm2),
-                    wall_pressure_max_dyn_cm2=maximum(wall_pressure_dyn_cm2),
+                    wall_pressure_min_dyn_cm2=minimum(physical_wall_forcing_pressure_dyn_cm2),
+                    wall_pressure_max_dyn_cm2=maximum(physical_wall_forcing_pressure_dyn_cm2),
+                    physical_wall_forcing_pressure_min_dyn_cm2=minimum(physical_wall_forcing_pressure_dyn_cm2),
+                    physical_wall_forcing_pressure_max_dyn_cm2=maximum(physical_wall_forcing_pressure_dyn_cm2),
+                    pressure_gauge_convention="outlet_gauge_normalization_export_only_not_membrane_forcing",
                     field_finite_status=wall_state_finite ?
                                         "wall_state_finite_fluid_refresh_pending" :
                                         "nonfinite_wall_state",
@@ -673,16 +718,17 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
         max_picard_iterations_used = max(max_picard_iterations_used, fluid_state.max_picard_iterations_used)
         final_picard_update_norm = fluid_state.final_picard_update_norm
         picard_converged &= fluid_state.picard_converged
-        wall_pressure_dyn_cm2, refresh_pressure_fallback_count = native_resolved_fsi_partitioned_wall_pressure_profile(
-            mesh,
-            fluid_state.pressure,
-            current_radii_cm;
-            coordinates=final_deformed_coordinates,
-            wall_radius_at_z=wall_radius_at_z,
-            pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
-            allow_pressure_fallback=
-                controls.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke,
-        )
+        physical_wall_forcing_pressure_dyn_cm2, refresh_pressure_fallback_count =
+            native_resolved_fsi_partitioned_physical_wall_pressure_profile(
+                mesh,
+                fluid_state.pressure,
+                current_radii_cm;
+                coordinates=final_deformed_coordinates,
+                wall_radius_at_z=wall_radius_at_z,
+                pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
+                allow_pressure_fallback=
+                    controls.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke,
+            )
         pressure_projection_fallback_count += refresh_pressure_fallback_count
 
         push!(snapshots, NativeResolvedFSIPartitionedSmokeSolve(
@@ -706,7 +752,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             copy(wall_axial_coordinates_cm),
             copy(wall_displacement_cm),
             copy(wall_velocity_cm_s),
-            copy(wall_pressure_dyn_cm2),
+            copy(physical_wall_forcing_pressure_dyn_cm2),
             copy(current_radii_cm),
             wall_mass_g_cm2,
             wall_stiffness_c0_dyn_cm3,
@@ -726,8 +772,11 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                 minimum_signed_tetra_volume6=minimum_signed_tetra_volume6,
                 wall_displacement_min_cm=minimum(wall_displacement_cm),
                 wall_displacement_max_cm=maximum(wall_displacement_cm),
-                wall_pressure_min_dyn_cm2=minimum(wall_pressure_dyn_cm2),
-                wall_pressure_max_dyn_cm2=maximum(wall_pressure_dyn_cm2),
+                wall_pressure_min_dyn_cm2=minimum(physical_wall_forcing_pressure_dyn_cm2),
+                wall_pressure_max_dyn_cm2=maximum(physical_wall_forcing_pressure_dyn_cm2),
+                physical_wall_forcing_pressure_min_dyn_cm2=minimum(physical_wall_forcing_pressure_dyn_cm2),
+                physical_wall_forcing_pressure_max_dyn_cm2=maximum(physical_wall_forcing_pressure_dyn_cm2),
+                pressure_gauge_convention="outlet_gauge_normalization_export_only_not_membrane_forcing",
                 field_finite_status="snapshot_fluid_refresh_completed",
                 final_coupling_displacement_residual_cm=final_coupling_displacement_residual_cm,
                 step_coupling_converged=coupling_converged,

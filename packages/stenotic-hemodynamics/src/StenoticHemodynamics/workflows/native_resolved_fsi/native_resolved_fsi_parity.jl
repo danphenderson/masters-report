@@ -503,9 +503,10 @@ function native_resolved_fsi_parity_velocity_operator_status(
     z_samples = isempty(spec.sample_z_cm) ?
         native_resolved_fsi_parity_default_sample_z(native_field, imported_field) :
         spec.sample_z_cm
-    profile_z_samples = isempty(spec.radial_profile_z_cm) ?
-        native_resolved_fsi_parity_default_profile_z(native_field, imported_field) :
-        spec.radial_profile_z_cm
+    profile_z_samples, unmatched_profile_z_count = native_resolved_fsi_parity_profile_z_samples(
+        spec.radial_profile_z_cm,
+        z_samples,
+    )
 
     isempty(z_samples) && return native_resolved_fsi_parity_status(
         false,
@@ -518,6 +519,7 @@ function native_resolved_fsi_parity_velocity_operator_status(
     discrepancy_count = Ref(0)
     numeric_differences = Float64[]
     quadrature_operator = CrossSectionQuadratureOperator()
+    discrepancy_count[] += unmatched_profile_z_count
 
     for z in z_samples
         native_observation = section_observation(native_field, z, quadrature_operator)
@@ -604,12 +606,14 @@ function native_resolved_fsi_parity_velocity_operator_status(
 
     max_difference = isempty(numeric_differences) ? 0.0 : maximum(numeric_differences)
     if discrepancy_count[] > 0
+        unmatched_profile_message = unmatched_profile_z_count == 0 ? "" :
+            "; $(unmatched_profile_z_count) radial profile z-cut(s) were not evaluated because they do not match section sample_z_cm"
         return native_resolved_fsi_parity_status(
             false,
             false,
             discrepancy_count[],
             max_difference,
-            "velocity observation parity found $(discrepancy_count[]) section/radial/node-slab discrepancies above $(spec.operator_atol)",
+            "velocity observation parity found $(discrepancy_count[]) section/radial/node-slab discrepancies above $(spec.operator_atol)$(unmatched_profile_message)",
         )
     end
 
@@ -839,13 +843,23 @@ function native_resolved_fsi_parity_default_sample_z(
     return [z_min + 0.25 * span, z_min + 0.5 * span, z_min + 0.75 * span]
 end
 
-function native_resolved_fsi_parity_default_profile_z(
-    native_field::Resolved3DVelocityField,
-    imported_field::Resolved3DVelocityField,
+function native_resolved_fsi_parity_profile_z_samples(
+    requested_profile_z::AbstractVector{<:Real},
+    section_z_samples::AbstractVector{<:Real},
 )
-    z_min, z_max = native_resolved_fsi_parity_overlap_bounds(native_field, imported_field)
-    z_min <= z_max || return Float64[]
-    return [0.5 * (z_min + z_max)]
+    isempty(requested_profile_z) && return (Float64[Float64(z) for z in section_z_samples], 0)
+    matched = Float64[]
+    unmatched_count = 0
+    for requested_z in requested_profile_z
+        section_index = findfirst(z -> isapprox(z, requested_z; atol=1.0e-9), section_z_samples)
+        if section_index === nothing
+            unmatched_count += 1
+            continue
+        end
+        section_z = Float64(section_z_samples[section_index])
+        any(z -> isapprox(z, section_z; atol=1.0e-9), matched) || push!(matched, section_z)
+    end
+    return matched, unmatched_count
 end
 
 function native_resolved_fsi_parity_overlap_bounds(

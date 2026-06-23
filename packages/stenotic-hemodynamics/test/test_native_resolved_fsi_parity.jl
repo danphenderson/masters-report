@@ -3,13 +3,19 @@ const NativeResolvedFSIParitySpec = StenoticHemodynamics.NativeResolvedFSIParity
 const NativeResolvedFSIParityStatus = StenoticHemodynamics.NativeResolvedFSIParityStatus
 const NativeResolvedFSIProductionDryRunPlan = StenoticHemodynamics.NativeResolvedFSIProductionDryRunPlan
 const NativeResolvedFSIProductionParityPlan = StenoticHemodynamics.NativeResolvedFSIProductionParityPlan
+const RadialProfileRow = StenoticHemodynamics.RadialProfileRow
 const Resolved3DCaseSpec = StenoticHemodynamics.Resolved3DCaseSpec
+const SectionComparisonRow = StenoticHemodynamics.SectionComparisonRow
+const default_resolved3d_cases = StenoticHemodynamics.default_resolved3d_cases
+const native_resolved_fsi_case_spec = StenoticHemodynamics.native_resolved_fsi_case_spec
+const native_resolved_fsi_imported_case_spec = StenoticHemodynamics.native_resolved_fsi_imported_case_spec
 const native_resolved_fsi_partitioned_production_dry_run =
     StenoticHemodynamics.native_resolved_fsi_partitioned_production_dry_run
 const native_resolved_fsi_production_parity_matrix_rows =
     StenoticHemodynamics.native_resolved_fsi_production_parity_matrix_rows
 const native_resolved_fsi_production_parity_plans = StenoticHemodynamics.native_resolved_fsi_production_parity_plans
 const native_resolved_fsi_production_workflow_plans = StenoticHemodynamics.native_resolved_fsi_production_workflow_plans
+const radial_profile_slice_audit = StenoticHemodynamics.radial_profile_slice_audit
 const run_native_resolved_fsi_parity = StenoticHemodynamics.run_native_resolved_fsi_parity
 const write_resolved3d_field_bundle = StenoticHemodynamics.write_resolved3d_field_bundle
 
@@ -105,6 +111,227 @@ function native_resolved_fsi_parity_spec(native_case::Resolved3DCaseSpec, import
         displacement_atol_cm=1.0e-12,
         operator_atol=1.0e-12,
     )
+end
+
+function assert_exact_canic_case_geometry(
+    imported_case::Resolved3DCaseSpec,
+    native_case_id::Symbol;
+    expected_case_label::AbstractString,
+    expected_delta_r_cm::Real,
+    expected_rmin_cm::Real,
+)
+    native_case = native_resolved_fsi_case_spec(native_case_id)
+    imported_native_case = native_resolved_fsi_imported_case_spec(imported_case.case_label)
+    expected_reduced_severity = 100.0 * Float64(expected_delta_r_cm) / StenoticHemodynamics.SECTION41_RMAX_CM
+    reduced_delta_r_cm = StenoticHemodynamics.SECTION41_RMAX_CM * imported_case.severity / 100.0
+    reduced_rmin_cm = StenoticHemodynamics.SECTION41_RMAX_CM - reduced_delta_r_cm
+
+    @test imported_case.case_label == expected_case_label
+    @test imported_native_case !== nothing
+    @test imported_native_case.case_id === native_case_id
+    @test imported_case.severity ≈ expected_reduced_severity atol = 1.0e-12
+    @test native_case.delta_r_cm ≈ expected_delta_r_cm atol = 1.0e-12
+    @test native_case.rmin_cm ≈ expected_rmin_cm atol = 1.0e-12
+    @test imported_native_case.delta_r_cm ≈ expected_delta_r_cm atol = 1.0e-12
+    @test imported_native_case.rmin_cm ≈ expected_rmin_cm atol = 1.0e-12
+    @test reduced_delta_r_cm ≈ expected_delta_r_cm atol = 1.0e-12
+    @test reduced_rmin_cm ≈ expected_rmin_cm atol = 1.0e-12
+end
+
+function native_resolved_fsi_audit_section_row(;
+    severity::Real = 23.0,
+    coordinate_mode::AbstractString = "deformed",
+    z_cm::Real = 0.5,
+    area_cm2::Real = 20.0,
+    flow_3d_cm3_s::Real = 100.0,
+    area_valid::Bool = true,
+)
+    return SectionComparisonRow(
+        "77",
+        Float64(severity),
+        "CrossSectionQuadratureOperator",
+        "canic-extended-1d",
+        8,
+        1.0e-5,
+        "geometry-rest",
+        "native",
+        "ok",
+        String(coordinate_mode),
+        Float64(z_cm),
+        Float64(area_cm2),
+        Float64(flow_3d_cm3_s),
+        Float64(flow_3d_cm3_s),
+        5.0,
+        5.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        20,
+        area_valid,
+        area_valid ? "valid" : "empty-plane",
+        0,
+        sqrt(Float64(area_cm2) / pi),
+        1.0,
+        0.0,
+        1.0,
+        1.0e-9,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+    )
+end
+
+function native_resolved_fsi_audit_radial_rows(;
+    severity::Real = 23.0,
+    coordinate_mode::AbstractString = "deformed",
+    z_cm::Real = 0.5,
+    bin_count::Integer = 20,
+    total_area_cm2::Real = 20.0,
+    total_flow_cm3_s::Real = 100.0,
+)
+    rows = RadialProfileRow[]
+    bin_area = Float64(total_area_cm2) / Int(bin_count)
+    bin_flow = Float64(total_flow_cm3_s) / Int(bin_count)
+    mean_u3d = bin_flow / bin_area
+    for bin in 1:Int(bin_count)
+        push!(rows, RadialProfileRow(
+            "77",
+            Float64(severity),
+            "CrossSectionQuadratureOperator",
+            "canic-extended-1d",
+            8,
+            1.0e-5,
+            "geometry-rest",
+            "native",
+            "ok",
+            String(coordinate_mode),
+            Float64(z_cm),
+            bin,
+            (bin - 0.5) / Int(bin_count),
+            bin_area,
+            bin_flow,
+            mean_u3d,
+            mean_u3d,
+            0.0,
+            0.0,
+            1,
+            true,
+            0,
+            1.0,
+            0.0,
+            1.0,
+            1.0e-9,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            Int(bin_count),
+            "current",
+            sqrt(Float64(total_area_cm2) / pi),
+            Float64(total_area_cm2),
+            Float64(total_area_cm2),
+            0.0,
+            0.0,
+        ))
+    end
+    return rows
+end
+
+@testset "StenoticHemodynamics native resolved-FSI exact Canic case geometry mapping" begin
+    mktempdir() do dir
+        imported_cases = Dict(case.case_label => case for case in default_resolved3d_cases(dir))
+        case77 = imported_cases["77"]
+        case60 = imported_cases["60"]
+
+        @test case77.velocity_xdmf == joinpath(dir, "77", "velocity.xdmf")
+        @test case60.velocity_xdmf == joinpath(dir, "60", "velocity.xdmf")
+        assert_exact_canic_case_geometry(
+            case77,
+            :sev23;
+            expected_case_label="77",
+            expected_delta_r_cm=0.0406,
+            expected_rmin_cm=0.1394,
+        )
+        assert_exact_canic_case_geometry(
+            case60,
+            :sev40;
+            expected_case_label="60",
+            expected_delta_r_cm=0.072,
+            expected_rmin_cm=0.108,
+        )
+
+        workflow_plans = native_resolved_fsi_production_workflow_plans(
+            case_ids=(:sev23, :sev40),
+            output_root=joinpath(dir, "production"),
+        )
+        parity_plans = native_resolved_fsi_production_parity_plans(
+            workflow_plans=workflow_plans,
+            imported_data_root=dir,
+        )
+
+        @test [plan.imported_case.case_label for plan in parity_plans] == ["77", "60"]
+        assert_exact_canic_case_geometry(
+            parity_plans[1].imported_case,
+            :sev23;
+            expected_case_label="77",
+            expected_delta_r_cm=0.0406,
+            expected_rmin_cm=0.1394,
+        )
+        assert_exact_canic_case_geometry(
+            parity_plans[2].imported_case,
+            :sev40;
+            expected_case_label="60",
+            expected_delta_r_cm=0.072,
+            expected_rmin_cm=0.108,
+        )
+    end
+end
+
+@testset "StenoticHemodynamics radial profile closure audit statuses" begin
+    section_rows = [native_resolved_fsi_audit_section_row(area_cm2=20.0, flow_3d_cm3_s=100.0)]
+
+    passed_status, passed_message, passed_area_mismatch, passed_reconstructed_error = radial_profile_slice_audit(
+        native_resolved_fsi_audit_radial_rows(total_area_cm2=20.0, total_flow_cm3_s=100.0),
+        section_rows;
+        severity=23.0,
+        coordinate_mode="deformed",
+    )
+    @test passed_status == "passed"
+    @test passed_message == ""
+    @test passed_area_mismatch ≈ 0.0 atol = 1.0e-12
+    @test passed_reconstructed_error ≈ 0.0 atol = 1.0e-12
+
+    area_status, area_message, area_mismatch, _ = radial_profile_slice_audit(
+        native_resolved_fsi_audit_radial_rows(total_area_cm2=22.0, total_flow_cm3_s=100.0),
+        section_rows;
+        severity=23.0,
+        coordinate_mode="deformed",
+    )
+    @test area_status == "failed_area_closure"
+    @test occursin("area closure", area_message)
+    @test area_mismatch ≈ 0.1 atol = 1.0e-12
+
+    flow_status, flow_message, flow_area_mismatch, _ = radial_profile_slice_audit(
+        native_resolved_fsi_audit_radial_rows(total_area_cm2=20.0, total_flow_cm3_s=120.0),
+        section_rows;
+        severity=23.0,
+        coordinate_mode="deformed",
+    )
+    @test flow_status == "failed_flow_closure"
+    @test occursin("flow closure", flow_message)
+    @test flow_area_mismatch ≈ 0.0 atol = 1.0e-12
+
+    missing_status, missing_message, missing_area_mismatch, _ = radial_profile_slice_audit(
+        native_resolved_fsi_audit_radial_rows(total_area_cm2=20.0, total_flow_cm3_s=100.0),
+        SectionComparisonRow[];
+        severity=23.0,
+        coordinate_mode="deformed",
+    )
+    @test missing_status == "not_evaluated"
+    @test occursin("matching section row unavailable", missing_message)
+    @test isnan(missing_area_mismatch)
 end
 
 @testset "StenoticHemodynamics native resolved-FSI parity exact fixture" begin
