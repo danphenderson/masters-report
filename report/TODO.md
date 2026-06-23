@@ -9,17 +9,20 @@ Section~\ref{sec:continuum-description}, instead of restating continuum
 foundations inside the numerical-methods chapter.
 
 The native resolved-FSI package boundary has one manuscript-facing open
-requirement that must stay visible in editorial planning after Lane 9A. The
-low-level native Gridap Navier--Stokes adapter now has smoke-tested exact
-Section 4.1 inlet/outlet boundary-mode support:
+requirement that must stay visible in editorial planning after Lane 9B. The
+low-level native Gridap Navier--Stokes adapter has smoke-tested exact Section
+4.1 inlet/outlet boundary-mode support:
 `poiseuille_inlet_zero_outlet_stress_section41` applies a strong inlet
 Dirichlet Poiseuille velocity with $u_{\max}=45\,\mathrm{cm/s}$, omits weak
 pressure-drop inlet/outlet loading, leaves the outlet as natural zero traction,
-and records an internal diagnostic boundary-status string. Production-level
-Section 4.1 reproduction is still pending Lane 9B boundary-status propagation
-and partitioned/production integration. Manuscript prose must therefore not
-claim that native production, parity artifacts, CLI defaults, or restart
-metadata reproduce the Section 4.1 boundary conditions yet.
+and records an internal diagnostic boundary-status string. Boundary-status
+fields now propagate through production dry-run plans, production diagnostics
+and restart metadata, and parity/status rows. Production execution for the
+exact mode remains fail-closed until the next package lane threads the exact
+boundary mode and pressure fallback through partitioned production solves.
+Manuscript prose must therefore not claim that native production, parity
+artifacts, CLI defaults, or restart metadata reproduce the Section 4.1 boundary
+conditions yet.
 
 Validation for the source-only pass:
 
@@ -121,14 +124,21 @@ later, it must preserve these boundaries:
 - the low-level native Gridap Navier--Stokes adapter has smoke-tested exact
   Section 4.1 boundary-mode support through
   `poiseuille_inlet_zero_outlet_stress_section41`;
+- production dry-run plans, production diagnostics and restart metadata, and
+  parity/status rows may report boundary-status fields;
 - `pressure_drop_weak_inlet_outlet_gauge_smoke` remains a separate local
   pressure-drop loading smoke mode and is not exact Section 4.1 boundary
   reproduction;
-- production-level Section 4.1 reproduction remains pending Lane 9B
-  boundary-status propagation and partitioned/production integration;
+- production and parity `ready` rows mean artifact/operator readiness, not exact
+  Section 4.1 boundary equivalence;
+- post-sampling outlet pressure normalization must not be described as a Gridap
+  pressure-nullspace constraint;
+- exact Section 4.1 production execution remains fail-closed until the exact
+  boundary mode and pressure fallback are threaded through partitioned
+  production solves and validated;
 - native production, parity artifacts, CLI defaults, and restart metadata must
   not be described as reproducing Section 4.1 boundary conditions until that
-  integration exists and is validated;
+  production integration exists and is validated;
 - planned CLI expansion is dry-run/status-first and must not imply production
   execution from CLI defaults.
 
