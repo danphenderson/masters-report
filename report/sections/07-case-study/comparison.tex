@@ -417,7 +417,10 @@ inertia-free form
 \end{flalign*}
 This is the Canic-style membrane relation used for the resolved comparator
 \cite[Eq.~(35)]{CanicEtAl2024Extended1DStenosis}. It is separate from the
-selected 1D pressure--area closure used in the reduced model.
+selected 1D pressure--area closure used in the reduced model. The retained
+comparator is a quasi-static radial membrane update coupled to repeated Stokes
+solves; it informs wall-motion scale, not full transient moving-boundary FSI
+validation.
 
 \begin{table}[!htb]
     \centering

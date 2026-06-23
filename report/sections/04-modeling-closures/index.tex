@@ -72,6 +72,17 @@ hidden numerical constant \cite{KelleEtAl2011CoronaryDistensibility}. The same
 rheology can be paired with any of these wall choices, so rheology and wall
 mechanics should not be merged into a single modeling label.
 
+Membrane terminology belongs to the structural side of this split. A Newtonian
+or generalized-Newtonian law describes the fluid stress, whereas an isotropic
+elastic wall law describes how the vessel wall resists deformation. In this
+report, a membrane model is a thin-wall structural closure: through-thickness
+stress and bending are collapsed into a surface or centerline relation in which
+fluid traction or transmural pressure drives normal or radial displacement and
+elastic stiffness resists it. The quasi-static Canic-style relation used later,
+$C_0\eta_r=f_r$, is this reduced radial balance in wall-law variables. It can
+provide a wall-motion scale or structural closure, but it is not by itself a
+full transient moving-boundary FSI model.
+
 A wall-law statement must also say which configuration and pressure convention
 it uses. Reference area or radius belongs to the unloaded, imaged, or otherwise
 declared baseline geometry; current area or radius belongs to the deformed
@@ -99,7 +110,14 @@ they are not captured by simply inserting a narrowed healthy-radius profile
 into an otherwise standard area--flow model
 \cite{CanicEtAl2024Extended1DStenosis}. Geometry is therefore not only a mesh
 or image artifact: it determines whether throat effects appear through domain
-shape, source terms, pressure loss, or lumped parameters.
+shape, source terms, pressure loss, or lumped parameters. Classical idealized
+stenosis studies occupy the corresponding evidence role. Young and Tsai's
+steady and unsteady model-stenosis experiments connect controlled narrowing to
+pressure-loss and flow-structure effects under declared geometry and flow
+conditions
+\cite{YoungTsai1973SteadyStenosis,YoungTsai1973UnsteadyStenosis}. They are
+therefore useful evidence for obstruction mechanisms and pressure-loss framing,
+not patient-specific stenosis validation or clinical severity inference.
 Severity must also be defined by radius, diameter, or area rather than treated
 as interchangeable. A 23\% radius reduction, diameter reduction, and area
 reduction imply different lumen changes. Patient-specific geometry adds another

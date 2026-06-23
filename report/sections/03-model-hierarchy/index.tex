@@ -21,6 +21,22 @@ mathematical formulation itself. A \emph{native observable} is computed
 directly from that state before any reconstruction, diagnostic closure, or
 cross-tier output map is applied.
 
+The dimensional labels below therefore describe retained state and observation
+contracts, not merely mesh geometry. A 0D model stores lumped pressure, volume,
+or flow variables and is often used as a terminal or network closure for a
+distributed or resolved domain. A 1D vessel model advances axial balance laws
+for section area, flow, mean velocity, and wall-law pressure along a centerline
+\cite{FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,KopplHelmig2023DimensionReducedModeling}.
+An axisymmetric or 2D model still solves spatial PDEs, but it retains variation
+only in selected coordinates or imposes symmetry, suppressing the remaining
+direction. Resolved 3D CFD advances velocity and pressure fields on the lumen,
+while resolved FSI adds structural wall degrees of freedom and interface
+traction or kinematic coupling
+\cite{QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2007FSICoupling}.
+Thus 0D, 1D, and 2D tiers are not simply alternative ``3D CFD methods''; they
+are reduced or coupled formulations with different native states and observation
+maps.
+
 \subsection{Resolved 3D CFD and FSI Models}
 \label{subsec:resolved-reduced-model-tiers}
 
