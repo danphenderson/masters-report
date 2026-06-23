@@ -38,6 +38,9 @@ pressure, and displacement companions are present and pass the loader checks.
 
 Keep raw resolved-3D files ignored. Record source, checksum, and expected local
 path before relying on them for evidence.
+For local handoff checks, generate checksum lists under `/tmp`, such as
+`/tmp/raw-3d-inputs-files.txt` and `/tmp/raw-3d-inputs-sha256.txt`; do not
+commit those scratch audits or the raw XDMF/HDF5 inputs.
 
 ## Comparison Workflow
 
@@ -177,6 +180,9 @@ absent.
 
 ## Related Policies
 
+- Use `public/reproducibility/release-manifest.json` for the retained
+  release-provenance pointer to the raw-input convention, final PDF hash, and
+  validation-only report build command.
 - Use `public/docs/artifact-policy.md` before moving or publishing artifacts.
 - Use `public/docs/report-assets-and-provenance.md` for asset ownership.
 - Use `public/docs/stenotic-hemodynamics/workflows.md` for the package workflow

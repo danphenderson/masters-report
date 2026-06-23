@@ -3,6 +3,9 @@
 Treat every file under `report/assets/**` as owned by either TeX source or a
 documented generation workflow. Do not refresh or delete report-consumed assets
 without checking the current TeX consumer and running the owning validation.
+The report-build summary is the authority for files consumed by the compiled
+PDF; the release manifest is provenance metadata for release handoff and final
+PDF identity, not an asset-consumption inventory.
 
 ## Asset Classes
 
@@ -43,6 +46,8 @@ Use `rg` against `report/**/*.tex` when a consumer is unclear.
 - Refresh rendered assets only when the current TeX source consumes them and the
   task explicitly scopes the rendered path.
 - Keep ordinary run outputs under `tmp/**` or `tmp/simulations/output/**`.
+- Keep raw optional XDMF/HDF5 input checksum audits under `/tmp` unless a
+  separate data-release strategy is approved.
 - Do not refresh `public/final-report.pdf` after an asset update unless release
   publication is explicitly in scope.
 

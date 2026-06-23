@@ -9,6 +9,9 @@ caches, and raw optional 3D inputs out of ordinary source commits.
 Use validation-only report builds for ordinary source review. Use the full
 report build only when preparing a release artifact or intentionally refreshing
 `public/final-report.pdf`.
+Keep `public/reproducibility/release-manifest.json` as the release-provenance
+record for the validation command, current final-PDF hash, and optional raw
+resolved-3D input convention.
 
 ## Public Export Rules
 
@@ -26,6 +29,8 @@ report build only when preparing a release artifact or intentionally refreshing
   record.
 - Keep raw resolved-3D inputs out of Git unless a separate data-release strategy
   with checksums is approved.
+- Keep local raw-input checksum audits in `/tmp` unless that separate
+  data-release strategy is approved.
 
 ## Release Checks
 

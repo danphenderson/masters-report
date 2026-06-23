@@ -2,8 +2,8 @@
 
 ## Status
 
-Ready for the next execution round after commit `e40e55e`
-(`Update raw input release manifest`).
+Implemented for the local committee-submission release-provenance round after
+commit `e40e55e` (`Update raw input release manifest`).
 
 The manuscript and public PDF have already passed the committee-facing prose
 closeout. The next round should not reopen broad prose editing. Its job is to
@@ -23,10 +23,21 @@ The current asset architecture is sensible:
 - `public/reproducibility/release-manifest.json` is release/provenance metadata,
   not a TeX-consumption inventory.
 
-The remaining risk is not mathematical prose. It is release hygiene: the
-manifest still has `pending_final_release` fields, no explicit final PDF hash
-field, and no documented local checksum audit for optional raw inputs. Those are
-repository-handoff risks, not thesis-claim risks.
+The remaining release hygiene items for this round were the manifest status,
+explicit final PDF hash metadata, and a documented scratch-only checksum audit
+for optional raw inputs. Those were repository-handoff risks, not thesis-claim
+risks.
+
+## Round Result
+
+- `public/reproducibility/release-manifest.json` now records
+  `committee_submission_ready`, the validation-only build command, the current
+  `public/final-report.pdf` SHA-256, non-self-referential source/PDF commit
+  pointers, and the scratch-only raw-input checksum audit convention.
+- Local raw-input audits were generated only under `/tmp`:
+  `/tmp/raw-3d-inputs-files.txt` and `/tmp/raw-3d-inputs-sha256.txt`.
+- The report build summary remains the authority for TeX-consumed inputs.
+- `public/final-report.pdf` was not refreshed in this round.
 
 ## Objective
 

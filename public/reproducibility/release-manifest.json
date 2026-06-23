@@ -1,15 +1,39 @@
 {
   "schema_version": 1,
-  "status": "pending_final_release",
+  "status": "committee_submission_ready",
   "source_root": "report/final-report.tex",
-  "release_tag": "pending_final_release",
-  "final_integrated_commit": "pending_final_release",
+  "release_tag": "not_declared_for_this_local_copy",
+  "report_source_commit": {
+    "commit": "d01d66fd3744a54b6e617e2b5150215a9dde102a",
+    "commit_date": "2026-06-22T19:53:43-07:00",
+    "description": "last report source/prose commit consumed by the tracked final PDF"
+  },
+  "pdf_artifact_commit": {
+    "commit": "2f5f7dda53eb6a616cde14250f580633c7d67796",
+    "commit_date": "2026-06-22T19:53:54-07:00",
+    "description": "last tracked public/final-report.pdf refresh before this manifest seal"
+  },
+  "manifest_commit_policy": "Do not record the eventual manifest commit hash inside this file; a later release tag or archive record should identify the committed manifest state.",
   "public_repository_url": "not_declared",
   "archival_doi": "not_declared",
   "source_access_policy": "repository-owner source-control policy unless a later release declares a public archive",
-  "build_command": "pipenv run ops-build-report --outdir /tmp/masters-report-build",
+  "build_command": "pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf",
   "build_summary": "/tmp/masters-report-build/report-build-summary.json",
+  "final_pdf": {
+    "path": "public/final-report.pdf",
+    "sha256": "9f72f36b9b67c7037cff969e6c8f6f4078c8a5654ae7005718e5138cf80e0fb9",
+    "generation_command": "pipenv run ops-build-report --outdir /tmp/masters-report-build",
+    "validation_command": "pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf",
+    "artifact_policy": "tracked release artifact; refresh only when release publication or a scoped PDF refresh is explicitly in scope"
+  },
   "final_pdf_policy": "source-first; publish public/final-report.pdf as a release artifact when needed",
+  "local_raw_input_checksum_audit": {
+    "status": "scratch_only_not_tracked",
+    "files_list": "/tmp/raw-3d-inputs-files.txt",
+    "sha256_list": "/tmp/raw-3d-inputs-sha256.txt",
+    "command": "find public/var/data/simulations/canic_case3 -type f -print0 | sort -z | xargs -0 shasum -a 256",
+    "policy": "raw XDMF/HDF5 inputs remain ignored local optional inputs unless a separate data-release strategy is approved"
+  },
   "raw_3d_inputs": {
     "status": "optional_local_inputs_not_tracked",
     "expected_root": "public/var/data/simulations/canic_case3/",
