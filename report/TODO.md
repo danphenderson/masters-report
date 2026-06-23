@@ -9,20 +9,21 @@ Section~\ref{sec:continuum-description}, instead of restating continuum
 foundations inside the numerical-methods chapter.
 
 The native resolved-FSI package boundary has one manuscript-facing open
-requirement that must stay visible in editorial planning after Lane 9B. The
-low-level native Gridap Navier--Stokes adapter has smoke-tested exact Section
-4.1 inlet/outlet boundary-mode support:
+requirement that must stay visible in editorial planning after the exact-mode
+production-threading lane. The low-level native Gridap Navier--Stokes adapter
+has smoke-tested exact Section 4.1 inlet/outlet boundary-mode support:
 `poiseuille_inlet_zero_outlet_stress_section41` applies a strong inlet
 Dirichlet Poiseuille velocity with $u_{\max}=45\,\mathrm{cm/s}$, omits weak
 pressure-drop inlet/outlet loading, leaves the outlet as natural zero traction,
-and records an internal diagnostic boundary-status string. Boundary-status
-fields now propagate through production dry-run plans, production diagnostics
-and restart metadata, and parity/status rows. Production execution for the
-exact mode remains fail-closed until the next package lane threads the exact
-boundary mode and pressure fallback through partitioned production solves.
-Manuscript prose must therefore not claim that native production, parity
-artifacts, CLI defaults, or restart metadata reproduce the Section 4.1 boundary
-conditions yet.
+and records an internal diagnostic boundary-status string. The exact mode is now
+threaded through the tiny partitioned production smoke-scale harness and
+validated at that scope; boundary-status fields propagate through production
+dry-run plans, production diagnostics and restart metadata, and parity/status
+rows. This remains smoke-scale implementation evidence, not exact Section 4.1
+numerical reproduction, production-scale parity, monolithic ALE/membrane FSI
+validation, or paper-grade reproduction. Manuscript prose may state the bounded
+low-level and smoke-scale partitioned support, but must not claim exact
+Section 4.1 numerical reproduction or parity against the imported paper data.
 
 Validation for the source-only pass:
 
@@ -107,7 +108,7 @@ closeout, run this active-manuscript scan before editing prose or syncing the
 PDF:
 
 ```sh
-rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume" \
+rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|wall-pressure|inlet_umax" \
   report/sections report/appendices report/frontmatter report/final-report.tex -g '*.tex' || true
 ```
 
@@ -119,26 +120,29 @@ later, it must preserve these boundaries:
 - production may be described as carrying partitioned state within one run and
   writing importer-compatible velocity/pressure/displacement bundles plus
   manifest, diagnostics, and restart metadata;
-- restart metadata may include versioned `state_payload` audit data, but
-  persisted restart/resume remains unsupported and fail-closed;
+- restart metadata may include versioned `state_payload` audit data and
+  boundary/status fields, including `inlet_umax_cm_s`, but persisted
+  restart/resume remains unsupported and fail-closed;
 - the low-level native Gridap Navier--Stokes adapter has smoke-tested exact
   Section 4.1 boundary-mode support through
   `poiseuille_inlet_zero_outlet_stress_section41`;
 - production dry-run plans, production diagnostics and restart metadata, and
   parity/status rows may report boundary-status fields;
+- the exact boundary mode may be described as threaded through the tiny
+  partitioned production smoke-scale harness and validated at that scope;
 - `pressure_drop_weak_inlet_outlet_gauge_smoke` remains a separate local
   pressure-drop loading smoke mode and is not exact Section 4.1 boundary
   reproduction;
 - production and parity `ready` rows mean artifact/operator readiness, not exact
-  Section 4.1 boundary equivalence;
+  Section 4.1 boundary equivalence, validated Section 4.1 parity, or
+  paper-grade reproduction;
+- the exact-mode production path disables pressure-drop fallback for
+  wall-pressure projection and requires direct finite wall-pressure sampling;
 - post-sampling outlet pressure normalization must not be described as a Gridap
   pressure-nullspace constraint;
-- exact Section 4.1 production execution remains fail-closed until the exact
-  boundary mode and pressure fallback are threaded through partitioned
-  production solves and validated;
 - native production, parity artifacts, CLI defaults, and restart metadata must
-  not be described as reproducing Section 4.1 boundary conditions until that
-  production integration exists and is validated;
+  not be described as reproducing exact Section 4.1 numerical results or parity
+  against imported paper data until production-scale validation lands;
 - planned CLI expansion is dry-run/status-first and must not imply production
   execution from CLI defaults.
 
