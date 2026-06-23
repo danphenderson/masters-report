@@ -195,6 +195,56 @@ Implemented and committed:
 
 ## Remaining Dispatch Priority
 
+### Lane 10C-P: Native FSI Phase Timing Before Numerics Optimization
+
+Priority: P0 execution-readiness follow-up after Hypatia's active `sev23`
+preproduction run returns or is otherwise naturally classified. Do not
+interrupt the active run and do not edit native FSI solver/source files while
+that run is the protected evidence generator.
+
+Objective: instrument before changing numerics so future preproduction and
+production launches report where wall time and memory are spent. The current
+process-level sampling suggests sparse direct factorization may be hot, but the
+production sidecars do not yet split matrix assembly, symbolic factorization,
+numeric factorization, backsolve, wall update, diagnostics, checkpoint, output,
+and total-step timing.
+
+Required first patch:
+
+- Add phase timers only. Emit per-step and aggregate phase timing fields to
+  `batch_status.jsonl`, `batch_status.csv`, and `batch_benchmark.json`.
+- Preserve physics, boundary conditions, discretization, pressure gauge, wall
+  model, coupling semantics, observation operators, artifact filenames, and
+  restart/importer schemas.
+- Validate on tiny smoke/development runs before any new long preproduction
+  launch.
+
+Optimization order after timing evidence:
+
+1. Reuse the linear solve/factorization object when the matrix, coefficients,
+   boundary-condition sparsity pattern, pressure policy, mesh topology, and
+   constrained DOF maps are unchanged and only the RHS changes.
+2. If coefficients change but sparsity is stable, evaluate symbolic/permutation
+   reuse with fresh numeric factorization.
+3. If assembly changes sparse structure, stabilize connectivity, sparsity
+   pattern, row/column maps, constrained DOF maps, and boundary operators before
+   changing solver algorithms.
+4. Consider Krylov plus reusable preconditioners only after the direct-solve
+   baseline is instrumented and reuse boundaries are tested.
+5. Consider parallel sparse direct solvers only after algorithmic reuse is
+   addressed; dependency changes are not the first response to repeated
+   refactorization.
+
+Acceptance criteria:
+
+- Timing sidecars prove the dominant phase before optimization lands.
+- Any factorization reuse is gated by explicit invariants and fails closed when
+  those invariants change.
+- Optimized tiny/development outputs compare against the current direct-solve
+  baseline before another long `sev23` preproduction launch.
+- Faster execution never upgrades production parity, moving-wall/ALE fidelity,
+  or manuscript-grade Section 4.1 reproduction claims.
+
 ### Lane 11 Follow-Up: Mathematical Contract Stewardship
 
 Priority: P1 maintenance after `2a54a06`, unless a regression reopens any
