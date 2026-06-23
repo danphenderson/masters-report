@@ -34,6 +34,22 @@ A reported numerical quantity is then
 \end{flalign*}
 with an observation map $\mathcal O_h$ that carries its own quadrature,
 coordinate, and output conventions.
+The same semidiscrete notation also names the local coupling pattern. For a
+residual component $R_{h,i}$, define its spatial stencil as
+\begin{flalign*}
+    \quad
+    \mathcal S_i
+    =
+    \{j:\ R_{h,i}(U_h)\ \text{depends on}\ U_{h,j}\}. &&
+\end{flalign*}
+Thus a stencil is the set of discrete degrees of freedom that enter one
+residual equation. In finite differences it is induced by the grid points used
+in difference quotients, in finite volumes by the cell averages and
+reconstructed interface states used in numerical fluxes, and in finite elements
+by basis functions whose supports overlap in the variational forms. Time
+integration changes how these residuals are evaluated or solved; it does not by
+itself change the spatial dependencies encoded in $R_h$, although an implicit
+step solves the coupled algebraic equations together.
 
 \subsection{Finite-Element Incompressible Flow and FSI}
 \label{subsec:numerical-methods-fem-fsi}
@@ -51,6 +67,12 @@ contracts. Galdi and coauthors are useful here not as a generic FEM citation,
 but because their hemodynamical-flow treatment ties continuum equations,
 mixed discretization, stabilization, and simulation evidence together
 \cite{GaldiEtAl2008HemodynamicalFlows}.
+At the algebraic level, this local dependency appears as sparsity. For
+element-local Galerkin terms, a stiffness or coupling block associated with
+basis functions $\phi_i$ and $\phi_j$ is nonzero only when their supports meet
+on an element; local stabilization terms may enlarge the patch, but the row
+pattern is still induced by mesh connectivity rather than by all degrees of
+freedom at once.
 
 When the wall moves, the numerical contract also includes the fluid--structure
 interface. FSI formulations must transfer traction and velocity or displacement
@@ -80,6 +102,15 @@ must be compatible with node and terminal rules that determine incoming and
 outgoing characteristic information \cite{Wang2014BloodFlowNetworks}. The
 method comparison is therefore not finite volume versus network modeling; it is
 how a conservative vessel update is embedded in a coupled vascular system.
+
+Stencil language keeps the distinction mathematical. A centered finite
+difference for a second derivative on a one-dimensional grid uses the familiar
+three-point stencil $\{i-1,i,i+1\}$. A first-order finite-volume update for
+cell $I_i=[z_{i-1/2},z_{i+1/2}]$ uses the interface fluxes at $z_{i-1/2}$ and
+$z_{i+1/2}$, so the residual for cell $i$ depends on the neighboring cell
+states used to evaluate those two fluxes and on local source terms. Higher-order
+finite-volume or finite-difference reconstructions enlarge this set by drawing
+on additional neighboring cells while retaining a local residual structure.
 
 Discontinuous Galerkin methods combine finite-volume fluxes with local
 polynomial approximation. They can raise spatial order, expose element-local

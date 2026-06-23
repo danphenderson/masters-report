@@ -510,8 +510,13 @@ solver variables componentwise:
 \end{flalign*}
 Boundary-adjacent slopes are set to zero and paired with the ghost states in
 Appendix~\ref{app:num-boundary-state-realization}. Positivity limiting is
-applied to reconstructed $a$ states before flux evaluation. The local numerical
-speed for the Rusanov interface flux is
+applied to reconstructed $a$ states before flux evaluation. In the stencil
+language of Section~\ref{sec:numerical-methods}, a first-order two-point flux
+would give the familiar three-cell interior dependency for residual $i$, but
+the MUSCL slopes above expand the interior residual dependency to the additional
+neighbors needed to reconstruct the two adjacent interface states. Boundary
+ghost states replace part of that dependency near the inlet and outlet.
+The local numerical speed for the Rusanov interface flux is
 \begin{flalign*}
     \quad
     s_{i+1/2}
