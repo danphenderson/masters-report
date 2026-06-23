@@ -1,3 +1,6 @@
+using Test
+using StenoticHemodynamics
+
 const NativeResolvedFSIWorkflowSpec = StenoticHemodynamics.NativeResolvedFSIWorkflowSpec
 const NativeResolvedFSIWorkflowResult = StenoticHemodynamics.NativeResolvedFSIWorkflowResult
 const NativeResolvedFSIMeshResolution = StenoticHemodynamics.NativeResolvedFSIMeshResolution
@@ -541,10 +544,26 @@ end
               length(result.smoke_result.coupling_residual_history)
         @test result.restart_metadata["resume_supported"] == false
         @test result.restart_metadata["resume_status"] == "deferred"
-        @test result.restart_metadata["restart_schema_version"] == 1
-        @test result.restart_metadata["restart_schema_status"] == "schema_v1_audit_metadata_only"
-        @test result.restart_metadata["checkpoint_schema_status"] == "not_persisted_solver_checkpoint"
-        @test isempty(result.restart_metadata["checkpoint_manifest"])
+        @test result.restart_metadata["restart_schema_version"] == 2
+        @test result.restart_metadata["restart_schema_status"] == "schema_v2_checkpoint_manifest"
+        @test result.restart_metadata["checkpoint_schema_status"] ==
+              "checkpoint_manifest_present_resume_not_implemented"
+        @test length(result.restart_metadata["checkpoint_manifest"]) == 5
+        @test Set(entry["role"] for entry in result.restart_metadata["checkpoint_manifest"]) ==
+              Set(["wall_state", "mesh_identity", "fluid_state", "coupling_state", "output_linkage"])
+        restart_metadata_dir = dirname(result.restart_metadata_json)
+        checkpoint_path(entry) = joinpath(restart_metadata_dir, entry["path"])
+        restart_metadata_fixture_path(filename) = joinpath(restart_metadata_dir, filename)
+        @test all(entry -> !isabspath(entry["path"]), result.restart_metadata["checkpoint_manifest"])
+        @test all(entry -> isfile(checkpoint_path(entry)), result.restart_metadata["checkpoint_manifest"])
+        @test all(
+            entry -> filesize(checkpoint_path(entry)) == entry["byte_size"],
+            result.restart_metadata["checkpoint_manifest"],
+        )
+        @test all(
+            entry -> StenoticHemodynamics.sha256_file(checkpoint_path(entry)) == entry["sha256"],
+            result.restart_metadata["checkpoint_manifest"],
+        )
         @test result.restart_metadata["current_snapshot_time_s"] ≈ result.saved_time_s
         @test length(result.restart_metadata["current_wall_displacement_cm"]) ==
               length(result.smoke_result.wall_displacement_cm)
@@ -563,9 +582,10 @@ end
         @test state_payload["resume_status"] == "deferred"
         restart_metadata_text = read(result.restart_metadata_json, String)
         @test occursin("\"resume_supported\": false", restart_metadata_text)
-        @test occursin("\"restart_schema_version\": 1", restart_metadata_text)
-        @test occursin("\"restart_schema_status\": \"schema_v1_audit_metadata_only\"", restart_metadata_text)
-        @test occursin("\"checkpoint_schema_status\": \"not_persisted_solver_checkpoint\"", restart_metadata_text)
+        @test occursin("\"restart_schema_version\": 2", restart_metadata_text)
+        @test occursin("\"restart_schema_status\": \"schema_v2_checkpoint_manifest\"", restart_metadata_text)
+        @test occursin("\"checkpoint_schema_status\": \"checkpoint_manifest_present_resume_not_implemented\"", restart_metadata_text)
+        @test occursin("\"checkpoint_manifest\"", restart_metadata_text)
         @test occursin("\"restart_provenance\": \"state_carrying_partitioned\"", restart_metadata_text)
         @test occursin("\"state_carrying_restart\": true", restart_metadata_text)
         @test occursin("\"state_payload\"", restart_metadata_text)
@@ -588,10 +608,11 @@ end
         @test parsed_restart_metadata["state_carrying_restart"] == true
         @test parsed_restart_metadata["resume_supported"] == false
         @test parsed_restart_metadata["resume_status"] == "deferred"
-        @test parsed_restart_metadata["restart_schema_version"] == 1
-        @test parsed_restart_metadata["restart_schema_status"] == "schema_v1_audit_metadata_only"
-        @test parsed_restart_metadata["checkpoint_schema_status"] == "not_persisted_solver_checkpoint"
-        @test isempty(parsed_restart_metadata["checkpoint_manifest"])
+        @test parsed_restart_metadata["restart_schema_version"] == 2
+        @test parsed_restart_metadata["restart_schema_status"] == "schema_v2_checkpoint_manifest"
+        @test parsed_restart_metadata["checkpoint_schema_status"] ==
+              "checkpoint_manifest_present_resume_not_implemented"
+        @test length(parsed_restart_metadata["checkpoint_manifest"]) == 5
         @test parsed_restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
         @test parsed_restart_metadata["boundary_mode_class"] == "local_smoke_loading"
         @test occursin("gridap_zero_mean_pressure_constraint_active", parsed_restart_metadata["pressure_nullspace_status"])
@@ -627,40 +648,115 @@ end
         @test resume_error isa ArgumentError
         @test occursin("persisted resume from restart metadata is unsupported", sprint(showerror, resume_error))
         @test occursin("state_carrying_partitioned", sprint(showerror, resume_error))
+        @test occursin("restart_schema_version 2", sprint(showerror, resume_error))
         @test occursin("state_payload may record state", sprint(showerror, resume_error))
+        @test occursin("no durable FE-state checkpoint runner", sprint(showerror, resume_error))
         @test occursin("resume_supported is false", sprint(showerror, resume_error))
 
-        schema_v2_metadata = deepcopy(result.restart_metadata)
-        schema_v2_metadata["restart_schema_version"] = 2
-        schema_v2_metadata["restart_schema_status"] = "schema_v2_checkpoint_manifest"
-        schema_v2_metadata["checkpoint_schema_status"] = "checkpoint_manifest_present_resume_not_implemented"
-        schema_v2_metadata["checkpoint_manifest"] = Any[Dict{String,Any}(
-            "role" => "wall_state",
-            "path" => "checkpoint/wall-state.bin",
-            "sha256" => repeat("0", 64),
-            "byte_size" => 128,
-        )]
-        schema_v2_metadata_path = joinpath(dir, "schema-v2-restart-metadata.json")
-        StenoticHemodynamics.write_json(schema_v2_metadata_path, schema_v2_metadata; overwrite=true)
-        parsed_schema_v2_metadata = native_resolved_fsi_read_restart_metadata(schema_v2_metadata_path)
-        @test parsed_schema_v2_metadata["restart_schema_version"] == 2
-        @test parsed_schema_v2_metadata["restart_schema_status"] == "schema_v2_checkpoint_manifest"
-        @test parsed_schema_v2_metadata["checkpoint_schema_status"] ==
-              "checkpoint_manifest_present_resume_not_implemented"
-        @test only(parsed_schema_v2_metadata["checkpoint_manifest"])["role"] == "wall_state"
-        schema_v2_resume_error = try
-            native_resolved_fsi_resume_partitioned_production(schema_v2_metadata_path)
-            nothing
-        catch err
-            err
-        end
-        @test schema_v2_resume_error isa ArgumentError
-        @test occursin("restart_schema_version 2", sprint(showerror, schema_v2_resume_error))
-        @test occursin("no durable FE-state checkpoint runner", sprint(showerror, schema_v2_resume_error))
+        legacy_schema_v1_metadata = deepcopy(result.restart_metadata)
+        legacy_schema_v1_metadata["restart_schema_version"] = 1
+        legacy_schema_v1_metadata["restart_schema_status"] = "schema_v1_audit_metadata_only"
+        legacy_schema_v1_metadata["checkpoint_schema_status"] = "not_persisted_solver_checkpoint"
+        legacy_schema_v1_metadata["checkpoint_manifest"] = Any[]
+        legacy_schema_v1_path = joinpath(dir, "legacy-schema-v1-restart-metadata.json")
+        StenoticHemodynamics.write_json(legacy_schema_v1_path, legacy_schema_v1_metadata; overwrite=true)
+        parsed_legacy_schema_v1_metadata = native_resolved_fsi_read_restart_metadata(legacy_schema_v1_path)
+        @test parsed_legacy_schema_v1_metadata["restart_schema_version"] == 1
+        @test isempty(parsed_legacy_schema_v1_metadata["checkpoint_manifest"])
 
-        invalid_schema_v2_metadata = deepcopy(schema_v2_metadata)
+        function restart_metadata_read_error(metadata, filename)
+            metadata_path = restart_metadata_fixture_path(filename)
+            StenoticHemodynamics.write_json(metadata_path, metadata; overwrite=true)
+            return try
+                native_resolved_fsi_read_restart_metadata(metadata_path)
+                nothing
+            catch err
+                err
+            end
+        end
+
+        missing_checkpoint_metadata = deepcopy(result.restart_metadata)
+        missing_checkpoint_metadata["checkpoint_manifest"][1]["path"] = "checkpoint/missing-checkpoint.json"
+        missing_checkpoint_error = restart_metadata_read_error(
+            missing_checkpoint_metadata,
+            "missing-checkpoint-restart-metadata.json",
+        )
+        @test missing_checkpoint_error isa ArgumentError
+        @test occursin("missing checkpoint file", sprint(showerror, missing_checkpoint_error))
+
+        bad_checkpoint_size_metadata = deepcopy(result.restart_metadata)
+        bad_checkpoint_size_metadata["checkpoint_manifest"][1]["byte_size"] += 1
+        bad_checkpoint_size_error = restart_metadata_read_error(
+            bad_checkpoint_size_metadata,
+            "bad-checkpoint-size-restart-metadata.json",
+        )
+        @test bad_checkpoint_size_error isa ArgumentError
+        @test occursin("byte_size", sprint(showerror, bad_checkpoint_size_error))
+
+        bad_checkpoint_sha_metadata = deepcopy(result.restart_metadata)
+        bad_checkpoint_sha_metadata["checkpoint_manifest"][1]["sha256"] = repeat("f", 64)
+        bad_checkpoint_sha_error = restart_metadata_read_error(
+            bad_checkpoint_sha_metadata,
+            "bad-checkpoint-digest-restart-metadata.json",
+        )
+        @test bad_checkpoint_sha_error isa ArgumentError
+        @test occursin("sha256", sprint(showerror, bad_checkpoint_sha_error))
+
+        duplicate_checkpoint_role_metadata = deepcopy(result.restart_metadata)
+        duplicate_checkpoint_role_metadata["checkpoint_manifest"][2]["role"] =
+            duplicate_checkpoint_role_metadata["checkpoint_manifest"][1]["role"]
+        duplicate_checkpoint_role_error = restart_metadata_read_error(
+            duplicate_checkpoint_role_metadata,
+            "duplicate-checkpoint-role-restart-metadata.json",
+        )
+        @test duplicate_checkpoint_role_error isa ArgumentError
+        @test occursin("duplicates checkpoint role", sprint(showerror, duplicate_checkpoint_role_error))
+
+        missing_checkpoint_role_metadata = deepcopy(result.restart_metadata)
+        deleteat!(missing_checkpoint_role_metadata["checkpoint_manifest"], 1)
+        missing_checkpoint_role_error = restart_metadata_read_error(
+            missing_checkpoint_role_metadata,
+            "missing-checkpoint-role-restart-metadata.json",
+        )
+        @test missing_checkpoint_role_error isa ArgumentError
+        @test occursin("missing required role", sprint(showerror, missing_checkpoint_role_error))
+
+        escaped_checkpoint_metadata = deepcopy(result.restart_metadata)
+        escaped_checkpoint_path = joinpath(dir, "escaped-checkpoint.json")
+        StenoticHemodynamics.write_json(escaped_checkpoint_path, Dict("schema_version" => 1); overwrite=true)
+        escaped_checkpoint_metadata["checkpoint_manifest"][1]["path"] = "../$(basename(escaped_checkpoint_path))"
+        escaped_checkpoint_metadata["checkpoint_manifest"][1]["byte_size"] = filesize(escaped_checkpoint_path)
+        escaped_checkpoint_metadata["checkpoint_manifest"][1]["sha256"] =
+            StenoticHemodynamics.sha256_file(escaped_checkpoint_path)
+        escaped_checkpoint_error = restart_metadata_read_error(
+            escaped_checkpoint_metadata,
+            "escaped-checkpoint-restart-metadata.json",
+        )
+        @test escaped_checkpoint_error isa ArgumentError
+        @test occursin("escapes the restart metadata directory", sprint(showerror, escaped_checkpoint_error))
+
+        absolute_checkpoint_metadata = deepcopy(result.restart_metadata)
+        absolute_checkpoint_metadata["checkpoint_manifest"][1]["path"] =
+            checkpoint_path(absolute_checkpoint_metadata["checkpoint_manifest"][1])
+        absolute_checkpoint_error = restart_metadata_read_error(
+            absolute_checkpoint_metadata,
+            "absolute-checkpoint-restart-metadata.json",
+        )
+        @test absolute_checkpoint_error isa ArgumentError
+        @test occursin("metadata-relative", sprint(showerror, absolute_checkpoint_error))
+
+        unsupported_checkpoint_role_metadata = deepcopy(result.restart_metadata)
+        unsupported_checkpoint_role_metadata["checkpoint_manifest"][1]["role"] = "opaque_solver_blob"
+        unsupported_checkpoint_role_error = restart_metadata_read_error(
+            unsupported_checkpoint_role_metadata,
+            "unsupported-checkpoint-role-restart-metadata.json",
+        )
+        @test unsupported_checkpoint_role_error isa ArgumentError
+        @test occursin("unsupported checkpoint role", sprint(showerror, unsupported_checkpoint_role_error))
+
+        invalid_schema_v2_metadata = deepcopy(result.restart_metadata)
         invalid_schema_v2_metadata["resume_supported"] = true
-        invalid_schema_v2_path = joinpath(dir, "invalid-schema-v2-restart-metadata.json")
+        invalid_schema_v2_path = restart_metadata_fixture_path("invalid-schema-v2-restart-metadata.json")
         StenoticHemodynamics.write_json(invalid_schema_v2_path, invalid_schema_v2_metadata; overwrite=true)
         invalid_schema_v2_error = try
             native_resolved_fsi_read_restart_metadata(invalid_schema_v2_path)
@@ -673,7 +769,7 @@ end
 
         payloadless_metadata = deepcopy(result.restart_metadata)
         delete!(payloadless_metadata, "state_payload")
-        payloadless_metadata_path = joinpath(dir, "payloadless-state-carrying-restart-metadata.json")
+        payloadless_metadata_path = restart_metadata_fixture_path("payloadless-state-carrying-restart-metadata.json")
         StenoticHemodynamics.write_json(payloadless_metadata_path, payloadless_metadata; overwrite=true)
         payloadless_restart_metadata = native_resolved_fsi_read_restart_metadata(payloadless_metadata_path)
         @test payloadless_restart_metadata["restart_provenance"] == "state_carrying_partitioned"
@@ -682,7 +778,7 @@ end
 
         invalid_metadata = deepcopy(result.restart_metadata)
         delete!(only(invalid_metadata["snapshot_outputs"]), "time_step_count")
-        invalid_metadata_path = joinpath(dir, "invalid-state-carrying-restart-metadata.json")
+        invalid_metadata_path = restart_metadata_fixture_path("invalid-state-carrying-restart-metadata.json")
         StenoticHemodynamics.write_json(invalid_metadata_path, invalid_metadata; overwrite=true)
         invalid_error = try
             native_resolved_fsi_read_restart_metadata(invalid_metadata_path)
@@ -696,7 +792,7 @@ end
 
         invalid_boundary_metadata = deepcopy(result.restart_metadata)
         invalid_boundary_metadata["section41_boundary_status"] = "implemented_smoke_validated"
-        invalid_boundary_metadata_path = joinpath(dir, "invalid-boundary-restart-metadata.json")
+        invalid_boundary_metadata_path = restart_metadata_fixture_path("invalid-boundary-restart-metadata.json")
         StenoticHemodynamics.write_json(invalid_boundary_metadata_path, invalid_boundary_metadata; overwrite=true)
         invalid_boundary_error = try
             native_resolved_fsi_read_restart_metadata(invalid_boundary_metadata_path)
@@ -709,7 +805,7 @@ end
 
         missing_payload_field_metadata = deepcopy(result.restart_metadata)
         delete!(missing_payload_field_metadata["state_payload"], "final_wall_velocity_cm_s")
-        missing_payload_field_path = joinpath(dir, "missing-state-payload-field-restart-metadata.json")
+        missing_payload_field_path = restart_metadata_fixture_path("missing-state-payload-field-restart-metadata.json")
         StenoticHemodynamics.write_json(missing_payload_field_path, missing_payload_field_metadata; overwrite=true)
         missing_payload_field_error = try
             native_resolved_fsi_read_restart_metadata(missing_payload_field_path)
@@ -723,7 +819,7 @@ end
 
         malformed_payload_metadata = deepcopy(result.restart_metadata)
         malformed_payload_metadata["state_payload"]["current_radii_cm"][2] = -1.0
-        malformed_payload_path = joinpath(dir, "malformed-state-payload-restart-metadata.json")
+        malformed_payload_path = restart_metadata_fixture_path("malformed-state-payload-restart-metadata.json")
         StenoticHemodynamics.write_json(malformed_payload_path, malformed_payload_metadata; overwrite=true)
         malformed_payload_error = try
             native_resolved_fsi_read_restart_metadata(malformed_payload_path)
@@ -975,10 +1071,12 @@ end
             "pressure_drop_resistance_fallback_disabled",
             parsed_exact_metadata["wall_pressure_projection_status"],
         )
+        exact_restart_metadata_fixture_path(filename) =
+            joinpath(dirname(exact_production_result.restart_metadata_json), filename)
 
         missing_umax_metadata = deepcopy(exact_production_result.restart_metadata)
         delete!(missing_umax_metadata, "inlet_umax_cm_s")
-        missing_umax_path = joinpath(dir, "missing-exact-umax-restart-metadata.json")
+        missing_umax_path = exact_restart_metadata_fixture_path("missing-exact-umax-restart-metadata.json")
         StenoticHemodynamics.write_json(missing_umax_path, missing_umax_metadata; overwrite=true)
         missing_umax_error = try
             native_resolved_fsi_read_restart_metadata(missing_umax_path)
@@ -992,7 +1090,8 @@ end
         invalid_projection_metadata = deepcopy(exact_production_result.restart_metadata)
         invalid_projection_metadata["wall_pressure_projection_status"] =
             "direct_wall_pressure_sampling_with_pressure_drop_resistance_fallback_if_needed; wall_pressure_profile_outlet_gauged_before_membrane_update"
-        invalid_projection_path = joinpath(dir, "invalid-wall-pressure-projection-restart-metadata.json")
+        invalid_projection_path =
+            exact_restart_metadata_fixture_path("invalid-wall-pressure-projection-restart-metadata.json")
         StenoticHemodynamics.write_json(invalid_projection_path, invalid_projection_metadata; overwrite=true)
         invalid_projection_error = try
             native_resolved_fsi_read_restart_metadata(invalid_projection_path)

@@ -1,3 +1,6 @@
+using Test
+using StenoticHemodynamics
+
 @testset "StenoticHemodynamics public API boundary" begin
     exported_names = setdiff(Set(names(StenoticHemodynamics; all=false, imported=false)), Set([:StenoticHemodynamics]))
 

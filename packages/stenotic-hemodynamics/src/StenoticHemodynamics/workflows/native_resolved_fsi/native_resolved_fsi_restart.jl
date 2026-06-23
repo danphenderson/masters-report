@@ -1,5 +1,12 @@
 const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_AUDIT_METADATA_VERSION = 1
 const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_CHECKPOINT_MANIFEST_VERSION = 2
+const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V2_REQUIRED_CHECKPOINT_ROLES = (
+    "wall_state",
+    "mesh_identity",
+    "fluid_state",
+    "coupling_state",
+    "output_linkage",
+)
 
 """
     native_resolved_fsi_read_restart_metadata(path)
@@ -21,7 +28,7 @@ function native_resolved_fsi_read_restart_metadata(path::AbstractString)
     metadata = native_resolved_fsi_normalize_restart_metadata(loaded)
     metadata_dir = dirname(path_string)
     restart_schema_version = native_resolved_fsi_restart_schema_version(metadata)
-    native_resolved_fsi_validate_restart_schema_contract(metadata, restart_schema_version)
+    native_resolved_fsi_validate_restart_schema_contract(metadata, restart_schema_version, metadata_dir)
 
     provenance = native_resolved_fsi_require_restart_metadata_string(metadata, "restart_provenance")
     provenance in ("independent_smoke_backed_snapshots", "state_carrying_partitioned") || throw(ArgumentError(
@@ -257,6 +264,7 @@ end
 function native_resolved_fsi_validate_restart_schema_contract(
     metadata::Dict{String,Any},
     restart_schema_version::Int,
+    metadata_dir::String,
 )
     if restart_schema_version == NATIVE_RESOLVED_FSI_RESTART_SCHEMA_AUDIT_METADATA_VERSION
         if haskey(metadata, "restart_schema_status")
@@ -296,23 +304,51 @@ function native_resolved_fsi_validate_restart_schema_contract(
     isempty(checkpoint_manifest) && throw(ArgumentError(
         "native resolved-FSI restart metadata schema v2 requires a non-empty checkpoint_manifest",
     ))
+    required_roles = Set(NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V2_REQUIRED_CHECKPOINT_ROLES)
+    observed_roles = Set{String}()
     for (index, checkpoint_entry) in enumerate(checkpoint_manifest)
         context = "native resolved-FSI restart metadata checkpoint_manifest[$(index)]"
         checkpoint_entry isa Dict{String,Any} ||
             throw(ArgumentError("$(context) must be a mapping"))
-        native_resolved_fsi_require_restart_metadata_string(checkpoint_entry, "role"; context=context)
-        native_resolved_fsi_require_restart_metadata_string(checkpoint_entry, "path"; context=context)
+        role = native_resolved_fsi_require_restart_metadata_string(checkpoint_entry, "role"; context=context)
+        role in required_roles || throw(ArgumentError(
+            "$(context) has unsupported checkpoint role $(repr(role)); expected one of " *
+            "$(join(NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V2_REQUIRED_CHECKPOINT_ROLES, ", "))",
+        ))
+        role in observed_roles && throw(ArgumentError(
+            "$(context) duplicates checkpoint role $(repr(role))",
+        ))
+        push!(observed_roles, role)
+        checkpoint_path = native_resolved_fsi_require_restart_metadata_string(checkpoint_entry, "path"; context=context)
         sha256 = native_resolved_fsi_require_restart_metadata_string(checkpoint_entry, "sha256"; context=context)
         length(sha256) == 64 || throw(ArgumentError("$(context) 'sha256' must be a 64-character hex digest"))
         all(character -> ('0' <= character <= '9') || ('a' <= character <= 'f'), sha256) ||
             throw(ArgumentError("$(context) 'sha256' must be lowercase hexadecimal"))
-        byte_size = native_resolved_fsi_require_restart_metadata_finite_real(
+        byte_size = native_resolved_fsi_require_restart_metadata_positive_integer(
             checkpoint_entry,
             "byte_size";
             context=context,
         )
-        byte_size > 0.0 || throw(ArgumentError("$(context) 'byte_size' must be positive"))
+        resolved_path = native_resolved_fsi_restart_metadata_confined_checkpoint_path(
+            checkpoint_path,
+            metadata_dir,
+            context,
+        )
+        isfile(resolved_path) || throw(ArgumentError(
+            "$(context) references a missing checkpoint file: $(checkpoint_path)",
+        ))
+        filesize(resolved_path) == byte_size || throw(ArgumentError(
+            "$(context) byte_size does not match checkpoint file size",
+        ))
+        sha256_file(resolved_path) == sha256 || throw(ArgumentError(
+            "$(context) sha256 does not match checkpoint file digest",
+        ))
     end
+    missing_roles = sort!(collect(setdiff(required_roles, observed_roles)))
+    isempty(missing_roles) || throw(ArgumentError(
+        "native resolved-FSI restart metadata schema v2 checkpoint_manifest is missing required role(s): " *
+        join(missing_roles, ", "),
+    ))
     return nothing
 end
 
@@ -455,11 +491,41 @@ function native_resolved_fsi_validate_restart_state_payload(metadata::Dict{Strin
     return payload
 end
 
-function native_resolved_fsi_restart_metadata_path_exists(path::String, metadata_dir::String, predicate)
+function native_resolved_fsi_restart_metadata_candidates(path::String, metadata_dir::String)
     candidates = String[path]
     if !isabspath(path) && !isempty(metadata_dir)
         push!(candidates, joinpath(metadata_dir, path))
     end
+    return candidates
+end
+
+function native_resolved_fsi_restart_metadata_resolved_path(path::String, metadata_dir::String, predicate)
+    for candidate in native_resolved_fsi_restart_metadata_candidates(path, metadata_dir)
+        predicate(candidate) && return candidate
+    end
+    return ""
+end
+
+function native_resolved_fsi_restart_metadata_confined_checkpoint_path(
+    path::String,
+    metadata_dir::String,
+    context::String,
+)
+    isempty(path) && throw(ArgumentError("$(context) 'path' must not be empty"))
+    isabspath(path) && throw(ArgumentError("$(context) checkpoint path must be metadata-relative"))
+    normalized_path = normpath(path)
+    normalized_path == "." && throw(ArgumentError("$(context) checkpoint path must name a file"))
+    metadata_root = abspath(metadata_dir)
+    resolved_path = abspath(joinpath(metadata_root, normalized_path))
+    relative_to_root = relpath(resolved_path, metadata_root)
+    if relative_to_root == ".." || startswith(relative_to_root, "../") || startswith(relative_to_root, "..\\")
+        throw(ArgumentError("$(context) checkpoint path escapes the restart metadata directory"))
+    end
+    return resolved_path
+end
+
+function native_resolved_fsi_restart_metadata_path_exists(path::String, metadata_dir::String, predicate)
+    candidates = native_resolved_fsi_restart_metadata_candidates(path, metadata_dir)
     return any(predicate, candidates)
 end
 

@@ -1002,12 +1002,138 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
         return NativeResolvedFSIWorkflowStatus(ready, status)
     end
 
+    function restart_checkpoint_manifest_entry(role::String, path::String, metadata_dir::String)
+        return Dict{String,Any}(
+            "role" => role,
+            "path" => relpath(path, metadata_dir),
+            "sha256" => sha256_file(path),
+            "byte_size" => filesize(path),
+        )
+    end
+
+    function write_restart_checkpoint_state(
+        local_spec::NativeResolvedFSIPartitionedProductionSpec,
+        snapshot_results::Vector{NamedTuple},
+        rows::Vector{NamedTuple},
+        manifest_csv::String,
+        diagnostics_csv::String,
+        restart_metadata_json::String,
+    )
+        final_snapshot = snapshot_results[end]
+        final_smoke = final_snapshot.smoke_result
+        resolution = local_spec.resolution
+        metadata_dir = dirname(restart_metadata_json)
+        checkpoint_dir = joinpath(metadata_dir, "checkpoint")
+        wall_state_path = joinpath(checkpoint_dir, "wall_state.json")
+        mesh_identity_path = joinpath(checkpoint_dir, "mesh_identity.json")
+        fluid_state_path = joinpath(checkpoint_dir, "fluid_state.json")
+        coupling_state_path = joinpath(checkpoint_dir, "coupling_state.json")
+        output_linkage_path = joinpath(checkpoint_dir, "output_linkage.json")
+
+        write_json(wall_state_path, Dict{String,Any}(
+            "schema_version" => 1,
+            "representation" => "reduced_wall_state",
+            "wall_axial_coordinates_cm" => copy(final_smoke.wall_axial_coordinates_cm),
+            "wall_displacement_cm" => copy(final_smoke.wall_displacement_cm),
+            "wall_velocity_cm_s" => copy(final_smoke.wall_velocity_cm_s),
+            "current_radii_cm" => copy(final_smoke.current_radii_cm),
+            "wall_pressure_dyn_cm2" => copy(final_smoke.wall_pressure_dyn_cm2),
+            "wall_mass_g_cm2" => final_smoke.wall_mass_g_cm2,
+            "wall_stiffness_c0_dyn_cm3" => final_smoke.wall_stiffness_c0_dyn_cm3,
+            "wall_damping_g_cm2_s" => final_smoke.wall_damping_g_cm2_s,
+            "minimum_current_radius_cm" => final_smoke.minimum_current_radius_cm,
+            "clamped_endpoint_status" => "inlet_and_outlet_wall_state_zeroed",
+        ); overwrite=local_spec.overwrite)
+        write_json(mesh_identity_path, Dict{String,Any}(
+            "schema_version" => 1,
+            "representation" => "native_mesh_identity",
+            "case_id" => string(local_spec.case_spec.case_id),
+            "severity_percent" => local_spec.case_spec.severity_percent,
+            "mesh_resolution" => Dict{String,Any}(
+                "axial" => resolution.axial,
+                "radial" => resolution.radial,
+                "angular" => resolution.angular,
+            ),
+            "node_count" => size(final_smoke.loaded_coordinates, 1),
+            "tetrahedron_count" => size(final_smoke.loaded_topology, 1),
+            "mesh_h5" => final_smoke.mesh_h5,
+            "mesh_h5_sha256" => sha256_file(final_smoke.mesh_h5),
+            "minimum_signed_tetra_volume6" => final_smoke.minimum_signed_tetra_volume6,
+        ); overwrite=local_spec.overwrite)
+        write_json(fluid_state_path, Dict{String,Any}(
+            "schema_version" => 1,
+            "representation" => "sampled_output_reference_not_fe_dof_checkpoint",
+            "restartable_fe_state" => false,
+            "velocity_dofs" => final_smoke.velocity_dofs,
+            "pressure_dofs" => final_smoke.pressure_dofs,
+            "velocity_xdmf" => final_smoke.velocity_xdmf,
+            "velocity_h5" => final_smoke.velocity_h5,
+            "velocity_h5_sha256" => sha256_file(final_smoke.velocity_h5),
+            "pressure_xdmf" => final_smoke.pressure_xdmf,
+            "pressure_h5" => final_smoke.pressure_h5,
+            "pressure_h5_sha256" => sha256_file(final_smoke.pressure_h5),
+            "displacement_xdmf" => final_smoke.displacement_xdmf,
+            "displacement_h5" => final_smoke.displacement_h5,
+            "displacement_h5_sha256" => sha256_file(final_smoke.displacement_h5),
+            "pressure_gauge_offset_dyn_cm2" => final_smoke.pressure_gauge_offset_dyn_cm2,
+        ); overwrite=local_spec.overwrite)
+        write_json(coupling_state_path, Dict{String,Any}(
+            "schema_version" => 1,
+            "representation" => "partitioned_coupling_state_and_cursor",
+            "current_snapshot_index" => length(snapshot_results),
+            "current_snapshot_time_s" => final_snapshot.snapshot_time_s,
+            "current_saved_time_s" => final_smoke.saved_time_s,
+            "current_time_step_count" => final_smoke.time_step_count,
+            "dt_s" => local_spec.dt_s,
+            "tfinal_s" => local_spec.tfinal_s,
+            "snapshot_times_s" => copy(local_spec.snapshot_times_s),
+            "coupling_iteration_count" => local_spec.coupling_iteration_count,
+            "coupling_tolerance" => local_spec.coupling_tolerance,
+            "coupling_under_relaxation" => local_spec.coupling_under_relaxation,
+            "max_coupling_iterations_used" => final_smoke.max_coupling_iterations_used,
+            "final_coupling_displacement_residual_cm" => final_smoke.final_coupling_displacement_residual_cm,
+            "coupling_converged" => final_smoke.coupling_converged,
+            "coupling_residual_history" => Any[
+                Dict{String,Any}(string(key) => value for (key, value) in pairs(row))
+                for row in final_smoke.coupling_residual_history
+            ],
+        ); overwrite=local_spec.overwrite)
+        write_json(output_linkage_path, Dict{String,Any}(
+            "schema_version" => 1,
+            "representation" => "sidecar_and_output_linkage",
+            "snapshot_manifest_csv" => manifest_csv,
+            "snapshot_manifest_sha256" => sha256_file(manifest_csv),
+            "diagnostics_csv" => diagnostics_csv,
+            "diagnostics_sha256" => sha256_file(diagnostics_csv),
+            "snapshot_outputs" => Any[
+                Dict{String,Any}(
+                    "snapshot_time_s" => snapshot.snapshot_time_s,
+                    "output_dir" => snapshot.output_dir,
+                    "velocity_xdmf" => snapshot.smoke_result.velocity_xdmf,
+                    "pressure_xdmf" => snapshot.smoke_result.pressure_xdmf,
+                    "displacement_xdmf" => snapshot.smoke_result.displacement_xdmf,
+                    "status" => snapshot.status.status,
+                ) for snapshot in snapshot_results
+            ],
+            "diagnostic_row_count" => length(rows),
+        ); overwrite=local_spec.overwrite)
+
+        return Any[
+            restart_checkpoint_manifest_entry("wall_state", wall_state_path, metadata_dir),
+            restart_checkpoint_manifest_entry("mesh_identity", mesh_identity_path, metadata_dir),
+            restart_checkpoint_manifest_entry("fluid_state", fluid_state_path, metadata_dir),
+            restart_checkpoint_manifest_entry("coupling_state", coupling_state_path, metadata_dir),
+            restart_checkpoint_manifest_entry("output_linkage", output_linkage_path, metadata_dir),
+        ]
+    end
+
     function restart_metadata(
         local_spec::NativeResolvedFSIPartitionedProductionSpec,
         snapshot_results::Vector{NamedTuple},
         rows::Vector{NamedTuple},
         manifest_csv::String,
         diagnostics_csv::String,
+        checkpoint_manifest,
     )
         final_snapshot = snapshot_results[end]
         final_smoke = final_snapshot.smoke_result
@@ -1133,16 +1259,16 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "snapshot_outputs" => snapshot_outputs,
             "state_payload" => state_payload,
             "production_spec_digest" => production_spec_digest(local_spec),
-            "restart_schema_version" => 1,
-            "restart_schema_status" => "schema_v1_audit_metadata_only",
-            "checkpoint_manifest" => Any[],
-            "checkpoint_schema_status" => "not_persisted_solver_checkpoint",
+            "restart_schema_version" => 2,
+            "restart_schema_status" => "schema_v2_checkpoint_manifest",
+            "checkpoint_manifest" => checkpoint_manifest,
+            "checkpoint_schema_status" => "checkpoint_manifest_present_resume_not_implemented",
             "restart_provenance" => "state_carrying_partitioned",
             "state_carrying_restart" => true,
             "resume_supported" => false,
             "resume_status" => "deferred",
             "resume_note" =>
-                "Production snapshots carry partitioned state within the run; schema v1 state_payload is audit metadata only and persisted resume from restart metadata remains deferred.",
+                "Production snapshots carry partitioned state within the run; schema v2 checkpoint sidecars record wall, mesh, sampled-output, coupling, and output-linkage state, but no durable FE-state reconstruction runner is implemented and persisted resume remains deferred.",
         )
     end
 
@@ -1153,12 +1279,16 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
         ready = isfile(restart_metadata_json) &&
                 get(metadata, "restart_provenance", "") == "state_carrying_partitioned" &&
                 get(metadata, "state_carrying_restart", false) == true &&
-                get(metadata, "restart_schema_version", 1) == 1 &&
+                get(metadata, "restart_schema_version", 1) in (1, 2) &&
                 get(metadata, "resume_supported", true) == false &&
                 get(metadata, "resume_status", "") == "deferred" &&
-                get(get(metadata, "state_payload", Dict{String,Any}()), "schema_version", nothing) == 1
+                get(get(metadata, "state_payload", Dict{String,Any}()), "schema_version", nothing) == 1 &&
+                (
+                    get(metadata, "restart_schema_version", 1) == 1 ||
+                    !isempty(get(metadata, "checkpoint_manifest", Any[]))
+                )
         status = ready ?
-            "restart metadata was written with state-carrying partitioned snapshot provenance; persisted resume remains explicitly deferred" :
+            "restart metadata was written with state-carrying partitioned snapshot provenance and non-resumable checkpoint sidecars; persisted resume remains explicitly deferred" :
             "restart metadata is missing or does not mark the current state-carrying non-resumable provenance"
         return NativeResolvedFSIWorkflowStatus(ready, status)
     end
@@ -1223,7 +1353,15 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
     diagnostic_rows = build_diagnostic_rows(spec, snapshot_results)
     write_diagnostics(diagnostics_csv, diagnostic_rows, spec.overwrite)
     restart_metadata_json = restart_metadata_path(spec)
-    metadata = restart_metadata(spec, snapshot_results, diagnostic_rows, manifest_csv, diagnostics_csv)
+    checkpoint_manifest = write_restart_checkpoint_state(
+        spec,
+        snapshot_results,
+        diagnostic_rows,
+        manifest_csv,
+        diagnostics_csv,
+        restart_metadata_json,
+    )
+    metadata = restart_metadata(spec, snapshot_results, diagnostic_rows, manifest_csv, diagnostics_csv, checkpoint_manifest)
     write_restart_metadata(restart_metadata_json, metadata, spec.overwrite)
     final_snapshot = snapshot_results[end]
 
