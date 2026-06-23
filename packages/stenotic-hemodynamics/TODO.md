@@ -35,6 +35,10 @@ Implemented and committed:
 - `df95c58`: follow-up scalar helper audit extended the same boundary to outlet
   pressure gauging and wall-pressure plane sampling, with focused
   `Float32`/`BigFloat` tests.
+- Lane 10E CLI follow-up: top-level `fsi` help now describes membrane-FSI
+  validation and native resolved-FSI status workflows, while `fsi
+  native-status` remains dry-run/status-only and cannot trigger production
+  execution by default.
 - Lane 9F restart stewardship audit: no patch required after 9C. Old metadata
   remains readable, exact metadata requires positive `inlet_umax_cm_s`,
   `state_payload` remains versioned audit metadata, and persisted resume
@@ -160,24 +164,3 @@ Recommended dispatch order:
 
 Until then, `native_resolved_fsi_resume_partitioned_production(...)` must keep
 validating metadata and failing closed.
-
-### Lane 10E: CLI Surface Follow-Up After Workflow Split
-
-Priority: P2 after 10C claim/validation planning.
-
-Objective: decide whether `fsi native-status` should stay under `fsi` or move
-behind a workflow-specific facade after directory restructuring.
-
-Requirements:
-
-1. Do not add production execution from CLI by default.
-2. Preserve the existing `fsi native-status` behavior unless a migration path is
-   explicitly tested and documented.
-3. Keep exact-boundary claim text visible in CLI output.
-
-Validation:
-
-```bash
-packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_public_api.jl")'
-git diff --check -- packages/stenotic-hemodynamics public/docs
-```

@@ -10,7 +10,7 @@ function print_usage(io::IO = stdout)
           openbf-run    Run a strict OpenBF-style input.yml adapter
           study         Run severity, grid, or refinement studies
           stokes        Run stationary-Stokes workflows
-          fsi           Run membrane-FSI validation workflows
+          fsi           Run membrane-FSI validation and native resolved-FSI status workflows
           verify        Run MMS and rest-state verification workflows
           compare-3d    Compare available resolved-3D cases against 1D runs
           operator-validation Validate cross-section quadrature on synthetic cuts

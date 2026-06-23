@@ -388,6 +388,14 @@
         values(cli_handlers),
     )
     @test cli_handlers["fsi"] === StenoticHemodynamics.run_fsi_cli
+    cli_help_path = tempname()
+    open(cli_help_path, "w") do io
+        redirect_stdout(io) do
+            StenoticHemodynamics.run_cli(["--help"])
+        end
+    end
+    cli_help_text = read(cli_help_path, String)
+    @test occursin("fsi           Run membrane-FSI validation and native resolved-FSI status workflows", cli_help_text)
     default_capture_path = tempname()
     default_status = open(default_capture_path, "w") do io
         redirect_stdout(io) do
