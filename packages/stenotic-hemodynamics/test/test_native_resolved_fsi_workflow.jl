@@ -284,6 +284,9 @@ end
         @test dry_run.snapshot_times_s == [1.0e-4, 2.0e-4]
         @test dry_run.estimated_field_payload_bytes ==
               native_resolved_fsi_partitioned_production_estimated_field_payload_bytes(plan.production_spec)
+        @test dry_run.snapshot_count_within_default_guard
+        @test dry_run.estimated_output_payload_within_default_guard
+        @test isempty(dry_run.required_override_flags)
         @test dry_run.output_dir == expected_output_dir
         @test dry_run.snapshot_output_dirs == [
             joinpath(expected_output_dir, "snapshot-t0p0001"),
@@ -301,8 +304,37 @@ end
         @test occursin("dry-run ready", dry_run.status)
         @test occursin("no production solver executed", dry_run.status)
         @test occursin("no files written", dry_run.status)
+        @test occursin("required override flags: none", dry_run.status)
         @test !ispath(dry_run.output_dir)
         @test !ispath(dirname(dry_run.parity_observations_csv))
+
+        blocked_resolution = NativeResolvedFSIMeshResolution(axial=1000, radial=1000, angular=20)
+        blocked_snapshot_times = [index * 1.0e-4 for index in 1:51]
+        blocked_plan = only(native_resolved_fsi_production_workflow_plans(
+            case_ids=(:sev23,),
+            resolution=blocked_resolution,
+            output_root=joinpath(dir, "blocked-production"),
+            dt_s=1.0e-4,
+            tfinal_s=last(blocked_snapshot_times),
+            snapshot_times_s=blocked_snapshot_times,
+            allow_many_snapshots=true,
+            allow_large_output=true,
+        ))
+        blocked_dry_run = native_resolved_fsi_partitioned_production_dry_run(
+            blocked_plan;
+            imported_data_root=joinpath(dir, "missing-imported"),
+        )
+        @test blocked_dry_run.expected_node_count ==
+              (blocked_resolution.axial + 1) * (1 + blocked_resolution.radial * blocked_resolution.angular)
+        @test blocked_dry_run.expected_tetrahedron_count ==
+              3 * blocked_resolution.axial * blocked_resolution.angular * (2 * blocked_resolution.radial - 1)
+        @test blocked_dry_run.estimated_field_payload_bytes >
+              StenoticHemodynamics.NATIVE_RESOLVED_FSI_PRODUCTION_MAX_OUTPUT_BYTES
+        @test !blocked_dry_run.snapshot_count_within_default_guard
+        @test !blocked_dry_run.estimated_output_payload_within_default_guard
+        @test blocked_dry_run.required_override_flags == ["allow_many_snapshots", "allow_large_output"]
+        @test occursin("allow_many_snapshots, allow_large_output", blocked_dry_run.status)
+        @test !ispath(blocked_dry_run.output_dir)
     end
 end
 

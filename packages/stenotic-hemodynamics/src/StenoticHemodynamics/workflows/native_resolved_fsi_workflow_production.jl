@@ -249,6 +249,8 @@ end
 Side-effect-free Section 4.1 production dry-run record. It resolves the native
 production bundle paths, sidecar paths, estimated mesh/output size, and planned
 imported parity case without running the production solver or writing files.
+The guard fields report whether the plan fits the default production limits and
+which explicit override flags are needed before a larger run is attempted.
 """
 struct NativeResolvedFSIProductionDryRunPlan
     workflow_plan::NativeResolvedFSIProductionWorkflowPlan
@@ -258,6 +260,9 @@ struct NativeResolvedFSIProductionDryRunPlan
     expected_tetrahedron_count::Int
     snapshot_times_s::Vector{Float64}
     estimated_field_payload_bytes::BigInt
+    snapshot_count_within_default_guard::Bool
+    estimated_output_payload_within_default_guard::Bool
+    required_override_flags::Vector{String}
     output_dir::String
     snapshot_output_dirs::Vector{String}
     manifest_csv::String
@@ -268,6 +273,25 @@ struct NativeResolvedFSIProductionDryRunPlan
     imported_case
     imported_available::Bool
     status::String
+end
+
+function native_resolved_fsi_partitioned_production_default_guard_report(
+    spec::NativeResolvedFSIPartitionedProductionSpec,
+)
+    estimated_field_payload_bytes = native_resolved_fsi_partitioned_production_estimated_field_payload_bytes(spec)
+    snapshot_count_within_default_guard =
+        length(spec.snapshot_times_s) <= NATIVE_RESOLVED_FSI_PRODUCTION_MAX_SNAPSHOT_COUNT
+    estimated_output_payload_within_default_guard =
+        estimated_field_payload_bytes <= NATIVE_RESOLVED_FSI_PRODUCTION_MAX_OUTPUT_BYTES
+    required_override_flags = String[]
+    snapshot_count_within_default_guard || push!(required_override_flags, "allow_many_snapshots")
+    estimated_output_payload_within_default_guard || push!(required_override_flags, "allow_large_output")
+    return (
+        estimated_field_payload_bytes=estimated_field_payload_bytes,
+        snapshot_count_within_default_guard=snapshot_count_within_default_guard,
+        estimated_output_payload_within_default_guard=estimated_output_payload_within_default_guard,
+        required_override_flags=required_override_flags,
+    )
 end
 
 function NativeResolvedFSIProductionWorkflowPlan(
@@ -394,8 +418,12 @@ function native_resolved_fsi_partitioned_production_dry_run(
     ))
     expected_node_count = (resolution.axial + 1) * (1 + resolution.radial * resolution.angular)
     expected_tetrahedron_count = 3 * resolution.axial * resolution.angular * (2 * resolution.radial - 1)
+    guard_report = native_resolved_fsi_partitioned_production_default_guard_report(spec)
+    override_status = isempty(guard_report.required_override_flags) ?
+        "default guards satisfied; required override flags: none" :
+        "default guards would block production without required override flags: $(join(guard_report.required_override_flags, ", "))"
     imported_status = parity_plan.imported_available ? "imported bundle available" : "imported bundle expected-skip"
-    status = "dry-run ready: no production solver executed and no files written; $(imported_status); production execution remains opt-in through explicit production specs and output-volume overrides"
+    status = "dry-run ready: no production solver executed and no files written; $(override_status); $(imported_status); production execution remains opt-in through explicit production specs and output-volume overrides"
     return NativeResolvedFSIProductionDryRunPlan(
         plan,
         spec.case_spec.case_id,
@@ -403,7 +431,10 @@ function native_resolved_fsi_partitioned_production_dry_run(
         expected_node_count,
         expected_tetrahedron_count,
         copy(spec.snapshot_times_s),
-        native_resolved_fsi_partitioned_production_estimated_field_payload_bytes(spec),
+        guard_report.estimated_field_payload_bytes,
+        guard_report.snapshot_count_within_default_guard,
+        guard_report.estimated_output_payload_within_default_guard,
+        copy(guard_report.required_override_flags),
         output_dir,
         snapshot_output_dirs,
         joinpath(output_dir, "snapshot_manifest.csv"),

@@ -323,6 +323,7 @@
         :native_resolved_fsi_mesh,
         :native_resolved_fsi_navier_stokes_smoke_spec,
         :native_resolved_fsi_partitioned_production_dry_run,
+        :native_resolved_fsi_partitioned_production_default_guard_report,
         :native_resolved_fsi_partitioned_production_estimated_field_payload_bytes,
         :native_resolved_fsi_partitioned_production_spec,
         :native_resolved_fsi_partitioned_smoke_spec,
