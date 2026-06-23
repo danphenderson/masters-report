@@ -377,6 +377,19 @@ history into Section~\ref{subsec:membrane-fsi-comparator}; the scratch output
 directory and manifest remain provenance records for regenerating the
 report-owned assets.
 
+The native resolved-FSI exact-boundary path is separate package-development
+diagnostic work, not a promoted report-evidence surface. Its current support
+establishes low-level smoke-scale and operator-readiness behavior, including
+status reporting for wall stability, the explicit membrane-oscillator time-step
+guard, and wall mass and stiffness scales. The 23\% exact-boundary case remains
+blocked at \(dt_s=10^{-4}\) before solver artifacts are written; a short
+\(dt_s=10^{-5}\) scratch probe reached a deformed-mesh orientation failure, and
+a longer \(dt_s=10^{-5}\) probe was runtime-inconclusive. These diagnostics do
+not remediate the wall-stability blocker, and reducing \(dt_s\) alone is
+therefore not treated as evidence for the retained comparison. The associated
+\texttt{state\_payload} is audit metadata only; persisted restart or resume
+remains unsupported and fails closed.
+
 The corresponding report-generation entry point is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi validate \
