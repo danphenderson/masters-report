@@ -38,11 +38,12 @@ local operator evidence in separate tiers:
 - Partitioned smoke: a reduced membrane update with prescribed radial
   wall-velocity Dirichlet data on the fluid wall, still using the same
   pressure-drop-driven inlet/outlet smoke loading, not an ALE formulation.
-- Boundary-condition audit: the current Gridap smoke status is local boundary
-  evidence only. It is not an exact Section 4.1 reproduction of the paper's
-  Poiseuille inlet and zero-outlet-stress contract. The internal
-  `poiseuille_inlet_zero_outlet_stress_section41` mode is tracked as deferred
-  rather than silently mapped to the smoke path.
+- Boundary-condition audit: the current Gridap smoke path still records
+  pressure-drop weak inlet/outlet loading as local boundary evidence. The
+  low-level internal `poiseuille_inlet_zero_outlet_stress_section41` mode is
+  now implemented and threaded through the tiny partitioned production harness,
+  but remains smoke-scale/operator-readiness evidence only. Neither path is a
+  validated Section 4.1 reproduction claim.
 - Production dry-run: `native_resolved_fsi_partitioned_production_dry_run(...)`
   resolves snapshot, sidecar, restart, and imported-parity paths without
   running a solver or writing files.
@@ -126,8 +127,8 @@ artifacts or local operator summaries are marked `non-blocker`.
 | Wall thickness | `h = 0.06 cm` | explicit | no | Table 1. |
 | Poisson ratio | `nu = 0.5` | explicit | no | Table 1; map to package `sigma`. |
 | Young modulus | `E = 5.02e6 dyn/cm^2` | explicit | no | Table 1. |
-| Inlet condition | Poiseuille inflow with `u_max = 45 cm/s` | explicit; deferred in current smoke | no for generated artifacts; yes for exact boundary parity | Section 4.1 text. Mean inflow is inferred as `22.5 cm/s`. Current Gridap smoke uses pressure-drop weak inlet loading instead. |
-| Outlet condition | zero stress `sigma n = 0` at `Gamma_out` | explicit; deferred in current smoke | no for generated artifacts; yes for exact boundary parity | Section 4.1 text. Current Gridap smoke records outlet-gauge pressure after pressure-drop weak loading, not exact paper boundary reproduction. |
+| Inlet condition | Poiseuille inflow with `u_max = 45 cm/s` | explicit; internal exact mode implemented, broader parity validation deferred | no for generated artifacts; yes for validated exact boundary parity | Section 4.1 text. Mean inflow is inferred as `22.5 cm/s`. Pressure-drop weak loading remains the default smoke evidence path; the internal exact mode is smoke-scale/operator-readiness evidence only. |
+| Outlet condition | zero stress `sigma n = 0` at `Gamma_out` | explicit; internal exact mode implemented, broader parity validation deferred | no for generated artifacts; yes for validated exact boundary parity | Section 4.1 text. Pressure-drop weak loading remains the default smoke evidence path; the internal exact mode is smoke-scale/operator-readiness evidence only. |
 | End constraint | artery clamped at both ends, radial deformation allowed | explicit | no | Section 4.1 text. |
 | Comparison time | steady-state 3D snapshot at `T = 1 s` | explicit | no | Section 4.1 text. |
 | Legacy imported XDMF time | current local cases expect `0.9995 +/- time_atol` | inferred/local | no | From `Resolved3DCaseSpec` defaults and README; keep for importer compatibility only. |
@@ -156,8 +157,8 @@ artifacts or local operator summaries are marked `non-blocker`.
 | `E` | `dyn/cm^2` | `Params.young` | Exact match. |
 | `nu` (Poisson ratio) | dimensionless | `Params.sigma` | Same physical role, different field name. |
 | `h` | `cm` | `Params.wall_h` | Exact match. |
-| Poiseuille inlet with `u_max = 45 cm/s` | `cm/s` | Section 4.1 paper contract; deferred internal mode `poiseuille_inlet_zero_outlet_stress_section41` | Current Gridap smoke uses pressure-drop-driven weak loading and should not be described as paper-grade inlet reproduction. |
-| zero outlet stress | traction BC | Section 4.1 paper contract; deferred internal mode `poiseuille_inlet_zero_outlet_stress_section41` | Do not map this to the current smoke outlet gauge or to the current 1D characteristic outlet literally. |
+| Poiseuille inlet with `u_max = 45 cm/s` | `cm/s` | Section 4.1 paper contract; qualified internal exact mode `poiseuille_inlet_zero_outlet_stress_section41` | Current Gridap smoke still uses pressure-drop-driven weak loading by default. The internal exact mode is smoke-scale/operator-readiness evidence only and should not be described as paper-grade inlet reproduction. |
+| zero outlet stress | traction BC | Section 4.1 paper contract; qualified internal exact mode `poiseuille_inlet_zero_outlet_stress_section41` | Do not map this to the current smoke outlet gauge or to the current 1D characteristic outlet literally; the internal exact mode is still bounded to smoke-scale/operator-readiness evidence. |
 | `eta_r` | `cm` | displacement state and exported displacement field | At minimum this is a wall radial displacement; full node-centered export is a local package extension. |
 | `C0` | `dyn/cm^3` after dividing force by displacement | closest local surfaces: `wall_stiffness`, `wall_elastic_coefficient`, `canic_membrane_c0` | Current local wall helpers are the nearest fit but do not, by themselves, prove exact Section 4.1 parity. |
 | benchmark time `T = 1 s` | `s` | native `Resolved3DCaseSpec.target_time = 1.0` | Do not inherit `0.9995` for new native outputs. |
@@ -245,10 +246,13 @@ displacement and therefore do not use the velocity-only schema as their target.
 - Current smoke outputs must report
   `pressure_drop_weak_inlet_outlet_gauge_smoke` as local smoke boundary
   evidence.
-- Current smoke outputs must not report exact Section 4.1 boundary
-  reproduction.
-- Exact paper boundary parity remains deferred until a strong Poiseuille inlet
-  and zero-outlet-stress Gridap mode is implemented and validated without
+- Exact-mode outputs may report
+  `poiseuille_inlet_zero_outlet_stress_section41` as internal
+  smoke-scale/operator-readiness evidence.
+- Current outputs must not report validated Section 4.1 boundary reproduction
+  or parity.
+- Exact paper boundary parity remains deferred until the implemented internal
+  mode is validated beyond the tiny smoke-scale production harness, without
   removing the pressure-drop smoke path.
 
 ### 6. Observation-operator parity tier
@@ -287,15 +291,18 @@ Current generated artifacts may support these bounded statements:
 - smoke results now carry executable boundary-condition status showing
   pressure-drop weak inlet/outlet loading as local evidence, not exact Section
   4.1 inlet/outlet reproduction.
+- the internal `poiseuille_inlet_zero_outlet_stress_section41` mode is
+  implemented and can be threaded through the tiny partitioned production
+  harness, but only as smoke-scale/operator-readiness evidence.
 
 Deferred claims:
 
-- public CLI exposure for native resolved-FSI production, dry-run, restart, and
-  observation-artifact workflows, although a dry-run or status-first CLI
-  follow-up is now in scope for a later round;
+- public CLI exposure for native resolved-FSI production, restart, and
+  observation-artifact workflows beyond the status-only `fsi native-status`
+  dry-run/status command;
 - persisted restart and resume beyond the current audit-oriented metadata
   reader;
-- exact Section 4.1 inlet/outlet boundary reproduction with Poiseuille inlet and
-  zero outlet stress;
+- validated Section 4.1 boundary parity and paper-grade numerical reproduction
+  of the Poiseuille-inlet / zero-outlet-stress case;
 - monolithic ALE FSI;
 - paper-grade Section 4.1 numerical reproduction or validation.

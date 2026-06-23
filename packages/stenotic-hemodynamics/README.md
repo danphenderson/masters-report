@@ -239,6 +239,10 @@ The native resolved-FSI surface is intentionally tiered:
   writing files, and reports default guard status through
   `native_resolved_fsi_partitioned_production_default_guard_report(...)`; the
   status-only CLI entrypoint is `fsi native-status`;
+- boundary-mode status: the low-level Gridap
+  `poiseuille_inlet_zero_outlet_stress_section41` mode is threaded through the
+  tiny partitioned production harness and reported as smoke-scale/operator-readiness
+  evidence only;
 - production sidecars: state-carrying partitioned snapshot runs write
   `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, and
   `restart_metadata.json`;

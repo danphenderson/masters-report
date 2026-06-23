@@ -233,8 +233,11 @@ Current tiers are intentionally separate:
   observation rows and `section41_observation_summary.csv` through the local
   cross-section velocity and pressure observation operators.
 - Boundary-mode status: fixed-wall and partitioned native runs exercise
-  package-owned boundary modes. Exact mode is smoke-scale/operator-readiness
-  evidence only, not paper-grade Section 4.1 reproduction.
+  package-owned boundary modes. The low-level Gridap
+  `poiseuille_inlet_zero_outlet_stress_section41` mode is also threaded through
+  the tiny partitioned production harness, but remains
+  smoke-scale/operator-readiness evidence only, not paper-grade Section 4.1
+  reproduction.
 
 The current family documents generated artifacts, local operator evidence, and
 production-control sidecars. Persisted restart, production execution from CLI,

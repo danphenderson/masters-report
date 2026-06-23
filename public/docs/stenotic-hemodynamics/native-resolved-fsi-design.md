@@ -54,9 +54,10 @@ Interpretation:
 - The schema workflow, fixed-wall smoke, partitioned smoke, production dry-run,
   restart reader/stub, and observation summary CSV surfaces are implemented as
   qualified Julia-internal workflows.
-- Public CLI exposure remains deferred in this round; no native resolved-FSI
-  production, dry-run, restart, or parity command is wired through
-  `cli/dispatch.jl`.
+- Public CLI exposure remains intentionally narrow in this round:
+  `cli/dispatch.jl` exposes only `fsi native-status` for dry-run/status
+  reporting. Native resolved-FSI production, restart/resume, parity execution,
+  and observation-artifact generation remain qualified Julia-internal surfaces.
 - The production tier carries partitioned state through one requested snapshot
   schedule within a run, but saved restart metadata is not a future-process
   resume surface.
@@ -197,11 +198,15 @@ the displacement field.
 
 ### Boundary conditions
 
-The paper boundary data and current smoke realization are deliberately kept
+The paper boundary data and current execution evidence are deliberately kept
 separate. Section 4.1 states a Poiseuille inlet with `u_max = 45 cm/s` and zero
-outlet stress. The current Gridap smoke harness uses pressure-drop-driven weak
-boundary loading for the smoke solves and records that as local implementation
-evidence, not as a paper-grade boundary-condition reproduction.
+outlet stress. The default Gridap smoke path still uses pressure-drop-driven
+weak boundary loading and records that as local implementation evidence. The
+low-level Gridap/native production harness also carries an internal exact mode,
+`poiseuille_inlet_zero_outlet_stress_section41`, and the tiny partitioned
+production harness can thread that mode through for smoke-scale/operator-readiness
+evidence. Neither path should be described as a validated paper-grade
+boundary-condition reproduction.
 
 The current wall boundary modes are:
 
@@ -210,9 +215,17 @@ The current wall boundary modes are:
   reduced membrane velocity, implemented through
   `native_resolved_fsi_radial_wall_velocity_function(...)`.
 
+The current inlet/outlet realizations are:
+
+- smoke evidence path: pressure-drop-driven weak loading in the fixed-wall and
+  partitioned smoke harnesses;
+- exact Section 4.1 internal mode: strong Poiseuille inlet with
+  `u_max = 45 cm/s` plus zero outlet stress, threaded through the tiny
+  partitioned production harness for operator-readiness evidence only.
+
 The partitioned target must not reinterpret the 1D characteristic outlet as a
-3D outlet condition or present the current pressure-drop smoke loading as the
-exact Section 4.1 inlet/outlet realization.
+3D outlet condition or present either current internal path as validated
+Section 4.1 parity.
 
 ## Membrane model
 
@@ -452,8 +465,8 @@ The current public-by-qualification contract centers on these structs:
 
 ## Workflow entrypoints
 
-The current internal entrypoints are qualified Julia functions, not CLI
-commands:
+The current internal entrypoints are qualified Julia functions, with one narrow
+status-only CLI surface:
 
 - `run_native_resolved_fsi_workflow(...)` and
   `run_native_resolved_fsi(...)` for schema-only generated bundles.
@@ -473,12 +486,11 @@ commands:
   restart-identification metadata validation and fail-closed resume.
 - `run_native_resolved_fsi_parity(...)` for native/imported observation and
   parity artifacts.
+- `fsi native-status` for dry-run/status reporting only; it does not run
+  production and does not write solver outputs.
 
-Public CLI exposure is intentionally deferred for the native resolved-FSI
-production, dry-run, restart, parity, and observation-artifact surfaces in this
-round. The next scoped follow-up is expected to evaluate dry-run or status
-exposure before any CLI path that could trigger expensive production execution
-by default.
+No CLI path exposes native resolved-FSI production execution, restart/resume,
+parity execution, or observation-artifact generation in this round.
 
 ## Tests and acceptance tolerances
 
@@ -543,7 +555,8 @@ These items remain open and should not be implied by current documentation:
 - whether later paper-parity calibration should replace `R_ref = p.rmax` with a
   different constant `R0*`.
 - persisted process resume from restart metadata;
-- public CLI exposure for native resolved-FSI production, dry-run, restart, or
+- public CLI exposure beyond the status-only `fsi native-status` surface for
+  native resolved-FSI production, restart/resume, parity, or
   observation-artifact workflows;
 - paper-grade transient Section 4.1 reproduction.
 
@@ -552,5 +565,6 @@ These items remain open and should not be implied by current documentation:
 No documentation blocker remains for the implemented schema, smoke, production
 dry-run, restart metadata, sidecar, and observation-artifact tiers. The design
 intentionally defers monolithic moving-wall FSI, persisted process resume, CLI
-exposure, and paper-grade reproduction claims instead of presenting the current
-qualified-internal harness as those stronger surfaces.
+surfaces beyond `fsi native-status`, and paper-grade reproduction claims
+instead of presenting the current qualified-internal harness as those stronger
+surfaces.

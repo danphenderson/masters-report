@@ -48,9 +48,11 @@ and
 High-output generation is still guarded by spec objects, workflow plans, and
 dry-run checks, and no CLI default reaches the expensive production runner.
 Restart metadata may include a versioned `state_payload` audit block, but
-persisted restart/resume remains fail-closed. Exact boundary mode is reported
-as smoke-scale/operator-readiness evidence only, not paper-grade Section 4.1
-reproduction.
+persisted restart/resume remains fail-closed. The internal exact Section 4.1
+boundary mode (`poiseuille_inlet_zero_outlet_stress_section41`) is wired
+through the low-level Gridap/native production harness and surfaced here only
+as status output; it remains smoke-scale/operator-readiness evidence, not
+paper-grade Section 4.1 reproduction.
 
 ## Simulation
 
