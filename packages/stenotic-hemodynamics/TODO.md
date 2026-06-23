@@ -4,14 +4,13 @@ Date: 2026-06-23
 
 This is the next supervised dispatch plan for
 `packages/stenotic-hemodynamics`. It starts from the current `master` checkout
-after the native resolved-FSI cleanup and production-control round. The next
-objective is to deepen the native generator beyond smoke-backed independent
-snapshots while preserving the importer and parity workflows for externally
-generated Matlab/reference bundles.
+after the native resolved-FSI solver-depth round. The next objective is to make
+the remaining production, restart, parity, API-boundary, documentation, and
+maintenance work implementation-ready for concurrent fleet dispatch.
 
 ## Baseline For Next Round
 
-The current local package work has delivered:
+The package currently has:
 
 - Split native resolved-FSI adapter files:
   - `adapters/native_resolved_fsi_types.jl`
@@ -19,42 +18,40 @@ The current local package work has delivered:
   - `adapters/native_resolved_fsi_sampling.jl`
   - `adapters/native_resolved_fsi_partitioned.jl`
   - `adapters/native_resolved_fsi_roundtrip.jl`
-- Production controls for Section 4.1 native resolved-FSI runs, including
-  case, mesh, time, snapshot, Picard, membrane, coupling, and output-volume
-  guards.
-- A production runner that reuses the current smoke-backed partitioned driver.
-- Multi-snapshot production output with existing importer-compatible bundle
-  filenames:
-  - `velocity.xdmf`
-  - `pressure.xdmf`
-  - `displace.xdmf`
-- Production sidecars:
-  - `snapshot_manifest.csv`
-  - `snapshot_diagnostics.csv`
-  - `restart_metadata.json`
-- Partitioned smoke depth now includes per-time-step coupling iteration caps,
+- Production controls for Section 4.1 native resolved-FSI runs, including case,
+  mesh, time, snapshot, Picard, membrane, coupling, and output-volume guards.
+- Multi-snapshot production output with importer-compatible bundle filenames:
+  `velocity.xdmf`, `pressure.xdmf`, and `displace.xdmf`.
+- Production sidecars: `snapshot_manifest.csv`, `snapshot_diagnostics.csv`,
+  and `restart_metadata.json`.
+- Partitioned smoke depth with per-time-step coupling iteration caps,
   under-relaxation, displacement residual history, and prescribed radial wall
   velocity as Gridap wall Dirichlet data on the deformed geometry.
 - Restart-identification metadata that explicitly marks state-carrying resume
   as deferred.
 - Section 4.1 observation artifacts and skip-safe production parity plans.
 - Separate velocity and pressure operator status seams.
-- Public workflow documentation under
-  `public/docs/stenotic-hemodynamics/`, with package-local native FSI docs
-  reduced to pointer stubs.
+- Public workflow documentation under `public/docs/stenotic-hemodynamics/`,
+  with package-local native FSI docs reduced to pointer stubs.
 
 Bounded interpretation:
 
 - Native generation still uses independent smoke-backed partitioned solves for
-  scheduled snapshots, but each partitioned smoke solve now feeds the current
+  scheduled snapshots, but each partitioned smoke solve feeds the current
   reduced wall velocity into the fluid wall boundary. It is not a monolithic
   transient ALE FSI method and does not include ALE mesh-velocity terms.
-- The production sidecars improve reproducibility and handoff, but do not yet
+- Production sidecars improve reproducibility and handoff, but do not yet
   provide state-carrying restart/resume.
 - Section 4.1 observation artifacts are operator/parity artifacts. They do not
   prove paper-grade reproduction.
 - External resolved-3D import remains first-class. Native generation augments
   the importer; it does not replace imported reference data support.
+
+Known unrelated dirty-state rule:
+
+- `public/reproducibility/release-manifest.json` may be dirty from a separate
+  report/reproducibility lane. Do not edit, stage, or normalize it unless a
+  later user instruction explicitly assigns that file.
 
 ## Orchestration Rules
 
@@ -68,7 +65,7 @@ Bounded interpretation:
 - Use one writer per disjoint file set. If a worker needs files outside its
   assigned scope, it must stop and request expansion before editing.
 - Do not repeat worker validation by default. Review diffs and focused
-  handback validation, then run one broader gate only at the round boundary or
+  handback validation, then run a broader gate only at the round boundary or
   when integration risk justifies it.
 - Preserve public CLI commands, existing option names, existing XDMF/HDF5 file
   names, and importer schemas unless a lane explicitly widens scope.
@@ -79,15 +76,21 @@ Bounded interpretation:
   failing public-clone validation.
 - Code lanes own docstrings and comments in their assigned files. Do not
   assume existing docstrings are correct after structural moves.
-- Keep production helper namespace tight. Add new qualified internal names only
+- Keep production helper namespace tight. Add qualified internal names only
   when they are intentional API-adjacent seams and update the boundary tests in
   the same lane.
+- Do not add public exports in this round.
+- CLI exposure for native resolved-FSI production is deferred in this round.
 
-## Step 1: Boundary, Restart, And Production Harness Lanes
+## Wave 1: Disjoint Implementation Lanes
+
+Wave 1 lanes may run concurrently only while their owned write scopes remain
+disjoint. If a worker needs to expand into another lane's files, pause that
+worker and reassign locks before it patches.
 
 ### Lane 7A: Wall Boundary Verification Harness
 
-Objective: protect the new prescribed radial wall-velocity Dirichlet path with
+Objective: protect the prescribed radial wall-velocity Dirichlet path with
 direct tests before deeper production runs depend on it.
 
 Owned write scope:
@@ -99,15 +102,25 @@ Owned write scope:
 
 Implementation:
 
-1. Factor the radial wall-velocity boundary construction into a small internal
-   helper if that is the cleanest way to test it directly.
-2. Test centerline zeroing, axial clamping, finite-value rejection, and radial
-   direction/sign on representative wall points.
-3. Add one tiny partitioned smoke assertion that nonzero wall velocity is
-   recorded in the residual history or restart-visible state without requiring
-   an expensive production run.
-4. Keep the claim boundary explicit: prescribed wall Dirichlet data on deformed
-   geometry, not ALE mesh-velocity advection.
+1. Add private helper
+   `native_resolved_fsi_radial_wall_velocity_function(mesh, wall_velocity_at)`
+   in `adapters/native_resolved_fsi_gridap.jl`.
+2. Use that helper inside `native_resolved_fsi_solve_navier_stokes` for the
+   non-`nothing` `wall_velocity_at` case. Preserve the default zero wall
+   velocity path when `wall_velocity_at === nothing`.
+3. The helper must:
+   - clamp axial position into `[0, mesh.case_spec.length_cm]`;
+   - return zero at degenerate centerline points;
+   - reject non-finite profile values with `ArgumentError`;
+   - return a radial `VectorValue(v*x/r, v*y/r, 0.0)` with the supplied signed
+     speed.
+4. Add tests for centerline zeroing, axial clamping, finite-value rejection,
+   and radial direction/sign on representative wall points.
+5. Add one tiny partitioned smoke assertion that `maximum(abs,
+   result.wall_velocity_cm_s) > 0.0` and that the partitioned field/status
+   strings still say prescribed radial wall-velocity Dirichlet data, not
+   fixed-wall or ALE behavior.
+6. Do not export the helper. Do not add CLI surface.
 
 Validation:
 
@@ -117,115 +130,97 @@ packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hem
 
 Acceptance:
 
-- The wall boundary helper cannot regress to a label-only status without test
+- The wall boundary cannot regress to label-only metadata without test
   failures.
-- Tests remain tiny and deterministic.
-- Status strings continue to avoid fixed-wall or monolithic-ALE claims for the
+- Tiny tests remain deterministic.
+- Status strings avoid fixed-wall-fluid and monolithic-ALE claims for the
   partitioned prescribed-wall path.
 
-### Lane 7B: Restart Metadata Reader And Resume Contract
+### Lane 7B: Restart Metadata Reader And Resume Stub
 
-Objective: make restart metadata truly reloadable through package-owned code
+Objective: make `restart_metadata.json` reloadable through package-owned code
 before attempting state-carrying resume.
 
 Owned write scope:
 
-- `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl`
-- Optional new file:
-  `src/StenoticHemodynamics/workflows/native_resolved_fsi_restart.jl`
+- `src/StenoticHemodynamics.jl`
+- New file: `src/StenoticHemodynamics/workflows/native_resolved_fsi_restart.jl`
 - `test/test_native_resolved_fsi_workflow.jl`
-- `test/test_public_api.jl` only if a new qualified reader seam is intentional.
+- `test/test_public_api.jl`
 
 Implementation:
 
-1. Add a typed or structured reader for `restart_metadata.json`, using existing
-   dependencies or a minimal parser strategy already acceptable in the package.
-2. Validate required metadata keys and sidecar paths.
-3. Distinguish three states:
-   - metadata reloadable
-   - state-carrying resume unsupported
-   - state-carrying resume implemented
-4. Add an explicit resume stub that fails early with a clear message unless
-   this lane also implements and tests real resume.
-5. Keep the JSON schema backward-compatible with the current 4D sidecar.
+1. Include `workflows/native_resolved_fsi_restart.jl` from
+   `StenoticHemodynamics.jl` after
+   `workflows/native_resolved_fsi_workflow_production.jl`.
+2. Add qualified internal function
+   `native_resolved_fsi_read_restart_metadata(path::AbstractString)`.
+3. Parse package-written JSON with existing `YAML.load_file`; add no new
+   package dependency.
+4. Normalize the loaded metadata into `Dict{String,Any}` and validate at least:
+   - `restart_provenance == "independent_smoke_backed_snapshots"`;
+   - `resume_supported == false`;
+   - `resume_status == "deferred"`;
+   - `snapshot_manifest_csv`, `diagnostics_csv`, and every snapshot bundle
+     path are strings;
+   - the referenced sidecar paths exist when they are expected to be local
+     outputs from the tiny production run.
+5. Add qualified internal function
+   `native_resolved_fsi_resume_partitioned_production(path::AbstractString; kwargs...)`
+   that calls the reader, then throws `ArgumentError` explaining that
+   state-carrying resume is unsupported for independent smoke-backed snapshots.
+6. Add both qualified internals to `test/test_public_api.jl` as defined but
+   unexported names.
+7. Keep the current restart JSON schema backward-compatible. Do not rename
+   existing keys.
 
 Validation:
 
 ```bash
-packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_workflow.jl")'
+packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_workflow.jl"); include("packages/stenotic-hemodynamics/test/test_public_api.jl")'
 ```
 
 Acceptance:
 
 - A tiny production run writes metadata that the package can read back.
-- Missing or malformed metadata fails with actionable errors.
-- Resume remains explicitly deferred unless a tested resumed run reproduces an
-  uninterrupted coarse final bundle.
-
-### Lane 7C: Section 4.1 Production Harness And Dry Run
-
-Objective: give operators a deterministic plan surface for tiny test runs and
-deliberate larger Section 4.1 runs without accidental large-output generation.
-
-Owned write scope:
-
-- `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl`
-- `src/StenoticHemodynamics/workflows/native_resolved_fsi_parity_production.jl`
-- `test/test_native_resolved_fsi_workflow.jl`
-- `test/test_native_resolved_fsi_parity.jl`
-
-Implementation:
-
-1. Add dry-run planning for `sev23`, `sev40`, and `sev50` that reports:
-   - mesh resolution
-   - expected node and tetrahedron counts
-   - snapshot schedule
-   - raw payload estimate
-   - output directories
-   - sidecar paths
-   - imported-case availability.
-2. Add a tiny executable production plan that uses the same production runner
-   and parity artifact path as larger cases.
-3. Keep high-resolution Section 4.1 execution opt-in through explicit spec
-   values and output-volume overrides.
-4. Keep `sev50` imported parity as expected-skip until an external bundle is
-   wired.
-
-Validation:
-
-```bash
-packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_workflow.jl"); include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_parity.jl")'
-```
-
-Acceptance:
-
-- Dry-run plans are deterministic for all three Section 4.1 cases.
-- Tiny executable production plans write bundles, sidecars, and observation
-  artifacts.
-- Optional imported bundles are never required for package tests.
-
-## Step 2: Parity, API, And Documentation Lanes
+- Missing, malformed, or unsupported metadata fails with actionable
+  `ArgumentError` messages.
+- Resume remains explicitly deferred unless a later lane implements and tests
+  real state-carrying resume.
 
 ### Lane 7D: Production Observation Artifact Hardening
 
-Objective: turn the current observation CSV artifact into a stable surface for
-future report and comparison lanes.
+Objective: make the Section 4.1 observation artifact deterministic and summary
+ready for future report/comparison lanes.
 
 Owned write scope:
 
-- `src/StenoticHemodynamics/workflows/native_resolved_fsi_parity.jl`
 - `src/StenoticHemodynamics/workflows/native_resolved_fsi_parity_production.jl`
 - `test/test_native_resolved_fsi_parity.jl`
 
 Implementation:
 
-1. Add deterministic ordering and explicit row-count summaries for native,
-   imported, and parity rows.
-2. Add a compact artifact summary sidecar or status object that reports max
-   velocity and pressure discrepancies by case/source.
-3. Keep velocity and pressure operator statuses separate.
-4. Ensure missing imported bundles still write native-only observation rows and
-   expected-skip status.
+1. Sort observation rows deterministically before writing by
+   `(case_id, source, quantity, z_cm, case_label)`.
+2. Add `section41_observation_summary.csv` in the same output directory as
+   `section41_observations.csv`.
+3. Extend the artifact return value with:
+   - `summary_csv`;
+   - `summary_rows`.
+4. Summary rows must include:
+   - `case_id`;
+   - `source`;
+   - `quantity`;
+   - `row_count`;
+   - `ready_row_count`;
+   - `max_mean_velocity_abs_difference_cm_s`;
+   - `max_mean_pressure_abs_difference_dyn_cm2`;
+   - `status`.
+5. For native-only expected-skip cases, write native observation rows and a
+   summary row with `NaN` max-difference fields and expected-skip imported
+   status. Do not require optional external data.
+6. Keep velocity and pressure operator statuses separate.
+7. Do not change importer schema or XDMF/HDF5 filenames.
 
 Validation:
 
@@ -235,47 +230,193 @@ packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hem
 
 Acceptance:
 
-- Observation artifacts are deterministic and summary-ready.
-- Native-only, imported-only, and paired parity cases are all covered by tests.
-- No optional external data are required.
+- Repeated runs write observations and summaries in deterministic row order.
+- Native-only, imported-only, and paired parity cases are covered by tests.
+- Optional imported bundles are never required for package tests.
 
-### Lane 7E: CLI Exposure Decision For Native Production
+### Lane 7H: Scalar Genericity Continuation
 
-Objective: decide whether native resolved-FSI production remains qualified
-internal or gains a deliberately safe CLI surface.
+Objective: widen low-risk scalar-generic numerical kernels while leaving
+Gridap-backed native resolved-FSI entrypoints `Float64`.
+
+Owned write scope:
+
+- `src/StenoticHemodynamics/numerics/solver_fluxes.jl`
+- `test/test_scalar_generality.jl`
+
+Implementation:
+
+1. Target the WENO scalar helpers first:
+   - `weno3_left_scalar`
+   - `weno3_right_scalar`
+2. Replace concrete `Float64` argument annotations with scalar-generic
+   `T<:AbstractFloat`-compatible behavior where the local arithmetic already
+   supports it.
+3. Preserve existing `Float64` behavior and allocations for current solver
+   paths.
+4. Add `Float32` and `BigFloat` tests for the scalar helper results.
+5. Document in tests or comments that Gridap native resolved-FSI remains
+   `Float64` because Gridap FE spaces and XDMF/HDF5 writer surfaces are still
+   `Float64` in this package.
+
+Validation:
+
+```bash
+packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_scalar_generality.jl")'
+```
+
+Acceptance:
+
+- WENO scalar helper tests cover `Float32`, `Float64`, and `BigFloat`.
+- No Gridap/native resolved-FSI genericity claim is introduced.
+
+## Wave 2: Dependent Production And Boundary Lanes
+
+### Lane 7C: Section 4.1 Production Dry-Run Harness
+
+Objective: provide a deterministic dry-run surface for tiny and larger Section
+4.1 production plans without triggering accidental high-output generation.
+
+Dependencies:
+
+- Run after Lane 7B so the dry-run can report restart metadata path/reader
+  readiness consistently.
+
+Owned write scope:
+
+- `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl`
+- `src/StenoticHemodynamics/workflows/native_resolved_fsi_parity_production.jl`
+- `test/test_native_resolved_fsi_workflow.jl`
+- `test/test_native_resolved_fsi_parity.jl`
+- `test/test_public_api.jl` if adding a new qualified internal name.
+
+Implementation:
+
+1. Add qualified internal type `NativeResolvedFSIProductionDryRunPlan`.
+2. Add qualified internal function
+   `native_resolved_fsi_partitioned_production_dry_run(plan::NativeResolvedFSIProductionWorkflowPlan; imported_data_root=default_resolved3d_data_root())`.
+3. Do not run the production solver from the dry-run function.
+4. Dry-run result fields must include:
+   - `workflow_plan`;
+   - `case_id`;
+   - `mesh_resolution`;
+   - `expected_node_count`;
+   - `expected_tetrahedron_count`;
+   - `snapshot_times_s`;
+   - `estimated_field_payload_bytes`;
+   - `output_dir`;
+   - `snapshot_output_dirs`;
+   - `manifest_csv`;
+   - `diagnostics_csv`;
+   - `restart_metadata_json`;
+   - `parity_observations_csv`;
+   - `parity_summary_csv`;
+   - `imported_case`;
+   - `imported_available`;
+   - `status`.
+5. Use existing production output-dir and parity-plan helpers for all paths.
+6. Keep high-resolution Section 4.1 execution opt-in only through explicit
+   production specs and output-volume overrides.
+7. Add the new type/function to `test/test_public_api.jl` as defined but
+   unexported qualified internals.
+
+Validation:
+
+```bash
+packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_workflow.jl"); include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_parity.jl"); include("packages/stenotic-hemodynamics/test/test_public_api.jl")'
+```
+
+Acceptance:
+
+- Dry-run plans are deterministic for `sev23`, `sev40`, and `sev50`.
+- The dry-run reports expected-skip imported availability for missing optional
+  bundles.
+- No files are written by dry-run calls.
+- No expensive production run can be triggered from defaults.
+
+### Lane 7G: Dependency-Boundary Follow-Up
+
+Objective: update dependency-boundary tests only for the new surfaces added by
+Lanes 7A, 7B, and 7D.
+
+Dependencies:
+
+- Run after Lanes 7A, 7B, and 7D land.
+
+Owned write scope:
+
+- `test/test_extension_contracts.jl`
+
+Implementation:
+
+1. Confirm Gridap use remains confined to native/stokes workflow or adapter
+   surfaces that need it, including the wall-boundary helper from Lane 7A.
+2. Confirm HDF5/EzXML remain confined to resolved-3D I/O and writer surfaces.
+3. Confirm YAML use for restart metadata reading is documented/tested as an
+   existing dependency reuse, not a new JSON dependency.
+4. Do not widen OpenBF or SciML assertions unless the new lanes actually touch
+   those surfaces.
+
+Validation:
+
+```bash
+packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_extension_contracts.jl")'
+```
+
+Acceptance:
+
+- Boundary tests reflect only the new code paths from this round.
+- No broad dependency refactor is attempted in this lane.
+
+## Wave 3: API Boundary And Documentation Lanes
+
+### Lane 7E: CLI Non-Exposure Boundary
+
+Objective: lock the round's native resolved-FSI production posture to
+qualified-internal APIs only.
+
+Dependencies:
+
+- Run after Lane 7C so public API tests know the final dry-run internals.
 
 Owned write scope:
 
 - `test/test_public_api.jl`
-- CLI files only if exposing a dry-run or tiny smoke command is intentional.
 - `packages/stenotic-hemodynamics/README.md`
 - `public/docs/stenotic-hemodynamics/workflows.md`
 - `public/docs/julia-cli-workflows.md`
 
 Implementation:
 
-1. Review current qualified internal names and exports.
-2. If adding CLI exposure, default to dry-run or tiny smoke settings only.
-3. Keep high-resolution production runs behind explicit options and output
-   guards.
-4. Update docs only for the actual exposed surface.
+1. Do not add a production CLI command.
+2. Test that new native production dry-run/restart names are defined qualified
+   internals and are not exported.
+3. Test or document that `CLI_COMMAND_NAMES` contains no native resolved-FSI
+   production command.
+4. Document that production and dry-run surfaces are Julia-qualified internal
+   workflows for now, while high-output generation remains guarded by specs.
 
 Validation:
 
 ```bash
 packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_public_api.jl")'
+git diff --check -- packages/stenotic-hemodynamics/README.md public/docs/stenotic-hemodynamics/workflows.md public/docs/julia-cli-workflows.md
 ```
 
 Acceptance:
 
-- Public API tests match the intended boundary.
-- Existing public commands remain unchanged.
-- No expensive production run can be triggered accidentally from defaults.
+- Public exports remain unchanged.
+- Public CLI commands remain unchanged.
+- Docs state that CLI exposure is deferred.
 
 ### Lane 7F: Native Resolved-FSI Documentation Refresh
 
-Objective: update public docs after the production-control, diagnostics, and
-observation artifact lanes without inflating numerical claims.
+Objective: refresh public docs after the code lanes land without inflating
+numerical claims.
+
+Dependencies:
+
+- Run last, after Lanes 7A through 7E land.
 
 Owned write scope:
 
@@ -288,15 +429,19 @@ Owned write scope:
 Implementation:
 
 1. Document the current tier split:
-   - schema workflow
-   - fixed-wall smoke
-   - partitioned smoke
-   - production sidecars
-   - observation/parity artifacts
-   - deferred coupling/resume/parity claims.
+   - schema workflow;
+   - fixed-wall smoke;
+   - partitioned smoke with prescribed radial wall velocity;
+   - production sidecars;
+   - restart metadata reader with resume deferred;
+   - production dry-run;
+   - observation/parity artifacts and summaries;
+   - deferred CLI exposure and deferred paper-grade reproduction claims.
 2. Keep external importer support described as retained and supported.
 3. Keep Section 4.1 reproduction language bounded to generated artifacts and
    local operator parity evidence.
+4. Keep package-local docs as pointer stubs unless a local contract requires
+   otherwise.
 
 Validation:
 
@@ -308,57 +453,23 @@ git diff --check -- packages/stenotic-hemodynamics/README.md packages/stenotic-h
 Acceptance:
 
 - Public docs are the authoritative Julia package documentation site.
-- Package-local docs remain pointer stubs unless a local contract requires
-  otherwise.
 - Claims do not exceed implemented solver depth.
-
-## Step 3: Maintenance Lanes
-
-### Lane 7G: Dependency-Boundary Follow-Up
-
-Owned write scope:
-
-- `test/test_extension_contracts.jl`
-- One dependency family at a time.
-
-Objective: keep Gridap, HDF5/EzXML, YAML/OpenBF, and SciML import boundaries
-documented and tested after the native production additions.
-
-Acceptance:
-
-- Gridap remains confined to native/stokes workflow surfaces that need it.
-- HDF5/EzXML remain confined to resolved-3D I/O and writer surfaces.
-- SciML and YAML stay lazy where already designed.
-
-### Lane 7H: Scalar Genericity Continuation
-
-Owned write scope:
-
-- One core/numerics family per worker.
-- `test/test_scalar_generality.jl`
-
-Objective: continue scalar-generic kernel widening where low risk, while
-leaving Gridap-backed native resolved-FSI entrypoints `Float64` until a
-dedicated solver-genericity lane exists.
-
-Acceptance:
-
-- New generic tests cover feasible `Float32` or `BigFloat` kernels.
-- Remaining `Float64` restrictions are explicit and tested or documented.
+- Native generation remains described as augmenting, not replacing, external
+  resolved-3D import support.
 
 ## Dispatch Order
 
-1. Start with Lane 7A if the goal is to protect the new prescribed wall
-   boundary scientifically before production-depth runs.
-2. Run Lane 7B in parallel with 7A only if it stays in restart metadata reader
-   code and does not edit adapter solver files.
-3. Run Lane 7D in parallel with 7A only if it stays in parity artifact files.
-4. Assign Lane 7C after 7A, or after accepting that production remains
-   smoke-backed while the boundary harness is still pending.
-5. Assign Lane 7E after the API/CLI intent is clear.
-6. Assign Lane 7F after the code lanes it documents have landed.
-7. Run maintenance lanes 7G and 7H only when their file ownership does not
-   overlap active solver-depth work.
+1. Wave 1 can run concurrently if write locks remain disjoint:
+   - 7A wall-boundary verification.
+   - 7B restart metadata reader/stub.
+   - 7D observation artifact hardening.
+   - 7H scalar genericity continuation.
+2. Wave 2 starts after dependencies land:
+   - 7C dry-run production harness after 7B.
+   - 7G dependency-boundary follow-up after 7A, 7B, and 7D.
+3. Wave 3 starts after code/status surfaces stabilize:
+   - 7E CLI non-exposure boundary after 7C.
+   - 7F docs refresh last.
 
 Round-boundary gates:
 
@@ -368,10 +479,11 @@ pipenv run ops-orchestrate docs-contract
 ```
 
 Run `pipenv run ops-julia-check` only at a true integration boundary or when a
-cross-surface review finds a real risk not covered by the focused tests.
+cross-surface review finds a real risk not covered by focused tests.
 
 Commit scope:
 
 - Stage only package/public-doc implementation files assigned in the round.
-- Leave unrelated `report/**`, `report/TODO.md`, package `AGENTS.md`, scratch
-  outputs, and generated artifacts untouched unless explicitly assigned.
+- Leave unrelated `public/reproducibility/release-manifest.json`, `report/**`,
+  `report/TODO.md`, package `AGENTS.md`, scratch outputs, and generated
+  artifacts untouched unless explicitly assigned.
