@@ -32,6 +32,9 @@ Implemented and committed:
 - `fc8bbad`: local native resolved-FSI sampling helpers now preserve finite
   real scalar pressure/velocity values instead of downcasting before the
   existing `Float64` production-array boundary.
+- `df95c58`: follow-up scalar helper audit extended the same boundary to outlet
+  pressure gauging and wall-pressure plane sampling, with focused
+  `Float32`/`BigFloat` tests.
 - Lane 9F restart stewardship audit: no patch required after 9C. Old metadata
   remains readable, exact metadata requires positive `inlet_umax_cm_s`,
   `state_payload` remains versioned audit metadata, and persisted resume
@@ -59,6 +62,13 @@ Implemented and committed:
   scalar helpers should avoid unnecessary downcasts when they can preserve
   `AbstractFloat` values safely.
 
+## Current Planning Artifact
+
+- Lane 10C records the production-scale Section 4.1 validation roadmap in
+  `public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`.
+  The plan keeps smoke-scale exact-boundary evidence, production-scale native
+  generation, imported-data parity, and manuscript claim readiness separate.
+
 ## Orchestration Rules
 
 - Start substantial work with:
@@ -83,39 +93,33 @@ Implemented and committed:
 
 ## Remaining Dispatch Priority
 
-### Lane 10C: Production-Scale Section 4.1 Validation Plan
+### Lane 10C Follow-Up: Production-Scale Section 4.1 Execution Gates
 
-Priority: P0 planning lane before claiming native reproduction.
+Priority: P0 before claiming native reproduction.
 
-Objective: convert smoke-scale exact-boundary support into an implementation
-and validation roadmap for production-scale native Section 4.1 evidence without
-overclaiming.
+Objective: implement and run the staged roadmap in
+`public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`.
 
-Owned write scope:
+Recommended dispatch order:
 
-- `packages/stenotic-hemodynamics/TODO.md`
-- optional new package/public docs under
-  `public/docs/stenotic-hemodynamics/**`
+1. Produce a status-only dry-run matrix for `sev23`, `sev40`, and `sev50`
+   across the development, preproduction, and production target mesh/time
+   schedule.
+2. Execute the exact-boundary `sev23` development and preproduction runs first,
+   validating finite fields, wall displacement, pressure normalization,
+   importer round-trip, sidecars, and observation rows.
+3. Execute the full case set at the production target mesh
+   `(axial=120, radial=5, angular=32)`, `dt_s=1e-4`, `T=1.0 s`, final snapshot
+   only, with `u_max=45 cm/s` and
+   `:poiseuille_inlet_zero_outlet_stress_section41`.
+4. Run imported-data parity as a separate skip-safe lane. `sev23` maps to
+   imported case `77`, `sev40` maps to `60`, and `sev50` remains expected-skip
+   unless a bundle is explicitly supplied.
+5. Send the manuscript owner a claim-readiness handoff only after the roadmap
+   gates pass; do not edit report/manuscript files from package lanes.
 
-Requirements:
-
-1. Specify Section 4.1 cases, mesh/time schedules, inlet `u_max`, outlet
-   natural traction, pressure handling, wall material parameters, and expected
-   imported-data parity artifacts.
-2. Define required validation gates for finite fields, wall displacement,
-   pressure normalization, importer round-trip, observation rows, and parity
-   summaries.
-3. Separate operator-readiness, smoke-scale evidence, production-scale native
-   generation, imported-data parity, and manuscript claim readiness.
-4. Keep missing optional external bundles skip-safe.
-5. Include compute/output guard expectations and required override flags for
-   any non-smoke run.
-
-Validation:
-
-```bash
-git diff --check -- packages/stenotic-hemodynamics/TODO.md public/docs/stenotic-hemodynamics
-```
+Validation is lane-specific. At minimum, start with dry-run/status output and
+run `git diff --check` on any touched docs or package files.
 
 ### Lane 10D: Restart Resume Implementation Design
 
@@ -157,36 +161,4 @@ Validation:
 ```bash
 packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_public_api.jl")'
 git diff --check -- packages/stenotic-hemodynamics public/docs
-```
-
-### Lane 10F: Scalar-Genericity Boundary Follow-Up
-
-Priority: P2, disjoint from production-scale validation unless code paths
-overlap.
-
-Objective: continue the scalar-genericity cleanup without pretending the full
-native resolved-FSI stack is generic.
-
-Owned write scope:
-
-- `packages/stenotic-hemodynamics/src/StenoticHemodynamics/adapters/native_resolved_fsi_*.jl`
-- focused native resolved-FSI tests
-- optional docs note if restrictions change
-
-Requirements:
-
-1. Inventory local helper-level `Float64(...)` conversions in native
-   resolved-FSI adapters.
-2. Preserve `AbstractFloat`/`Real` values in pure scalar helpers when doing so
-   does not change array schemas, writer schemas, or Gridap solve contracts.
-3. Keep production arrays, HDF5/XDMF schema values, and Gridap solve adapters
-   `Float64` unless a future lane explicitly generalizes them.
-4. Add focused `Float32`/`BigFloat` helper tests for any generalized helper.
-5. Document remaining `Float64` restrictions instead of papering over them.
-
-Validation:
-
-```bash
-packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_smoke.jl")'
-git diff --check -- packages/stenotic-hemodynamics
 ```

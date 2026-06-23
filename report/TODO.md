@@ -31,7 +31,13 @@ restart/resume, parity execution, and observation-artifact generation remain
 qualified Julia internals. Workflow source files have also moved into
 responsibility subdirectories under
 `packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/`; future
-source-path references should use the new subdirectory paths.
+source-path references should use the new subdirectory paths. The package
+roadmap now records production-scale Section 4.1 validation planning in
+`public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`;
+that document is a roadmap, not completed reproduction evidence. Recent package
+scalar-helper cleanup preserves local `Float32`/`BigFloat` sampling values where
+safe, but production arrays, Gridap solve surfaces, and XDMF/HDF5 schemas remain
+`Float64`-oriented.
 
 Validation for the source-only pass:
 
@@ -159,6 +165,12 @@ later, it must preserve these boundaries:
 - source-path references to package workflows must use the post-split
   responsibility subdirectories under
   `packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/`.
+- production-scale Section 4.1 validation planning now lives in
+  `public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`;
+  do not treat that roadmap as completed reproduction evidence;
+- scalar-helper genericity changes preserve local `Float32`/`BigFloat` sampling
+  values where safe, but manuscript text must not imply the native resolved-FSI
+  Gridap/production/XDMF-HDF5 stack is type-generic.
 
 ### Step 3 - Optional Public PDF Sync
 

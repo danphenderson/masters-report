@@ -1,0 +1,331 @@
+# Section 4.1 Production-Scale Validation Plan
+
+This roadmap converts the current smoke-scale exact-boundary native
+resolved-FSI support into a production-scale Section 4.1 evidence program. It
+is a planning document, not a claim that the package already reproduces Section
+4.1 at paper grade.
+
+The current implementation has:
+
+- exact Section 4.1 inlet/outlet boundary threading in the low-level Gridap
+  path and tiny partitioned production smoke harness;
+- status-only CLI reporting through `fsi native-status`;
+- state-carrying in-run production sidecars and restart audit metadata;
+- local native/imported observation rows and parity summary surfaces.
+
+The current implementation does not yet have:
+
+- production-scale exact-boundary native generation for all Section 4.1 cases;
+- validated imported-data parity for the exact-boundary generated outputs;
+- persisted restart/resume;
+- paper-grade Section 4.1 numerical reproduction.
+
+## Claim Tiers
+
+Keep the evidence tiers separate in implementation, docs, and manuscript
+handoffs.
+
+1. **Operator-readiness.** The package can construct Section 4.1 cases, apply
+   the exact boundary mode, write three-field bundles, reload them, and compute
+   section observations. This proves plumbing, not numerical reproduction.
+2. **Smoke-scale evidence.** Tiny exact-boundary runs exercise the boundary
+   mode, pressure sampling, state carry, sidecars, and status rows on cheap
+   meshes. This is implementation evidence only.
+3. **Production-scale native generation.** Exact-boundary runs for the Section
+   4.1 case set complete on a mesh/time schedule sized to the published
+   benchmark and emit finite, importer-compatible artifacts and sidecars.
+4. **Imported-data parity.** Native observations are compared with optional
+   external imported bundles through skip-safe parity rows and summaries.
+5. **Paper-grade reproduction readiness.** Only after the production-scale and
+   imported-data gates pass for the case set may the manuscript claim move from
+   "operator/local evidence" toward "Section 4.1 reproduction evidence"; even
+   then the claim must state the solver, mesh, boundary, observation, and
+   comparison limits.
+
+## Case Matrix
+
+Production-scale planning should cover all Section 4.1 native cases:
+
+| Native case | Imported case | Paper label | Native geometry requirement | Imported-data posture |
+| --- | --- | --- | --- | --- |
+| `sev23` | `77` | 23% stenosis | Use explicit `Rmin = 0.1394 cm` / `delta_r = 0.0406 cm`, not plain `severity=23`. | Optional external bundle under the local data root; skip safely when absent. |
+| `sev40` | `60` | 40% stenosis | Use `Rmin = 0.108 cm` / `delta_r = 0.072 cm`. | Optional external bundle under the local data root; skip safely when absent. |
+| `sev50` | none wired by default | 50% stenosis | Use `Rmin = 0.09 cm` / `delta_r = 0.09 cm`. | Expected skip until an imported case is explicitly supplied. |
+
+All cases use:
+
+- vessel length `L = 6 cm`;
+- baseline radius `Rmax = 0.18 cm`;
+- Section 4.1 exact mode
+  `:poiseuille_inlet_zero_outlet_stress_section41`;
+- Poiseuille inlet `u_max = 45 cm/s`;
+- natural zero outlet traction;
+- output snapshot target `T = 1.0 s` for native generated artifacts.
+
+Legacy imported data may continue to use `target_time = 0.9995` with its
+existing tolerance. Do not inherit `0.9995` as the native production target.
+
+## Mesh Schedule
+
+The published Section 4.1 figure cites roughly `100k` tetrahedra. The package
+mesh contract has
+
+```text
+tetrahedra = 3 * axial * angular * (2 * radial - 1)
+nodes      = (axial + 1) * (1 + radial * angular)
+```
+
+Use a staged schedule:
+
+| Stage | Resolution `(axial, radial, angular)` | Tetrahedra | Role | Claim boundary |
+| --- | --- | ---: | --- | --- |
+| smoke | `(2, 1, 6)` | 36 | Existing tiny exact-boundary smoke. | Operator-readiness only. |
+| development | `(40, 3, 16)` | 9,600 | Cheap finite-field and sidecar debugging. | No production claim. |
+| preproduction | `(80, 4, 24)` | 40,320 | First meaningful stability/output guard run. | Native generation rehearsal. |
+| production target | `(120, 5, 32)` | 103,680 | Closest package-owned target to the published `~100k` scale. | Candidate production-scale native evidence if all gates pass. |
+| sensitivity | `(160, 6, 40)` | 211,200 | Optional mesh-sensitivity run if compute budget allows. | Sensitivity only, not required for first claim gate. |
+
+The production target and sensitivity stages must be started through dry-run or
+status reporting first. Any run whose guard report requires overrides must not
+be launched until the override rationale, expected output size, and scratch
+output root are recorded in the handoff.
+
+## Time Schedule
+
+Recommended staged schedule:
+
+| Stage | `dt_s` | `tfinal_s` | `snapshot_times_s` | Purpose |
+| --- | ---: | ---: | --- | --- |
+| smoke | `1e-4` | `1e-4` | `(1e-4,)` | Existing tiny exact-boundary path. |
+| development | `1e-4` | `1e-2` | `(1e-2,)` | Catch nonfinite fields and sidecar issues cheaply. |
+| preproduction | `1e-4` | `0.1` | `(0.1,)` | Exercise longer state carry before full target time. |
+| production target | `1e-4` | `1.0` | `(1.0,)` | Section 4.1 native benchmark snapshot. |
+| optional time history | `1e-4` | `1.0` | `(0.25, 0.5, 0.75, 1.0)` | Diagnostic history only; not required for first parity claim. |
+
+The first production claim gate should use the final snapshot only. Time
+history is useful for diagnosing instabilities, but it increases output volume
+and should not become a default artifact requirement.
+
+## Boundary And Pressure Handling
+
+Exact Section 4.1 production-scale runs must select:
+
+```julia
+inlet_outlet_boundary_mode = :poiseuille_inlet_zero_outlet_stress_section41
+inlet_umax_cm_s = 45.0
+```
+
+The pressure-drop weak inlet/outlet mode remains valid local smoke evidence,
+but it cannot be used for exact Section 4.1 parity claims.
+
+Pressure handling gates:
+
+- exact mode must use the strong Poiseuille inlet and natural zero outlet
+  traction path;
+- exact mode must not fall back to pressure-drop resistance wall-pressure
+  loading;
+- wall pressure used by the membrane update must be finite at every axial
+  station;
+- exported pressure must be finite at every mesh node;
+- exported pressure must be outlet-gauged by subtracting the arithmetic mean on
+  outlet boundary nodes after sampling;
+- the pressure gauge operation must be described as post-sampling
+  normalization, not as a Gridap pressure nullspace constraint.
+
+## Wall Parameters
+
+Use Section 4.1/Table 1 physical parameters for production-scale planning:
+
+| Quantity | Value | Package mapping |
+| --- | --- | --- |
+| Fluid density | `1.055 g/cm^3` | `Params.rho` and native fluid setup. |
+| Fluid kinematic viscosity | `0.04 cm^2/s` | `Params.nu`. |
+| Wall density | `1.055 g/cm^3` | Production `wall_density_g_cm3`; current smoke default `1.0` should not be reused for claim-scale runs without justification. |
+| Wall thickness | `0.06 cm` | `Params.wall_h`. |
+| Poisson ratio | `0.5` | `Params.sigma`. |
+| Young modulus | `5.02e6 dyn/cm^2` | `Params.young`. |
+| Wall stiffness policy | `:canic_membrane_c0` | Use current production policy, with a pre-run check that the resulting `C0` is finite and positive. |
+| Reference radius policy | `:params_rmax` | Accept for first production validation; record as a modeling assumption because the paper's constant `R0*` value is not restated in Section 4.1. |
+| Wall damping | `0.0 g/cm^2/s` unless explicitly calibrated | Keep explicit in run metadata; do not tune without a separate calibration lane. |
+
+## Output And Parity Artifacts
+
+Every production-scale native run should write only under ignored scratch roots,
+normally below:
+
+```text
+tmp/simulations/output/native-resolved-fsi-production/
+```
+
+For each saved native snapshot, expected bundle files are:
+
+```text
+velocity.xdmf
+velocity.h5
+pressure.xdmf
+pressure.h5
+displace.xdmf
+displace.h5
+```
+
+Expected production sidecars are:
+
+```text
+snapshot_manifest.csv
+snapshot_diagnostics.csv
+restart_metadata.json
+```
+
+Expected Section 4.1 observation/parity artifacts are:
+
+```text
+section41-observations/section41_observations.csv
+section41-observations/section41_observation_summary.csv
+```
+
+Imported-data parity remains optional and skip-safe:
+
+- `sev23` maps to imported case `77`;
+- `sev40` maps to imported case `60`;
+- `sev50` remains expected-skip unless an imported bundle is explicitly
+  supplied;
+- missing external XDMF/HDF5 inputs must produce expected-skip rows, not
+  validation failures;
+- velocity-only imported bundles can support velocity-only comparisons, but
+  pressure and displacement parity gates require imported pressure/displacement
+  bundles or must be marked unavailable.
+
+## Validation Gates
+
+### Gate 1: Dry-Run And Guard Review
+
+Before any non-smoke production execution:
+
+- run or inspect `fsi native-status` / qualified dry-run output for every case;
+- confirm exact boundary mode, `u_max = 45 cm/s`, output root, snapshot schedule,
+  guard status, and imported-bundle status;
+- record required override flags from the guard report;
+- reject default production execution from CLI paths.
+
+### Gate 2: Native Finite-Field Gate
+
+For each native generated snapshot:
+
+- velocity, pressure, and displacement arrays exist with expected dimensions;
+- every field value is finite;
+- current radii stay positive;
+- deformed tetrahedra are not inverted;
+- velocity and pressure solves report converged or explicitly bounded status;
+- no pressure-drop fallback is used in exact boundary mode.
+
+### Gate 3: Displacement And Wall-State Gate
+
+For each production run:
+
+- wall displacement, wall velocity, and wall pressure arrays are finite;
+- clamped inlet/outlet wall displacement is zero within tolerance;
+- lifted displacement is radial and consistent with the wall state;
+- `state_payload` records the final in-run wall state as audit metadata;
+- persisted resume remains unsupported and fail-closed.
+
+### Gate 4: Pressure Normalization Gate
+
+For each saved pressure field:
+
+- pressure sampling succeeds directly and finitely;
+- the outlet-node mean after export normalization is near zero within a
+  predeclared numerical tolerance;
+- pressure summary rows record the gauge convention;
+- pressure comparisons do not use un-gauged native pressure against gauged
+  imported pressure or vice versa.
+
+### Gate 5: Importer Round-Trip Gate
+
+For every native bundle:
+
+- `load_resolved3d_field_bundle(...)` succeeds;
+- velocity, pressure, and displacement share topology and reference geometry;
+- reference and deformed coordinate modes load when displacement is present;
+- loaded time equals the planned native snapshot time within `time_atol`;
+- reloaded observations match writer-side row counts and section positions.
+
+### Gate 6: Observation Row Gate
+
+For each case:
+
+- native velocity and pressure section rows are finite;
+- observation rows include case id, severity, boundary mode, boundary class,
+  section41 boundary status, and boundary-equivalence status;
+- imported rows are finite when imported bundles are present;
+- absent imported bundles produce expected-skip status with the missing path or
+  missing bundle reason.
+
+### Gate 7: Parity Summary Gate
+
+For each case with imported data:
+
+- `section41_observation_summary.csv` is written and contains native/imported
+  summary rows plus parity rows;
+- velocity parity uses a predeclared Section 4.1 observable: cross-sectional
+  average axial velocity versus `z`;
+- pressure parity uses cross-sectional average pressure versus `z` and is
+  reported qualitatively or with a separately justified tolerance because
+  Section 4.1 does not publish a pressure numeric threshold;
+- boundary-equivalence fields must say whether exact Section 4.1 mode was used;
+- summary status must not call artifact readiness "validated reproduction".
+
+### Gate 8: Manuscript Claim Readiness
+
+Manuscript wording may advance only after:
+
+- all required native cases complete at production target mesh/time scale;
+- optional imported bundles are present or explicitly reported as unavailable;
+- native/imported observation summaries pass their predeclared checks;
+- pressure gauge and boundary-mode language is reviewed;
+- an editorial note distinguishes implementation, verification, imported-data
+  comparison, and reproduction claims.
+
+Until then, the manuscript-safe claim is limited to smoke-scale exact-boundary
+support and a planned production-scale validation path.
+
+## Compute And Output Guards
+
+Current hard guards:
+
+- `snapshot_times_s` must be finite, strictly increasing, and within
+  `[0, tfinal_s]`;
+- more than `50` saved snapshots requires `allow_many_snapshots=true`;
+- estimated raw field payload above `1 GiB` requires
+  `allow_large_output=true`;
+- estimated raw field payload is
+  `snapshot_count * node_count * 7 * sizeof(Float64)`;
+- nonpositive `dt_s`, `tfinal_s`, Picard tolerance, wall density, or coupling
+  tolerance is invalid;
+- `coupling_under_relaxation` must lie in `(0, 1]`;
+- exact boundary mode requires positive finite `inlet_umax_cm_s`.
+
+Operational policy for non-smoke runs:
+
+- do not run production from default CLI paths;
+- require dry-run/status review before launching;
+- record requested mesh resolution, case set, snapshot count, estimated bytes,
+  output root, and override flags in the handoff;
+- keep outputs in ignored scratch directories until an explicit artifact
+  publication lane exists;
+- do not refresh report/manuscript artifacts from this lane.
+
+## Follow-Up Implementation Lanes
+
+1. **10C-impl1: production-scale dry-run matrix.** Generate status-only rows for
+   the mesh/time schedule above and confirm guard flags and output paths.
+2. **10C-impl2: development/preproduction execution.** Run exact-boundary
+   `sev23` at development then preproduction scale, exercising finite fields,
+   pressure normalization, importer round-trip, and sidecars.
+3. **10C-impl3: full case-set production generation.** Run `sev23`, `sev40`,
+   and `sev50` at `(120, 5, 32)`, `dt_s=1e-4`, `T=1.0`, final snapshot only.
+4. **10C-impl4: imported-data parity.** Pair generated native outputs with
+   optional imported bundles; keep `sev50` and missing pressure/displacement
+   data skip-safe.
+5. **10C-editorial: manuscript claim review.** Update manuscript/report claims
+   only after gates 1-8 are reviewed and accepted by the editorial owner.
+
