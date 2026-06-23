@@ -24,6 +24,14 @@ numerical reproduction, production-scale parity, monolithic ALE/membrane FSI
 validation, or paper-grade reproduction. Manuscript prose may state the bounded
 low-level and smoke-scale partitioned support, but must not claim exact
 Section 4.1 numerical reproduction or parity against the imported paper data.
+The package also exposes `fsi native-status` as a status-only CLI surface: it
+reports dry-run/status fields and boundary status, but it does not run native
+resolved-FSI production or write solver outputs. Production execution,
+restart/resume, parity execution, and observation-artifact generation remain
+qualified Julia internals. Workflow source files have also moved into
+responsibility subdirectories under
+`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/`; future
+source-path references should use the new subdirectory paths.
 
 Validation for the source-only pass:
 
@@ -108,7 +116,7 @@ closeout, run this active-manuscript scan before editing prose or syncing the
 PDF:
 
 ```sh
-rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|wall-pressure|inlet_umax" \
+rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|wall-pressure|inlet_umax|fsi native-status|native-status|observation-artifact|workflow" \
   report/sections report/appendices report/frontmatter report/final-report.tex -g '*.tex' || true
 ```
 
@@ -143,8 +151,14 @@ later, it must preserve these boundaries:
 - native production, parity artifacts, CLI defaults, and restart metadata must
   not be described as reproducing exact Section 4.1 numerical results or parity
   against imported paper data until production-scale validation lands;
-- planned CLI expansion is dry-run/status-first and must not imply production
-  execution from CLI defaults.
+- `fsi native-status` may be described only as a status CLI that reports dry-run
+  and boundary-status information; it does not run native resolved-FSI
+  production and does not write solver outputs;
+- production execution, restart/resume, parity execution, and
+  observation-artifact generation remain qualified Julia internals;
+- source-path references to package workflows must use the post-split
+  responsibility subdirectories under
+  `packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/`.
 
 ### Step 3 - Optional Public PDF Sync
 
@@ -222,6 +236,8 @@ Do not reopen:
 - manuscript wording that treats native production, parity artifacts, CLI
   defaults, restart metadata, or the separate pressure-drop smoke mode as exact
   Section 4.1 Poiseuille-inlet / zero-outlet-stress reproduction;
+- manuscript wording that treats `fsi native-status` as production execution or
+  a solver-output writer;
 - bibliography entries or `public/references/source-inventory.tsv`;
 - public claim registers or reproducibility metadata;
 - package/runtime code;
@@ -239,6 +255,11 @@ Use the current layout, not stale historical paths:
 - Appendix G: `report/appendices/numerical-methods-details.tex`;
 - Appendix H: `report/appendices/code-and-ai-use.tex`;
 - repo documentation: `public/docs/**`.
+- package workflow source paths: use the responsibility subdirectories under
+  `packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/`, such as
+  `native_resolved_fsi/`, `resolved3d/`, `verification/`, `benchmarks/`,
+  `membrane_fsi/`, `operator_validation/`, `geometry_exports/`, `studies/`, and
+  `shared/`.
 
 Do not reference nonexistent root `docs/revision-claim-ledger.md`,
 `docs/revision-release-gates.md`, or
