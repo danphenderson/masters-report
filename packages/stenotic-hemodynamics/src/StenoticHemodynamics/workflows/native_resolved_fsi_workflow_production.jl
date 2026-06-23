@@ -827,6 +827,19 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
                 "fluid_wall_boundary_mode" => row.fluid_wall_boundary_mode,
             ) for row in final_smoke.coupling_residual_history
         ]
+        state_payload = Dict{String,Any}(
+            "schema_version" => 1,
+            "saved_time_s" => final_smoke.saved_time_s,
+            "last_snapshot_index" => length(snapshot_results),
+            "final_wall_displacement_cm" => copy(final_smoke.wall_displacement_cm),
+            "final_wall_velocity_cm_s" => copy(final_smoke.wall_velocity_cm_s),
+            "current_radii_cm" => copy(final_smoke.current_radii_cm),
+            "final_wall_pressure_dyn_cm2" => copy(final_smoke.wall_pressure_dyn_cm2),
+            "solver_provenance" => "state_carrying_partitioned",
+            "state_carrying_in_run" => true,
+            "resume_supported" => false,
+            "resume_status" => "deferred",
+        )
         return Dict{String,Any}(
             "case_id" => string(local_spec.case_spec.case_id),
             "severity_percent" => local_spec.case_spec.severity_percent,
@@ -865,6 +878,7 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "snapshot_manifest_csv" => manifest_csv,
             "diagnostics_csv" => diagnostics_csv,
             "snapshot_outputs" => snapshot_outputs,
+            "state_payload" => state_payload,
             "production_spec_digest" => production_spec_digest(local_spec),
             "restart_provenance" => "state_carrying_partitioned",
             "state_carrying_restart" => true,
@@ -882,7 +896,8 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
                 get(metadata, "restart_provenance", "") == "state_carrying_partitioned" &&
                 get(metadata, "state_carrying_restart", false) == true &&
                 get(metadata, "resume_supported", true) == false &&
-                get(metadata, "resume_status", "") == "deferred"
+                get(metadata, "resume_status", "") == "deferred" &&
+                get(get(metadata, "state_payload", Dict{String,Any}()), "schema_version", nothing) == 1
         status = ready ?
             "restart metadata was written with state-carrying partitioned snapshot provenance; persisted resume remains explicitly deferred" :
             "restart metadata is missing or does not mark the current state-carrying non-resumable provenance"

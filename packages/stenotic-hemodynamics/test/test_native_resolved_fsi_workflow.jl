@@ -431,10 +431,25 @@ end
         @test result.restart_metadata["current_snapshot_time_s"] ≈ result.saved_time_s
         @test length(result.restart_metadata["current_wall_displacement_cm"]) ==
               length(result.smoke_result.wall_displacement_cm)
+        @test haskey(result.restart_metadata, "state_payload")
+        state_payload = result.restart_metadata["state_payload"]
+        @test state_payload["schema_version"] == 1
+        @test state_payload["saved_time_s"] ≈ result.saved_time_s
+        @test state_payload["last_snapshot_index"] == 1
+        @test state_payload["final_wall_displacement_cm"] == result.smoke_result.wall_displacement_cm
+        @test state_payload["final_wall_velocity_cm_s"] == result.smoke_result.wall_velocity_cm_s
+        @test state_payload["current_radii_cm"] == result.smoke_result.current_radii_cm
+        @test state_payload["final_wall_pressure_dyn_cm2"] == result.smoke_result.wall_pressure_dyn_cm2
+        @test state_payload["solver_provenance"] == "state_carrying_partitioned"
+        @test state_payload["state_carrying_in_run"] == true
+        @test state_payload["resume_supported"] == false
+        @test state_payload["resume_status"] == "deferred"
         restart_metadata_text = read(result.restart_metadata_json, String)
         @test occursin("\"resume_supported\": false", restart_metadata_text)
         @test occursin("\"restart_provenance\": \"state_carrying_partitioned\"", restart_metadata_text)
         @test occursin("\"state_carrying_restart\": true", restart_metadata_text)
+        @test occursin("\"state_payload\"", restart_metadata_text)
+        @test occursin("\"schema_version\": 1", restart_metadata_text)
         @test occursin("\"fluid_wall_boundary_mode\": \"prescribed_radial_wall_velocity\"", restart_metadata_text)
         @test only(result.restart_metadata["snapshot_outputs"])["provenance"] == "state_carrying_partitioned"
 
@@ -446,6 +461,18 @@ end
         @test parsed_restart_metadata["state_carrying_restart"] == true
         @test parsed_restart_metadata["resume_supported"] == false
         @test parsed_restart_metadata["resume_status"] == "deferred"
+        parsed_state_payload = parsed_restart_metadata["state_payload"]
+        @test parsed_state_payload["schema_version"] == 1
+        @test parsed_state_payload["saved_time_s"] ≈ result.saved_time_s
+        @test parsed_state_payload["last_snapshot_index"] == 1
+        @test parsed_state_payload["final_wall_displacement_cm"] == result.smoke_result.wall_displacement_cm
+        @test parsed_state_payload["final_wall_velocity_cm_s"] == result.smoke_result.wall_velocity_cm_s
+        @test parsed_state_payload["current_radii_cm"] == result.smoke_result.current_radii_cm
+        @test parsed_state_payload["final_wall_pressure_dyn_cm2"] == result.smoke_result.wall_pressure_dyn_cm2
+        @test parsed_state_payload["solver_provenance"] == "state_carrying_partitioned"
+        @test parsed_state_payload["state_carrying_in_run"] == true
+        @test parsed_state_payload["resume_supported"] == false
+        @test parsed_state_payload["resume_status"] == "deferred"
         parsed_snapshot_output = only(parsed_restart_metadata["snapshot_outputs"])
         @test parsed_snapshot_output["output_dir"] == result.output_dir
         @test parsed_snapshot_output["velocity_xdmf"] == result.smoke_result.velocity_xdmf
@@ -463,7 +490,17 @@ end
         @test resume_error isa ArgumentError
         @test occursin("persisted resume from restart metadata is unsupported", sprint(showerror, resume_error))
         @test occursin("state_carrying_partitioned", sprint(showerror, resume_error))
+        @test occursin("state_payload may record state", sprint(showerror, resume_error))
         @test occursin("resume_supported is false", sprint(showerror, resume_error))
+
+        payloadless_metadata = deepcopy(result.restart_metadata)
+        delete!(payloadless_metadata, "state_payload")
+        payloadless_metadata_path = joinpath(dir, "payloadless-state-carrying-restart-metadata.json")
+        StenoticHemodynamics.write_json(payloadless_metadata_path, payloadless_metadata; overwrite=true)
+        payloadless_restart_metadata = native_resolved_fsi_read_restart_metadata(payloadless_metadata_path)
+        @test payloadless_restart_metadata["restart_provenance"] == "state_carrying_partitioned"
+        @test payloadless_restart_metadata["state_carrying_restart"] == true
+        @test !haskey(payloadless_restart_metadata, "state_payload")
 
         invalid_metadata = deepcopy(result.restart_metadata)
         delete!(only(invalid_metadata["snapshot_outputs"]), "time_step_count")
@@ -478,6 +515,35 @@ end
         @test invalid_error isa ArgumentError
         @test occursin("snapshot_outputs[1]", sprint(showerror, invalid_error))
         @test occursin("requires 'time_step_count'", sprint(showerror, invalid_error))
+
+        missing_payload_field_metadata = deepcopy(result.restart_metadata)
+        delete!(missing_payload_field_metadata["state_payload"], "final_wall_velocity_cm_s")
+        missing_payload_field_path = joinpath(dir, "missing-state-payload-field-restart-metadata.json")
+        StenoticHemodynamics.write_json(missing_payload_field_path, missing_payload_field_metadata; overwrite=true)
+        missing_payload_field_error = try
+            native_resolved_fsi_read_restart_metadata(missing_payload_field_path)
+            nothing
+        catch err
+            err
+        end
+        @test missing_payload_field_error isa ArgumentError
+        @test occursin("state_payload", sprint(showerror, missing_payload_field_error))
+        @test occursin("requires 'final_wall_velocity_cm_s'", sprint(showerror, missing_payload_field_error))
+
+        malformed_payload_metadata = deepcopy(result.restart_metadata)
+        malformed_payload_metadata["state_payload"]["current_radii_cm"][2] = -1.0
+        malformed_payload_path = joinpath(dir, "malformed-state-payload-restart-metadata.json")
+        StenoticHemodynamics.write_json(malformed_payload_path, malformed_payload_metadata; overwrite=true)
+        malformed_payload_error = try
+            native_resolved_fsi_read_restart_metadata(malformed_payload_path)
+            nothing
+        catch err
+            err
+        end
+        @test malformed_payload_error isa ArgumentError
+        @test occursin("state_payload", sprint(showerror, malformed_payload_error))
+        @test occursin("current_radii_cm", sprint(showerror, malformed_payload_error))
+        @test occursin("positive", sprint(showerror, malformed_payload_error))
     end
 
     mktempdir() do dir
@@ -530,6 +596,10 @@ end
         @test multi_result.restart_metadata["state_carrying_restart"] == true
         @test multi_result.restart_metadata["resume_supported"] == false
         @test [snapshot["time_step_count"] for snapshot in multi_result.restart_metadata["snapshot_outputs"]] == [1, 2]
+        @test multi_result.restart_metadata["state_payload"]["last_snapshot_index"] == 2
+        @test multi_result.restart_metadata["state_payload"]["saved_time_s"] ≈ multi_result.saved_time_s
+        @test multi_result.restart_metadata["state_payload"]["final_wall_displacement_cm"] ==
+              multi_result.smoke_result.wall_displacement_cm
         @test all(
             snapshot ->
                 snapshot["provenance"] == "state_carrying_partitioned" &&
@@ -544,6 +614,7 @@ end
         @test parsed_multi_restart_metadata["restart_provenance"] == "state_carrying_partitioned"
         @test parsed_multi_restart_metadata["state_carrying_restart"] == true
         @test [snapshot["time_step_count"] for snapshot in parsed_multi_restart_metadata["snapshot_outputs"]] == [1, 2]
+        @test parsed_multi_restart_metadata["state_payload"]["last_snapshot_index"] == 2
     end
 
     mktempdir() do dir

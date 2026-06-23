@@ -6,7 +6,8 @@ native resolved-FSI partitioned production snapshot harness. The metadata is
 JSON written by the package's minimal writer, and is parsed through the existing
 lazy YAML loader because JSON is valid YAML. Both legacy independent
 smoke-backed metadata and current state-carrying-in-run partitioned metadata
-are readable; persisted resume remains unsupported for both forms.
+are readable. When a versioned `state_payload` block is present it is validated
+as audit metadata only; persisted resume remains unsupported for all forms.
 """
 function native_resolved_fsi_read_restart_metadata(path::AbstractString)
     path_string = String(path)
@@ -76,6 +77,9 @@ function native_resolved_fsi_read_restart_metadata(path::AbstractString)
             )
         end
     end
+    if haskey(metadata, "state_payload")
+        native_resolved_fsi_validate_restart_state_payload(metadata)
+    end
 
     return metadata
 end
@@ -83,18 +87,19 @@ end
 """
     native_resolved_fsi_resume_partitioned_production(path; kwargs...)
 
-Validate restart-identification metadata, then fail closed because persisted
-resume from restart metadata is not implemented. Current production metadata
-may be state-carrying within a single run, but it is still identification-only
-for future process resume.
+Validate restart-identification metadata, including any optional state payload,
+then fail closed because persisted resume from restart metadata is not
+implemented. Current production metadata may carry state within a single run,
+but saved payloads are audit metadata until an actual resumed run is
+implemented and tested.
 """
 function native_resolved_fsi_resume_partitioned_production(path::AbstractString; kwargs...)
     metadata = native_resolved_fsi_read_restart_metadata(path)
     provenance = String(metadata["restart_provenance"])
     throw(ArgumentError(
         "native resolved-FSI persisted resume from restart metadata is unsupported for provenance " *
-        "$(repr(provenance)); state may be carried within a production run, but resume_supported is false " *
-        "and resume_status is deferred",
+        "$(repr(provenance)); state_payload may record state carried within a production run, but " *
+        "resume_supported is false and resume_status is deferred",
     ))
 end
 
@@ -140,9 +145,65 @@ function native_resolved_fsi_require_restart_metadata_positive_integer(
 )
     haskey(metadata, key) || throw(ArgumentError("$(context) requires '$(key)'"))
     value = metadata[key]
-    value isa Integer || throw(ArgumentError("$(context) '$(key)' must be an integer"))
+    value isa Integer && !(value isa Bool) || throw(ArgumentError("$(context) '$(key)' must be an integer"))
     value > 0 || throw(ArgumentError("$(context) '$(key)' must be positive"))
     return value
+end
+
+function native_resolved_fsi_require_restart_metadata_mapping(
+    metadata::Dict{String,Any},
+    key::String;
+    context::String = "native resolved-FSI restart metadata",
+)
+    haskey(metadata, key) || throw(ArgumentError("$(context) requires '$(key)'"))
+    value = metadata[key]
+    value isa Dict{String,Any} || throw(ArgumentError("$(context) '$(key)' must be a mapping"))
+    return value
+end
+
+function native_resolved_fsi_require_restart_metadata_finite_real(
+    metadata::Dict{String,Any},
+    key::String;
+    context::String = "native resolved-FSI restart metadata",
+)
+    haskey(metadata, key) || throw(ArgumentError("$(context) requires '$(key)'"))
+    value = metadata[key]
+    value isa Real && !(value isa Bool) || throw(ArgumentError("$(context) '$(key)' must be numeric"))
+    value_float = Float64(value)
+    isfinite(value_float) || throw(ArgumentError("$(context) '$(key)' must be finite"))
+    return value_float
+end
+
+function native_resolved_fsi_require_restart_metadata_bool(
+    metadata::Dict{String,Any},
+    key::String,
+    expected::Bool;
+    context::String = "native resolved-FSI restart metadata",
+)
+    haskey(metadata, key) || throw(ArgumentError("$(context) requires '$(key)'"))
+    value = metadata[key]
+    value isa Bool || throw(ArgumentError("$(context) '$(key)' must be a boolean"))
+    value == expected || throw(ArgumentError("$(context) requires $(key) == $(repr(expected)); got $(repr(value))"))
+    return value
+end
+
+function native_resolved_fsi_require_restart_metadata_finite_real_vector(
+    metadata::Dict{String,Any},
+    key::String;
+    context::String = "native resolved-FSI restart metadata",
+)
+    haskey(metadata, key) || throw(ArgumentError("$(context) requires '$(key)'"))
+    value = metadata[key]
+    value isa AbstractVector || throw(ArgumentError("$(context) '$(key)' must be an array"))
+    isempty(value) && throw(ArgumentError("$(context) '$(key)' must not be empty"))
+    vector = Float64[]
+    for (index, item) in enumerate(value)
+        item isa Real && !(item isa Bool) || throw(ArgumentError("$(context) '$(key)'[$(index)] must be numeric"))
+        item_float = Float64(item)
+        isfinite(item_float) || throw(ArgumentError("$(context) '$(key)'[$(index)] must be finite"))
+        push!(vector, item_float)
+    end
+    return vector
 end
 
 function native_resolved_fsi_require_restart_metadata_string(
@@ -163,6 +224,67 @@ function native_resolved_fsi_require_restart_metadata_vector(metadata::Dict{Stri
     value isa AbstractVector ||
         throw(ArgumentError("native resolved-FSI restart metadata '$(key)' must be an array"))
     return value
+end
+
+function native_resolved_fsi_validate_restart_state_payload(metadata::Dict{String,Any})
+    context = "native resolved-FSI restart metadata state_payload"
+    payload = native_resolved_fsi_require_restart_metadata_mapping(metadata, "state_payload")
+    schema_version =
+        native_resolved_fsi_require_restart_metadata_positive_integer(payload, "schema_version"; context=context)
+    schema_version == 1 ||
+        throw(ArgumentError("$(context) requires schema_version == 1; got $(repr(schema_version))"))
+    saved_time_s = native_resolved_fsi_require_restart_metadata_finite_real(payload, "saved_time_s"; context=context)
+    saved_time_s > 0.0 || throw(ArgumentError("$(context) 'saved_time_s' must be positive"))
+    last_snapshot_index =
+        native_resolved_fsi_require_restart_metadata_positive_integer(payload, "last_snapshot_index"; context=context)
+    final_wall_displacement_cm = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        payload,
+        "final_wall_displacement_cm";
+        context=context,
+    )
+    final_wall_velocity_cm_s = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        payload,
+        "final_wall_velocity_cm_s";
+        context=context,
+    )
+    current_radii_cm = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        payload,
+        "current_radii_cm";
+        context=context,
+    )
+    final_wall_pressure_dyn_cm2 = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        payload,
+        "final_wall_pressure_dyn_cm2";
+        context=context,
+    )
+    vector_lengths = (
+        length(final_wall_displacement_cm),
+        length(final_wall_velocity_cm_s),
+        length(current_radii_cm),
+        length(final_wall_pressure_dyn_cm2),
+    )
+    all(==(first(vector_lengths)), vector_lengths) ||
+        throw(ArgumentError("$(context) wall state arrays must have matching lengths"))
+    all(radius -> radius > 0.0, current_radii_cm) ||
+        throw(ArgumentError("$(context) 'current_radii_cm' entries must be positive"))
+    native_resolved_fsi_require_restart_metadata_value(
+        payload,
+        "solver_provenance",
+        "state_carrying_partitioned";
+        context=context,
+    )
+    native_resolved_fsi_require_restart_metadata_bool(payload, "state_carrying_in_run", true; context=context)
+    native_resolved_fsi_require_restart_metadata_bool(payload, "resume_supported", false; context=context)
+    native_resolved_fsi_require_restart_metadata_value(payload, "resume_status", "deferred"; context=context)
+    if haskey(metadata, "current_snapshot_index") && metadata["current_snapshot_index"] != last_snapshot_index
+        throw(ArgumentError("$(context) last_snapshot_index must match current_snapshot_index"))
+    end
+    if haskey(metadata, "snapshot_outputs")
+        snapshot_outputs = native_resolved_fsi_require_restart_metadata_vector(metadata, "snapshot_outputs")
+        last_snapshot_index <= length(snapshot_outputs) ||
+            throw(ArgumentError("$(context) last_snapshot_index exceeds snapshot_outputs length"))
+    end
+    return payload
 end
 
 function native_resolved_fsi_restart_metadata_path_exists(path::String, metadata_dir::String, predicate)
