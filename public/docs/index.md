@@ -22,6 +22,8 @@ terms aligned with `public/docs/policy-vocabulary.md`.
 - `public/docs/stenotic-hemodynamics/workflows.md`: code-level workflow hub for
   package studies, verification, validation, benchmarks, and native
   resolved-FSI planning notes.
+- `public/docs/stenotic-hemodynamics/web-visualization.md`: static browser
+  visualization contract, export commands, temporal schema, and viewer checks.
 - `public/docs/stenotic-hemodynamics/native-resolved-fsi-design.md`: bounded
   native resolved-FSI design gate for the package-owned workflow roadmap.
 - `public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`:

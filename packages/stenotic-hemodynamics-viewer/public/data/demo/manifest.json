@@ -1,0 +1,557 @@
+{
+  "schema_version": 2,
+  "case_id": "demo-sev23",
+  "case_label": "Demo sev23 temporal native resolved-FSI",
+  "severity_percent": 23,
+  "result_class": "native_resolved_fsi_temporal_web_export_fixture",
+  "claim_boundary": "native resolved-FSI artifact/operator evidence only; not paper-grade Section 4.1 reproduction",
+  "coordinate_mode": "reference",
+  "geometry_mode": "surface",
+  "units": {
+    "length": "cm",
+    "velocity": "cm/s",
+    "pressure": "dyn/cm^2",
+    "displacement": "cm",
+    "time": "s"
+  },
+  "snapshot_count": 6,
+  "estimated_playback_fps": 12,
+  "time_axis": [
+    {
+      "frame_id": "t0000",
+      "time_s": 0,
+      "delta_t_s": null
+    },
+    {
+      "frame_id": "t0001",
+      "time_s": 0.04,
+      "delta_t_s": 0.04
+    },
+    {
+      "frame_id": "t0002",
+      "time_s": 0.08,
+      "delta_t_s": 0.04
+    },
+    {
+      "frame_id": "t0003",
+      "time_s": 0.12,
+      "delta_t_s": 0.039999999999999994
+    },
+    {
+      "frame_id": "t0004",
+      "time_s": 0.16,
+      "delta_t_s": 0.04000000000000001
+    },
+    {
+      "frame_id": "t0005",
+      "time_s": 0.2,
+      "delta_t_s": 0.04000000000000001
+    }
+  ],
+  "available_fields": [
+    {
+      "name": "velocity",
+      "components": 3,
+      "centering": "node",
+      "units": "cm/s",
+      "range": {
+        "min": 12.878468072809122,
+        "max": 77.64816917088649
+      }
+    },
+    {
+      "name": "speed",
+      "components": 1,
+      "centering": "node",
+      "units": "cm/s",
+      "range": {
+        "min": 12.878468072809122,
+        "max": 77.64816917088649
+      }
+    },
+    {
+      "name": "pressure",
+      "components": 1,
+      "centering": "node",
+      "units": "dyn/cm^2",
+      "range": {
+        "min": 820.6537185114001,
+        "max": 929.9997439391653
+      }
+    },
+    {
+      "name": "displacement",
+      "components": 3,
+      "centering": "node",
+      "units": "cm",
+      "range": {
+        "min": 0.00004729603465467182,
+        "max": 0.00943493106317012
+      }
+    }
+  ],
+  "global_ranges": {
+    "speed_cm_s": {
+      "min": 12.878468072809122,
+      "max": 77.64816917088649
+    },
+    "pressure_dyn_cm2": {
+      "min": 820.6537185114001,
+      "max": 929.9997439391653
+    },
+    "displacement_magnitude_cm": {
+      "min": 0.00004729603465467182,
+      "max": 0.00943493106317012
+    }
+  },
+  "mesh": {
+    "node_indexing": "zero_based",
+    "index_dtype": "uint32",
+    "field_dtype": "float32"
+  },
+  "source": {
+    "fixture": true,
+    "input_production_dir": "synthetic temporal demo"
+  },
+  "geometry": {
+    "node_count": 648,
+    "tetrahedron_count": 0,
+    "surface_triangle_count": 1224,
+    "reference_positions": {
+      "path": "geometry/reference_positions.f32",
+      "byte_size": 7776,
+      "sha256": "88e078ca5fde8dc245ddb6fa6186c97d337667e2f7e44851feb453126675f37f"
+    },
+    "surface_indices": {
+      "path": "geometry/surface_indices.u32",
+      "byte_size": 14688,
+      "sha256": "9b8cb44d6ab0eb58b8200b3ba0ec782a352aca19577bccf1cb4ccdbaaad5036e"
+    },
+    "tetra_indices_debug": null
+  },
+  "snapshots": [
+    {
+      "id": "t0000",
+      "source_id": "snapshot-t0",
+      "time_s": 0,
+      "fields": {
+        "velocity": {
+          "components": 3,
+          "centering": "node",
+          "units": "cm/s",
+          "asset": {
+            "path": "snapshots/t0000/velocity.f32",
+            "byte_size": 7776,
+            "sha256": "93b22acad01fc0869c0be4e32a3aeab00cac0139d3fd634aebb90d51cedbe97c"
+          }
+        },
+        "pressure": {
+          "components": 1,
+          "centering": "node",
+          "units": "dyn/cm^2",
+          "asset": {
+            "path": "snapshots/t0000/pressure.f32",
+            "byte_size": 2592,
+            "sha256": "69f86288cbe74558b64f287b43583d75e558d2df708306001de25b41a21a34d3"
+          }
+        },
+        "displacement": {
+          "components": 3,
+          "centering": "node",
+          "units": "cm",
+          "asset": {
+            "path": "snapshots/t0000/displacement.f32",
+            "byte_size": 7776,
+            "sha256": "886785716672694f2cc8260c1ad3b379063750450b1c50bd866b2310dccb71e4"
+          }
+        }
+      },
+      "derived": {
+        "path": "snapshots/t0000/derived.json",
+        "byte_size": 551,
+        "sha256": "345a120475584b35958272fbcb064601abbf25258b3e5bb158bc646aabf3392f"
+      },
+      "ranges": {
+        "speed_cm_s": {
+          "min": 14.317344178796594,
+          "max": 52.21443898450552
+        },
+        "velocity_components_cm_s": {
+          "ux": {
+            "min": -0.21278546630354878,
+            "max": 0.21278546630354878
+          },
+          "uy": {
+            "min": 0,
+            "max": 0.43213605021428175
+          },
+          "uz": {
+            "min": 14.31734378771734,
+            "max": 52.21443898450552
+          }
+        },
+        "pressure_dyn_cm2": {
+          "min": 822.8350689074568,
+          "max": 929.9995715394771
+        },
+        "displacement_magnitude_cm": {
+          "min": 0.00004729603465467217,
+          "max": 0.00943493106317012
+        }
+      }
+    },
+    {
+      "id": "t0001",
+      "source_id": "snapshot-t0p04",
+      "time_s": 0.04,
+      "fields": {
+        "velocity": {
+          "components": 3,
+          "centering": "node",
+          "units": "cm/s",
+          "asset": {
+            "path": "snapshots/t0001/velocity.f32",
+            "byte_size": 7776,
+            "sha256": "7965cf9ddb021411ea7631cd66c2b0226aa082a6bb1cfd421ef9dc6121cc742d"
+          }
+        },
+        "pressure": {
+          "components": 1,
+          "centering": "node",
+          "units": "dyn/cm^2",
+          "asset": {
+            "path": "snapshots/t0001/pressure.f32",
+            "byte_size": 2592,
+            "sha256": "2e2cf031f083ac13f3fa96bca952294e3001e294cab3fab3506339f8509a2510"
+          }
+        },
+        "displacement": {
+          "components": 3,
+          "centering": "node",
+          "units": "cm",
+          "asset": {
+            "path": "snapshots/t0001/displacement.f32",
+            "byte_size": 7776,
+            "sha256": "1ed8358b8bcd9317001655d9f586884fd651abfddb911bbfae36cde133526947"
+          }
+        }
+      },
+      "derived": {
+        "path": "snapshots/t0001/derived.json",
+        "byte_size": 572,
+        "sha256": "6aaf141feda770bf3ab5695a48dac7e273dfc45ac19e4a90672bd89b68656c3b"
+      },
+      "ranges": {
+        "speed_cm_s": {
+          "min": 14.104349862474113,
+          "max": 52.99509858685475
+        },
+        "velocity_components_cm_s": {
+          "ux": {
+            "min": -0.010443499063037102,
+            "max": 0.42142930554537944
+          },
+          "uy": {
+            "min": -0.14719657424051416,
+            "max": 0.2807339576387929
+          },
+          "uz": {
+            "min": 14.104349824565412,
+            "max": 52.993504931239684
+          }
+        },
+        "pressure_dyn_cm2": {
+          "min": 820.6537185114001,
+          "max": 929.9997439391653
+        },
+        "displacement_magnitude_cm": {
+          "min": 0.0005694776001206201,
+          "max": 0.005435834108695284
+        }
+      }
+    },
+    {
+      "id": "t0002",
+      "source_id": "snapshot-t0p08",
+      "time_s": 0.08,
+      "fields": {
+        "velocity": {
+          "components": 3,
+          "centering": "node",
+          "units": "cm/s",
+          "asset": {
+            "path": "snapshots/t0002/velocity.f32",
+            "byte_size": 7776,
+            "sha256": "6161a6867e44b2a7e1ad4514aabbc6705774da60637c6a4f87d74587cf2986bf"
+          }
+        },
+        "pressure": {
+          "components": 1,
+          "centering": "node",
+          "units": "dyn/cm^2",
+          "asset": {
+            "path": "snapshots/t0002/pressure.f32",
+            "byte_size": 2592,
+            "sha256": "0fc37416e5ec5f382affbf32fc290cba438621444fcd49503474597e72ec358e"
+          }
+        },
+        "displacement": {
+          "components": 3,
+          "centering": "node",
+          "units": "cm",
+          "asset": {
+            "path": "snapshots/t0002/displacement.f32",
+            "byte_size": 7776,
+            "sha256": "a6a4ff7866c5904cd0d6dbe0189381b2e99e70fb88d5985a10ace1f8a4e88b59"
+          }
+        }
+      },
+      "derived": {
+        "path": "snapshots/t0002/derived.json",
+        "byte_size": 570,
+        "sha256": "79daee956f04ed6727448cef9df29540694ceec48e171c27d6d2a8270a448835"
+      },
+      "ranges": {
+        "speed_cm_s": {
+          "min": 12.878468072809122,
+          "max": 69.88831040280724
+        },
+        "velocity_components_cm_s": {
+          "ux": {
+            "min": -0.08788278320809617,
+            "max": 0.34188598050797064
+          },
+          "uy": {
+            "min": -0.3903443985102306,
+            "max": 0.04073899000481113
+          },
+          "uz": {
+            "min": 12.878468072746744,
+            "max": 69.88784882463399
+          }
+        },
+        "pressure_dyn_cm2": {
+          "min": 843.5086758722338,
+          "max": 929.9996780883441
+        },
+        "displacement_magnitude_cm": {
+          "min": 0.0002010239394637532,
+          "max": 0.007582775598766471
+        }
+      }
+    },
+    {
+      "id": "t0003",
+      "source_id": "snapshot-t0p12",
+      "time_s": 0.12,
+      "fields": {
+        "velocity": {
+          "components": 3,
+          "centering": "node",
+          "units": "cm/s",
+          "asset": {
+            "path": "snapshots/t0003/velocity.f32",
+            "byte_size": 7776,
+            "sha256": "3595679f3c2fccd3dfa9e63fca3bbd47f47ee70fb80d602aefc1ca9bae99519b"
+          }
+        },
+        "pressure": {
+          "components": 1,
+          "centering": "node",
+          "units": "dyn/cm^2",
+          "asset": {
+            "path": "snapshots/t0003/pressure.f32",
+            "byte_size": 2592,
+            "sha256": "0500fab07b08e391dbdee5e27f6604e6103fb612e998cd73007284d6d693421d"
+          }
+        },
+        "displacement": {
+          "components": 3,
+          "centering": "node",
+          "units": "cm",
+          "asset": {
+            "path": "snapshots/t0003/displacement.f32",
+            "byte_size": 7776,
+            "sha256": "53d1911ba1b8a3108cd3b5838a36a40e4201891967e9381bcae2affdd2a7b24c"
+          }
+        }
+      },
+      "derived": {
+        "path": "snapshots/t0003/derived.json",
+        "byte_size": 566,
+        "sha256": "f62b5677c19bb24652a1fe2704f4901af307ed41612fa21282970abec5035b11"
+      },
+      "ranges": {
+        "speed_cm_s": {
+          "min": 14.459901482341737,
+          "max": 77.64816917088649
+        },
+        "velocity_components_cm_s": {
+          "ux": {
+            "min": -0.34188598050797053,
+            "max": 0.08788278320809631
+          },
+          "uy": {
+            "min": -0.3903443985102307,
+            "max": 0.04073899000481105
+          },
+          "uz": {
+            "min": 14.459901482341426,
+            "max": 77.64775372131746
+          }
+        },
+        "pressure_dyn_cm2": {
+          "min": 851.9994767773183,
+          "max": 929.99946499061
+        },
+        "displacement_magnitude_cm": {
+          "min": 0.000099414954398126,
+          "max": 0.00881670151311268
+        }
+      }
+    },
+    {
+      "id": "t0004",
+      "source_id": "snapshot-t0p16",
+      "time_s": 0.16,
+      "fields": {
+        "velocity": {
+          "components": 3,
+          "centering": "node",
+          "units": "cm/s",
+          "asset": {
+            "path": "snapshots/t0004/velocity.f32",
+            "byte_size": 7776,
+            "sha256": "fec71fcc33d3676b81ed781533becbaeaa00ff91715c91d9a190572ba7c1a9e7"
+          }
+        },
+        "pressure": {
+          "components": 1,
+          "centering": "node",
+          "units": "dyn/cm^2",
+          "asset": {
+            "path": "snapshots/t0004/pressure.f32",
+            "byte_size": 2592,
+            "sha256": "beb1c5a2f43167c3a8f61adf79f8a9ea2be4ae655a4d129908dad84cf7bd9c28"
+          }
+        },
+        "displacement": {
+          "components": 3,
+          "centering": "node",
+          "units": "cm",
+          "asset": {
+            "path": "snapshots/t0004/displacement.f32",
+            "byte_size": 7776,
+            "sha256": "26166b82ef87778759984ffc3c97a2912fda085b6f6d818e76bf62c41704cd69"
+          }
+        }
+      },
+      "derived": {
+        "path": "snapshots/t0004/derived.json",
+        "byte_size": 570,
+        "sha256": "aae414550c5de14a3c9757cf7525c7748df79e2f98d2c58f56104106f1af2f7a"
+      },
+      "ranges": {
+        "speed_cm_s": {
+          "min": 12.884763296514114,
+          "max": 68.86151685409348
+        },
+        "velocity_components_cm_s": {
+          "ux": {
+            "min": -0.42142930554537944,
+            "max": 0.010443499063037081
+          },
+          "uy": {
+            "min": -0.14719657424051433,
+            "max": 0.280733957638793
+          },
+          "uz": {
+            "min": 12.88476329650502,
+            "max": 68.86029040102483
+          }
+        },
+        "pressure_dyn_cm2": {
+          "min": 846.4734372551243,
+          "max": 929.9993991397888
+        },
+        "displacement_magnitude_cm": {
+          "min": 0.0006997125625474716,
+          "max": 0.0039015065510677976
+        }
+      }
+    },
+    {
+      "id": "t0005",
+      "source_id": "snapshot-t0p2",
+      "time_s": 0.2,
+      "fields": {
+        "velocity": {
+          "components": 3,
+          "centering": "node",
+          "units": "cm/s",
+          "asset": {
+            "path": "snapshots/t0005/velocity.f32",
+            "byte_size": 7776,
+            "sha256": "465063e5d323fb4cf69f0c3a159663e15dae8f1bfa318d936ec26591e2ca441e"
+          }
+        },
+        "pressure": {
+          "components": 1,
+          "centering": "node",
+          "units": "dyn/cm^2",
+          "asset": {
+            "path": "snapshots/t0005/pressure.f32",
+            "byte_size": 2592,
+            "sha256": "69f86288cbe74558b64f287b43583d75e558d2df708306001de25b41a21a34d3"
+          }
+        },
+        "displacement": {
+          "components": 3,
+          "centering": "node",
+          "units": "cm",
+          "asset": {
+            "path": "snapshots/t0005/displacement.f32",
+            "byte_size": 7776,
+            "sha256": "886785716672694f2cc8260c1ad3b379063750450b1c50bd866b2310dccb71e4"
+          }
+        }
+      },
+      "derived": {
+        "path": "snapshots/t0005/derived.json",
+        "byte_size": 551,
+        "sha256": "530ab23b0b59c2c332d23897ce0d4010412b57280c6033e78b6bdc4845e52460"
+      },
+      "ranges": {
+        "speed_cm_s": {
+          "min": 14.317344178796594,
+          "max": 52.21443898450552
+        },
+        "velocity_components_cm_s": {
+          "ux": {
+            "min": -0.21278546630354864,
+            "max": 0.21278546630354872
+          },
+          "uy": {
+            "min": 0,
+            "max": 0.43213605021428175
+          },
+          "uz": {
+            "min": 14.31734378771734,
+            "max": 52.21443898450552
+          }
+        },
+        "pressure_dyn_cm2": {
+          "min": 822.8350689074568,
+          "max": 929.9995715394771
+        },
+        "displacement_magnitude_cm": {
+          "min": 0.00004729603465467182,
+          "max": 0.00943493106317012
+        }
+      }
+    }
+  ],
+  "skipped_snapshots": [],
+  "sidecars": {},
+  "observations": {}
+}

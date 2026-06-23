@@ -146,6 +146,37 @@ const OPERATOR_VALIDATION_VALUE_OPTIONS = Set([
 ])
 const OPERATOR_VALIDATION_FLAG_OPTIONS = Set(["help", "overwrite"])
 
+const VISUALIZATION_VALUE_OPTIONS = Set([
+    "schema-version",
+    "input-production-dir",
+    "velocity-xdmf",
+    "pressure-xdmf",
+    "displacement-xdmf",
+    "output-dir",
+    "case-id",
+    "target-time",
+    "time-atol",
+    "coordinate-mode",
+    "geometry-mode",
+    "diagnostics-csv",
+    "restart-metadata-json",
+    "observations-csv",
+    "observation-summary-csv",
+    "batch-benchmark-json",
+    "snapshot-include",
+    "snapshot-exclude",
+    "snapshot-stride",
+    "max-snapshots",
+])
+const VISUALIZATION_FLAG_OPTIONS = Set([
+    "help",
+    "overwrite",
+    "include-tetra-debug",
+    "no-observations",
+    "no-derived",
+    "allow-velocity-only",
+])
+
 function require_value(args::Vector{String}, i::Int, key::String)
     i < length(args) || error("missing value for --$key")
     return args[i + 1]

@@ -36,6 +36,7 @@ assets.
 | `operator-validation` | Validate cross-section quadrature on synthetic cuts. | Use for operator evidence and report tables when scoped. |
 | `benchmark` | Run package benchmark profiles. | Follow `public/docs/benchmark-pipeline.md`. |
 | `export-assets` | Export stenosis geometry/report CSV assets. | Follow report asset publication rules before rendering or staging outputs. |
+| `visualization export-web` | Convert resolved-FSI/resolved-3D XDMF/HDF5 bundles into static browser assets. | Keep exports in `tmp/simulations/output/visualization/**` unless curating a reviewed viewer demo. |
 
 There is intentionally no native resolved-FSI production, restart, resume, or
 parity execution CLI command in this round. `fsi native-status` is a status-only
@@ -141,6 +142,41 @@ and imported-bundle availability. It does not run
 `run_native_resolved_fsi_partitioned_production(...)` and does not write solver
 outputs.
 
+## Browser Visualization Export
+
+Use `visualization export-web` to create static assets for the browser viewer.
+Direct XDMF/HDF5 mode defaults to schema v1:
+
+```sh
+pipenv run ops-experiment visualization export-web \
+  --velocity-xdmf public/var/data/simulations/canic_case3/50/velocity.xdmf \
+  --pressure-xdmf public/var/data/simulations/canic_case3/50/pressure.xdmf \
+  --displacement-xdmf public/var/data/simulations/canic_case3/50/displace.xdmf \
+  --case-id sev50 \
+  --target-time 1.4995 \
+  --output-dir tmp/simulations/output/visualization/canic_case3 \
+  --overwrite
+```
+
+Production-directory mode discovers `snapshot_outputs`,
+`snapshot_manifest.csv`, `snapshot-t*` directories, or a direct fallback bundle
+and defaults to temporal schema v2:
+
+```sh
+pipenv run ops-experiment visualization export-web \
+  --input-production-dir tmp/simulations/output/native-resolved-fsi-production/sev23 \
+  --case-id sev23 \
+  --snapshot-stride 1 \
+  --max-snapshots 24 \
+  --output-dir tmp/simulations/output/visualization/sev23 \
+  --overwrite
+```
+
+The command prints `manifest_json`, `asset_count`, `frame_count`,
+`skipped_snapshots`, and `estimated_playback_fps`. See
+`public/docs/stenotic-hemodynamics/web-visualization.md` for the schema and
+viewer contract.
+
 ## Verification
 
 Use `verify` for numerical evidence:
@@ -187,5 +223,7 @@ pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-p
   assets.
 - Use `public/docs/stenotic-hemodynamics/workflows.md` for the package workflow
   map and focused validation surfaces.
+- Use `public/docs/stenotic-hemodynamics/web-visualization.md` for browser
+  visualization export and viewer checks.
 - Use `public/docs/resolved3d-workflows.md` for optional resolved-3D data.
 - Use `public/docs/benchmark-pipeline.md` for package benchmark outputs.

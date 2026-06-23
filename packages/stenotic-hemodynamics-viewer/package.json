@@ -1,0 +1,37 @@
+{
+  "name": "@masters-report/stenotic-hemodynamics-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "typecheck": "tsc -b --pretty false",
+    "test": "npm run typecheck && npm run validate-demo && npm run test:browser",
+    "test:browser": "node scripts/browser-smoke.mjs",
+    "generate-demo": "node scripts/create-demo-assets.mjs",
+    "validate-demo": "node scripts/validate-demo-manifest.mjs"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^7.1.2",
+    "@mui/material": "^7.1.2",
+    "@react-three/drei": "^10.5.0",
+    "@react-three/fiber": "^9.2.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "three": "^0.178.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@types/three": "^0.178.1",
+    "@vitejs/plugin-react": "^4.6.0",
+    "pngjs": "^7.0.0",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.0"
+  }
+}

@@ -116,7 +116,13 @@ end
         native_resolved_fsi_gridap_surface =
             joinpath("src", "StenoticHemodynamics", "adapters", "native_resolved_fsi_gridap.jl")
         restart_metadata_reader =
-            joinpath("src", "StenoticHemodynamics", "workflows", "native_resolved_fsi_restart.jl")
+            joinpath(
+                "src",
+                "StenoticHemodynamics",
+                "workflows",
+                "native_resolved_fsi",
+                "native_resolved_fsi_restart.jl",
+            )
         openbf_protocol_adapter = joinpath("src", "StenoticHemodynamics", "adapters", "openbf_protocol.jl")
 
         for module_name in ("SciMLBase", "OrdinaryDiffEq")
@@ -184,8 +190,20 @@ end
             Set([
                 joinpath("src", "StenoticHemodynamics", "adapters", "stokes_ic.jl"),
                 native_resolved_fsi_adapter,
-                joinpath("src", "StenoticHemodynamics", "workflows", "stationary_stokes_refinement_gridap.jl"),
-                joinpath("src", "StenoticHemodynamics", "workflows", "geometry_export_stokes_common.jl"),
+                joinpath(
+                    "src",
+                    "StenoticHemodynamics",
+                    "workflows",
+                    "verification",
+                    "stationary_stokes_refinement_gridap.jl",
+                ),
+                joinpath(
+                    "src",
+                    "StenoticHemodynamics",
+                    "workflows",
+                    "geometry_exports",
+                    "geometry_export_stokes_common.jl",
+                ),
             ]),
         )
         @test extension_contract_no_violations(
@@ -395,6 +413,7 @@ end
             "operator-validation",
             "benchmark",
             "export-assets",
+            "visualization",
         ])
         @test handlers["simulate"] === StenoticHemodynamics.run_simulate_cli
         @test handlers["fsi"] === StenoticHemodynamics.run_fsi_cli

@@ -243,10 +243,49 @@ The current family documents generated artifacts, local operator evidence, and
 production-control sidecars. Persisted restart, production execution from CLI,
 and paper-grade Section 4.1 reproduction claims remain deferred.
 
+## Native Resolved-FSI Web Visualization Export
+
+- Representative files:
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_types.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_runner.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_runner.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_writer.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_writer.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli/visualization_cli.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli/visualization_cli.jl)
+  - [`packages/stenotic-hemodynamics-viewer/src`](../../../packages/stenotic-hemodynamics-viewer/src)
+- Entrypoints:
+  - Julia: `NativeResolvedFSIWebExportSpec(...)`,
+    `run_native_resolved_fsi_web_export(...)`
+  - CLI: `visualization export-web`
+- Surface: `CLI-facing export`
+- Expected outputs and artifact class:
+  - Ignored scratch browser assets under
+    `tmp/simulations/output/visualization/<case>/**`
+  - Schema v1 direct-bundle exports for one-frame smoke viewing
+  - Schema v2 production-directory exports with shared geometry and temporal
+    `snapshots/t0000/**`, `snapshots/t0001/**`, ... field bundles
+  - Curated demo fixtures only under
+    `packages/stenotic-hemodynamics-viewer/public/data/demo/**`
+- Optional-data behavior:
+  - Direct XDMF/HDF5 export requires a supplied velocity bundle and, by
+    default, pressure and displacement companions
+  - Production-directory export discovers `restart_metadata.json`
+    `snapshot_outputs`, `snapshot_manifest.csv`, `snapshot-t*` child
+    directories, then a direct single-bundle fallback
+  - Snapshot include, exclude, stride, and maximum-count filters are applied
+    after discovery
+- Focused validation command:
+  - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, SHA, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_helpers.jl"); include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_visualization.jl")'`
+
+The visualization export does not run native resolved-FSI production and does
+not promote assets into report outputs. It converts existing resolved bundles
+into a static manifest plus binary browser assets while retaining the claim
+boundary: native resolved-FSI artifact/operator evidence only, not paper-grade
+Section 4.1 reproduction.
+
 ## Native Resolved-FSI Notes
 
 - [Native Resolved-FSI Design](native-resolved-fsi-design.md)
 - [Native Resolved-FSI Section 4.1 Reproduction](native-resolved-fsi-section-4-1-reproduction.md)
+- [Native Resolved-FSI Web Visualization](web-visualization.md)
 
 The old package-local copies under `packages/stenotic-hemodynamics/docs/` stay
 only as pointer stubs so the public docs tree remains the authoritative site.

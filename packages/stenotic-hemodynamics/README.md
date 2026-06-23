@@ -46,6 +46,9 @@ pipenv run ops-experiment simulate --help
 - `../../public/docs/stenotic-hemodynamics/workflows.md`: public workflow hub
   for package studies, verification, validation, comparison, benchmark, and
   native resolved-FSI planning surfaces.
+- `../../public/docs/stenotic-hemodynamics/web-visualization.md`: static
+  browser visualization contract for `visualization export-web` and the Vite
+  viewer.
 - `../../public/docs/julia-cli-workflows.md`: command-oriented Julia CLI guide.
 - `../../public/docs/resolved3d-workflows.md`: optional resolved-3D data root,
   skip behavior, and report-asset publication boundaries.
@@ -162,6 +165,39 @@ Generated simulation, verification, benchmark, and comparison outputs default
 to ignored paths under `tmp/simulations/output/**`. Pass explicit `--output`,
 `--svg`, or `--output-dir` paths when a run must feed a report-asset publishing
 workflow.
+
+Browser-ready native resolved-FSI export:
+
+```bash
+pipenv run ops-experiment visualization export-web \
+  --velocity-xdmf public/var/data/simulations/canic_case3/50/velocity.xdmf \
+  --pressure-xdmf public/var/data/simulations/canic_case3/50/pressure.xdmf \
+  --displacement-xdmf public/var/data/simulations/canic_case3/50/displace.xdmf \
+  --case-id sev50 \
+  --target-time 1.4995 \
+  --output-dir tmp/simulations/output/visualization/canic_case3 \
+  --overwrite
+```
+
+Production-directory temporal export:
+
+```bash
+pipenv run ops-experiment visualization export-web \
+  --input-production-dir tmp/simulations/output/native-resolved-fsi-production/sev23 \
+  --case-id sev23 \
+  --snapshot-stride 1 \
+  --max-snapshots 24 \
+  --output-dir tmp/simulations/output/visualization/sev23 \
+  --overwrite
+```
+
+The web exporter consumes resolved-3D XDMF/HDF5 bundles through the retained
+importer path, writes a static manifest plus binary mesh/field assets, and
+keeps the same claim boundary as the native resolved-FSI artifact surface:
+operator/artifact evidence only, not paper-grade Section 4.1 reproduction.
+Direct XDMF/HDF5 mode defaults to schema v1; production-directory mode defaults
+to temporal schema v2. The companion browser app lives in
+`../stenotic-hemodynamics-viewer`.
 
 ## Methods and Closures
 
