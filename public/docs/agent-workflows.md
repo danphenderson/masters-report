@@ -3,14 +3,14 @@
 Use `ops-orchestrate` for bounded agent handoffs. Treat it as a planning and
 checking surface, not as an execution engine.
 
-Do not install repo-managed commit hooks. Do not create background automation.
-Do not write persistent orchestration receipts. Re-anchor every handoff on the
-live checkout, local files, and validation output. Scope mutations to explicitly
-named files.
+Tracked pre-commit config is allowed; local hook installation is explicit. Do
+not create background automation. Do not write persistent orchestration
+receipts. Re-anchor every handoff on the live checkout, local files, and
+validation output. Scope mutations to explicitly named files.
 
 Contract limits:
 
-- No repo-managed commit hooks.
+- Tracked pre-commit config is allowed; local hook installation is explicit.
 - No background automation.
 - No persistent orchestration receipts.
 

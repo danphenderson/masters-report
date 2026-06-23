@@ -8,8 +8,9 @@ and ignore-rule changes into distinct patches. Do not combine them in one
 cleanup sweep. Use `public/docs/agent-workflows.md` for bounded agent handoffs.
 Treat `pipenv run ops-orchestrate status` as read-only classification.
 
-Do not install repo-managed commit hooks. Do not create background automation.
-Do not write persistent orchestration receipts.
+Tracked pre-commit config is allowed; local hook installation is explicit. Do
+not create background automation. Do not write persistent orchestration
+receipts.
 
 ## Non-Negotiable Rules
 

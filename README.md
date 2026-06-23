@@ -5,10 +5,12 @@ source for an idealized stenotic-vessel hemodynamics master's report. The
 report source is rooted at `report/final-report.tex`; the solver package is
 `StenoticHemodynamics` under `packages/stenotic-hemodynamics/src/`.
 
-The project is prepared for public peer review as a source tree. It does not
-track generated final PDFs, third-party full-text reference mirrors, private
-review notes, local caches, raw optional resolved-3D inputs, or ordinary
-simulation outputs.
+The project is prepared for public peer review as a source tree. It tracks the
+current report source and a curated `public/final-report.pdf` release artifact,
+but ordinary report builds should write to scratch space unless the task
+explicitly refreshes that PDF. The repository does not track third-party
+full-text reference mirrors, private review notes, local caches, raw optional
+resolved-3D inputs, or ordinary simulation outputs.
 
 ## Prerequisites
 
@@ -39,6 +41,24 @@ Install the ops command surface:
 PIPENV_VENV_IN_PROJECT=1 pipenv install --dev
 ```
 
+Install the explicit local pre-commit hook when commit-time validation should
+run automatically:
+
+```bash
+pipenv run pre-commit install --install-hooks
+```
+
+Run the same hook stack manually with:
+
+```bash
+pipenv run pre-commit run --all-files
+```
+
+The local full-gate hook runs
+`pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-build`
+and can take several minutes because it includes Julia, Python, reference, and
+report validation.
+
 Run Julia package validation through the agent-facing ops wrapper:
 
 ```bash
@@ -60,7 +80,7 @@ On success, the scratch directory contains `final-report.pdf`,
 `final-report.log`, `final-report.fls`, and `report-build-summary.json`. If the
 build fails, inspect the summary JSON and the `latexmk` log in the same scratch
 directory. Omit `--no-sync-final-pdf` only when the task explicitly refreshes
-the ignored local release artifact `public/final-report.pdf`.
+the protected release artifact `public/final-report.pdf`.
 
 Run a small solver smoke case:
 
@@ -91,6 +111,13 @@ pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-bu
   modes, summary JSON, and failure handling.
 - [`public/docs/julia-cli-workflows.md`](public/docs/julia-cli-workflows.md):
   Julia command families and artifact posture.
+- [`public/docs/stenotic-hemodynamics/workflows.md`](public/docs/stenotic-hemodynamics/workflows.md):
+  Julia package workflow ownership, validation commands, and workflow
+  subdirectories.
+- [`public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`](public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md):
+  native resolved-FSI Section 4.1 validation roadmap and claim gates.
+- [`public/docs/stenotic-hemodynamics/web-visualization.md`](public/docs/stenotic-hemodynamics/web-visualization.md):
+  static browser visualization export schema and viewer checks.
 - [`public/docs/ops-tooling.md`](public/docs/ops-tooling.md): Python support
   commands, renderers, and evidence summaries.
 - [`public/docs/report-assets-and-provenance.md`](public/docs/report-assets-and-provenance.md):
@@ -111,6 +138,34 @@ intentionally untracked. Workflows that depend on them either skip cleanly or
 emit skipped rows when the files are absent. Published report assets derived
 from available resolved-3D inputs are tracked only when consumed by the TeX
 source.
+
+## Native Resolved-FSI Status
+
+The Julia package includes native resolved-FSI infrastructure for Section 4.1
+case generation, status-only dry runs, three-field XDMF/HDF5 output, restart
+audit metadata, and local/imported observation surfaces. Current evidence is
+bounded: exact Section 4.1 boundary-mode support and the mathematical-contract
+gate have focused smoke/contract-test coverage, and a `sev23` preproduction
+run may be in progress under ignored scratch output. The repository does not
+yet claim production-scale Section 4.1 reproduction, imported-data parity,
+monolithic ALE FSI, moving-wall fidelity, or persisted restart/resume support.
+
+Use `fsi native-status` for status-only planning; it does not run production:
+
+```bash
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi native-status \
+  --case-id sev23 \
+  --mesh 80x4x24 \
+  --dt 1e-4 \
+  --tfinal 0.1 \
+  --snapshot-times 0.1 \
+  --inlet-outlet-boundary-mode poiseuille_inlet_zero_outlet_stress_section41 \
+  --inlet-umax 45.0
+```
+
+Actual long-running preproduction or production execution remains a qualified
+internal workflow and should be launched only from the current package TODO plan
+with explicit output ownership and claim-boundary review.
 
 ## Data and References
 

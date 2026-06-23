@@ -67,7 +67,11 @@ def docs_contract(repo: Path) -> CheckResult:
         if profile not in combined:
             issues.append(f"missing documented profile: {profile}")
     lower = re.sub(r"\s+", " ", combined.lower())
-    for phrase in ("no repo-managed commit hooks", "no background automation", "no persistent orchestration receipts"):
+    for phrase in (
+        "tracked pre-commit config is allowed; local hook installation is explicit",
+        "no background automation",
+        "no persistent orchestration receipts",
+    ):
         if phrase not in lower:
             issues.append(f"missing orchestration limit: {phrase}")
     issues.extend(stale_path_issues(repo))

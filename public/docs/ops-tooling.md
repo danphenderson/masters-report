@@ -12,6 +12,26 @@ Install the environment when Python tools are needed:
 PIPENV_VENV_IN_PROJECT=1 pipenv install --dev
 ```
 
+## Pre-Commit Hook
+
+The repository tracks a pre-commit configuration. Local hook installation is an
+explicit developer action:
+
+```sh
+pipenv run pre-commit install --install-hooks
+```
+
+Run the same hook stack manually with:
+
+```sh
+pipenv run pre-commit run --all-files
+```
+
+The local full-gate hook runs
+`pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-build`.
+It can take several minutes because it includes Julia, Python, reference, and
+report validation.
+
 ## Audit And Build Commands
 
 - `pipenv run ops-experiment <julia-command> [options]`: run a Julia simulation,

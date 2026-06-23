@@ -16,7 +16,7 @@ def write_minimal_docs_contract(root: Path) -> None:
         [
             command_lines,
             profile_lines,
-            "No repo-managed commit hooks.",
+            "Tracked pre-commit config is allowed; local hook installation is explicit.",
             "No background automation.",
             "No persistent orchestration receipts.",
         ]
@@ -72,7 +72,7 @@ def test_docs_contract_rejects_stale_active_paths(tmp_path: Path) -> None:
         "\n".join(
             [
                 "pipenv run ops-orchestrate status",
-                "No repo-managed commit hooks.",
+                "Tracked pre-commit config is allowed; local hook installation is explicit.",
                 "No background automation.",
                 "No persistent orchestration receipts.",
                 "Old command: tools/python/build_report.py",

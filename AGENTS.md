@@ -21,6 +21,10 @@ The nested
 
 - `PIPENV_VENV_IN_PROJECT=1 pipenv install --dev`: create the root `.venv/`
   and install Python report/support tooling.
+- `pipenv run pre-commit install --install-hooks`: install the explicit local
+  Git hook from the tracked pre-commit configuration.
+- `pipenv run pre-commit run --all-files`: run pre-commit manually. The local
+  full-gate hook runs `ops-release-check --mode patch` and can be slow.
 - `pipenv run ops-julia-check`: run the Julia test suite through the
   agent-facing Python ops validation surface. The wrapper uses the required
   Julia 1.12+ project launcher underneath.

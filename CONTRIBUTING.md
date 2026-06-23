@@ -7,6 +7,11 @@ reviewable, and tied to a reproducible validation path.
 
 - Use `pipenv run ops-julia-check` for Julia package validation.
 - Use `pipenv run ops-python-check` for Python support-tooling changes.
+- Install the explicit local pre-commit hook with
+  `pipenv run pre-commit install --install-hooks` when commit-time validation
+  should run automatically.
+- Use `pipenv run pre-commit run --all-files` to run the hook stack manually.
+  The full-gate hook runs `ops-release-check --mode patch` and can be slow.
 - Use `pipenv run ops-experiment ...` for foreground simulation, study,
   verification, comparison, and benchmark runs that need terminal streaming and
   JSON logs.

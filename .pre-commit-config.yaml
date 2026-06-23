@@ -1,0 +1,31 @@
+minimum_pre_commit_version: "4.6.0"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+        exclude: >-
+          (?x)^(
+            public/final-report\.pdf|
+            report/assets/data/|
+            report/assets/rendered/|
+            report/assets/tables/|
+            packages/stenotic-hemodynamics-viewer/public/data/demo/
+          )
+
+  - repo: local
+    hooks:
+      - id: ops-release-check-patch
+        name: ops release check (patch mode)
+        entry: pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-build
+        language: system
+        always_run: true
+        pass_filenames: false
