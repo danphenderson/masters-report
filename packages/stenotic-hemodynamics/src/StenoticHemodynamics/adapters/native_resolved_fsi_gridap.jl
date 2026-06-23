@@ -52,6 +52,56 @@ function native_resolved_fsi_radial_wall_velocity_function(mesh::NativeResolvedF
     end
 end
 
+function native_resolved_fsi_inlet_outlet_boundary_mode(value::Union{Symbol,AbstractString})
+    mode = Symbol(value)
+    mode in (:pressure_drop_weak_inlet_outlet_gauge_smoke, :poiseuille_inlet_zero_outlet_stress_section41) ||
+        throw(ArgumentError(
+            "unsupported native resolved-FSI inlet/outlet boundary mode $(repr(mode)); " *
+            "supported modes are (:pressure_drop_weak_inlet_outlet_gauge_smoke, :poiseuille_inlet_zero_outlet_stress_section41)",
+        ))
+    return mode
+end
+
+function native_resolved_fsi_section41_poiseuille_inlet_velocity_function(
+    mesh::NativeResolvedFSIMesh,
+    wall_radius_at_z,
+    inlet_umax_cm_s::Real,
+)
+    umax = Float64(inlet_umax_cm_s)
+    isfinite(umax) ||
+        throw(ArgumentError("native resolved-FSI Section 4.1 inlet_umax_cm_s must be finite"))
+    umax > 0.0 ||
+        throw(ArgumentError("native resolved-FSI Section 4.1 inlet_umax_cm_s must be positive"))
+    length_cm = mesh.case_spec.length_cm
+    return function poiseuille_inlet_velocity(x)
+        z = clamp(Float64(x[3]), 0.0, length_cm)
+        radius = Float64(wall_radius_at_z(z))
+        isfinite(radius) ||
+            throw(ArgumentError("native resolved-FSI Section 4.1 inlet radius must be finite"))
+        radius > 0.0 ||
+            throw(ArgumentError("native resolved-FSI Section 4.1 inlet radius must be positive"))
+        radial_fraction = clamp(hypot(Float64(x[1]), Float64(x[2])) / radius, 0.0, 1.0)
+        return VectorValue(0.0, 0.0, umax * max(0.0, 1.0 - radial_fraction^2))
+    end
+end
+
+function native_resolved_fsi_inlet_outlet_boundary_status(
+    mode::Symbol;
+    inlet_umax_cm_s::Real,
+)
+    if mode === :pressure_drop_weak_inlet_outlet_gauge_smoke
+        return "pressure_drop_weak_inlet_outlet_gauge_smoke active: weak pressure-drop inlet loading " *
+               "with outlet-gauge pressure normalization; local smoke boundary evidence only"
+    end
+    if mode === :poiseuille_inlet_zero_outlet_stress_section41
+        return "poiseuille_inlet_zero_outlet_stress_section41 active: strong inlet Dirichlet " *
+               "Poiseuille profile with u_max=$(Float64(inlet_umax_cm_s)) cm/s, zero outlet stress " *
+               "as the natural traction boundary, post-sampling outlet pressure gauge normalization " *
+               "(not a Gridap pressure-nullspace constraint), and no pressure-drop weak inlet/outlet loading"
+    end
+    throw(ArgumentError("unsupported native resolved-FSI inlet/outlet boundary mode $(repr(mode))"))
+end
+
 function native_resolved_fsi_solve_fixed_wall_stokes(mesh::NativeResolvedFSIMesh, spec::NativeResolvedFSISmokeSpec)
     params = Params(severity=mesh.case_spec.severity_percent, tfinal=spec.saved_time_s, initial_condition=GeometryRestIC())
     mu = params.rho * params.nu
@@ -131,6 +181,7 @@ function native_resolved_fsi_solve_navier_stokes(
     coordinates::AbstractMatrix{<:Real} = mesh.coordinates,
     wall_radius_at_z = z -> native_resolved_fsi_radius(mesh.case_spec, z),
     inlet_outlet_boundary_mode::Union{Symbol,AbstractString} = :pressure_drop_weak_inlet_outlet_gauge_smoke,
+    inlet_umax_cm_s::Real = NATIVE_RESOLVED_FSI_SECTION41_INLET_UMAX_CM_S,
     dt_s::Real,
     tfinal_s::Real,
     pressure_drop_dyn_cm2::Real,
@@ -144,25 +195,23 @@ function native_resolved_fsi_solve_navier_stokes(
     pressure_drop_value = Float64(pressure_drop_dyn_cm2)
     picard_iteration_count_value = Int(picard_iteration_count)
     picard_tolerance_value = Float64(picard_tolerance)
+    inlet_outlet_boundary_mode_value = native_resolved_fsi_inlet_outlet_boundary_mode(inlet_outlet_boundary_mode)
+    inlet_umax_value = Float64(inlet_umax_cm_s)
     dt_value > 0.0 || throw(ArgumentError("native resolved-FSI Navier-Stokes dt_s must be positive"))
     tfinal_value > 0.0 || throw(ArgumentError("native resolved-FSI Navier-Stokes tfinal_s must be positive"))
     isfinite(pressure_drop_value) || throw(ArgumentError("native resolved-FSI Navier-Stokes pressure_drop_dyn_cm2 must be finite"))
-    pressure_drop_value > 0.0 || throw(ArgumentError("native resolved-FSI Navier-Stokes pressure_drop_dyn_cm2 must be positive"))
+    if inlet_outlet_boundary_mode_value === :pressure_drop_weak_inlet_outlet_gauge_smoke
+        pressure_drop_value > 0.0 ||
+            throw(ArgumentError("native resolved-FSI Navier-Stokes pressure_drop_dyn_cm2 must be positive"))
+    end
+    isfinite(inlet_umax_value) || throw(ArgumentError("native resolved-FSI Navier-Stokes inlet_umax_cm_s must be finite"))
+    if inlet_outlet_boundary_mode_value === :poiseuille_inlet_zero_outlet_stress_section41
+        inlet_umax_value > 0.0 ||
+            throw(ArgumentError("native resolved-FSI Section 4.1 inlet_umax_cm_s must be positive"))
+    end
     picard_iteration_count_value > 0 || throw(ArgumentError("native resolved-FSI Navier-Stokes picard_iteration_count must be positive"))
     isfinite(picard_tolerance_value) || throw(ArgumentError("native resolved-FSI Navier-Stokes picard_tolerance must be finite"))
     picard_tolerance_value > 0.0 || throw(ArgumentError("native resolved-FSI Navier-Stokes picard_tolerance must be positive"))
-    inlet_outlet_boundary_mode_value = Symbol(inlet_outlet_boundary_mode)
-    if inlet_outlet_boundary_mode_value == :poiseuille_inlet_zero_outlet_stress_section41
-        throw(ArgumentError(
-            "native resolved-FSI Section 4.1 Poiseuille inlet / zero-outlet-stress boundary mode is deferred; " *
-            "the current Gridap smoke path supports only pressure-drop weak inlet/outlet loading with outlet-gauge pressure",
-        ))
-    elseif inlet_outlet_boundary_mode_value != :pressure_drop_weak_inlet_outlet_gauge_smoke
-        throw(ArgumentError(
-            "unsupported native resolved-FSI inlet/outlet boundary mode $(repr(inlet_outlet_boundary_mode_value)); " *
-            "supported modes are (:pressure_drop_weak_inlet_outlet_gauge_smoke, :poiseuille_inlet_zero_outlet_stress_section41)",
-        ))
-    end
 
     params = Params(severity=mesh.case_spec.severity_percent, tfinal=tfinal_value, initial_condition=GeometryRestIC())
     rho = params.rho
@@ -180,10 +229,33 @@ function native_resolved_fsi_solve_navier_stokes(
     else
         native_resolved_fsi_radial_wall_velocity_function(mesh, wall_velocity_at)
     end
+    inlet_velocity_function = if inlet_outlet_boundary_mode_value === :poiseuille_inlet_zero_outlet_stress_section41
+        native_resolved_fsi_section41_poiseuille_inlet_velocity_function(
+            mesh,
+            wall_radius_at_z,
+            inlet_umax_value,
+        )
+    else
+        zero_velocity
+    end
     zero_pressure(x) = 0.0
-    V = TestFESpace(model, reffe_u, labels=labels, dirichlet_tags="wall", conformity=:H1)
+    initial_velocity_function = native_resolved_fsi_navier_stokes_initial_velocity_function(
+        mesh,
+        inlet_outlet_boundary_mode_value,
+        wall_velocity_function,
+        inlet_velocity_function,
+    )
+    V = if inlet_outlet_boundary_mode_value === :pressure_drop_weak_inlet_outlet_gauge_smoke
+        TestFESpace(model, reffe_u, labels=labels, dirichlet_tags="wall", conformity=:H1)
+    else
+        TestFESpace(model, reffe_u, labels=labels, dirichlet_tags=["wall", "inlet"], conformity=:H1)
+    end
     Q = TestFESpace(model, reffe_p, labels=labels, conformity=:H1)
-    U = TrialFESpace(V, wall_velocity_function)
+    U = if inlet_outlet_boundary_mode_value === :pressure_drop_weak_inlet_outlet_gauge_smoke
+        TrialFESpace(V, wall_velocity_function)
+    else
+        TrialFESpace(V, [wall_velocity_function, inlet_velocity_function])
+    end
     P = TrialFESpace(Q)
     X = MultiFieldFESpace([U, P])
     Y = MultiFieldFESpace([V, Q])
@@ -198,7 +270,7 @@ function native_resolved_fsi_solve_navier_stokes(
     dΓin = Measure(Γin, degree)
     dΓout = Measure(Γout, degree)
 
-    velocity_state = native_resolved_fsi_navier_stokes_initial_velocity_state(U, wall_velocity_function, initial_velocity_dofs)
+    velocity_state = native_resolved_fsi_navier_stokes_initial_velocity_state(U, initial_velocity_function, initial_velocity_dofs)
     pressure_state = interpolate_everywhere(zero_pressure, P)
     time_s = 0.0
     time_step_count = 0
@@ -227,9 +299,14 @@ function native_resolved_fsi_solve_navier_stokes(
                     q * (∇ ⋅ u)
                 ) * dΩ
             l((v, q)) =
-                ∫((rho / dt_step) * (v ⋅ velocity_previous_step)) * dΩ +
-                ∫(-pressure_drop_value * (v ⋅ n_in)) * dΓin +
-                ∫(-0.0 * (v ⋅ n_out)) * dΓout
+                if inlet_outlet_boundary_mode_value === :pressure_drop_weak_inlet_outlet_gauge_smoke
+                    ∫((rho / dt_step) * (v ⋅ velocity_previous_step)) * dΩ +
+                    ∫(-pressure_drop_value * (v ⋅ n_in)) * dΓin +
+                    ∫(-0.0 * (v ⋅ n_out)) * dΓout
+                else
+                    ∫((rho / dt_step) * (v ⋅ velocity_previous_step)) * dΩ +
+                    ∫(0.0 * (v ⋅ n_out)) * dΓout
+                end
 
             velocity_next, pressure_next = solve(AffineFEOperator(a, l, X, Y))
             step_update_norm = native_resolved_fsi_smoke_velocity_update_norm(velocity_next, velocity_iterate)
@@ -266,7 +343,24 @@ function native_resolved_fsi_solve_navier_stokes(
         max_picard_iterations_used,
         final_picard_update_norm,
         picard_converged,
+        inlet_outlet_boundary_mode_value,
+        inlet_outlet_boundary_mode_value === :poiseuille_inlet_zero_outlet_stress_section41 ? inlet_umax_value : 0.0,
+        native_resolved_fsi_inlet_outlet_boundary_status(
+            inlet_outlet_boundary_mode_value;
+            inlet_umax_cm_s=inlet_umax_value,
+        ),
     )
+end
+
+function native_resolved_fsi_navier_stokes_initial_velocity_function(
+    mesh::NativeResolvedFSIMesh,
+    inlet_outlet_boundary_mode::Symbol,
+    wall_velocity_function,
+    inlet_velocity_function,
+)
+    inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41 || return wall_velocity_function
+    ztol = max(mesh.case_spec.length_cm, 1.0) * 1.0e-10
+    return x -> abs(Float64(x[3])) <= ztol ? inlet_velocity_function(x) : wall_velocity_function(x)
 end
 
 function native_resolved_fsi_navier_stokes_initial_velocity_state(U, wall_velocity_function, initial_velocity_dofs)

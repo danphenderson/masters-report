@@ -4,6 +4,7 @@ const NATIVE_RESOLVED_FSI_SMOKE_DEFAULT_TIME_S = NATIVE_RESOLVED_FSI_DEFAULT_TIM
 const NATIVE_RESOLVED_FSI_SMOKE_MAX_OUTPUT_BYTES = 1_073_741_824
 const NATIVE_RESOLVED_FSI_SMOKE_STAGE = :fixed_wall_stokes
 const NATIVE_RESOLVED_FSI_NAVIER_STOKES_SMOKE_DEFAULT_DT_S = 0.25
+const NATIVE_RESOLVED_FSI_SECTION41_INLET_UMAX_CM_S = 45.0
 const NATIVE_RESOLVED_FSI_NAVIER_STOKES_SMOKE_DEFAULT_PICARD_ITERATION_COUNT = 8
 const NATIVE_RESOLVED_FSI_NAVIER_STOKES_SMOKE_DEFAULT_PICARD_TOLERANCE = 1.0e-8
 const NATIVE_RESOLVED_FSI_NAVIER_STOKES_SMOKE_STAGE = :fixed_wall_navier_stokes_backward_euler_picard
@@ -271,6 +272,9 @@ struct NativeResolvedFSINavierStokesSmokeSolve
     max_picard_iterations_used::Int
     final_picard_update_norm::Float64
     picard_converged::Bool
+    inlet_outlet_boundary_mode::Symbol
+    inlet_umax_cm_s::Float64
+    inlet_outlet_boundary_status::String
 end
 
 """
