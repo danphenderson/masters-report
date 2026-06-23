@@ -13,11 +13,61 @@
   "raw_3d_inputs": {
     "status": "optional_local_inputs_not_tracked",
     "expected_root": "public/var/data/simulations/canic_case3/",
+    "principal_cases": [
+      {
+        "source_id": "77",
+        "stenosis_severity_percent": 23,
+        "expected_files": [
+          "public/var/data/simulations/canic_case3/77/velocity.xdmf",
+          "public/var/data/simulations/canic_case3/77/velocity.h5",
+          "public/var/data/simulations/canic_case3/77/pressure.xdmf",
+          "public/var/data/simulations/canic_case3/77/pressure.h5",
+          "public/var/data/simulations/canic_case3/77/displace.xdmf",
+          "public/var/data/simulations/canic_case3/77/displace.h5"
+        ]
+      },
+      {
+        "source_id": "60",
+        "stenosis_severity_percent": 40,
+        "expected_files": [
+          "public/var/data/simulations/canic_case3/60/velocity.xdmf",
+          "public/var/data/simulations/canic_case3/60/velocity.h5",
+          "public/var/data/simulations/canic_case3/60/pressure.xdmf",
+          "public/var/data/simulations/canic_case3/60/pressure.h5",
+          "public/var/data/simulations/canic_case3/60/displace.xdmf",
+          "public/var/data/simulations/canic_case3/60/displace.h5"
+        ]
+      }
+    ],
+    "supplemental_local_cases": [
+      {
+        "source_id": "50",
+        "status": "optional_scratch_evidence_not_principal_report_case",
+        "expected_companion_fields": [
+          "velocity",
+          "pressure",
+          "displace"
+        ]
+      }
+    ],
+    "expected_companion_fields": [
+      "velocity",
+      "pressure",
+      "displace"
+    ],
     "expected_files": [
       "public/var/data/simulations/canic_case3/77/velocity.xdmf",
       "public/var/data/simulations/canic_case3/77/velocity.h5",
+      "public/var/data/simulations/canic_case3/77/pressure.xdmf",
+      "public/var/data/simulations/canic_case3/77/pressure.h5",
+      "public/var/data/simulations/canic_case3/77/displace.xdmf",
+      "public/var/data/simulations/canic_case3/77/displace.h5",
       "public/var/data/simulations/canic_case3/60/velocity.xdmf",
-      "public/var/data/simulations/canic_case3/60/velocity.h5"
+      "public/var/data/simulations/canic_case3/60/velocity.h5",
+      "public/var/data/simulations/canic_case3/60/pressure.xdmf",
+      "public/var/data/simulations/canic_case3/60/pressure.h5",
+      "public/var/data/simulations/canic_case3/60/displace.xdmf",
+      "public/var/data/simulations/canic_case3/60/displace.h5"
     ],
     "upstream_record": {
       "repository": "https://github.com/qcutexu/Extended-1D-AQ-system",
@@ -25,5 +75,9 @@
       "subtree": "case3_all_3d_results/"
     }
   },
-  "comparison_asset_regeneration_command": "packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d --data-root public/var/data/simulations/canic_case3 --output-dir tmp/simulations/output/3d_comparison/full_t1_native_nx400 --nx 400 --target-time 0.9995 --time-atol 1e-3 --overwrite --publish-report-assets --report-assets-dir report/assets/data/stenosis-comparison --radial-bin-counts 10,20,40 --radial-radius-modes current,reference"
+  "comparison_asset_regeneration_command": "packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d --data-root public/var/data/simulations/canic_case3 --output-dir tmp/simulations/output/3d_comparison/reference_wall_evidence_nx400 --nx 400 --coordinate-mode reference --target-time 0.9995 --time-atol 1e-6 --section-count 200 --profile-slices 1.951,2.451,2.951 --radial-bin-counts 20 --radial-radius-modes current,reference --overwrite --publish-report-assets --report-assets-dir report/assets/data/stenosis-comparison",
+  "comparison_asset_regeneration_commands": {
+    "reference_coordinate": "packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d --data-root public/var/data/simulations/canic_case3 --output-dir tmp/simulations/output/3d_comparison/reference_wall_evidence_nx400 --nx 400 --coordinate-mode reference --target-time 0.9995 --time-atol 1e-6 --section-count 200 --profile-slices 1.951,2.451,2.951 --radial-bin-counts 20 --radial-radius-modes current,reference --overwrite --publish-report-assets --report-assets-dir report/assets/data/stenosis-comparison",
+    "deformed_coordinate": "packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d --data-root public/var/data/simulations/canic_case3 --output-dir tmp/simulations/output/3d_comparison/deformed_wall_evidence_nx400 --nx 400 --coordinate-mode deformed --target-time 0.9995 --time-atol 1e-6 --section-count 200 --profile-slices 1.951,2.451,2.951 --radial-bin-counts 20 --radial-radius-modes current,reference --overwrite --publish-report-assets --report-assets-dir report/assets/data/stenosis-comparison"
+  }
 }
