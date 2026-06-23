@@ -62,6 +62,16 @@ Implemented and committed:
   in dry-run/status/restart/benchmark artifacts, and threads only deterministic
   helper loops. Gridap field evaluation remains serial until thread-safety and
   phase-profiling evidence justify widening that boundary.
+- `2a54a06`: Lane 11 P0 mathematical-contract alignment landed at focused
+  contract/smoke-test scope. The native Gridap adapter now uses
+  density-consistent transient/convection terms, symmetric-gradient Cauchy
+  viscous stress, and a boundary-aware pressure-space policy; exact mode no
+  longer claims a Gridap zero-mean pressure constraint. Partitioned wall
+  forcing now uses raw physical wall-pressure samples while outlet-gauge
+  normalization is diagnostic/export-only. Exact Canic geometry is unified for
+  imported cases `77`/`60`, and radial-profile audits classify same-cut area
+  and flow closure with `passed`, `not_evaluated`, `failed_area_closure`, or
+  `failed_flow_closure`.
 
 ## Non-Negotiable Claim Boundary
 
@@ -83,10 +93,12 @@ Implemented and committed:
   unsupported and fail-closed.
 - CLI/status surfaces must continue to expose these boundaries and must not
   imply paper-grade reproduction.
-- Status strings such as `exact_section41`, `implemented_smoke_validated`, and
-  `zero_outlet_stress_natural_traction` must be treated as provisional
-  implementation labels and downgraded before any reader-facing claim until
-  Lane 11 FEM-01 through FEM-04 pass.
+- Status strings such as `exact_section41`,
+  `implemented_smoke_validated`, and `zero_outlet_stress_natural_traction`
+  remain implementation/status labels. After `2a54a06`, they are backed by the
+  focused mathematical-contract tests, but they still do not imply
+  production-scale execution, imported parity, moving-wall/ALE fidelity, or
+  manuscript-grade Section 4.1 reproduction.
 - Native resolved-FSI production arrays and Gridap adapter surfaces remain
   `Float64`-oriented unless a future lane explicitly generalizes them. Local
   scalar helpers should avoid unnecessary downcasts when they can preserve
@@ -104,9 +116,9 @@ Implemented and committed:
   snapshot-count and payload guards passing, no required override flags, and a
   provisional exact-boundary status string. Imported bundles were observed for
   `sev23` and `sev40`; `sev50` remains expected-skip unless a bundle is
-  explicitly supplied. This did not run production or write solver outputs, and
-  Lane 11 now blocks promoting those status strings to mathematical or
-  manuscript-grade Section 4.1 claims.
+  explicitly supplied. This did not run production or write solver outputs.
+  Lane 11 P0 now supplies focused mathematical-contract evidence, but
+  production-scale execution and imported parity remain separate gates.
 - Lane 10C development execution probes reached the exact-boundary partitioned
   production path for `sev23` at `(40, 3, 16)`, `dt_s=1e-4`. Earlier probes
   failed closed at time steps 2-4 before writing solver artifacts because the
@@ -183,38 +195,32 @@ Implemented and committed:
 
 ## Remaining Dispatch Priority
 
-### Lane 11: Mathematical Contract Alignment
+### Lane 11 Follow-Up: Mathematical Contract Stewardship
 
-Priority: P0 before native Section 4.1 preproduction execution, production
-execution, imported parity promotion, or manuscript-facing reproduction claims.
+Priority: P1 maintenance after `2a54a06`, unless a regression reopens any
+FEM-01 through FEM-04, GEOM-01, or OBS-01 contract item. This lane remains a
+claim gate for manuscript-facing reproduction language.
 
-Objective: align the native resolved-FSI mathematical contract, geometry,
-observation operators, model names, and status language before using the
-batch-safe runner for Section 4.1 evidence. Treat this lane as a claim gate,
-not a wording-only cleanup.
+Objective: keep the native resolved-FSI mathematical contract, geometry,
+observation operators, model names, and status language aligned while the
+batch-safe runner is used for Section 4.1 evidence.
 
-Required P0 items:
+Completed P0 items in `2a54a06`:
 
-- FEM-01: make the transient convection term density-consistent in
-  `src/StenoticHemodynamics/adapters/native_resolved_fsi_gridap.jl`, or
-  explicitly density-divide the whole weak form and test that convention.
-- FEM-02: implement the symmetric-gradient Newtonian Cauchy traction form for
-  zero-stress language, or downgrade all `zero_outlet_stress` / exact-status
-  strings until the traction form is present and tested.
-- FEM-03: implement a boundary-aware pressure-space policy. Use a zero-mean
-  pressure space only when pressure is genuinely defined up to an additive
-  constant; avoid unconditional `constraint=:zeromean` under pressure/traction
-  boundary contracts where an absolute pressure reference is physically fixed.
-- FEM-04: implement transmural or full-traction wall loading for the membrane
-  handoff. Do not gauge-normalize wall pressure before using it as physical
-  wall forcing unless the formulation explicitly proves that convention.
-- GEOM-01: unify exact Canic case geometry across native resolved and reduced
-  comparison surfaces. `sev23` / imported case `77` must use
-  `delta_r_cm=0.0406`, `rmin_cm=0.1394`; imported case `60` uses
-  `delta_r_cm=0.072`, `rmin_cm=0.108`.
-- OBS-01: repair the radial-profile closure audit by computing section and
-  radial-bin observations on identical axial cuts and classifying each row as
-  `not_evaluated`, `failed_area_closure`, `failed_flow_closure`, or `passed`.
+- FEM-01: density-consistent transient/convection terms in
+  `native_resolved_fsi_gridap.jl`.
+- FEM-02: symmetric-gradient Newtonian Cauchy viscous form for exact-mode
+  zero-traction language.
+- FEM-03: boundary-aware pressure-space policy: smoke pressure-drop uses the
+  additive-nullspace zero-mean constraint; exact Poiseuille/natural-traction
+  mode uses no Gridap zero-mean pressure constraint.
+- FEM-04: membrane wall forcing uses raw physical wall-pressure samples;
+  outlet-gauge normalization is diagnostic/export-only and is validated in
+  restart metadata.
+- GEOM-01: exact Canic geometry is unified for native cases and imported
+  case labels `77`/`60`.
+- OBS-01: radial profile audit uses same axial cuts as section observations and
+  reports explicit closure classifications.
 
 Required P1 items:
 
@@ -235,8 +241,9 @@ Required P1 items:
 
 Acceptance criteria:
 
-- Status strings and dry-run/CLI/parity rows no longer imply exact Section 4.1
-  boundary equivalence until FEM-01 through FEM-04 are implemented and tested.
+- Status strings and dry-run/CLI/parity rows continue to distinguish
+  mathematical-contract support from production execution, imported parity, and
+  manuscript-grade reproduction.
 - The integrated mathematical-contract suite covers density scaling, traction
   form, pressure-space policy, wall-load convention, global mass balance, exact
   case geometry, and radial area/flow closure classification.
@@ -259,9 +266,10 @@ Validation:
 
 ### Lane 10C Follow-Up: Sev23 Preproduction Batch Execution
 
-Priority: P1 after Lane 11 passes. This lane remains P0 relative to any native
-reproduction claim, but it must not start until mathematical-contract alignment
-has either landed or explicitly downgraded the affected claims.
+Priority: P0 next execution gate. This lane is still P0 relative to any native
+reproduction claim; `2a54a06` clears the mathematical-contract prerequisite at
+focused test scope, but production evidence still requires actual execution and
+parity review.
 
 Objective: use the batch-safe runner to execute the exact-boundary `sev23`
 preproduction gate from
@@ -270,8 +278,9 @@ without broadening numerical semantics or bypassing Lane 11.
 
 Recommended dispatch order:
 
-1. Confirm Lane 11 status first. If any P0 mathematical-contract item is still
-   open, stop and keep this lane as dry-run/planning only.
+1. Confirm `2a54a06` remains in the baseline and no Lane 11 P0 regression is
+   present. If any mathematical-contract item reopens, stop and keep this lane
+   as dry-run/planning only.
 2. Start from the completed status-only dry-run matrix. Refresh it only if
    case parameters, guard policy, imported-data roots, or output schedules
    change.
