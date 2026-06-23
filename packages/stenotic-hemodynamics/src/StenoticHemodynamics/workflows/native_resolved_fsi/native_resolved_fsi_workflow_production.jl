@@ -16,6 +16,16 @@ const NATIVE_RESOLVED_FSI_PRODUCTION_INLET_OUTLET_BOUNDARY_MODES = (
 const NATIVE_RESOLVED_FSI_PRODUCTION_DEFAULT_INLET_OUTLET_BOUNDARY_MODE =
     :pressure_drop_weak_inlet_outlet_gauge_smoke
 const NATIVE_RESOLVED_FSI_PRODUCTION_SECTION41_INLET_UMAX_CM_S = 45.0
+const NATIVE_RESOLVED_FSI_PRODUCTION_SEV23_DEVELOPMENT_REFERENCE_TETRAHEDRA = 9_600
+const NATIVE_RESOLVED_FSI_PRODUCTION_SEV23_DEVELOPMENT_REFERENCE_STEPS = 100
+const NATIVE_RESOLVED_FSI_PRODUCTION_SEV23_DEVELOPMENT_REFERENCE_WALL_TIME_S = 25.0 * 60.0
+const NATIVE_RESOLVED_FSI_PRODUCTION_CHECKPOINT_ROLES = (
+    "wall_state",
+    "mesh_identity",
+    "fluid_state",
+    "coupling_state",
+    "output_linkage",
+)
 
 function native_resolved_fsi_production_boundary_mode(value::Union{Symbol,AbstractString})
     if isdefined(@__MODULE__, :native_resolved_fsi_inlet_outlet_boundary_mode)
@@ -121,6 +131,8 @@ struct NativeResolvedFSIPartitionedProductionSpec
     coupling_iteration_count::Int
     coupling_tolerance::Float64
     coupling_under_relaxation::Float64
+    progress_every::Int
+    status_every::Int
     allow_many_snapshots::Bool
     allow_large_output::Bool
 end
@@ -146,6 +158,8 @@ function NativeResolvedFSIPartitionedProductionSpec(;
     coupling_iteration_count::Integer = 1,
     coupling_tolerance::Real = 1.0e-8,
     coupling_under_relaxation::Real = 1.0,
+    progress_every::Integer = 0,
+    status_every::Integer = 1,
     allow_many_snapshots::Bool = false,
     allow_large_output::Bool = false,
 )
@@ -170,6 +184,8 @@ function NativeResolvedFSIPartitionedProductionSpec(;
         Int(coupling_iteration_count),
         Float64(coupling_tolerance),
         Float64(coupling_under_relaxation),
+        Int(progress_every),
+        Int(status_every),
         allow_many_snapshots,
         allow_large_output,
     ))
@@ -246,6 +262,10 @@ function validate(spec::NativeResolvedFSIPartitionedProductionSpec)
         throw(ArgumentError("native resolved-FSI partitioned production coupling_under_relaxation must be finite"))
     0.0 < spec.coupling_under_relaxation <= 1.0 ||
         throw(ArgumentError("native resolved-FSI partitioned production coupling_under_relaxation must lie in (0, 1]"))
+    spec.progress_every >= 0 ||
+        throw(ArgumentError("native resolved-FSI partitioned production progress_every must be nonnegative"))
+    spec.status_every > 0 ||
+        throw(ArgumentError("native resolved-FSI partitioned production status_every must be positive"))
 
     estimated_bytes = native_resolved_fsi_partitioned_production_estimated_field_payload_bytes(spec)
     estimated_bytes <= NATIVE_RESOLVED_FSI_PRODUCTION_MAX_OUTPUT_BYTES ||
@@ -298,6 +318,66 @@ function native_resolved_fsi_partitioned_production_estimated_field_payload_byte
         (BigInt(spec.resolution.axial) + 1) *
         (BigInt(1) + BigInt(spec.resolution.radial) * BigInt(spec.resolution.angular))
     return node_count * BigInt(7 * sizeof(Float64)) * BigInt(length(spec.snapshot_times_s))
+end
+
+function native_resolved_fsi_partitioned_production_estimated_time_step_count(
+    spec::NativeResolvedFSIPartitionedProductionSpec,
+)
+    return ceil(Int, last(spec.snapshot_times_s) / spec.dt_s)
+end
+
+function native_resolved_fsi_partitioned_production_expected_tetrahedron_count(
+    resolution::NativeResolvedFSIMeshResolution,
+)
+    return 3 * resolution.axial * resolution.angular * (2 * resolution.radial - 1)
+end
+
+function native_resolved_fsi_partitioned_production_estimated_runtime_s(
+    spec::NativeResolvedFSIPartitionedProductionSpec,
+)
+    tetrahedra = native_resolved_fsi_partitioned_production_expected_tetrahedron_count(spec.resolution)
+    steps = native_resolved_fsi_partitioned_production_estimated_time_step_count(spec)
+    reference_work =
+        NATIVE_RESOLVED_FSI_PRODUCTION_SEV23_DEVELOPMENT_REFERENCE_TETRAHEDRA *
+        NATIVE_RESOLVED_FSI_PRODUCTION_SEV23_DEVELOPMENT_REFERENCE_STEPS
+    work = tetrahedra * steps * max(spec.coupling_iteration_count, 1)
+    return NATIVE_RESOLVED_FSI_PRODUCTION_SEV23_DEVELOPMENT_REFERENCE_WALL_TIME_S * work / reference_work
+end
+
+function native_resolved_fsi_partitioned_production_expected_fluid_solve_upper_bound(
+    spec::NativeResolvedFSIPartitionedProductionSpec,
+)
+    steps = native_resolved_fsi_partitioned_production_estimated_time_step_count(spec)
+    return steps * max(spec.coupling_iteration_count, 1) + length(spec.snapshot_times_s)
+end
+
+function native_resolved_fsi_partitioned_production_spec_digest(
+    spec::NativeResolvedFSIPartitionedProductionSpec,
+)
+    resolution = spec.resolution
+    parts = String[
+        string(spec.case_spec.case_id),
+        string(resolution.axial),
+        string(resolution.radial),
+        string(resolution.angular),
+        spec.output_root,
+        string(spec.dt_s),
+        string(spec.tfinal_s),
+        join(string.(spec.snapshot_times_s), ","),
+        string(spec.inlet_outlet_boundary_mode),
+        string(spec.inlet_umax_cm_s),
+        string(spec.pressure_drop_dyn_cm2),
+        string(spec.picard_iteration_count),
+        string(spec.picard_tolerance),
+        string(spec.wall_density_g_cm3),
+        string(spec.wall_damping_g_cm2_s),
+        string(spec.wall_stiffness_policy),
+        string(spec.wall_reference_radius_policy),
+        string(spec.coupling_iteration_count),
+        string(spec.coupling_tolerance),
+        string(spec.coupling_under_relaxation),
+    ]
+    return bytes2hex(sha256(join(parts, "|")))[1:16]
 end
 
 """
@@ -365,6 +445,16 @@ struct NativeResolvedFSIProductionDryRunPlan
     snapshot_count_within_default_guard::Bool
     estimated_output_payload_within_default_guard::Bool
     required_override_flags::Vector{String}
+    estimated_time_step_count::Int
+    expected_fluid_solve_upper_bound::Int
+    estimated_preproduction_runtime_s::Float64
+    batch_status_jsonl::String
+    batch_status_csv::String
+    batch_benchmark_json::String
+    batch_failure_json::String
+    checkpoint_dir::String
+    checkpoint_roles::Vector{String}
+    production_spec_digest::String
     output_dir::String
     snapshot_output_dirs::Vector{String}
     manifest_csv::String
@@ -484,6 +574,8 @@ function native_resolved_fsi_production_workflow_plans(;
     coupling_iteration_count::Integer = 1,
     coupling_tolerance::Real = 1.0e-8,
     coupling_under_relaxation::Real = 1.0,
+    progress_every::Integer = 0,
+    status_every::Integer = 1,
     allow_many_snapshots::Bool = false,
     allow_large_output::Bool = false,
     displacement_mode::Union{Symbol,AbstractString} = :synthetic_radial_lift,
@@ -515,6 +607,8 @@ function native_resolved_fsi_production_workflow_plans(;
             coupling_iteration_count=coupling_iteration_count,
             coupling_tolerance=coupling_tolerance,
             coupling_under_relaxation=coupling_under_relaxation,
+            progress_every=progress_every,
+            status_every=status_every,
             allow_many_snapshots=allow_many_snapshots,
             allow_large_output=allow_large_output,
         )
@@ -569,7 +663,11 @@ function native_resolved_fsi_partitioned_production_dry_run(
         imported_data_root=String(imported_data_root),
     ))
     expected_node_count = (resolution.axial + 1) * (1 + resolution.radial * resolution.angular)
-    expected_tetrahedron_count = 3 * resolution.axial * resolution.angular * (2 * resolution.radial - 1)
+    expected_tetrahedron_count = native_resolved_fsi_partitioned_production_expected_tetrahedron_count(resolution)
+    estimated_time_step_count = native_resolved_fsi_partitioned_production_estimated_time_step_count(spec)
+    expected_fluid_solve_upper_bound =
+        native_resolved_fsi_partitioned_production_expected_fluid_solve_upper_bound(spec)
+    estimated_preproduction_runtime_s = native_resolved_fsi_partitioned_production_estimated_runtime_s(spec)
     guard_report = native_resolved_fsi_partitioned_production_default_guard_report(spec)
     boundary_status = native_resolved_fsi_boundary_status_fields(
         spec.inlet_outlet_boundary_mode;
@@ -587,6 +685,11 @@ function native_resolved_fsi_partitioned_production_dry_run(
         "production execution is available only through explicit production specs and remains smoke-scale/operator-readiness evidence, not paper-grade reproduction" :
         "production execution remains opt-in through explicit production specs and output-volume overrides"
     status = "dry-run ready: no production solver executed and no files written; $(override_status); $(imported_status); boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); pressure_nullspace_status=$(pressure_nullspace_status); wall_stability_status=$(wall_stability_status); $(execution_status)"
+    batch_status_jsonl = joinpath(output_dir, "batch_status.jsonl")
+    batch_status_csv = joinpath(output_dir, "batch_status.csv")
+    batch_benchmark_json = joinpath(output_dir, "batch_benchmark.json")
+    batch_failure_json = joinpath(output_dir, "batch_failure.json")
+    checkpoint_dir = joinpath(output_dir, "checkpoint")
     return NativeResolvedFSIProductionDryRunPlan(
         plan,
         spec.case_spec.case_id,
@@ -598,6 +701,16 @@ function native_resolved_fsi_partitioned_production_dry_run(
         guard_report.snapshot_count_within_default_guard,
         guard_report.estimated_output_payload_within_default_guard,
         copy(guard_report.required_override_flags),
+        estimated_time_step_count,
+        expected_fluid_solve_upper_bound,
+        estimated_preproduction_runtime_s,
+        batch_status_jsonl,
+        batch_status_csv,
+        batch_benchmark_json,
+        batch_failure_json,
+        checkpoint_dir,
+        collect(String, NATIVE_RESOLVED_FSI_PRODUCTION_CHECKPOINT_ROLES),
+        native_resolved_fsi_partitioned_production_spec_digest(spec),
         output_dir,
         snapshot_output_dirs,
         joinpath(output_dir, "snapshot_manifest.csv"),
@@ -642,6 +755,49 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
         return local_spec
     end
 
+    function production_canonical_path(path::String)
+        normalized = normpath(abspath(path))
+        while length(normalized) > 1 && (endswith(normalized, "/") || endswith(normalized, "\\"))
+            normalized = normalized[begin:prevind(normalized, lastindex(normalized))]
+        end
+        return normalized
+    end
+
+    production_repo_root() =
+        production_canonical_path(joinpath(@__DIR__, "..", "..", "..", "..", "..", ".."))
+
+    function production_same_or_descendant(path::String, parent::String)
+        rel = relpath(production_canonical_path(path), production_canonical_path(parent))
+        return rel == "." || !(rel == ".." || startswith(rel, "../") || startswith(rel, "..\\") || isabspath(rel))
+    end
+
+    function assert_production_output_path(output_dir::String)
+        output_abs = production_canonical_path(output_dir)
+        repo_root = production_repo_root()
+        output_abs == repo_root && throw(ArgumentError(
+            "refusing to use protected repository root as native resolved-FSI production output_dir: $output_dir",
+        ))
+        protected_roots = (
+            joinpath(repo_root, "packages", "stenotic-hemodynamics", "src"),
+            joinpath(repo_root, "packages", "stenotic-hemodynamics", "test"),
+            joinpath(repo_root, "packages", "ops", "src"),
+            joinpath(repo_root, "packages", "ops", "tests"),
+            joinpath(repo_root, "public", "docs"),
+            joinpath(repo_root, "public", "references"),
+            joinpath(repo_root, "public", "reproducibility"),
+            joinpath(repo_root, "public", "var", "data", "simulations"),
+            joinpath(repo_root, "report"),
+        )
+        for protected in protected_roots
+            if production_same_or_descendant(output_abs, protected)
+                throw(ArgumentError(
+                    "refusing to use protected repository path as native resolved-FSI production output_dir: $output_dir",
+                ))
+            end
+        end
+        return output_dir
+    end
+
     function snapshot_output_dir(local_spec::NativeResolvedFSIPartitionedProductionSpec, snapshot_time_s::Float64)
         output_dir = default_native_resolved_fsi_partitioned_production_output_dir(local_spec)
         length(local_spec.snapshot_times_s) == 1 && return output_dir
@@ -657,6 +813,306 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
     restart_metadata_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
         joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "restart_metadata.json")
 
+    batch_status_jsonl_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
+        joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "batch_status.jsonl")
+
+    batch_status_csv_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
+        joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "batch_status.csv")
+
+    batch_benchmark_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
+        joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "batch_benchmark.json")
+
+    batch_failure_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
+        joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "batch_failure.json")
+
+    function checkpoint_sidecar_paths(local_spec::NativeResolvedFSIPartitionedProductionSpec)
+        checkpoint_dir = joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "checkpoint")
+        return String[
+            joinpath(checkpoint_dir, "wall_state.json"),
+            joinpath(checkpoint_dir, "mesh_identity.json"),
+            joinpath(checkpoint_dir, "fluid_state.json"),
+            joinpath(checkpoint_dir, "coupling_state.json"),
+            joinpath(checkpoint_dir, "output_linkage.json"),
+        ]
+    end
+
+    function snapshot_bundle_paths(local_spec::NativeResolvedFSIPartitionedProductionSpec)
+        paths = String[]
+        for snapshot_time_s in local_spec.snapshot_times_s
+            output_dir = snapshot_output_dir(local_spec, snapshot_time_s)
+            append!(paths, String[
+                joinpath(output_dir, NATIVE_RESOLVED_FSI_DEFAULT_MESH_H5),
+                joinpath(output_dir, NATIVE_RESOLVED_FSI_DEFAULT_VELOCITY_XDMF),
+                joinpath(output_dir, NATIVE_RESOLVED_FSI_DEFAULT_VELOCITY_H5),
+                joinpath(output_dir, NATIVE_RESOLVED_FSI_DEFAULT_PRESSURE_XDMF),
+                joinpath(output_dir, NATIVE_RESOLVED_FSI_DEFAULT_PRESSURE_H5),
+                joinpath(output_dir, NATIVE_RESOLVED_FSI_DEFAULT_DISPLACEMENT_XDMF),
+                joinpath(output_dir, NATIVE_RESOLVED_FSI_DEFAULT_DISPLACEMENT_H5),
+            ])
+        end
+        return paths
+    end
+
+    function preflight_production_outputs(local_spec::NativeResolvedFSIPartitionedProductionSpec)
+        output_dir = default_native_resolved_fsi_partitioned_production_output_dir(local_spec)
+        assert_production_output_path(output_dir)
+        isfile(output_dir) && throw(ArgumentError(
+            "native resolved-FSI production output path exists and is not a directory: $output_dir",
+        ))
+        if isdir(output_dir) && !local_spec.overwrite
+            throw(ArgumentError(
+                "native resolved-FSI production output directory exists; pass overwrite=true to replace workflow-owned files: $output_dir",
+            ))
+        end
+        paths = vcat(
+            String[
+                manifest_path(local_spec),
+                diagnostics_path(local_spec),
+                restart_metadata_path(local_spec),
+                batch_status_jsonl_path(local_spec),
+                batch_status_csv_path(local_spec),
+                batch_benchmark_path(local_spec),
+                batch_failure_path(local_spec),
+            ],
+            snapshot_bundle_paths(local_spec),
+            checkpoint_sidecar_paths(local_spec),
+        )
+        for path in paths
+            if (isfile(path) || isdir(path)) && !local_spec.overwrite
+                throw(ArgumentError(
+                    "native resolved-FSI production output exists before solve; pass overwrite=true to replace workflow-owned output: $path",
+                ))
+            end
+        end
+        return output_dir
+    end
+
+    batch_status_header() = (
+        "event",
+        "status",
+        "case_id",
+        "time_step_index",
+        "expected_time_step_count",
+        "snapshot_time_s",
+        "physical_time_s",
+        "dt_s",
+        "elapsed_s",
+        "estimated_remaining_s",
+        "maxrss_bytes",
+        "minimum_current_radius_cm",
+        "minimum_signed_tetra_volume6",
+        "field_finite_status",
+        "final_coupling_displacement_residual_cm",
+        "step_coupling_converged",
+        "coupling_converged",
+        "max_coupling_iterations_used",
+        "pressure_projection_fallback_count",
+        "fluid_wall_boundary_mode",
+        "inlet_outlet_boundary_mode",
+        "production_spec_digest",
+        "output_dir",
+        "snapshot_manifest_csv",
+        "snapshot_diagnostics_csv",
+        "restart_metadata_json",
+        "batch_status_jsonl",
+        "batch_status_csv",
+        "batch_benchmark_json",
+        "batch_failure_json",
+        "message",
+    )
+
+    function prepare_batch_status_sidecars(local_spec::NativeResolvedFSIPartitionedProductionSpec)
+        status_jsonl = batch_status_jsonl_path(local_spec)
+        status_csv = batch_status_csv_path(local_spec)
+        if local_spec.overwrite
+            isfile(batch_benchmark_path(local_spec)) && rm(batch_benchmark_path(local_spec); force=true)
+            isfile(batch_failure_path(local_spec)) && rm(batch_failure_path(local_spec); force=true)
+        end
+        guarded_open_write(status_jsonl, local_spec.overwrite) do io
+            write(io, "")
+        end
+        guarded_open_write(status_csv, local_spec.overwrite) do io
+            println(io, csv_record(batch_status_header()))
+        end
+        return (status_jsonl=status_jsonl, status_csv=status_csv)
+    end
+
+    function batch_memory_bytes()
+        return try
+            isdefined(Sys, :maxrss) ? Int(Sys.maxrss()) : 0
+        catch
+            0
+        end
+    end
+
+    batch_event_value(event::NamedTuple, key::Symbol, default) =
+        haskey(event, key) ? getfield(event, key) : default
+
+    function batch_status_row(
+        local_spec::NativeResolvedFSIPartitionedProductionSpec,
+        event::NamedTuple,
+        start_ns::UInt64,
+    )
+        step_index = batch_event_value(event, :time_step_index, 0)
+        expected_steps = batch_event_value(
+            event,
+            :expected_time_step_count,
+            native_resolved_fsi_partitioned_production_estimated_time_step_count(local_spec),
+        )
+        elapsed_s = telemetry_elapsed_s(start_ns)
+        estimated_remaining_s =
+            step_index > 0 && expected_steps >= step_index ?
+            round(elapsed_s * (expected_steps - step_index) / step_index; digits=6) :
+            NaN
+        return (
+            event=string(batch_event_value(event, :event, "status")),
+            status=string(batch_event_value(event, :status, "running")),
+            case_id=string(local_spec.case_spec.case_id),
+            time_step_index=step_index,
+            expected_time_step_count=expected_steps,
+            snapshot_time_s=batch_event_value(event, :snapshot_time_s, NaN),
+            physical_time_s=batch_event_value(event, :time_s, NaN),
+            dt_s=batch_event_value(event, :dt_s, NaN),
+            elapsed_s=elapsed_s,
+            estimated_remaining_s=estimated_remaining_s,
+            maxrss_bytes=batch_memory_bytes(),
+            minimum_current_radius_cm=batch_event_value(event, :minimum_current_radius_cm, NaN),
+            minimum_signed_tetra_volume6=batch_event_value(event, :minimum_signed_tetra_volume6, NaN),
+            field_finite_status=string(batch_event_value(event, :field_finite_status, "unknown")),
+            final_coupling_displacement_residual_cm=
+                batch_event_value(event, :final_coupling_displacement_residual_cm, NaN),
+            step_coupling_converged=batch_event_value(event, :step_coupling_converged, false),
+            coupling_converged=batch_event_value(event, :coupling_converged, false),
+            max_coupling_iterations_used=batch_event_value(event, :max_coupling_iterations_used, 0),
+            pressure_projection_fallback_count=batch_event_value(event, :pressure_projection_fallback_count, 0),
+            fluid_wall_boundary_mode=string(batch_event_value(event, :fluid_wall_boundary_mode, "")),
+            inlet_outlet_boundary_mode=string(batch_event_value(
+                event,
+                :inlet_outlet_boundary_mode,
+                string(local_spec.inlet_outlet_boundary_mode),
+            )),
+            production_spec_digest=native_resolved_fsi_partitioned_production_spec_digest(local_spec),
+            output_dir=default_native_resolved_fsi_partitioned_production_output_dir(local_spec),
+            snapshot_manifest_csv=manifest_path(local_spec),
+            snapshot_diagnostics_csv=diagnostics_path(local_spec),
+            restart_metadata_json=restart_metadata_path(local_spec),
+            batch_status_jsonl=batch_status_jsonl_path(local_spec),
+            batch_status_csv=batch_status_csv_path(local_spec),
+            batch_benchmark_json=batch_benchmark_path(local_spec),
+            batch_failure_json=batch_failure_path(local_spec),
+            message=string(batch_event_value(event, :message, "")),
+        )
+    end
+
+    function append_batch_status!(
+        local_spec::NativeResolvedFSIPartitionedProductionSpec,
+        row::NamedTuple,
+    )
+        function write_compact_status_value(io, value)
+            if value isa Bool
+                write(io, value ? "true" : "false")
+            elseif value isa Number
+                write(io, isfinite(float(value)) ? string(value) : "null")
+            elseif value === nothing
+                write(io, "null")
+            else
+                write(io, json_string(string(value)))
+            end
+        end
+        function write_compact_status_row(io, row::NamedTuple)
+            write(io, "{")
+            first = true
+            for (key, value) in pairs(row)
+                first || write(io, ",")
+                write(io, json_string(string(key)), ":")
+                write_compact_status_value(io, value)
+                first = false
+            end
+            write(io, "}")
+        end
+        open(batch_status_jsonl_path(local_spec), "a") do io
+            write_compact_status_row(io, row)
+            write(io, "\n")
+        end
+        open(batch_status_csv_path(local_spec), "a") do io
+            println(io, csv_record(Tuple(row)))
+        end
+        return row
+    end
+
+    function write_batch_failure(
+        local_spec::NativeResolvedFSIPartitionedProductionSpec,
+        error,
+        start_ns::UInt64,
+    )
+        row = batch_status_row(
+            local_spec,
+            (
+                event="production_failed",
+                status="error",
+                message=sprint(showerror, error),
+            ),
+            start_ns,
+        )
+        if isfile(batch_status_jsonl_path(local_spec)) && isfile(batch_status_csv_path(local_spec))
+            append_batch_status!(local_spec, row)
+        end
+        write_json(batch_failure_path(local_spec), Dict{String,Any}(
+            string(key) => value for (key, value) in pairs(row)
+        ); overwrite=true)
+        return row
+    end
+
+    function write_batch_benchmark(
+        local_spec::NativeResolvedFSIPartitionedProductionSpec,
+        result,
+        start_ns::UInt64,
+    )
+        elapsed_s = telemetry_elapsed_s(start_ns)
+        time_steps = result.smoke_result.time_step_count
+        tetrahedra = size(result.smoke_result.mesh.topology, 1)
+        benchmark = Dict{String,Any}(
+            "case_id" => string(local_spec.case_spec.case_id),
+            "mesh_resolution" => Dict{String,Any}(
+                "axial" => local_spec.resolution.axial,
+                "radial" => local_spec.resolution.radial,
+                "angular" => local_spec.resolution.angular,
+            ),
+            "tetrahedron_count" => tetrahedra,
+            "node_count" => size(result.smoke_result.mesh.coordinates, 1),
+            "dt_s" => local_spec.dt_s,
+            "tfinal_s" => local_spec.tfinal_s,
+            "snapshot_times_s" => copy(local_spec.snapshot_times_s),
+            "time_step_count" => time_steps,
+            "elapsed_wall_time_s" => elapsed_s,
+            "seconds_per_step" => time_steps > 0 ? elapsed_s / time_steps : NaN,
+            "steps_per_second" => elapsed_s > 0.0 ? time_steps / elapsed_s : NaN,
+            "tetrahedron_steps_per_second" => elapsed_s > 0.0 ? tetrahedra * time_steps / elapsed_s : NaN,
+            "estimated_runtime_s_from_development_reference" =>
+                native_resolved_fsi_partitioned_production_estimated_runtime_s(local_spec),
+            "maxrss_bytes" => batch_memory_bytes(),
+            "coupling_converged" => result.smoke_result.coupling_converged,
+            "final_coupling_displacement_residual_cm" =>
+                result.smoke_result.final_coupling_displacement_residual_cm,
+            "minimum_current_radius_cm" => result.smoke_result.minimum_current_radius_cm,
+            "minimum_signed_tetra_volume6" => result.smoke_result.minimum_signed_tetra_volume6,
+            "field_finite_status" => result.smoke_result.field_status.ready ? "ready" : "failed",
+            "output_dir" => result.output_dir,
+            "snapshot_manifest_csv" => result.manifest_csv,
+            "snapshot_diagnostics_csv" => result.diagnostics_csv,
+            "restart_metadata_json" => result.restart_metadata_json,
+            "batch_status_jsonl" => batch_status_jsonl_path(local_spec),
+            "batch_status_csv" => batch_status_csv_path(local_spec),
+            "batch_benchmark_json" => batch_benchmark_path(local_spec),
+            "batch_failure_json" => batch_failure_path(local_spec),
+            "production_spec_digest" => native_resolved_fsi_partitioned_production_spec_digest(local_spec),
+            "claim_boundary" =>
+                "benchmark sidecar records batch execution observability only; not production parity or paper-grade reproduction",
+        )
+        write_json(batch_benchmark_path(local_spec), benchmark; overwrite=local_spec.overwrite)
+        return benchmark
+    end
+
     function wall_velocity_fluid_bc_status(fluid_wall_boundary_mode::Symbol)
         if fluid_wall_boundary_mode === NATIVE_RESOLVED_FSI_PARTITIONED_EXACT_FLUID_WALL_BOUNDARY_MODE
             return "stationary_wall_on_deformed_geometry_for_exact_inlet_outlet_mode"
@@ -668,30 +1124,7 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
     end
 
     function production_spec_digest(local_spec::NativeResolvedFSIPartitionedProductionSpec)
-        resolution = local_spec.resolution
-        parts = String[
-            string(local_spec.case_spec.case_id),
-            string(resolution.axial),
-            string(resolution.radial),
-            string(resolution.angular),
-            local_spec.output_root,
-            string(local_spec.dt_s),
-            string(local_spec.tfinal_s),
-            join(string.(local_spec.snapshot_times_s), ","),
-            string(local_spec.inlet_outlet_boundary_mode),
-            string(local_spec.inlet_umax_cm_s),
-            string(local_spec.pressure_drop_dyn_cm2),
-            string(local_spec.picard_iteration_count),
-            string(local_spec.picard_tolerance),
-            string(local_spec.wall_density_g_cm3),
-            string(local_spec.wall_damping_g_cm2_s),
-            string(local_spec.wall_stiffness_policy),
-            string(local_spec.wall_reference_radius_policy),
-            string(local_spec.coupling_iteration_count),
-            string(local_spec.coupling_tolerance),
-            string(local_spec.coupling_under_relaxation),
-        ]
-        return bytes2hex(sha256(join(parts, "|")))[1:16]
+        return native_resolved_fsi_partitioned_production_spec_digest(local_spec)
     end
 
     function snapshot_production_spec(
@@ -719,6 +1152,8 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             coupling_iteration_count=local_spec.coupling_iteration_count,
             coupling_tolerance=local_spec.coupling_tolerance,
             coupling_under_relaxation=local_spec.coupling_under_relaxation,
+            progress_every=local_spec.progress_every,
+            status_every=local_spec.status_every,
             allow_large_output=local_spec.allow_large_output,
         )
     end
@@ -782,7 +1217,7 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
         )
     end
 
-    function run_state_carrying_snapshots(local_spec::NativeResolvedFSIPartitionedProductionSpec)
+    function run_state_carrying_snapshots(local_spec::NativeResolvedFSIPartitionedProductionSpec, start_ns::UInt64)
         mesh = native_resolved_fsi_mesh(local_spec.case_spec, local_spec.resolution)
         native_resolved_fsi_smoke_validate_mesh(mesh)
         estimated_field_payload_bytes = native_resolved_fsi_smoke_estimated_field_payload_bytes(mesh)
@@ -794,10 +1229,26 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             local_spec.tfinal_s,
             default_native_resolved_fsi_partitioned_production_output_dir(local_spec),
         )
+        function progress_callback(progress_event::NamedTuple)
+            row = batch_status_row(local_spec, progress_event, start_ns)
+            event_name = row.event
+            step_index = row.time_step_index
+            write_status = event_name == "snapshot_completed" ||
+                           (step_index > 0 && step_index % local_spec.status_every == 0)
+            write_status && append_batch_status!(local_spec, row)
+            write_progress = local_spec.progress_every > 0 &&
+                             step_index > 0 &&
+                             step_index % local_spec.progress_every == 0
+            if write_progress || event_name == "snapshot_completed"
+                @telemetry_info "native resolved-FSI production progress" event=event_name stage="native_resolved_fsi_production" status=row.status case_id=row.case_id step=step_index total_steps=row.expected_time_step_count time_s=row.physical_time_s elapsed_s=row.elapsed_s estimated_remaining_s=row.estimated_remaining_s min_radius_cm=row.minimum_current_radius_cm min_tetra_volume6=row.minimum_signed_tetra_volume6 coupling_converged=row.coupling_converged coupling_residual_cm=row.final_coupling_displacement_residual_cm output_dir=row.output_dir production_spec_digest=row.production_spec_digest
+            end
+            return row
+        end
         solve_results = native_resolved_fsi_solve_partitioned_snapshot_series(
             mesh,
             series_spec,
             local_spec.snapshot_times_s,
+            progress_callback=progress_callback,
         )
         snapshot_results = NamedTuple[]
         for (index, snapshot_time_s) in enumerate(local_spec.snapshot_times_s)
@@ -1256,6 +1707,10 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "current_importer_roundtrip_ready" => rows[end].importer_roundtrip_ready,
             "snapshot_manifest_csv" => manifest_csv,
             "diagnostics_csv" => diagnostics_csv,
+            "batch_status_jsonl" => batch_status_jsonl_path(local_spec),
+            "batch_status_csv" => batch_status_csv_path(local_spec),
+            "batch_benchmark_json" => batch_benchmark_path(local_spec),
+            "batch_failure_json" => batch_failure_path(local_spec),
             "snapshot_outputs" => snapshot_outputs,
             "state_payload" => state_payload,
             "production_spec_digest" => production_spec_digest(local_spec),
@@ -1345,44 +1800,96 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
     validate(spec)
     validate_runner_scope(spec)
 
+    start_ns = telemetry_start_ns()
     production_output_dir = default_native_resolved_fsi_partitioned_production_output_dir(spec)
-    snapshot_results = run_state_carrying_snapshots(spec)
-    manifest_csv = manifest_path(spec)
-    write_manifest(manifest_csv, spec, snapshot_results)
-    diagnostics_csv = diagnostics_path(spec)
-    diagnostic_rows = build_diagnostic_rows(spec, snapshot_results)
-    write_diagnostics(diagnostics_csv, diagnostic_rows, spec.overwrite)
-    restart_metadata_json = restart_metadata_path(spec)
-    checkpoint_manifest = write_restart_checkpoint_state(
+    preflight_production_outputs(spec)
+    prepare_batch_status_sidecars(spec)
+    append_batch_status!(spec, batch_status_row(
         spec,
-        snapshot_results,
-        diagnostic_rows,
-        manifest_csv,
-        diagnostics_csv,
-        restart_metadata_json,
-    )
-    metadata = restart_metadata(spec, snapshot_results, diagnostic_rows, manifest_csv, diagnostics_csv, checkpoint_manifest)
-    write_restart_metadata(restart_metadata_json, metadata, spec.overwrite)
-    final_snapshot = snapshot_results[end]
-
-    return NativeResolvedFSIPartitionedProductionResult(
-        spec,
-        final_snapshot.smoke_spec,
-        final_snapshot.smoke_result,
-        production_output_dir,
-        manifest_csv,
-        diagnostics_csv,
-        restart_metadata_json,
-        snapshot_results,
-        diagnostic_rows,
-        metadata,
-        final_snapshot.snapshot_time_s,
-        copy(spec.snapshot_times_s),
-        output_status(spec, snapshot_results, manifest_csv, diagnostics_csv, restart_metadata_json),
-        method_status(snapshot_results),
-        diagnostics_status(diagnostic_rows, diagnostics_csv),
-        restart_status(metadata, restart_metadata_json),
-    )
+        (
+            event="production_started",
+            status="started",
+            expected_time_step_count=native_resolved_fsi_partitioned_production_estimated_time_step_count(spec),
+            dt_s=spec.dt_s,
+            time_s=0.0,
+            snapshot_time_s=first(spec.snapshot_times_s),
+            field_finite_status="not_sampled_yet",
+            inlet_outlet_boundary_mode=string(spec.inlet_outlet_boundary_mode),
+            message="native resolved-FSI production batch started",
+        ),
+        start_ns,
+    ))
+    @telemetry_info "native resolved-FSI production started" event="native_resolved_fsi_production_started" stage="native_resolved_fsi_production" status="started" case_id=string(spec.case_spec.case_id) output_dir=production_output_dir dt_s=spec.dt_s tfinal_s=spec.tfinal_s expected_time_step_count=native_resolved_fsi_partitioned_production_estimated_time_step_count(spec) expected_fluid_solve_upper_bound=native_resolved_fsi_partitioned_production_expected_fluid_solve_upper_bound(spec) production_spec_digest=native_resolved_fsi_partitioned_production_spec_digest(spec)
+    try
+        snapshot_results = run_state_carrying_snapshots(spec, start_ns)
+        manifest_csv = manifest_path(spec)
+        write_manifest(manifest_csv, spec, snapshot_results)
+        diagnostics_csv = diagnostics_path(spec)
+        diagnostic_rows = build_diagnostic_rows(spec, snapshot_results)
+        write_diagnostics(diagnostics_csv, diagnostic_rows, spec.overwrite)
+        restart_metadata_json = restart_metadata_path(spec)
+        checkpoint_manifest = write_restart_checkpoint_state(
+            spec,
+            snapshot_results,
+            diagnostic_rows,
+            manifest_csv,
+            diagnostics_csv,
+            restart_metadata_json,
+        )
+        metadata = restart_metadata(spec, snapshot_results, diagnostic_rows, manifest_csv, diagnostics_csv, checkpoint_manifest)
+        write_restart_metadata(restart_metadata_json, metadata, spec.overwrite)
+        final_snapshot = snapshot_results[end]
+        result = NativeResolvedFSIPartitionedProductionResult(
+            spec,
+            final_snapshot.smoke_spec,
+            final_snapshot.smoke_result,
+            production_output_dir,
+            manifest_csv,
+            diagnostics_csv,
+            restart_metadata_json,
+            snapshot_results,
+            diagnostic_rows,
+            metadata,
+            final_snapshot.snapshot_time_s,
+            copy(spec.snapshot_times_s),
+            output_status(spec, snapshot_results, manifest_csv, diagnostics_csv, restart_metadata_json),
+            method_status(snapshot_results),
+            diagnostics_status(diagnostic_rows, diagnostics_csv),
+            restart_status(metadata, restart_metadata_json),
+        )
+        write_batch_benchmark(spec, result, start_ns)
+        append_batch_status!(spec, batch_status_row(
+            spec,
+            (
+                event="production_completed",
+                status="ok",
+                time_step_index=result.smoke_result.time_step_count,
+                expected_time_step_count=native_resolved_fsi_partitioned_production_estimated_time_step_count(spec),
+                snapshot_time_s=result.saved_time_s,
+                time_s=result.saved_time_s,
+                dt_s=spec.dt_s,
+                minimum_current_radius_cm=result.smoke_result.minimum_current_radius_cm,
+                minimum_signed_tetra_volume6=result.smoke_result.minimum_signed_tetra_volume6,
+                field_finite_status=result.smoke_result.field_status.ready ? "ready" : "failed",
+                final_coupling_displacement_residual_cm=
+                    result.smoke_result.final_coupling_displacement_residual_cm,
+                step_coupling_converged=result.smoke_result.coupling_converged,
+                coupling_converged=result.smoke_result.coupling_converged,
+                max_coupling_iterations_used=result.smoke_result.max_coupling_iterations_used,
+                pressure_projection_fallback_count=result.smoke_result.pressure_projection_fallback_count,
+                fluid_wall_boundary_mode=string(result.smoke_result.fluid_wall_boundary_mode),
+                inlet_outlet_boundary_mode=string(result.smoke_result.inlet_outlet_boundary_mode),
+                message="native resolved-FSI production batch completed",
+            ),
+            start_ns,
+        ))
+        @telemetry_info "native resolved-FSI production completed" event="native_resolved_fsi_production_completed" stage="native_resolved_fsi_production" status="ok" case_id=string(spec.case_spec.case_id) elapsed_s=telemetry_elapsed_s(start_ns) output_dir=production_output_dir time_step_count=result.smoke_result.time_step_count coupling_converged=result.smoke_result.coupling_converged production_spec_digest=native_resolved_fsi_partitioned_production_spec_digest(spec)
+        return result
+    catch err
+        write_batch_failure(spec, err, start_ns)
+        @telemetry_error "native resolved-FSI production failed" event="native_resolved_fsi_production_failed" stage="native_resolved_fsi_production" status="error" case_id=string(spec.case_spec.case_id) elapsed_s=telemetry_elapsed_s(start_ns) output_dir=production_output_dir reason=sprint(showerror, err) production_spec_digest=native_resolved_fsi_partitioned_production_spec_digest(spec)
+        rethrow()
+    end
 end
 
 run_native_resolved_fsi(spec::NativeResolvedFSIPartitionedProductionSpec) =

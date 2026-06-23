@@ -164,6 +164,8 @@ end
     @test tiny_spec.coupling_iteration_count == 2
     @test tiny_spec.coupling_tolerance ≈ 1.0e-7
     @test tiny_spec.coupling_under_relaxation ≈ 0.5
+    @test tiny_spec.progress_every == 0
+    @test tiny_spec.status_every == 1
     @test tiny_spec.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke
     @test default_native_resolved_fsi_partitioned_production_output_dir(tiny_spec) ==
           joinpath(
@@ -213,6 +215,10 @@ end
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(coupling_tolerance=0.0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(coupling_under_relaxation=0.0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(coupling_under_relaxation=1.01)
+    @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(progress_every=-1)
+    @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(status_every=0)
+    @test NativeResolvedFSIPartitionedProductionSpec(progress_every=10, status_every=2).progress_every == 10
+    @test NativeResolvedFSIPartitionedProductionSpec(progress_every=10, status_every=2).status_every == 2
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(
         snapshot_times_s=collect(range(0.0, 1.0; length=51)),
     )
@@ -317,6 +323,17 @@ end
         @test dry_run.snapshot_count_within_default_guard
         @test dry_run.estimated_output_payload_within_default_guard
         @test isempty(dry_run.required_override_flags)
+        @test dry_run.estimated_time_step_count == 2
+        @test dry_run.expected_fluid_solve_upper_bound == 4
+        @test dry_run.estimated_preproduction_runtime_s > 0.0
+        @test dry_run.batch_status_jsonl == joinpath(expected_output_dir, "batch_status.jsonl")
+        @test dry_run.batch_status_csv == joinpath(expected_output_dir, "batch_status.csv")
+        @test dry_run.batch_benchmark_json == joinpath(expected_output_dir, "batch_benchmark.json")
+        @test dry_run.batch_failure_json == joinpath(expected_output_dir, "batch_failure.json")
+        @test dry_run.checkpoint_dir == joinpath(expected_output_dir, "checkpoint")
+        @test Set(dry_run.checkpoint_roles) ==
+              Set(["wall_state", "mesh_identity", "fluid_state", "coupling_state", "output_linkage"])
+        @test length(dry_run.production_spec_digest) == 16
         @test dry_run.output_dir == expected_output_dir
         @test dry_run.snapshot_output_dirs == [
             joinpath(expected_output_dir, "snapshot-t0p0001"),
@@ -379,6 +396,8 @@ end
         @test !blocked_dry_run.snapshot_count_within_default_guard
         @test !blocked_dry_run.estimated_output_payload_within_default_guard
         @test blocked_dry_run.required_override_flags == ["allow_many_snapshots", "allow_large_output"]
+        @test blocked_dry_run.estimated_time_step_count == 51
+        @test blocked_dry_run.expected_fluid_solve_upper_bound == 102
         @test occursin("allow_many_snapshots, allow_large_output", blocked_dry_run.status)
         @test !ispath(blocked_dry_run.output_dir)
 
@@ -452,6 +471,14 @@ end
         @test isfile(result.manifest_csv)
         @test isfile(result.diagnostics_csv)
         @test isfile(result.restart_metadata_json)
+        batch_status_jsonl = joinpath(result.output_dir, "batch_status.jsonl")
+        batch_status_csv = joinpath(result.output_dir, "batch_status.csv")
+        batch_benchmark_json = joinpath(result.output_dir, "batch_benchmark.json")
+        batch_failure_json = joinpath(result.output_dir, "batch_failure.json")
+        @test isfile(batch_status_jsonl)
+        @test isfile(batch_status_csv)
+        @test isfile(batch_benchmark_json)
+        @test !isfile(batch_failure_json)
         @test length(result.snapshot_results) == 1
         @test length(result.diagnostic_rows) == 1
         @test result.snapshot_results[1].output_dir == result.output_dir
@@ -520,8 +547,36 @@ end
         @test occursin("wall_update_ready", diagnostic_lines[1])
         @test occursin("provenance", diagnostic_lines[1])
         @test occursin(",ready", diagnostic_lines[2])
+        batch_status_lines = readlines(batch_status_jsonl)
+        @test length(batch_status_lines) >= 4
+        @test all(startswith(line, "{") && endswith(line, "}") for line in batch_status_lines)
+        @test any(occursin("\"event\":\"production_started\"", line) for line in batch_status_lines)
+        @test any(occursin("\"event\":\"time_step_completed\"", line) for line in batch_status_lines)
+        @test any(occursin("\"event\":\"snapshot_completed\"", line) for line in batch_status_lines)
+        @test any(occursin("\"event\":\"production_completed\"", line) for line in batch_status_lines)
+        @test any(occursin("\"estimated_remaining_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"minimum_current_radius_cm\":", line) for line in batch_status_lines)
+        @test any(occursin("\"minimum_signed_tetra_volume6\":", line) for line in batch_status_lines)
+        @test any(occursin("\"field_finite_status\":\"ready\"", line) for line in batch_status_lines)
+        @test any(occursin("\"production_spec_digest\":", line) for line in batch_status_lines)
+        batch_status_csv_lines = readlines(batch_status_csv)
+        @test length(batch_status_csv_lines) == length(batch_status_lines) + 1
+        @test occursin("estimated_remaining_s", first(batch_status_csv_lines))
+        @test occursin("fluid_wall_boundary_mode", first(batch_status_csv_lines))
+        @test occursin("production_spec_digest", first(batch_status_csv_lines))
+        batch_benchmark_text = read(batch_benchmark_json, String)
+        @test occursin("\"elapsed_wall_time_s\":", batch_benchmark_text)
+        @test occursin("\"seconds_per_step\":", batch_benchmark_text)
+        @test occursin("\"tetrahedron_steps_per_second\":", batch_benchmark_text)
+        @test occursin("\"production_spec_digest\":", batch_benchmark_text)
+        @test occursin("observability only", batch_benchmark_text)
         @test result.restart_metadata["snapshot_manifest_csv"] == result.manifest_csv
         @test result.restart_metadata["diagnostics_csv"] == result.diagnostics_csv
+        @test result.restart_metadata["batch_status_jsonl"] == batch_status_jsonl
+        @test result.restart_metadata["batch_status_csv"] == batch_status_csv
+        @test result.restart_metadata["batch_benchmark_json"] == batch_benchmark_json
+        @test result.restart_metadata["batch_failure_json"] == batch_failure_json
+        @test length(result.restart_metadata["production_spec_digest"]) == 16
         @test result.restart_metadata["restart_provenance"] == "state_carrying_partitioned"
         @test result.restart_metadata["state_carrying_restart"] == true
         @test result.restart_metadata["max_coupling_iterations_used"] == result.smoke_result.max_coupling_iterations_used
@@ -1101,6 +1156,52 @@ end
         end
         @test invalid_projection_error isa ArgumentError
         @test occursin("wall_pressure_projection_status", sprint(showerror, invalid_projection_error))
+    end
+
+    mktempdir() do dir
+        collision_spec = NativeResolvedFSIPartitionedProductionSpec(
+            resolution=resolution,
+            output_root=joinpath(dir, "collision-production"),
+            dt_s=1.0e-4,
+            tfinal_s=1.0e-4,
+            snapshot_times_s=[1.0e-4],
+        )
+        mkpath(default_native_resolved_fsi_partitioned_production_output_dir(collision_spec))
+        collision_error = try
+            run_native_resolved_fsi_partitioned_production(collision_spec)
+            nothing
+        catch err
+            err
+        end
+        @test collision_error isa ArgumentError
+        @test occursin("output directory exists", sprint(showerror, collision_error))
+        @test !isfile(joinpath(default_native_resolved_fsi_partitioned_production_output_dir(collision_spec), "batch_status.jsonl"))
+    end
+
+    mktempdir() do dir
+        unstable_spec = NativeResolvedFSIPartitionedProductionSpec(
+            resolution=resolution,
+            output_root=joinpath(dir, "unstable-production"),
+            dt_s=1.0,
+            tfinal_s=1.0,
+            snapshot_times_s=[1.0],
+            overwrite=true,
+        )
+        unstable_error = try
+            run_native_resolved_fsi_partitioned_production(unstable_spec)
+            nothing
+        catch err
+            err
+        end
+        unstable_output_dir = default_native_resolved_fsi_partitioned_production_output_dir(unstable_spec)
+        @test unstable_error isa ArgumentError
+        @test isfile(joinpath(unstable_output_dir, "batch_status.jsonl"))
+        @test isfile(joinpath(unstable_output_dir, "batch_status.csv"))
+        @test isfile(joinpath(unstable_output_dir, "batch_failure.json"))
+        failure_text = read(joinpath(unstable_output_dir, "batch_failure.json"), String)
+        @test occursin("\"event\": \"production_failed\"", failure_text)
+        @test occursin("\"status\": \"error\"", failure_text)
+        @test occursin("stability", failure_text)
     end
 
     zero_snapshot_spec = NativeResolvedFSIPartitionedProductionSpec(

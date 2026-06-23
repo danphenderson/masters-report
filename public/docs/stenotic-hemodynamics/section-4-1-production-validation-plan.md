@@ -327,6 +327,12 @@ Operational policy for non-smoke runs:
 - require dry-run/status review before launching;
 - record requested mesh resolution, case set, snapshot count, estimated bytes,
   output root, and override flags in the handoff;
+- enable batch status sidecars for long runs: `batch_status.jsonl`,
+  `batch_status.csv`, `batch_benchmark.json`, and fail-fast
+  `batch_failure.json`;
+- preflight output ownership before the solver starts; a preproduction batch
+  should fail before Gridap work if the deterministic output directory already
+  exists and `overwrite=false`;
 - keep outputs in ignored scratch directories until an explicit artifact
   publication lane exists;
 - do not refresh report/manuscript artifacts from this lane.
@@ -348,7 +354,15 @@ Operational policy for non-smoke runs:
    importer-compatible sidecars. The run uses one coupling iteration per step
    and records bounded but non-converged coupling history, so this is not
    preproduction, production, parity, or moving-wall ALE evidence.
-3. **10C-impl2b: preproduction execution.** Run exact-boundary `sev23` at
+3. **10C-impl2b: preproduction batch preparation.** Completed as operational
+   readiness work. The production runner now preflights owned output paths
+   before solving, emits JSONL/CSV heartbeat rows with step count, physical
+   time, elapsed time, estimated remaining time, memory footprint when
+   available, minimum current radius, minimum signed tetra volume, field
+   finite status, coupling residual/convergence status, and output/status
+   paths, and writes final benchmark or failure sidecars. This is not
+   preproduction execution evidence.
+4. **10C-impl2c: preproduction execution.** Run exact-boundary `sev23` at
    preproduction scale, exercising finite fields, pressure normalization,
    importer round-trip, sidecars, observation rows, and stronger coupling
    settings or explicitly bounded coupling status. Keep
@@ -357,9 +371,9 @@ Operational policy for non-smoke runs:
    development gate took about 25 minutes for 101 steps at 9,600 tetrahedra;
    preproduction and production-target execution should be treated as
    long-running batch work, not as an interactive smoke test.
-4. **10C-impl3: full case-set production generation.** Run `sev23`, `sev40`,
+5. **10C-impl3: full case-set production generation.** Run `sev23`, `sev40`,
    and `sev50` at `(120, 5, 32)`, `dt_s=1e-4`, `T=1.0`, final snapshot only.
-5. **10C-impl4: imported-data parity.** Development-output parity has run for
+6. **10C-impl4: imported-data parity.** Development-output parity has run for
    `sev23` against imported case `77`: observation and summary artifacts were
    written, imported observations loaded, and nonzero development-scale
    discrepancies were recorded (`max_mean_velocity_abs_difference_cm_s ≈
@@ -368,5 +382,5 @@ Operational policy for non-smoke runs:
    parity still requires generated production-target outputs paired with
    optional imported bundles; keep `sev50` and missing pressure/displacement
    data skip-safe.
-6. **10C-editorial: manuscript claim review.** Update manuscript/report claims
+7. **10C-editorial: manuscript claim review.** Update manuscript/report claims
    only after gates 1-8 are reviewed and accepted by the editorial owner.

@@ -51,6 +51,12 @@ Implemented and committed:
   remains readable, schema-v2 checkpoint-manifest metadata is shape-validated,
   and `resume_supported=true` remains rejected until durable FE-state
   serialization and a reconstruction runner land.
+- Lane 10C batch-prep: the partitioned production runner now preflights output
+  ownership before Gridap work, writes `batch_status.jsonl`,
+  `batch_status.csv`, `batch_benchmark.json`, and fail-fast
+  `batch_failure.json` sidecars, and reports step/time/radius/mesh/field/
+  coupling/path status for long batch runs. This is observability and batch
+  safety, not preproduction execution evidence.
 
 ## Non-Negotiable Claim Boundary
 
@@ -137,6 +143,11 @@ Implemented and committed:
   remains fail-closed until durable wall/mesh/FE-state serialization, a
   reconstruction runner, sidecar ownership, and split-run equivalence tests
   land.
+- Lane 10C batch-prep is implemented for preproduction launch readiness.
+  Dry-run/status output now includes estimated time steps, a conservative fluid
+  solve upper bound, status/benchmark/failure sidecar paths, checkpoint roles,
+  and a production spec digest. The full `sev23` preproduction solve has not
+  been launched or validated.
 
 ## Orchestration Rules
 
@@ -162,12 +173,14 @@ Implemented and committed:
 
 ## Remaining Dispatch Priority
 
-### Lane 10C Follow-Up: Production-Scale Section 4.1 Execution Gates
+### Lane 10C Follow-Up: Sev23 Preproduction Batch Execution
 
 Priority: P0 before claiming native reproduction.
 
-Objective: implement and run the staged roadmap in
-`public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`.
+Objective: use the batch-safe runner to execute the exact-boundary `sev23`
+preproduction gate from
+`public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`
+without broadening numerical semantics.
 
 Recommended dispatch order:
 
@@ -180,13 +193,15 @@ Recommended dispatch order:
    failing station, pressure load, radius, mass/stiffness/damping, stability
    scale, wall-boundary handoff mode, coupling status, and deformed-mesh
    cell/volume details when mesh orientation fails.
-3. Run the exact-boundary `sev23` preproduction gate in a batch-scale lane,
-   validating finite fields, wall displacement, pressure normalization,
-   importer round-trip, sidecars, observation rows, and stronger coupling
-   settings or explicitly bounded coupling status. The development gate took
-   about 25 minutes for 101 steps at 9,600 tetrahedra; preproduction and
-   production target execution must be scheduled as long-running compute work,
-   not assumed interactive.
+3. Launch the exact-boundary `sev23` preproduction gate with the batch-prep
+   sidecars enabled. Validate finite fields, wall displacement, pressure
+   normalization, importer round-trip, `batch_status.*`,
+   `batch_benchmark.json`, restart/checkpoint metadata, observation rows, and
+   stronger coupling settings or explicitly bounded coupling status. The
+   development gate took about 25 minutes at 9,600 tetrahedra for `T=0.01`;
+   the `(80, 4, 24)`, `T=0.1` preproduction run is expected to be many hours
+   and must be scheduled as long-running compute work, not assumed
+   interactive.
 4. Execute the full case set at the production target mesh
    `(axial=120, radial=5, angular=32)`, `dt_s=1e-4`, `T=1.0 s`, final snapshot
    only, with `u_max=45 cm/s` and

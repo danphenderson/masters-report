@@ -89,6 +89,7 @@ const FSI_VALUE_OPTIONS = union(STUDY_VALUE_OPTIONS, Set([
     "manifest-json",
     "summary-tex",
     "report-assets-dir",
+    "status-every",
 ]))
 const FSI_FLAG_OPTIONS = union(STUDY_FLAG_OPTIONS, Set([
     "overwrite",

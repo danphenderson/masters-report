@@ -346,7 +346,8 @@ end
 function native_resolved_fsi_solve_partitioned_snapshot_series(
     mesh::NativeResolvedFSIMesh,
     spec::NativeResolvedFSIPartitionedSmokeSpec,
-    snapshot_times_s,
+    snapshot_times_s;
+    progress_callback = nothing,
 )
     requested_snapshot_times_s = Float64[Float64(time_s) for time_s in snapshot_times_s]
     isempty(requested_snapshot_times_s) &&
@@ -400,6 +401,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
         controls.inlet_outlet_boundary_mode,
     )
     snapshots = NativeResolvedFSIPartitionedSmokeSolve[]
+    expected_time_step_count = ceil(Int, last(requested_snapshot_times_s) / spec.dt_s)
 
     for snapshot_time_s in requested_snapshot_times_s
         while time_s < snapshot_time_s
@@ -564,6 +566,37 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             max_picard_iterations_used = max(max_picard_iterations_used, fluid_state.max_picard_iterations_used)
             final_picard_update_norm = fluid_state.final_picard_update_norm
             picard_converged &= fluid_state.picard_converged
+            if progress_callback !== nothing
+                wall_state_finite =
+                    all(isfinite, wall_displacement_cm) &&
+                    all(isfinite, wall_velocity_cm_s) &&
+                    all(isfinite, wall_pressure_dyn_cm2) &&
+                    all(isfinite, current_radii_cm)
+                progress_callback((
+                    event="time_step_completed",
+                    time_step_index=time_step_count,
+                    expected_time_step_count=expected_time_step_count,
+                    snapshot_time_s=snapshot_time_s,
+                    time_s=time_s,
+                    dt_s=dt_step,
+                    minimum_current_radius_cm=minimum(current_radii_cm),
+                    minimum_signed_tetra_volume6=minimum_signed_tetra_volume6,
+                    wall_displacement_min_cm=minimum(wall_displacement_cm),
+                    wall_displacement_max_cm=maximum(wall_displacement_cm),
+                    wall_pressure_min_dyn_cm2=minimum(wall_pressure_dyn_cm2),
+                    wall_pressure_max_dyn_cm2=maximum(wall_pressure_dyn_cm2),
+                    field_finite_status=wall_state_finite ?
+                                        "wall_state_finite_fluid_refresh_pending" :
+                                        "nonfinite_wall_state",
+                    final_coupling_displacement_residual_cm=final_coupling_displacement_residual_cm,
+                    step_coupling_converged=step_coupling_converged,
+                    coupling_converged=coupling_converged,
+                    max_coupling_iterations_used=max_coupling_iterations_used,
+                    pressure_projection_fallback_count=pressure_projection_fallback_count,
+                    fluid_wall_boundary_mode=string(fluid_wall_boundary_mode),
+                    inlet_outlet_boundary_mode=string(controls.inlet_outlet_boundary_mode),
+                ))
+            end
         end
 
         time_step_count > 0 || throw(ArgumentError("native resolved-FSI partitioned smoke produced zero coupling steps"))
@@ -641,6 +674,30 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             minimum_signed_tetra_volume6,
             pressure_projection_fallback_count,
         ))
+        if progress_callback !== nothing
+            progress_callback((
+                event="snapshot_completed",
+                time_step_index=time_step_count,
+                expected_time_step_count=expected_time_step_count,
+                snapshot_time_s=snapshot_time_s,
+                time_s=snapshot_time_s,
+                dt_s=refresh_dt,
+                minimum_current_radius_cm=minimum(current_radii_cm),
+                minimum_signed_tetra_volume6=minimum_signed_tetra_volume6,
+                wall_displacement_min_cm=minimum(wall_displacement_cm),
+                wall_displacement_max_cm=maximum(wall_displacement_cm),
+                wall_pressure_min_dyn_cm2=minimum(wall_pressure_dyn_cm2),
+                wall_pressure_max_dyn_cm2=maximum(wall_pressure_dyn_cm2),
+                field_finite_status="snapshot_fluid_refresh_completed",
+                final_coupling_displacement_residual_cm=final_coupling_displacement_residual_cm,
+                step_coupling_converged=coupling_converged,
+                coupling_converged=coupling_converged,
+                max_coupling_iterations_used=max_coupling_iterations_used,
+                pressure_projection_fallback_count=pressure_projection_fallback_count,
+                fluid_wall_boundary_mode=string(fluid_wall_boundary_mode),
+                inlet_outlet_boundary_mode=string(controls.inlet_outlet_boundary_mode),
+            ))
+        end
     end
 
     return snapshots

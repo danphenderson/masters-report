@@ -2,7 +2,7 @@ function print_fsi_usage()
     println("""
     Usage:
       packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi validate [--wall-mode quasi-static|dynamic] [--severities 23,40] [--meshes 8x2x8,16x4x16] [--publish-report-assets] [options]
-      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi native-status [--case-id sev23] [--mesh 2x1x6] [--snapshot-times 1e-4] [--inlet-outlet-boundary-mode pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41] [options]
+      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi native-status [--case-id sev23] [--mesh 2x1x6] [--snapshot-times 1e-4] [--status-every 1] [--inlet-outlet-boundary-mode pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41] [options]
 
     Dynamic mode is a reduced radial membrane model coupled to repeated quasi-steady Stokes solves.
     Dynamic options use cgs-compatible units: --wall-density G/CM3, --wall-dt SECONDS, --wall-tfinal SECONDS.
@@ -46,6 +46,8 @@ function native_resolved_fsi_status_plan_from_values(values::Dict{String,String}
         coupling_iteration_count=parse(Int, get(values, "max-coupling-iters", "1")),
         coupling_tolerance=parse(Float64, get(values, "coupling-tolerance-cm", "1.0e-8")),
         coupling_under_relaxation=parse(Float64, get(values, "alpha", "1.0")),
+        progress_every=parse(Int, get(values, "progress-every", "0")),
+        status_every=parse(Int, get(values, "status-every", "1")),
         allow_many_snapshots=("allow-many-snapshots" in flags),
         allow_large_output=("allow-large-output" in flags),
     ))
@@ -58,6 +60,16 @@ function print_native_resolved_fsi_status(dry_run::NativeResolvedFSIProductionDr
     println("snapshot_manifest_csv,$(dry_run.manifest_csv)")
     println("snapshot_diagnostics_csv,$(dry_run.diagnostics_csv)")
     println("restart_metadata_json,$(dry_run.restart_metadata_json)")
+    println("batch_status_jsonl,$(dry_run.batch_status_jsonl)")
+    println("batch_status_csv,$(dry_run.batch_status_csv)")
+    println("batch_benchmark_json,$(dry_run.batch_benchmark_json)")
+    println("batch_failure_json,$(dry_run.batch_failure_json)")
+    println("checkpoint_dir,$(dry_run.checkpoint_dir)")
+    println("checkpoint_roles,$(join(dry_run.checkpoint_roles, "|"))")
+    println("production_spec_digest,$(dry_run.production_spec_digest)")
+    println("estimated_time_step_count,$(dry_run.estimated_time_step_count)")
+    println("expected_fluid_solve_upper_bound,$(dry_run.expected_fluid_solve_upper_bound)")
+    println("estimated_preproduction_runtime_s,$(dry_run.estimated_preproduction_runtime_s)")
     println("parity_observations_csv,$(dry_run.parity_observations_csv)")
     println("parity_summary_csv,$(dry_run.parity_summary_csv)")
     println("snapshot_count_within_default_guard,$(dry_run.snapshot_count_within_default_guard)")

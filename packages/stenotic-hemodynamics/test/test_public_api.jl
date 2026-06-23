@@ -424,8 +424,20 @@ using StenoticHemodynamics
     @test !isfile(default_status.manifest_csv)
     @test !isfile(default_status.diagnostics_csv)
     @test !isfile(default_status.restart_metadata_json)
+    @test !isfile(default_status.batch_status_jsonl)
+    @test !isfile(default_status.batch_benchmark_json)
     @test default_status.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke"
     @test occursin("native_resolved_fsi_status,dry_run", default_text)
+    @test occursin("batch_status_jsonl,", default_text)
+    @test occursin("batch_status_csv,", default_text)
+    @test occursin("batch_benchmark_json,", default_text)
+    @test occursin("batch_failure_json,", default_text)
+    @test occursin("checkpoint_dir,", default_text)
+    @test occursin("checkpoint_roles,wall_state|mesh_identity|fluid_state|coupling_state|output_linkage", default_text)
+    @test occursin("production_spec_digest,", default_text)
+    @test occursin("estimated_time_step_count,1", default_text)
+    @test occursin("expected_fluid_solve_upper_bound,2", default_text)
+    @test occursin("estimated_preproduction_runtime_s,", default_text)
     @test occursin("boundary_mode,pressure_drop_weak_inlet_outlet_gauge_smoke", default_text)
     @test occursin("pressure_nullspace_status,gridap_zero_mean_pressure_constraint_active", default_text)
     @test occursin("wall_stability_status,explicit_membrane_oscillator_dt_guard", default_text)
@@ -450,6 +462,8 @@ using StenoticHemodynamics
                     "poiseuille_inlet_zero_outlet_stress_section41",
                     "--ic-pressure-drop-dyn-cm2",
                     "0.0",
+                    "--status-every",
+                    "1",
                 ])
             end
         end
@@ -475,6 +489,9 @@ using StenoticHemodynamics
         @test occursin("snapshot_manifest_csv,", text)
         @test occursin("snapshot_diagnostics_csv,", text)
         @test occursin("restart_metadata_json,", text)
+        @test occursin("batch_status_jsonl,", text)
+        @test occursin("batch_benchmark_json,", text)
+        @test occursin("expected_fluid_solve_upper_bound,2", text)
         @test occursin("parity_observations_csv,", text)
         @test occursin("parity_summary_csv,", text)
         @test occursin("imported_bundle_status,expected-skip", text)
