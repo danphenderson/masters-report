@@ -37,10 +37,15 @@ assets.
 | `export-assets` | Export stenosis geometry/report CSV assets. | Follow report asset publication rules before rendering or staging outputs. |
 
 There is intentionally no native resolved-FSI production, dry-run, or restart
-CLI command. Those surfaces remain qualified Julia internals such as
-`StenoticHemodynamics.native_resolved_fsi_partitioned_production_dry_run(...)`;
-high-output generation is still guarded by spec objects, workflow plans, and
-dry-run checks.
+CLI command. State-carrying production, dry-run guard reporting, parity matrix
+rows, and restart metadata remain qualified Julia internals such as
+`StenoticHemodynamics.native_resolved_fsi_partitioned_production_dry_run(...)`
+and
+`StenoticHemodynamics.native_resolved_fsi_partitioned_production_default_guard_report(...)`.
+High-output generation is still guarded by spec objects, workflow plans, and
+dry-run checks, and no CLI default reaches the expensive production runner.
+Persisted restart remains fail-closed; exact Section 4.1 boundary-mode matching
+is still deferred.
 
 ## Simulation
 

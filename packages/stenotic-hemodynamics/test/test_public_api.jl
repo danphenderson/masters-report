@@ -351,16 +351,37 @@
     native_production_boundary_names = Symbol[
         :NativeResolvedFSIProductionDryRunPlan,
         :native_resolved_fsi_partitioned_production_dry_run,
+        :native_resolved_fsi_partitioned_production_default_guard_report,
         :native_resolved_fsi_read_restart_metadata,
         :native_resolved_fsi_resume_partitioned_production,
     ]
     @test all(name -> isdefined(StenoticHemodynamics, name), native_production_boundary_names)
     @test isempty(intersect(exported_names, native_production_boundary_names))
 
+    cli_handlers = StenoticHemodynamics.CLI_COMMAND_HANDLERS
     normalized_cli_command_names = replace.(split(StenoticHemodynamics.CLI_COMMAND_NAMES, ", "), "_" => "-")
     @test !any(
         name -> all(token -> occursin(token, name), ("native", "resolved", "fsi", "production")),
         normalized_cli_command_names,
+    )
+    @test all(
+        name -> !haskey(cli_handlers, name),
+        [
+            "native-fsi",
+            "native-resolved-fsi",
+            "native-resolved-fsi-production",
+            "native-resolved-fsi-production-dry-run",
+            "production",
+        ],
+    )
+    native_resolved_fsi_cli_blocked_handlers = Function[
+        StenoticHemodynamics.native_resolved_fsi_partitioned_production_dry_run,
+        StenoticHemodynamics.run_native_resolved_fsi_partitioned_production,
+        StenoticHemodynamics.run_native_resolved_fsi_production_workflow,
+    ]
+    @test !any(
+        handler -> any(blocked_handler -> handler === blocked_handler, native_resolved_fsi_cli_blocked_handlers),
+        values(cli_handlers),
     )
 
     private_partitioned_production_helpers = Symbol[

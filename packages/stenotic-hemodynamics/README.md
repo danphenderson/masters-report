@@ -110,8 +110,9 @@ intentionally qualified module internals, for example
 owns ordinary CSV/SVG output writing. Native resolved-FSI production, dry-run,
 restart-identification, resume-stub, and observation-artifact helpers are also
 Julia-qualified internal workflows for now; there is no production CLI command.
-High-output generation remains guarded by explicit spec objects and
-planning/dry-run surfaces.
+There is also no dry-run CLI command in this round. High-output generation
+remains guarded by explicit spec objects, workflow plans, and qualified Julia
+dry-run guard reporting.
 
 ## CLI Examples
 
@@ -234,20 +235,22 @@ The native resolved-FSI surface is intentionally tiered:
   prescribes radial wall-velocity Dirichlet data from a reduced wall update;
 - production dry-run: `native_resolved_fsi_partitioned_production_dry_run(...)`
   resolves output, sidecar, restart, and optional imported-parity paths without
-  writing files;
-- production sidecars: smoke-backed snapshot runs write `snapshot_manifest.csv`,
-  `snapshot_diagnostics.csv`, and `restart_metadata.json`;
+  writing files, and reports default guard status through
+  `native_resolved_fsi_partitioned_production_default_guard_report(...)`;
+- production sidecars: state-carrying partitioned snapshot runs write
+  `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, and
+  `restart_metadata.json`;
 - restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
-  identification-only metadata, while
+  package-written `state_carrying_partitioned` metadata, while
   `native_resolved_fsi_resume_partitioned_production(...)` fails closed because
-  state-carrying resume is deferred;
+  persisted state-carrying resume is deferred;
 - observation artifacts: production parity can write `section41_observations.csv`
   and `section41_observation_summary.csv` using local velocity and pressure
   section-observation operators.
 
 These surfaces are generated-artifact and local-operator evidence. They do not
-claim paper-grade Section 4.1 reproduction, public CLI exposure, state-carrying
-restart, or monolithic ALE FSI.
+claim paper-grade Section 4.1 reproduction, exact Section 4.1 boundary-mode
+matching, public CLI exposure, persisted restart, or monolithic ALE FSI.
 
 ## Resolved-3D Comparison Data
 
@@ -297,11 +300,12 @@ means are emitted only as supplemental sensitivity rows.
 - Study summary CSVs use simple scalar fields and minimal CSV escaping.
 - The package does not provide a general-purpose 3D CFD solver, paper-grade
   native resolved-FSI reproduction, or clinical validation of stenosis metrics.
-- Native resolved-FSI production-control, dry-run, restart, resume-stub, and
-  observation-artifact surfaces are qualified Julia internals, not public CLI
-  commands.
-- Native resolved-FSI restart metadata is identification-only; state-carrying
-  resume remains deferred.
+- Native resolved-FSI production-control, dry-run guard reporting, restart,
+  resume-stub, and observation-artifact surfaces are qualified Julia internals,
+  not public CLI commands.
+- Native resolved-FSI production metadata records state-carrying partitioned
+  snapshots, but persisted resume and exact Section 4.1 boundary-mode matching
+  remain deferred.
 - Stationary Stokes initialization is a projection contract for the 1D state,
   not a transient FSI solve or direct finite-element field projection.
 - The model is a finite-volume reproduction for local experimentation, not a

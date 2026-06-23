@@ -177,17 +177,19 @@ contract, skip behavior, and report publication boundaries.
     `run_native_resolved_fsi_parity(...)`,
     `native_resolved_fsi_production_workflow_plans(...)`,
     `native_resolved_fsi_partitioned_production_dry_run(...)`,
+    `native_resolved_fsi_partitioned_production_default_guard_report(...)`,
     `native_resolved_fsi_read_restart_metadata(...)`,
     `native_resolved_fsi_resume_partitioned_production(...)`,
     `run_native_resolved_fsi_partitioned_production(...)`
-  - No public CLI command is wired in `cli/dispatch.jl`; production, dry-run,
-    and restart-identification access remains qualified Julia-internal for now
+  - No public CLI command is wired in `cli/dispatch.jl`; production, dry-run
+    guard reporting, and restart-identification access remain qualified
+    Julia-internal for now
 - Surface: `qualified-internal`
 - Expected outputs and artifact class:
   - Ignored scratch schema-workflow outputs under `tmp/simulations/output/native-resolved-fsi/**`
   - Ignored scratch fixed-wall and partitioned smoke outputs under `tmp/simulations/output/native-resolved-fsi-smoke/**`
   - Ignored scratch production sidecars and snapshot bundles under `tmp/simulations/output/native-resolved-fsi-production/**`
-  - Production sidecars include `snapshot_manifest.csv`,
+  - State-carrying production sidecars include `snapshot_manifest.csv`,
     `snapshot_diagnostics.csv`, `restart_metadata.json`, and optional
     Section 4.1 observation artifacts such as
     `section41_observation_summary.csv`
@@ -214,22 +216,26 @@ Current tiers are intentionally separate:
   coarse partitioned wall update and prescribes radial wall-velocity Dirichlet
   data on the fluid wall; this is not an ALE formulation.
 - Production dry-run: `native_resolved_fsi_partitioned_production_dry_run(...)`
-  resolves output, sidecar, and imported-parity paths without running a solver
-  or writing files.
+  resolves output, sidecar, guard-report, restart, and imported-parity paths
+  without running a solver or writing files.
 - Production sidecars: `run_native_resolved_fsi_partitioned_production(...)`
-  runs independent smoke-backed snapshots and writes manifest, diagnostics, and
-  restart-identification metadata.
+  runs one state-carrying partitioned snapshot series and writes manifest,
+  diagnostics, and restart metadata.
 - Restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
-  package-written metadata, while
+  package-written `state_carrying_partitioned` metadata, while
   `native_resolved_fsi_resume_partitioned_production(...)` fails closed because
-  state-carrying resume is deferred.
+  persisted state-carrying resume is deferred.
 - Observation artifacts: production parity writes native/imported/parity
   observation rows and `section41_observation_summary.csv` through the local
   cross-section velocity and pressure observation operators.
+- Boundary-mode status: fixed-wall and partitioned native runs exercise
+  package-owned boundary modes, but exact Section 4.1 boundary-mode matching
+  remains deferred.
 
 The current family documents generated artifacts, local operator evidence, and
-production-control sidecars. Public CLI exposure, state-carrying restart, and
-paper-grade Section 4.1 reproduction claims remain deferred.
+production-control sidecars. Public CLI exposure, persisted restart, exact
+Section 4.1 boundary-mode matching, and paper-grade Section 4.1 reproduction
+claims remain deferred.
 
 ## Native Resolved-FSI Notes
 
