@@ -91,6 +91,25 @@ end
     @test StenoticHemodynamics.legendre_derivative(3, big"0.25") == (big"15.0" * big"0.25"^2 - big"3.0") / big"2.0"
 end
 
+@testset "StenoticHemodynamics scalar-generic WENO scalar helpers" begin
+    left32 = @inferred StenoticHemodynamics.weno3_left_scalar(0.0f0, 1.0f0, 3.0f0, 1.0f0)
+    right32 = @inferred StenoticHemodynamics.weno3_right_scalar(0.0f0, 1.0f0, 3.0f0, 1.0f0)
+    @test typeof(left32) === Float32
+    @test typeof(right32) === Float32
+    @test left32 ≈ Float32(107) / Float32(66)
+    @test right32 ≈ Float32(25) / Float32(54)
+
+    left_big = @inferred StenoticHemodynamics.weno3_left_scalar(big"0.0", big"1.0", big"3.0", big"1.0")
+    right_big = @inferred StenoticHemodynamics.weno3_right_scalar(big"0.0", big"1.0", big"3.0", big"1.0")
+    @test typeof(left_big) === BigFloat
+    @test typeof(right_big) === BigFloat
+    @test left_big ≈ big"107" / big"66"
+    @test right_big ≈ big"25" / big"54"
+end
+
+# These scalar-generic checks target native 1D helpers. Gridap native resolved-FSI
+# remains Float64-scoped because its FE spaces and XDMF/HDF5 writer surfaces are
+# still Float64 in this package.
 @testset "StenoticHemodynamics scalar-generic velocity profile configs" begin
     flat_default = FlatVelocityProfile()
     @test flat_default isa FlatVelocityProfile{Float64}

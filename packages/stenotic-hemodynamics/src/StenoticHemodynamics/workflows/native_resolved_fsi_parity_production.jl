@@ -108,6 +108,10 @@ function run_native_resolved_fsi_parity(
         return joinpath(artifact_output_dir(), "section41_observations.csv")
     end
 
+    function artifact_summary_csv_path()
+        return joinpath(artifact_output_dir(), "section41_observation_summary.csv")
+    end
+
     function native_only_sample_z(field::Resolved3DVelocityField)
         z_values = view(field.coordinates, :, 3)
         z_min = minimum(z_values)
@@ -296,17 +300,160 @@ function run_native_resolved_fsi_parity(
         return rows
     end
 
+    function sorted_observation_rows(rows::Vector{NamedTuple})
+        return sort(rows; by=row -> (row.case_id, row.source, row.quantity, row.z_cm, row.case_label))
+    end
+
+    function max_finite_or_nan(values)
+        finite_values = Float64[Float64(value) for value in values if isfinite(value)]
+        return isempty(finite_values) ? NaN : maximum(finite_values)
+    end
+
+    function summary_row(;
+        case_id::String,
+        source::String,
+        quantity::String,
+        row_count::Int,
+        ready_row_count::Int,
+        max_mean_velocity_abs_difference_cm_s::Float64 = NaN,
+        max_mean_pressure_abs_difference_dyn_cm2::Float64 = NaN,
+        status::String,
+    )
+        return (
+            case_id=case_id,
+            source=source,
+            quantity=quantity,
+            row_count=row_count,
+            ready_row_count=ready_row_count,
+            max_mean_velocity_abs_difference_cm_s=max_mean_velocity_abs_difference_cm_s,
+            max_mean_pressure_abs_difference_dyn_cm2=max_mean_pressure_abs_difference_dyn_cm2,
+            status=status,
+        )
+    end
+
+    function summarized_status(rows::Vector{NamedTuple})
+        statuses = sort!(unique(String[row.status for row in rows]))
+        length(statuses) == 1 && return only(statuses)
+        return "mixed: $(join(statuses, "; "))"
+    end
+
+    function observed_source_summary_rows(rows::Vector{NamedTuple})
+        groups = Dict{Tuple{String,String,String},Vector{NamedTuple}}()
+        for row in rows
+            row.source == "parity" && continue
+            push!(get!(groups, (row.case_id, row.source, row.quantity), NamedTuple[]), row)
+        end
+
+        summaries = NamedTuple[]
+        for key in sort!(collect(keys(groups)))
+            source_rows = groups[key]
+            case_id, source, quantity = key
+            push!(summaries, summary_row(
+                case_id=case_id,
+                source=source,
+                quantity=quantity,
+                row_count=length(source_rows),
+                ready_row_count=count(row -> row.status == "ready", source_rows),
+                max_mean_velocity_abs_difference_cm_s=max_finite_or_nan(
+                    row.mean_velocity_abs_difference_cm_s for row in source_rows
+                ),
+                max_mean_pressure_abs_difference_dyn_cm2=max_finite_or_nan(
+                    row.mean_pressure_abs_difference_dyn_cm2 for row in source_rows
+                ),
+                status=summarized_status(source_rows),
+            ))
+        end
+        return summaries
+    end
+
+    function parity_summary_rows(rows::Vector{NamedTuple}, parity_result::NativeResolvedFSIParityResult)
+        rows_for_parity = [row for row in rows if row.source == "parity"]
+        isempty(rows_for_parity) && return NamedTuple[]
+        case_id = first(rows_for_parity).case_id
+        ready_row_count = count(row -> row.status == "ready", rows_for_parity)
+        return NamedTuple[
+            summary_row(
+                case_id=case_id,
+                source="parity",
+                quantity="velocity",
+                row_count=length(rows_for_parity),
+                ready_row_count=ready_row_count,
+                max_mean_velocity_abs_difference_cm_s=max_finite_or_nan(
+                    row.mean_velocity_abs_difference_cm_s for row in rows_for_parity
+                ),
+                status=parity_result.velocity_operator_status.status,
+            ),
+            summary_row(
+                case_id=case_id,
+                source="parity",
+                quantity="pressure",
+                row_count=length(rows_for_parity),
+                ready_row_count=ready_row_count,
+                max_mean_pressure_abs_difference_dyn_cm2=max_finite_or_nan(
+                    row.mean_pressure_abs_difference_dyn_cm2 for row in rows_for_parity
+                ),
+                status=parity_result.pressure_operator_status.status,
+            ),
+        ]
+    end
+
+    function expected_skip_summary_rows(plan::NativeResolvedFSIProductionParityPlan, parity_result::NativeResolvedFSIParityResult)
+        parity_result.imported_bundle === nothing || return NamedTuple[]
+        case_id = string(plan.workflow_plan.case_spec.case_id)
+        return NamedTuple[
+            summary_row(
+                case_id=case_id,
+                source="imported",
+                quantity="velocity",
+                row_count=0,
+                ready_row_count=0,
+                status="expected-skip: $(parity_result.velocity_operator_status.status)",
+            ),
+            summary_row(
+                case_id=case_id,
+                source="imported",
+                quantity="pressure",
+                row_count=0,
+                ready_row_count=0,
+                status="expected-skip: $(parity_result.pressure_operator_status.status)",
+            ),
+        ]
+    end
+
+    function summary_rows(
+        plan::NativeResolvedFSIProductionParityPlan,
+        parity_result::NativeResolvedFSIParityResult,
+        rows::Vector{NamedTuple},
+    )
+        summaries = NamedTuple[]
+        append!(summaries, observed_source_summary_rows(rows))
+        append!(summaries, parity_summary_rows(rows, parity_result))
+        append!(summaries, expected_skip_summary_rows(plan, parity_result))
+        return sort(summaries; by=row -> (row.case_id, row.source, row.quantity))
+    end
+
     function write_observations(path::String, rows::Vector{NamedTuple})
         isempty(rows) && throw(ArgumentError("native resolved-FSI production parity observations require at least one row"))
         header = string.(propertynames(first(rows)))
         return write_csv_table(path, header, (Tuple(row) for row in rows); overwrite=true)
     end
 
-    function artifact_status(observations_csv::String, rows::Vector{NamedTuple})
-        ready = isfile(observations_csv) && !isempty(rows)
+    function write_summary(path::String, rows::Vector{NamedTuple})
+        isempty(rows) && throw(ArgumentError("native resolved-FSI production parity summary requires at least one row"))
+        header = string.(propertynames(first(rows)))
+        return write_csv_table(path, header, (Tuple(row) for row in rows); overwrite=true)
+    end
+
+    function artifact_status(
+        observations_csv::String,
+        rows::Vector{NamedTuple},
+        summary_csv::String,
+        summary_rows::Vector{NamedTuple},
+    )
+        ready = isfile(observations_csv) && !isempty(rows) && isfile(summary_csv) && !isempty(summary_rows)
         status = ready ?
-            "ready: Section 4.1 observation CSV written using CrossSectionQuadratureOperator rows" :
-            "failed: Section 4.1 observation CSV was not written"
+            "ready: Section 4.1 observation and summary CSVs written using CrossSectionQuadratureOperator rows" :
+            "failed: Section 4.1 observation artifact CSVs were not written"
         return NativeResolvedFSIWorkflowStatus(ready, status)
     end
 
@@ -319,9 +466,12 @@ function run_native_resolved_fsi_parity(
         kwargs...,
     )
     parity_result = run_native_resolved_fsi_parity(parity_spec)
-    rows = observation_rows(parity_spec, parity_result)
+    rows = sorted_observation_rows(observation_rows(parity_spec, parity_result))
+    summaries = summary_rows(plan, parity_result, rows)
     observations_csv = artifact_csv_path()
+    summary_csv = artifact_summary_csv_path()
     write_observations(observations_csv, rows)
+    write_summary(summary_csv, summaries)
     imported_status = parity_result.imported_bundle === nothing ?
         NativeResolvedFSIWorkflowStatus(false, "expected-skip: $(parity_result.operator_status.status)") :
         NativeResolvedFSIWorkflowStatus(true, "ready: imported bundle observations were written")
@@ -333,7 +483,9 @@ function run_native_resolved_fsi_parity(
         output_dir=artifact_output_dir(),
         observations_csv=observations_csv,
         observation_rows=rows,
-        artifact_status=artifact_status(observations_csv, rows),
+        summary_csv=summary_csv,
+        summary_rows=summaries,
+        artifact_status=artifact_status(observations_csv, rows, summary_csv, summaries),
         imported_status=imported_status,
         velocity_operator_status=parity_result.velocity_operator_status,
         pressure_operator_status=parity_result.pressure_operator_status,

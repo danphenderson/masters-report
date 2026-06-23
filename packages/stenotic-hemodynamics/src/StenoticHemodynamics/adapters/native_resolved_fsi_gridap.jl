@@ -31,6 +31,27 @@ function native_resolved_fsi_gridap_model(
     return model, labels
 end
 
+function native_resolved_fsi_radial_wall_velocity_function(mesh::NativeResolvedFSIMesh, wall_velocity_at)
+    length_cm = mesh.case_spec.length_cm
+    radial_eps = max(mesh.case_spec.rmax_cm, 1.0) * 1.0e-12
+    return function prescribed_radial_wall_velocity(x)
+        x1 = Float64(x[1])
+        x2 = Float64(x[2])
+        z = clamp(Float64(x[3]), 0.0, length_cm)
+        radial_distance = hypot(x1, x2)
+        radial_distance > radial_eps || return VectorValue(0.0, 0.0, 0.0)
+        radial_speed = Float64(wall_velocity_at(z))
+        isfinite(radial_speed) || throw(ArgumentError(
+            "native resolved-FSI Navier-Stokes wall velocity profile must return finite values",
+        ))
+        return VectorValue(
+            radial_speed * x1 / radial_distance,
+            radial_speed * x2 / radial_distance,
+            0.0,
+        )
+    end
+end
+
 function native_resolved_fsi_solve_fixed_wall_stokes(mesh::NativeResolvedFSIMesh, spec::NativeResolvedFSISmokeSpec)
     params = Params(severity=mesh.case_spec.severity_percent, tfinal=spec.saved_time_s, initial_condition=GeometryRestIC())
     mu = params.rho * params.nu
@@ -141,27 +162,10 @@ function native_resolved_fsi_solve_navier_stokes(
     reffe_u = ReferenceFE(lagrangian, VectorValue{3,Float64}, order)
     reffe_p = ReferenceFE(lagrangian, Float64, order - 1)
     zero_velocity(x) = VectorValue(0.0, 0.0, 0.0)
-    length_cm = mesh.case_spec.length_cm
-    radial_eps = max(mesh.case_spec.rmax_cm, 1.0) * 1.0e-12
     wall_velocity_function = if wall_velocity_at === nothing
         zero_velocity
     else
-        function prescribed_radial_wall_velocity(x)
-            x1 = Float64(x[1])
-            x2 = Float64(x[2])
-            z = clamp(Float64(x[3]), 0.0, length_cm)
-            radial_distance = hypot(x1, x2)
-            radial_distance > radial_eps || return VectorValue(0.0, 0.0, 0.0)
-            radial_speed = Float64(wall_velocity_at(z))
-            isfinite(radial_speed) || throw(ArgumentError(
-                "native resolved-FSI Navier-Stokes wall velocity profile must return finite values",
-            ))
-            return VectorValue(
-                radial_speed * x1 / radial_distance,
-                radial_speed * x2 / radial_distance,
-                0.0,
-            )
-        end
+        native_resolved_fsi_radial_wall_velocity_function(mesh, wall_velocity_at)
     end
     zero_pressure(x) = 0.0
     V = TestFESpace(model, reffe_u, labels=labels, dirichlet_tags="wall", conformity=:H1)

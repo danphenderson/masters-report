@@ -13,10 +13,62 @@ const default_native_resolved_fsi_partitioned_smoke_output_dir =
 const default_native_resolved_fsi_smoke_output_dir = StenoticHemodynamics.default_native_resolved_fsi_smoke_output_dir
 const native_resolved_fsi_navier_stokes_smoke_spec = StenoticHemodynamics.native_resolved_fsi_navier_stokes_smoke_spec
 const native_resolved_fsi_partitioned_smoke_spec = StenoticHemodynamics.native_resolved_fsi_partitioned_smoke_spec
+const native_resolved_fsi_mesh = StenoticHemodynamics.native_resolved_fsi_mesh
+const native_resolved_fsi_radial_wall_velocity_function =
+    StenoticHemodynamics.native_resolved_fsi_radial_wall_velocity_function
 const native_resolved_fsi_smoke_spec = StenoticHemodynamics.native_resolved_fsi_smoke_spec
 const run_native_resolved_fsi_navier_stokes_smoke = StenoticHemodynamics.run_native_resolved_fsi_navier_stokes_smoke
 const run_native_resolved_fsi_partitioned_smoke = StenoticHemodynamics.run_native_resolved_fsi_partitioned_smoke
 const run_native_resolved_fsi_smoke = StenoticHemodynamics.run_native_resolved_fsi_smoke
+
+@testset "StenoticHemodynamics native resolved-FSI radial wall velocity helper" begin
+    resolution = NativeResolvedFSIMeshResolution(axial=2, radial=1, angular=6)
+    mesh = native_resolved_fsi_mesh(:sev23, resolution)
+    length_cm = mesh.case_spec.length_cm
+
+    centerline_velocity = native_resolved_fsi_radial_wall_velocity_function(mesh, _ -> error("profile should not be sampled"))(
+        (0.0, 0.0, 0.5 * length_cm),
+    )
+    @test centerline_velocity[1] == 0.0
+    @test centerline_velocity[2] == 0.0
+    @test centerline_velocity[3] == 0.0
+
+    sampled_z = Float64[]
+    clamped_velocity = native_resolved_fsi_radial_wall_velocity_function(mesh, z -> begin
+        push!(sampled_z, z)
+        1.0
+    end)
+    clamped_velocity((mesh.case_spec.rmax_cm, 0.0, -1.0))
+    clamped_velocity((mesh.case_spec.rmax_cm, 0.0, length_cm + 1.0))
+    @test sampled_z == [0.0, length_cm]
+
+    @test_throws ArgumentError native_resolved_fsi_radial_wall_velocity_function(mesh, _ -> Inf)(
+        (mesh.case_spec.rmax_cm, 0.0, 0.5 * length_cm),
+    )
+    @test_throws ArgumentError native_resolved_fsi_radial_wall_velocity_function(mesh, _ -> NaN)(
+        (mesh.case_spec.rmax_cm, 0.0, 0.5 * length_cm),
+    )
+
+    wall_node_index = findfirst(
+        node ->
+            isapprox(mesh.coordinates[node, 3], 0.5 * length_cm; atol=1.0e-12) &&
+                abs(mesh.coordinates[node, 1]) > 1.0e-12 &&
+                abs(mesh.coordinates[node, 2]) > 1.0e-12,
+        mesh.tags.wall_nodes,
+    )
+    @test wall_node_index !== nothing
+    wall_point = mesh.coordinates[mesh.tags.wall_nodes[wall_node_index], :]
+    radial_distance = hypot(wall_point[1], wall_point[2])
+    outward_velocity = native_resolved_fsi_radial_wall_velocity_function(mesh, _ -> 2.5)(wall_point)
+    inward_velocity = native_resolved_fsi_radial_wall_velocity_function(mesh, _ -> -1.25)(wall_point)
+
+    @test outward_velocity[1] ≈ 2.5 * wall_point[1] / radial_distance
+    @test outward_velocity[2] ≈ 2.5 * wall_point[2] / radial_distance
+    @test outward_velocity[3] == 0.0
+    @test inward_velocity[1] ≈ -1.25 * wall_point[1] / radial_distance
+    @test inward_velocity[2] ≈ -1.25 * wall_point[2] / radial_distance
+    @test inward_velocity[3] == 0.0
+end
 
 @testset "StenoticHemodynamics native resolved-FSI fixed-wall Stokes smoke" begin
     resolution = NativeResolvedFSIMeshResolution(axial=2, radial=1, angular=6)
@@ -135,6 +187,8 @@ end
         @test result.time_status.ready
         @test result.field_status.ready
         @test occursin("prescribed radial wall-velocity Dirichlet", result.field_status.status)
+        @test !occursin("fixed-wall", result.field_status.status)
+        @test !occursin("ALE", result.field_status.status)
         @test !occursin("fixed-wall-fluid", result.field_status.status)
         @test result.fluid_model == :partitioned_prescribed_wall_velocity_iterated_wall_output_smoke
         @test result.velocity_dofs > 0
@@ -189,6 +243,7 @@ end
         @test result.wall_velocity_cm_s[begin] == 0.0
         @test result.wall_velocity_cm_s[end] == 0.0
         @test maximum(abs, result.wall_displacement_cm) > 0.0
+        @test maximum(abs, result.wall_velocity_cm_s) > 0.0
         @test minimum(result.current_radii_cm) > 0.0
 
         outlet_pressure_mean =

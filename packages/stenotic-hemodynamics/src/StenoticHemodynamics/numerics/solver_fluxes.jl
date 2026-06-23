@@ -156,29 +156,37 @@ end
 
 reconstructed_flow(value::Float64, slope::Float64, side::Float64) = value + side * 0.5 * slope
 
-function weno3_left_scalar(vm::Float64, v0::Float64, vp::Float64, epsilon::Float64)
+function weno3_left_scalar(vm::T, v0::T, vp::T, epsilon::T) where {T<:AbstractFloat}
+    one_v = one(v0)
+    two_v = one_v + one_v
+    three_v = two_v + one_v
+    half_v = one_v / two_v
     beta0 = (v0 - vm)^2
     beta1 = (vp - v0)^2
-    alpha0 = (1.0 / 3.0) / (epsilon + beta0)^2
-    alpha1 = (2.0 / 3.0) / (epsilon + beta1)^2
+    alpha0 = (one_v / three_v) / (epsilon + beta0)^2
+    alpha1 = (two_v / three_v) / (epsilon + beta1)^2
     denom = alpha0 + alpha1
     omega0 = alpha0 / denom
     omega1 = alpha1 / denom
-    p0 = -0.5 * vm + 1.5 * v0
-    p1 = 0.5 * v0 + 0.5 * vp
+    p0 = -half_v * vm + (one_v + half_v) * v0
+    p1 = half_v * v0 + half_v * vp
     return omega0 * p0 + omega1 * p1
 end
 
-function weno3_right_scalar(vm::Float64, v0::Float64, vp::Float64, epsilon::Float64)
+function weno3_right_scalar(vm::T, v0::T, vp::T, epsilon::T) where {T<:AbstractFloat}
+    one_v = one(v0)
+    two_v = one_v + one_v
+    three_v = two_v + one_v
+    half_v = one_v / two_v
     beta0 = (vp - v0)^2
     beta1 = (v0 - vm)^2
-    alpha0 = (1.0 / 3.0) / (epsilon + beta0)^2
-    alpha1 = (2.0 / 3.0) / (epsilon + beta1)^2
+    alpha0 = (one_v / three_v) / (epsilon + beta0)^2
+    alpha1 = (two_v / three_v) / (epsilon + beta1)^2
     denom = alpha0 + alpha1
     omega0 = alpha0 / denom
     omega1 = alpha1 / denom
-    p0 = 1.5 * v0 - 0.5 * vp
-    p1 = 0.5 * vm + 0.5 * v0
+    p0 = (one_v + half_v) * v0 - half_v * vp
+    p1 = half_v * vm + half_v * v0
     return omega0 * p0 + omega1 * p1
 end
 

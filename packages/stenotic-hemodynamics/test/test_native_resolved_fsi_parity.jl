@@ -316,7 +316,13 @@ end
         @test artifact.operator_status.ready
         @test artifact.output_dir == joinpath(dir, "observations")
         @test isfile(artifact.observations_csv)
+        @test artifact.summary_csv == joinpath(dir, "observations", "section41_observation_summary.csv")
+        @test isfile(artifact.summary_csv)
         @test length(artifact.observation_rows) == 15
+        observation_sort_keys = [
+            (row.case_id, row.source, row.quantity, row.z_cm, row.case_label) for row in artifact.observation_rows
+        ]
+        @test observation_sort_keys == sort(observation_sort_keys)
         @test count(row -> row.source == "native", artifact.observation_rows) == 6
         @test count(row -> row.source == "imported", artifact.observation_rows) == 6
         @test count(row -> row.source == "parity", artifact.observation_rows) == 3
@@ -330,6 +336,7 @@ end
 
         lines = readlines(artifact.observations_csv)
         @test length(lines) == 16
+        @test startswith(lines[2], "sev23,77,imported,pressure,")
         @test startswith(
             lines[1],
             "case_id,case_label,source,quantity,snapshot_time_s,z_cm,operator_name,coordinate_mode,area_cm2,flow_cm3_s,mean_velocity_cm_s,mean_pressure_dyn_cm2",
@@ -339,6 +346,33 @@ end
         @test any(occursin(",native,velocity,", line) for line in lines[2:end])
         @test any(occursin(",imported,pressure,", line) for line in lines[2:end])
         @test any(occursin(",parity,velocity_pressure,", line) for line in lines[2:end])
+
+        @test length(artifact.summary_rows) == 6
+        summary_sort_keys = [(row.case_id, row.source, row.quantity) for row in artifact.summary_rows]
+        @test summary_sort_keys == sort(summary_sort_keys)
+        @test all(row -> row.case_id == "sev23", artifact.summary_rows)
+        @test count(row -> row.source == "native", artifact.summary_rows) == 2
+        @test count(row -> row.source == "imported", artifact.summary_rows) == 2
+        @test count(row -> row.source == "parity", artifact.summary_rows) == 2
+        parity_velocity_summary = only(row for row in artifact.summary_rows if row.source == "parity" && row.quantity == "velocity")
+        parity_pressure_summary = only(row for row in artifact.summary_rows if row.source == "parity" && row.quantity == "pressure")
+        @test parity_velocity_summary.row_count == 3
+        @test parity_velocity_summary.ready_row_count == 3
+        @test parity_velocity_summary.max_mean_velocity_abs_difference_cm_s ≈ 0.0 atol = 1.0e-12
+        @test isnan(parity_velocity_summary.max_mean_pressure_abs_difference_dyn_cm2)
+        @test occursin("velocity section/radial/node-slab observations matched", parity_velocity_summary.status)
+        @test parity_pressure_summary.row_count == 3
+        @test parity_pressure_summary.ready_row_count == 3
+        @test isnan(parity_pressure_summary.max_mean_velocity_abs_difference_cm_s)
+        @test parity_pressure_summary.max_mean_pressure_abs_difference_dyn_cm2 ≈ 0.0 atol = 1.0e-12
+        @test occursin("pressure section-average observations matched", parity_pressure_summary.status)
+
+        summary_lines = readlines(artifact.summary_csv)
+        @test length(summary_lines) == 7
+        @test summary_lines[1] ==
+            "case_id,source,quantity,row_count,ready_row_count,max_mean_velocity_abs_difference_cm_s,max_mean_pressure_abs_difference_dyn_cm2,status"
+        @test any(occursin(",parity,velocity,3,3,0.0,NaN,", line) for line in summary_lines[2:end])
+        @test any(occursin(",parity,pressure,3,3,NaN,0.0,", line) for line in summary_lines[2:end])
     end
 end
 
@@ -367,11 +401,37 @@ end
         @test artifact.parity_result.imported_bundle === nothing
         @test artifact.operator_status.skipped
         @test isfile(artifact.observations_csv)
+        @test isfile(artifact.summary_csv)
         @test length(artifact.observation_rows) == 4
+        observation_sort_keys = [
+            (row.case_id, row.source, row.quantity, row.z_cm, row.case_label) for row in artifact.observation_rows
+        ]
+        @test observation_sort_keys == sort(observation_sort_keys)
         @test all(row -> row.source == "native", artifact.observation_rows)
         @test count(row -> row.quantity == "velocity", artifact.observation_rows) == 2
         @test count(row -> row.quantity == "pressure", artifact.observation_rows) == 2
         @test all(row -> row.area_valid, artifact.observation_rows)
         @test !any(row -> row.source == "parity", artifact.observation_rows)
+
+        @test length(artifact.summary_rows) == 4
+        native_summary_rows = [row for row in artifact.summary_rows if row.source == "native"]
+        imported_summary_rows = [row for row in artifact.summary_rows if row.source == "imported"]
+        @test length(native_summary_rows) == 2
+        @test length(imported_summary_rows) == 2
+        @test all(row -> row.row_count == 2, native_summary_rows)
+        @test all(row -> row.ready_row_count == 2, native_summary_rows)
+        @test all(row -> row.status == "ready", native_summary_rows)
+        @test Set(row.quantity for row in imported_summary_rows) == Set(["velocity", "pressure"])
+        @test all(row -> row.row_count == 0, imported_summary_rows)
+        @test all(row -> row.ready_row_count == 0, imported_summary_rows)
+        @test all(row -> isnan(row.max_mean_velocity_abs_difference_cm_s), imported_summary_rows)
+        @test all(row -> isnan(row.max_mean_pressure_abs_difference_dyn_cm2), imported_summary_rows)
+        @test all(row -> occursin("expected-skip", row.status), imported_summary_rows)
+        @test all(row -> occursin("missing required three-field XDMF inputs", row.status), imported_summary_rows)
+        summary_lines = readlines(artifact.summary_csv)
+        @test length(summary_lines) == 5
+        @test any(occursin(",imported,velocity,0,0,NaN,NaN,", line) for line in summary_lines[2:end])
+        @test any(occursin(",imported,pressure,0,0,NaN,NaN,", line) for line in summary_lines[2:end])
+        @test any(occursin("expected-skip", line) for line in summary_lines[2:end])
     end
 end

@@ -17,6 +17,9 @@ const native_resolved_fsi_partitioned_production_estimated_field_payload_bytes =
 const native_resolved_fsi_partitioned_production_spec =
     StenoticHemodynamics.native_resolved_fsi_partitioned_production_spec
 const native_resolved_fsi_production_workflow_plans = StenoticHemodynamics.native_resolved_fsi_production_workflow_plans
+const native_resolved_fsi_read_restart_metadata = StenoticHemodynamics.native_resolved_fsi_read_restart_metadata
+const native_resolved_fsi_resume_partitioned_production =
+    StenoticHemodynamics.native_resolved_fsi_resume_partitioned_production
 const native_resolved_fsi_synthetic_wall_lift = StenoticHemodynamics.native_resolved_fsi_synthetic_wall_lift
 const native_resolved_fsi_zero_displacement = StenoticHemodynamics.native_resolved_fsi_zero_displacement
 const run_native_resolved_fsi = StenoticHemodynamics.run_native_resolved_fsi
@@ -344,6 +347,42 @@ end
         @test occursin("\"resume_supported\": false", restart_metadata_text)
         @test occursin("\"restart_provenance\": \"independent_smoke_backed_snapshots\"", restart_metadata_text)
         @test occursin("\"fluid_wall_boundary_mode\": \"prescribed_radial_wall_velocity\"", restart_metadata_text)
+
+        parsed_restart_metadata = native_resolved_fsi_read_restart_metadata(result.restart_metadata_json)
+        @test parsed_restart_metadata isa Dict{String,Any}
+        @test parsed_restart_metadata["snapshot_manifest_csv"] == result.manifest_csv
+        @test parsed_restart_metadata["diagnostics_csv"] == result.diagnostics_csv
+        @test parsed_restart_metadata["restart_provenance"] == "independent_smoke_backed_snapshots"
+        @test parsed_restart_metadata["resume_supported"] == false
+        @test parsed_restart_metadata["resume_status"] == "deferred"
+        parsed_snapshot_output = only(parsed_restart_metadata["snapshot_outputs"])
+        @test parsed_snapshot_output["output_dir"] == result.output_dir
+        @test parsed_snapshot_output["velocity_xdmf"] == result.smoke_result.velocity_xdmf
+        @test parsed_snapshot_output["pressure_xdmf"] == result.smoke_result.pressure_xdmf
+        @test parsed_snapshot_output["displacement_xdmf"] == result.smoke_result.displacement_xdmf
+
+        resume_error = try
+            native_resolved_fsi_resume_partitioned_production(result.restart_metadata_json)
+            nothing
+        catch err
+            err
+        end
+        @test resume_error isa ArgumentError
+        @test occursin("state-carrying resume is unsupported", sprint(showerror, resume_error))
+        @test occursin("independent smoke-backed snapshots", sprint(showerror, resume_error))
+
+        invalid_metadata = copy(result.restart_metadata)
+        invalid_metadata["resume_supported"] = true
+        invalid_metadata_path = joinpath(dir, "invalid-restart-metadata.json")
+        StenoticHemodynamics.write_json(invalid_metadata_path, invalid_metadata; overwrite=true)
+        invalid_error = try
+            native_resolved_fsi_read_restart_metadata(invalid_metadata_path)
+            nothing
+        catch err
+            err
+        end
+        @test invalid_error isa ArgumentError
+        @test occursin("resume_supported == false", sprint(showerror, invalid_error))
     end
 
     mktempdir() do dir
@@ -390,6 +429,16 @@ end
         @test multi_result.restart_metadata["snapshot_times_s"] == [1.0e-4, 2.0e-4]
         @test length(multi_result.restart_metadata["snapshot_outputs"]) == 2
         @test multi_result.restart_metadata["resume_supported"] == false
+        parsed_multi_restart_metadata = native_resolved_fsi_read_restart_metadata(multi_result.restart_metadata_json)
+        @test length(parsed_multi_restart_metadata["snapshot_outputs"]) == 2
+        @test all(
+            snapshot ->
+                isdir(snapshot["output_dir"]) &&
+                    isfile(snapshot["velocity_xdmf"]) &&
+                    isfile(snapshot["pressure_xdmf"]) &&
+                    isfile(snapshot["displacement_xdmf"]),
+            parsed_multi_restart_metadata["snapshot_outputs"],
+        )
     end
 
     mktempdir() do dir

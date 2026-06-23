@@ -327,6 +327,8 @@
         :native_resolved_fsi_parity_spec,
         :native_resolved_fsi_production_parity_plans,
         :native_resolved_fsi_production_workflow_plans,
+        :native_resolved_fsi_read_restart_metadata,
+        :native_resolved_fsi_resume_partitioned_production,
         :NativeResolvedFSINavierStokesSmokeSpec,
         :NativeResolvedFSIPartitionedSmokeSpec,
         :run_native_resolved_fsi_parity,
