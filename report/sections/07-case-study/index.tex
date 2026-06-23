@@ -4,17 +4,29 @@
 
 This chapter uses one controlled stenosis computation to show how the
 review framework is applied in practice. It fixes a smooth idealized geometry,
-states the one-dimensional area--flow model contract, records the closure and
+states the one-dimensional area--flow model contract, declares the closure and
 boundary assumptions, identifies the principal finite-volume realization,
 checks the evidence categories introduced in Section~\ref{sec:numerical-methods},
 and compares one-dimensional output with available resolved three-dimensional
 velocity data through a declared observation operator. The chapter is a worked
 example of model interpretation, not a standalone solver-development report.
 
+The result is deliberately bounded. The manufactured-solution run gives
+positive implementation-verification evidence for the forced operator; the
+geometry-rest run shows that the current MUSCL/Rusanov realization is not
+exactly well balanced for the stenotic rest state; and the final-time
+comparison localizes section-mean velocity differences for the 23\% and 40\%
+stenosis cases. These findings support the review framework: they show how a
+model contract, a numerical evidence category, and an observation map determine
+what a stenosis comparison can mean.
+The methodology subsection defines the contract, the verification subsection
+gives the positive MMS result and the negative rest-state result, and the
+comparison subsection gives the 23\% and 40\% final-time velocity discrepancies.
+
 The discretization views in the following figure orient the case study only:
 they preview the stationary-Stokes finite-element sampling geometry and the
 one-dimensional finite-volume grid before the model contract and evidence
-records are stated.
+categories are stated.
 
 \begin{figure}[!htb]
     \centering
@@ -26,8 +38,8 @@ records are stated.
     meridional projection of the stationary-Stokes tetrahedral mesh
     $\mathcal T_h$ against the wall curves $r=\pm R_0(z)$; the inset sketches a
     section $S_j=\Omega_{3D}\cap\{z=z_j\}$, the centroid-fan cut triangles
-    $\mathcal Q_j$, and the three barycentric quadrature points used by
-    \texttt{CrossSectionQuadratureOperator}. Panel (b) shows the 1D
+    $\mathcal Q_j$, and the three barycentric quadrature points used by the
+    declared cross-section quadrature operator. Panel (b) shows the 1D
     finite-volume partition $I_i=[z_{i-1/2},z_{i+1/2}]$ with centers
     $z_i=(i-\frac12)\Delta z$, sampled along $R_0(z)$.}
     \label{fig:stenosis-fem-fvm-meshes}

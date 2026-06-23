@@ -11,28 +11,27 @@ when retained state, resolved scale, data, closure choices, observables,
 numerical evidence, and validation status are aligned with the question being
 asked.
 
-The synthesis can be stated as eight propositions used throughout the remainder
-of the report:
+The synthesis can be organized into four proposition families used throughout
+the remainder of the report:
 \begin{enumerate}
-    \item Model hierarchy is a hierarchy of retained state and observation
-    maps, not a monotone hierarchy of accuracy.
-    \item Dimensional reduction changes closure requirements and native
-    observables; it is not merely a reduction in computational cost.
-    \item Local stenosis hemodynamics depends on omitted circulation through
-    boundary or multiscale coupling models.
-    \item Rheology, wall, and geometry sensitivity must be reported relative to
-    a specified observable and regime.
-    \item Agreement between 1D and 3D models is interpretable only under
-    matched model contracts and a common observation operator.
-    \item Manufactured solutions, grid studies, equilibrium tests, inter-code
+    \item \textbf{Model state.} Model hierarchy is a hierarchy of retained
+    state and observation maps, not a monotone hierarchy of accuracy; dimension
+    reduction changes closure requirements and native observables, not merely
+    computational cost.
+    \item \textbf{Closures and observables.} Local stenosis hemodynamics depends
+    on omitted circulation through boundary or multiscale coupling models, and
+    rheology, wall, and geometry sensitivity must be reported relative to a
+    specified observable and regime.
+    \item \textbf{Evidence and validation.} Agreement between 1D and 3D models
+    is interpretable only under matched model contracts and a common observation
+    operator; manufactured solutions, grid studies, equilibrium tests,
     benchmarks, cross-model comparisons, external validation, UQ, and
     reproducibility support different claims.
-    \item Practical identifiability depends on measured outputs, boundary
-    model, noise assumptions, and experimental design; sensitivity alone is not
-    an identifiability result.
-    \item A learned model inherits the geometry family, boundary inputs,
-    source-model assumptions, training distribution, and target observable of
-    its data.
+    \item \textbf{Learned and identifiable maps.} Practical identifiability
+    depends on measured outputs, boundary model, noise assumptions, and
+    experimental design; learned models inherit the geometry family, boundary
+    inputs, source-model assumptions, training distribution, and target
+    observable of their data.
 \end{enumerate}
 
 \subsection{Resolved Scale, Cost, and Retained State}
@@ -140,7 +139,7 @@ their intracranial stenosis setting but visible in low-WSS regions
 Geometry is similarly double-edged. Patient-specific geometry is attractive
 because it carries clinically meaningful morphology, but segmentation,
 registration, current-versus-reference configuration, and wall-motion state can
-dominate the modeling record. Idealized geometry removes many of those
+dominate the modeling specification. Idealized geometry removes many of those
 ambiguities and exposes controlled severity and refinement parameters, but it
 cannot by itself answer patient-specific questions. The useful distinction is
 not realistic versus artificial. It is whether the geometry serves the claim:
@@ -168,9 +167,9 @@ support reproducibility and comparison across workflows
 contributes shared cases and scheme comparison; OpenBF contributes an
 inspectable open finite-volume workflow. Resolved-flow platforms and model
 repositories extend that reproducibility lesson to 3D workflows by making
-geometry, meshing, solver, and repository records easier to inspect
+geometry, meshing, solver, and repository materials easier to inspect
 \cite{SimVascular2026Platform,SimVascular2026VascularModelRepository}. None of
-these records is automatically a validation claim unless the model, data,
+these materials is automatically a validation claim unless the model, data,
 observable, and accepted reference match the target question.
 
 Equilibrium preservation is a particularly sharp consistency test. A continuous
@@ -200,7 +199,7 @@ boundary histories, closure parameters, solver settings, diagnostics, and output
 maps \cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}. The lesson from
 the benchmark/open-solver pair is not that every stenosis study must use the
 same code. It is that disagreement between two models is hard to assign to
-physics, parameters, numerics, or data handling unless the comparison record is
+physics, parameters, numerics, or data handling unless the comparison design is
 inspectable.
 
 Learned methods do not remove this requirement. Physics-informed neural networks

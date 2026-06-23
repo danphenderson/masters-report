@@ -52,8 +52,8 @@ discretization of the same unknowns.
     \figtikz{compliant-vessel}
     \caption{Continuum-to-1D averaging notation for a compliant vessel. The
     physical lumen carries three-dimensional fields on $\OmgBt$; the reduced
-    description records section averages such as area, flow, mean velocity, and
-    gauge pressure. The figure is a bookkeeping map between model tiers, not a
+    description defines section averages such as area, flow, mean velocity, and
+    gauge pressure. The figure is a reference map between model tiers, not a
     separate wall-traction or secondary-flow model.}
     \label{fig:compliant-vessel-reduction}
 \end{figure}
@@ -61,9 +61,11 @@ discretization of the same unknowns.
 \subsection{Flow Maps and Material Transport}
 \label{subsec:continuum-flow-map-transport}
 
-The two standard viewpoints are Eulerian and Lagrangian. The Eulerian viewpoint
-observes fields at spatial locations $\vx$ in the current lumen. The Lagrangian
-viewpoint follows a material label $\vxi$ from a reference configuration.
+The next definitions supply notation rather than a separate modeling choice.
+They identify how material statements become the Eulerian equations used later.
+The Eulerian viewpoint observes fields at spatial locations $\vx$ in the
+current lumen. The Lagrangian viewpoint follows a material label $\vxi$ from a
+reference configuration.
 
 \begin{definition}[Flow-map vocabulary]
     \label{def:continuum-bridge-flow-map}
@@ -109,15 +111,15 @@ between material-volume statements and fixed-spatial differential equations.
     \end{flalign*}
 \end{theorem}
 
-This identity supplies the modeling bridge used below: conservation statements
-are first written on material volumes and then localized into Eulerian balance
-laws.
+This identity explains the transition used below: conservation statements are
+first written on material volumes and then localized into Eulerian balance laws.
 
 \subsection{Mass, Momentum, and Stress Closure}
 \label{subsec:continuum-balance-stress}
 
-Mass conservation states that mass is neither created nor destroyed in material
-volumes. In Eulerian form it is
+The balance laws below are the parent equations for the reduced models reviewed
+later. Mass conservation states that mass is neither created nor destroyed in
+material volumes. In Eulerian form it is
 \begin{flalign*}
     \quad
     \pd_t\rho+\Div(\rho\vu)=0
@@ -198,7 +200,7 @@ observable differences in low-WSS regions, especially during diastole
 globally negligible nor globally necessary; it must be stated with the vessel
 class, flow regime, and observable.
 
-The displayed generalized-Newtonian form records the constitutive stress law
+The displayed generalized-Newtonian form states the constitutive stress law
 used in the review, not a theorem-level regularity statement for every scalar
 viscosity curve. Positivity of
 $\eta_{\mathrm{eff}}(\dot\gamma)$ alone is not used here as a standalone
@@ -254,10 +256,10 @@ geometric averaging and closure choices
 
 The distributed one-dimensional models reviewed later retain the axial
 conservation structure of the continuum equations but replace the full
-three-dimensional field by cross-sectional variables. Let $S(z,t)$ denote the
-lumen section at axial coordinate $z$, with wall motion incorporated into the
-moving section. The physical area, physical flow, and section-mean axial
-velocity are
+three-dimensional field by cross-sectional variables. This subsection names the
+averages and closures needed for that reduction. Let $S(z,t)$ denote the lumen
+section at axial coordinate $z$, with wall motion incorporated into the moving
+section. The physical area, physical flow, and section-mean axial velocity are
 \begin{flalign*}
     \quad
     A(z,t)
@@ -325,7 +327,7 @@ section-averaged axial balance has the structure
 where $\bar p$ is a section pressure representative. The reduced model is
 therefore defined as much by its closures as by its conservation form:
 $\alpha$ and the friction term encode the assumed velocity profile and rheology,
-the pressure--area relation encodes wall mechanics, geometry terms record axial
+the pressure--area relation encodes wall mechanics, geometry terms encode axial
 variation of the reference radius or coordinate map, and inlet/outlet conditions
 close the finite vessel problem
 \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,CanicEtAl2024Extended1DStenosis}.
@@ -338,9 +340,9 @@ quantities can only re-enter through reconstruction, profile closure, or an
 observation operator. A velocity-profile closure supplies missing sub-section
 structure inside the reduced equations, whereas an observation operator maps a
 computed state to a reported pressure, flow, velocity, or wall quantity.
-Appendix~\ref{app:continuum-derivation-details} records the supporting
+Appendix~\ref{app:continuum-derivation-details} gives the supporting
 transport identities. The model hierarchy in Section~\ref{sec:model-hierarchy}
-uses this cross-sectional bridge to explain why distributed 1D models inherit
+uses this cross-sectional reduction to explain why distributed 1D models inherit
 both conservation structure and closure obligations from the continuum tier.
 
 \subsection{Fixed and Moving Domains, Boundary Data, and Observables}
@@ -368,8 +370,10 @@ projection convention, not a generic near-wall scalar
 The principal quantities of interest depend on the selected model tier and on
 the observation operator used to extract a scalar, profile, section average,
 boundary quantity, or time history from the computed field.
-Table~\ref{tab:continuum-principal-observables} records the main categories used
-when a continuum field is compared with a reduced stenosis model.
+Table~\ref{tab:continuum-principal-observables} identifies which continuum
+outputs survive reduction as native states and which become closures,
+reconstructions, or observation maps when a continuum field is compared with a
+reduced stenosis model.
 
 \begin{table}[!htb]
     \centering
@@ -390,7 +394,7 @@ when a continuum field is compared with a reduced stenosis model.
         Velocity $\vu$
             & Point, profile, section mean, or resolved field.
             & Mean axial velocity $\bar u=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$
-            and reconstructed profile descriptors. \\
+            and reconstructed profile summaries. \\
         Pressure $p$
             & Local pressure, pressure drop, or pressure history.
             & Section-averaged pressure or gauge pressure supplied by a
@@ -416,7 +420,7 @@ pressure are reductions of continuum fields. Its closure choices are necessary
 because transverse velocity, wall traction, wall motion, and rheological detail
 are not all solved directly. Its comparison quantities are continuum-derived
 observables: physical flow, section-mean axial velocity, pressure when supplied
-by the selected closure, and velocity-profile descriptors.
+by the selected closure, and velocity-profile summaries.
 \end{stenosisillustration}
 
 The continuum definitions therefore constrain every lower model tier. A lower

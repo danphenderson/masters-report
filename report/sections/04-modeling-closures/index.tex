@@ -31,15 +31,14 @@ being interpreted, so the selected rheology must be carried with the observable
 
 \begin{definition}[Effective-viscosity closure catalog]
 \label{def:rheology-closure-catalog}
-A reduced realization that exposes a rheology descriptor $\mathcal R$ must state
+A reduced realization that selects a rheology family $\mathcal R$ must state
 the scalar effective dynamic-viscosity law
 $\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma)$ before its friction, pressure,
 or shear diagnostics can be interpreted. At the review level, the closure
 contract consists of a dynamic-viscosity law, the shear-rate proxy on which it
 is evaluated, the conversion $\nu_{\mathrm{eff}}^{\mathcal R}
 =\eta_{\mathrm{eff}}^{\mathcal R}/\rho$, and any regularization or bounds used
-near zero shear. The descriptor families used by the case-study implementation
-are
+near zero shear. The case-study implementation names these rheology families as
 \begin{flalign*}
     \quad
     \texttt{newtonian},\quad
@@ -48,9 +47,9 @@ are
     \texttt{casson},\quad
     \texttt{power-law}. &&
 \end{flalign*}
-Appendix~\ref{app:num-rheology-descriptor-details} records the case-study
+Appendix~\ref{app:num-rheology-descriptor-details} gives the case-study
 parameterization and regularization formulas. The listed families are
-descriptor options used to make reduced rheology choices explicit, not
+closure options used to make reduced rheology choices explicit, not
 universal blood constants.
 \end{definition}
 
@@ -110,11 +109,12 @@ they are not captured by simply inserting a narrowed healthy-radius profile
 into an otherwise standard area--flow model
 \cite{CanicEtAl2024Extended1DStenosis}. Geometry is therefore not only a mesh
 or image artifact: it determines whether throat effects appear through domain
-shape, source terms, pressure loss, or lumped parameters. Classical idealized
-stenosis studies occupy the corresponding evidence role. Young and Tsai's
-steady and unsteady model-stenosis experiments connect controlled narrowing to
-pressure-loss and flow-structure effects under declared geometry and flow
-conditions
+shape, source terms, pressure loss, or lumped parameters.
+
+Classical idealized stenosis studies occupy the corresponding evidence role.
+Young and Tsai's steady and unsteady model-stenosis experiments connect
+controlled narrowing to pressure-loss and flow-structure effects under declared
+geometry and flow conditions
 \cite{YoungTsai1973SteadyStenosis,YoungTsai1973UnsteadyStenosis}. They are
 therefore useful evidence for obstruction mechanisms and pressure-loss framing,
 not patient-specific stenosis validation or clinical severity inference.
@@ -147,8 +147,8 @@ For a single-vessel problem, the boundary is therefore not just a geometric
 edge. A resolved 3D problem may prescribe velocity, flow, traction, pressure,
 or wall-coupling information on inlet, outlet, and wall portions, while a 1D
 model applies incoming information to area--flow or characteristic variables.
-The case study later records its boundary rule as part of its model contract
-rather than as optional bookkeeping.
+The case study later states its boundary rule as part of its model contract,
+because boundary data close the mathematical problem.
 For subcritical 1D flow, the conceptual characteristic count is one incoming
 piece of information at each end of a single vessel. Prescribed pressure,
 prescribed flow, traction, impedance/Windkessel, characteristic, and multiscale

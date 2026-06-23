@@ -31,13 +31,11 @@ does not delimit the scope of the literature.
 \label{subsec:narrative-review-scope}
 
 The review is narrative and scoping in style rather than systematic. Sources
-were identified from a curated bibliography, a source-provenance log, citation
-trails within retained sources, and targeted searches used to check concrete
-gaps in model hierarchy, closure uncertainty, verification/validation, learned
-surrogates, and observation operators. Appendix~\ref{app:code-and-ai-use}
-records the reproducibility metadata for the source inventory and generated
-evidence matrices; the main text uses those records only to support bounded
-claims.
+were retained for the role they play in interpreting mathematical hemodynamics:
+derivation, taxonomy, numerical evidence, clinical or experimental observables,
+software reproducibility, or learned-model scope. Appendix~\ref{app:code-and-ai-use}
+lists the source-inventory metadata; the main text uses those entries only to
+support bounded claims.
 
 \begin{table}[!htb]
     \centering
@@ -85,7 +83,7 @@ one of those questions for the model hierarchy, closures, numerical evidence
 standard, or 1D--3D observation operator. Derivation papers establish equations
 and assumptions; benchmark papers establish comparative numerical behavior;
 clinical and experimental studies address external relevance for specified
-observables; and software or repository records support reproducibility rather
+observables; and software or repository materials support reproducibility rather
 than scientific truth of a model claim. The review does not claim exhaustive
 coverage of all clinical or computational hemodynamics.
 
@@ -114,7 +112,7 @@ review-oriented questions:
 \label{subsec:report-organization}
 
 The report's contribution is a structured review framework rather than a new
-clinical validation result. It first establishes the continuum vocabulary,
+clinical validation study. It first establishes the continuum vocabulary,
 then compares model tiers by retained state, closure burden, boundary data, and
 native observables. It next treats numerical methods through evidence
 standards: conservation, stability, positivity, well-balancing, verification,
@@ -123,11 +121,10 @@ synthesis chapter turns those ingredients into explicit propositions about
 what can and cannot be inferred from the literature.
 
 Only after that review and synthesis does the report turn to the idealized
-stenosis case study. The case uses \path{StenoticHemodynamics} as a worked
-example of a reduced model contract, closure choices, evidence records, and a
-1D--3D velocity observation operator. Its role is methodological: it shows how
-the review concepts constrain interpretation without converting the report into
-a software or clinical-validation document.
+stenosis case study. The case is a worked example of how a reduced model
+contract, closure choices, numerical evidence, and a 1D--3D velocity observation
+operator constrain interpretation. It illustrates the review framework; it does
+not expand the report into software documentation or clinical validation.
 
 The main continuum symbols are used in their standard units unless a generated
 numerical table states otherwise: $\rho$ denotes density, $u_z$ axial velocity,

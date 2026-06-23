@@ -2,16 +2,16 @@
 \label{sec:methodology}
 
 This section applies the review framework to one controlled stenosis example.
-It identifies the model tier, native variables, closure choices, boundary
-approximation, principal numerical method, observation operator, and evidence
-contract before any result is interpreted. Dense operator formulas, secondary
-solver surfaces, and reproducibility commands remain in the appendices unless
-they are needed to understand a main-body claim.
+The model tier, retained variables, closure choices, boundary approximation,
+finite-volume operator, observation map, and matching limits are stated before
+any result is interpreted. Dense operator formulas, secondary numerical
+surfaces, and reproducibility commands remain in the appendices unless they are
+needed to understand a main-body claim.
 
 \begin{center}
 \fbox{\begin{minipage}{0.90\linewidth}
 \small
-\textbf{Solver-coordinate convention.} In the comparison record, the stored
+\textbf{Solver-coordinate convention.} In the comparison outputs, the stored
 solver state \texttt{A} is $a=R^2$, not physical circular area. The physical
 map is Definition~\ref{def:physical-to-solver-map}:
 $A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and
@@ -23,10 +23,8 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
     \centering
     \scriptsize
     \caption{Case-study contract for the retained 23\% and 40\%
-    stenosis-severity numerical evidence.
-    The table states the minimum computational and interpretive commitments
-    needed before the result tables are read. It is a reading contract, not an
-    additional numerical result.}
+    stenosis-severity numerical evidence. The table states how the worked
+    example should be read before the numerical results are interpreted.}
     \label{tab:t1-case-study-contract}
     \begin{tabularx}{\textwidth}{@{}
         >{\raggedright\arraybackslash}p{0.20\textwidth}
@@ -44,64 +42,40 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             & The chapter illustrates verification, reproducibility, and
             diagnostic cross-model velocity comparison; it is not a
             pressure-ratio study or patient-specific interpretation. \\
-        Resolved datasets and final-time match
-            & The retained resolved datasets are the 23\% stenosis case from
-            local dataset 77 and the 40\% stenosis case from local dataset 60.
-            Both are compared at $T=0.9995$ s, with recorded 1D--3D final-time
-            offsets of $5.47\times10^{-14}$ s.
-            & The final timestamp is matched. Earlier transient-history
-            matching is not carried by the available comparison record and would be needed
-            for a stronger predictive comparison. \\
-        Principal 1D computation
+        Model and closures
             & The main comparison uses the $R_{\max}$-normalized
             Canic-derived extended 1D member with Newtonian
             $\nu=0.04$ cm$^2$/s, parabolic profile closure, $N=400$ MUSCL
-            finite-volume cells, Rusanov flux, and native SSPRK3 time
+            finite-volume cells, Rusanov flux, and SSPRK3 time
             integration.
-            & Other finite-volume, DG, timestepper, and descriptor records are
-            implementation-check or sensitivity context rather than the
-            principal two-case comparison method. \\
+            & Other variants are secondary sensitivity
+            context rather than the principal two-case comparison method. \\
         Observation operator
             & The 3D velocity field is reduced by the declared
-            \texttt{CrossSectionQuadratureOperator}; the 1D state is observed as
+            cross-section quadrature operator; the 1D state is observed as
             physical flow $Q_{1D}=\pi q$ and mean velocity
             $\bar u_{1D}=q/a$ on 200 axial sections. A second retained
             comparison applies the resolved displacement field before forming
             the same plane cuts.
             & The comparison supports a claim only for these common section
-            observables. Radial-profile outputs are retained only as an audit
-            record because their area-closure gate fails. \\
-        Numerical admissibility gates
+            observables. Radial-profile outputs are not promoted because their
+            area-closure gate fails. \\
+        Numerical evidence
             & The main text reports manufactured-solution behavior,
             output-operator verification, geometry-rest drift, subcritical
             boundary diagnostics, CFL, positivity, and finite-volume
-            bookkeeping.
-            & These records support run admissibility and numerical
-            interpretation. They do not by themselves identify a physical
-            prediction target. \\
+            balance.
+            & These checks support run admissibility and numerical
+            interpretation; they do not identify a physical prediction target. \\
         Matching limits
             & The analytic reference profile is shared and the static cut-area
             check is reported for both reference and deformed coordinates. A
             quasi-static membrane-FSI comparator is also retained for the
             radial wall displacement solve.
             & Velocity differences cannot be attributed uniquely to a specific
-            closure, wall, boundary, or geometry mechanism because the retained
-            resolved record still lacks matched boundary histories and full
+            closure, wall, boundary, or geometry mechanism because the resolved
+            data available here do not carry matched boundary histories or full
             transient wall history. \\
-        Retained outputs
-            & The retained numerical evidence is the MMS/rest-state record,
-            cut-area check, axial flow behavior, flow/area bookkeeping,
-            section-mean velocity discrepancy summary, coordinate-mode
-            comparison, quasi-static membrane-FSI wall summary,
-            production-grid sensitivity, and largest section discrepancies.
-            & These are descriptive final-time discrepancy and sensitivity
-            records for the declared two-case comparison. \\
-        Excluded radial/profile outputs
-            & Secondary radial-profile rows were regenerated for selected
-            axial slices and audited.
-            & The raw rows reproduce the generated radial summary, but the
-            area-closure gate fails because the radial slices do not coincide
-            with the retained section-target set. \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -172,7 +146,7 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     \end{flalign*}
     With $K=Eh/(1-\sigma^2)$ and the Canic conservative-form convention
     $R_0^*=R_{\max}$, the selected evolution wall law gives the solver elastic
-    flux contribution recorded in Appendix~\ref{app:num-current-solver-operator}:
+    flux contribution defined in Appendix~\ref{app:num-current-solver-operator}:
     \begin{flalign*}
         \quad
         \Psi_h(a)=\frac{K}{3\rho R_{\max}^2}a^{3/2},
@@ -213,7 +187,7 @@ follows standard compliant-artery and dimension-reduced modeling arguments
         s(z) &= s_{\max}\psi(z), \qquad 0\leq s_{\max}<1.
         \numberthis\label{eq:1d-stenosis-profile} &&
     \end{flalign*}
-    In the default centimeter-scale simulation record, $z_a=2.5\,\mathrm{cm}$,
+    In the default centimeter-scale simulation setting, $z_a=2.5\,\mathrm{cm}$,
     $z_s=3.4\,\mathrm{cm}$, $\sigma_a=1\,\mathrm{cm}$,
     $\kappa=0.95\,\mathrm{cm}$, and
     $\lambda=50\,\mathrm{cm}^{-4}$.
@@ -232,9 +206,10 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     Canic et al.\ show that standard 1D variable-geometry models may miss
     stenotic pressure and velocity trends unless additional variable-radius
     terms are included \cite[Abstract; Secs.~1--2]{CanicEtAl2024Extended1DStenosis}.
-    Those corrections are included by the \texttt{canic-extended-1d}
-    forward-model descriptor; the \texttt{classical-1d-no-slip} descriptor is
-    the parabolic-profile baseline that retains the same selected wall law but
+    Those corrections are included by the Canic-derived extended member
+    (implementation label \texttt{canic-extended-1d}); the classical
+    parabolic-profile baseline (implementation label
+    \texttt{classical-1d-no-slip}) retains the same selected wall law but
     omits the Canic variable-radius corrections.
 \end{remark}
 
@@ -246,13 +221,13 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     tube, but no-slip alone does not imply that profile in an unsteady stenotic
     vessel. The parabolic profile is therefore an independent cross-sectional
     closure with $\alpha_{\mathcal P}=4/3$ and $g_{\mathcal P}=4$. In the
-    implementation manifests this member is recorded under the descriptor
-    \texttt{classical-1d-no-slip}; in the mathematical discussion it is
-    the classical parabolic-profile baseline. It keeps the same reduced state
+    mathematical discussion this model is the classical parabolic-profile
+    baseline; the implementation label is
+    \texttt{classical-1d-no-slip}. It keeps the same reduced state
     variables and selected Canic-derived pressure--area wall law as the
     extended 1D framework, but omits the Canic effective-alpha variable-radius
-    correction. The descriptor \texttt{canic-extended-1d} names the
-    $R_{\max}$-normalized Canic-derived extended-model member.
+    correction. The $R_{\max}$-normalized Canic-derived extended member is
+    labeled \texttt{canic-extended-1d} in implementation manifests.
 \end{definition}
 
 \begin{definition}[Selected Canic--Koiter pressure--area wall law]
@@ -294,7 +269,7 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     denominator, not the local $R_0^{-2}$ denominator. In this report
     $R_{\max}$ is the healthy reference-radius parameter used by the solver;
     for the default stenosis profile it equals $\max_zR_0(z)$. The selected
-    comparison runs use the cgs numerical-record values
+    comparison runs use the cgs parameter values
     $\rho=1.055\,\mathrm{g}/\mathrm{cm}^3$,
     $E=5.02\times10^6\,\mathrm{dyn}/\mathrm{cm}^2$,
     $h=0.06\,\mathrm{cm}$, $\sigma=0.5$,
@@ -304,9 +279,8 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     This is the wall law paired with the implemented elastic potential and
     wall/geometry source below. Legacy pressure-output helpers in the
     implementation still report a local-denominator pressure diagnostic
-    $p_{\mathrm{loc},\mathrm g}^{\mathrm{diag}}$ through
-    \path{pressure(result, params)}; benchmark pressure extrema and
-    pressure-diagnostic bars refer to that diagnostic, not to
+    $p_{\mathrm{loc},\mathrm g}^{\mathrm{diag}}$; benchmark pressure extrema
+    and pressure-diagnostic bars refer to that legacy diagnostic, not to
     $p_{\mathcal W,\mathrm g}^{\mathrm{evol}}$. The 1D model identifies
     $p_{\mathcal W,\mathrm g}^{\mathrm{evol}}$ with
     a cross-sectional pressure representative as a closure assumption and does
@@ -324,7 +298,7 @@ variable-radius effects into closures. Appendix~\ref{app:num-current-solver-oper
 gives the corresponding semi-discrete operator in solver coordinates, including
 the $R_{\max}$-normalized wall potential, wall/geometry source, friction term,
 effective-alpha correction, and locally frozen $p_2$ derivative. The main-body
-case study uses that appendix as the implementation authority and records here
+case study uses that appendix as the implementation authority and states here
 only the model contract needed to interpret the evidence.
 
 The selected continuous law has a rest state that matters for the evidence
@@ -367,7 +341,7 @@ drift.
 \subsubsection{Source-to-Implementation Differences}
 \label{subsec:source-to-implementation-variant}
 
-The selected implementation is a documented Canic-derived extended model, not
+The selected realization is a documented Canic-derived extended model, not
 a literal reproduction of every source-paper parameter and normalization in
 \cite{CanicEtAl2024Extended1DStenosis}. The report therefore uses the phrase
 \emph{$R_{\max}$-normalized Canic-derived extended model} when source fidelity
@@ -375,7 +349,7 @@ matters. The main differences are the $R_{\max}^{-2}$ elastic normalization,
 the parabolic principal velocity-profile closure, the fixed-area characteristic
 boundary approximation, and the locally frozen-viscosity treatment used for the
 diagnostic $p_2$ derivative. Appendix~\ref{app:num-source-implementation-map}
-records the detailed source-to-implementation table. The diagnostic extended
+contains the detailed source-to-realization table. The diagnostic extended
 pressure correction is
 \begin{flalign*}
     \quad
@@ -385,7 +359,7 @@ pressure correction is
     \frac{q}{a}\frac{R_0'(z)}{R_0(z)}. &&
 \end{flalign*}
 This $p_2$ term is a variable-radius viscous correction, not a replacement wall
-law. In generalized-Newtonian descriptor runs, the implemented analytic $p_2$
+law. In generalized-Newtonian closure runs, the implemented analytic $p_2$
 derivative uses the local value of $\nu_{\mathrm{eff}}^{\mathcal R}$ and does
 not differentiate that effective-viscosity factor; it is therefore a locally
 frozen-viscosity computational closure for this term.
@@ -448,16 +422,16 @@ two-case severity comparison uses the finite-volume method specified in
 Appendix~\ref{app:num-current-solver-operator}: the radius-squared state
 $(a,q)$ is advanced on a one-dimensional grid with MUSCL reconstruction,
 minmod-limited conservative states, Rusanov flux, source splitting for the
-wall/geometry and variable-radius terms, and native SSPRK3 time integration.
+wall/geometry and variable-radius terms, and SSPRK3 time integration.
 The principal numerical comparison uses $N=400$ cells on $0\le z\le6$ cm, a
 timestep cap of $10^{-5}$ s, and a CFL cap of 0.45. The optional
-output-sensitivity record reruns the same comparison protocol at
+output-sensitivity check reruns the same comparison protocol at
 $N=200,400,800$ cells and is interpreted only as a production-grid sensitivity
 check. The boundary-state approximation is the fixed-area characteristic
-contract recorded in
+contract defined in
 Appendix~\ref{app:num-boundary-state-realization}. Other finite-volume, modal-DG,
-native time-stepper, and SciML/OrdinaryDiffEq surfaces are implementation-check
-or sensitivity context summarized in Table~\ref{tab:implemented-discretization-surface};
+time-stepper, and ODE-integration surfaces are secondary sensitivity context
+summarized in Table~\ref{tab:implemented-discretization-surface};
 they are not the principal two-case comparison method.
 
 \subsubsection{Plane--Tetrahedron Observation Operator}
@@ -467,8 +441,8 @@ they are not the principal two-case comparison method.
 The 1D state directly supplies a section mean,
 $\bar u_{1D}(z,t)=q(z,t)/a(z,t)$, and physical flow
 $Q_{1D}(z,t)=\pi q(z,t)$. The implementation can also emit radial-profile
-rows using the same cut triangles. Those rows are audited in this manuscript,
-but no radial-profile figure or localization claim is retained because the
+rows using the same cut triangles. Those rows are treated as secondary output,
+and no radial-profile figure or localization claim is retained because the
 radial area-closure gate fails.
 
 The resolved-data loader also accepts pressure and displacement XDMF/HDF5
@@ -479,9 +453,9 @@ deformed-coordinate section comparisons are retained in
 Section~\ref{subsec:deformed-coordinate-comparison}.
 
 For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
-\texttt{CrossSectionQuadratureOperator} intersects every tetrahedron with
-$S_j$, linearly interpolates axial velocity on the cut edges, sorts the cut
-polygon vertices in the plane, and triangulates the polygon by a centroid fan.
+cross-section quadrature operator intersects every tetrahedron with $S_j$,
+linearly interpolates axial velocity on the cut edges, sorts the cut polygon
+vertices in the plane, and triangulates the polygon by a centroid fan.
 Let $\mathcal Q_j$ denote the resulting cut triangles. The reported 3D area,
 flow, and mean velocity are
 \begin{flalign*}
@@ -506,7 +480,7 @@ velocities $u_{z,1}$, $u_{z,2}$, and $u_{z,3}$,
     =
     \frac{u_{z,1}+u_{z,2}+u_{z,3}}{3}. &&
 \end{flalign*}
-The corresponding 1D quantities use physical flow, not the raw solver flow
+The corresponding 1D quantities use physical flow, not the solver flow
 coordinate:
 \begin{flalign*}
     \quad
@@ -518,7 +492,7 @@ coordinate:
     =
     q(z_j,t)/a(z_j,t). &&
 \end{flalign*}
-Quarantined radial rows are not part of the retained comparison metrics.
+Radial-profile rows are not part of the retained comparison metrics.
 
 \subsubsection{Comparison Design and Discrepancy Metrics}
 \label{subsec:numerical-experiments-metrics-provenance}
@@ -526,12 +500,9 @@ Quarantined radial rows are not part of the retained comparison metrics.
 The resolved-velocity comparison evaluates the selected 1D solution against two
 available resolved 3D velocity comparison datasets at the matched final-time
 sample $T=0.9995$ s. The retained cases are described by their 23\% and 40\%
-stenosis severities, with local dataset identifiers recorded only for
-provenance. The comparison is a diagnostic cross-model velocity comparison
-under the declared observation operator.
-The compact reading contract is stated at the start of this section.
-Regeneration commands, local source identifiers, raw-input policy, and static
-asset ownership are recorded in
+stenosis severities. The comparison is a diagnostic cross-model velocity
+comparison under the declared observation operator. Source identifiers, input
+policy, and static asset ownership are kept in
 Appendix~\ref{app:code-and-ai-use}.
 
 Velocity and flow differences are reported as sample discrepancy measures over

@@ -5,12 +5,16 @@
 \label{subsec:preliminary-cross-model-velocity-comparison}
 
 This section reports final-time comparisons between the selected 1D
-area--flow solution and two resolved stenotic-vessel datasets. The retained
-datasets are the 23\% stenosis case from local dataset 77 and the 40\%
-stenosis case from local dataset 60. Both are sampled at
-$T=0.9995\,\mathrm{s}$; the recorded 1D--3D final-time offset is
-$5.47\times10^{-14}\,\mathrm{s}$ in each case. This timestamp agreement is a
-final-time alignment check, not a complete transient-history match.
+area--flow solution and two resolved stenotic-vessel datasets. Under the
+reference-coordinate section observation map, the 23\% case has mean absolute
+section-velocity discrepancy $0.505\,\mathrm{cm}/\mathrm{s}$ and relative RMS
+discrepancy $2.77\%$; the 40\% case has $0.966\,\mathrm{cm}/\mathrm{s}$ and
+$6.88\%$. The larger discrepancies occur near the throat, and the available
+matching data do not isolate one closure, wall, boundary, or geometry cause.
+Both cases are sampled at $T=0.9995\,\mathrm{s}$; the measured 1D--3D
+final-time offset is $5.47\times10^{-14}\,\mathrm{s}$ in each case. This
+timestamp agreement is a final-time alignment check, not a complete
+transient-history match.
 
 The evidence below separates three resolved-comparator questions. First, the
 reference-coordinate velocity comparison maps the 1D and 3D fields to common
@@ -20,7 +24,9 @@ the quasi-static membrane-FSI solve supplies a resolved wall-deformation
 comparator based on the membrane relation used by Canic et al.\ for their wall
 model \cite[Eq.~(35)]{CanicEtAl2024Extended1DStenosis}. The third item is a
 Canic-style resolved comparator for this report, not a reproduction of the full
-transient FSI calculation in that paper.
+transient FSI calculation in that paper. The metadata table identifies the
+resolved files used for these three questions; the scientific comparison is
+reported by stenosis severity.
 
 \begin{table}[!htb]
     \centering
@@ -49,6 +55,11 @@ transient FSI calculation in that paper.
     }
 \end{table}
 
+The 40\% case is therefore both larger in relative RMS discrepancy and more
+localized near the throat. That localization is tied to the declared section
+observation map, but the available data do not assign the difference to one
+closure, wall, boundary, or geometry mechanism.
+
 \begin{figure}[!htb]
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
@@ -65,86 +76,10 @@ transient FSI calculation in that paper.
     \label{fig:resolved-3d-flow-field}
 \end{figure}
 
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Subcritical-boundary diagnostics for the same two 1D runs used in
-    the resolved-velocity comparison. The characteristic-radicand values are in
-    solver units of cm$^2$/s$^2$; the signs of $\lambda_-$ and $\lambda_+$
-    support the boundary-regime gate in
-    Assumption~\ref{ass:1d-subcritical-boundary-regime}.}
-    \label{tab:t1-alpha-radicand-diagnostics}
-    \resizebox{\textwidth}{!}{%
-    \begin{tabular}{@{}lrrrrrrrr@{}}
-        \toprule
-        \textbf{Case}
-            & $\boldsymbol{\min \alpha_{\mathrm{eff}}}$
-            & $\boldsymbol{\max \alpha_{\mathrm{eff}}}$
-            & $\boldsymbol{\min \chi^2}$
-            & $\boldsymbol{\min\lambda_-}$
-            & $\boldsymbol{\max\lambda_-}$
-            & $\boldsymbol{\min\lambda_+}$
-            & $\boldsymbol{\max\lambda_+}$
-            & $\boldsymbol{\min\{\lambda_+,-\lambda_-\}}$ \\
-        \midrule
-        23\% stenosis & 1.33058 & 1.33333 & $8.15\times 10^5$ & -998.85 & -852.17 & 953.33 & 1058.76 & 852.17 \\
-        40\% stenosis & 1.32500 & 1.33333 & $6.36\times 10^5$ & -999.08 & -713.79 & 880.69 & 1058.94 & 713.79 \\
-        \bottomrule
-    \end{tabular}
-    }
-\end{table}
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \pgfplotstableread[col sep=space]{report/assets/data/stenosis-comparison/production-diagnostics-reference.dat}\TOneProductionDiagnostics
-    \caption{Production diagnostics from the 23\% and 40\% severity 1D
-    comparison runs completed at $T=0.9995$ s. These rows summarize timestep,
-    CFL, positivity, area, and finite-volume bookkeeping for the 1D runs used
-    in the resolved-comparator evidence.}
-    \label{tab:t1-production-diagnostics}
-    \resizebox{\textwidth}{!}{%
-    \pgfplotstabletypeset[
-        columns={
-            case,
-            target_time,
-            completed_time,
-            cross_model_time_offset,
-            dt_min,
-            dt_max,
-            cfl_max,
-            min_Aphys,
-            volume_defect,
-            positivity_count,
-            area_flux_balance,
-            rhs_area_max,
-            rhs_flow_max
-        },
-        every head row/.style={before row=\toprule, after row=\midrule},
-        every last row/.style={after row=\bottomrule},
-        columns/case/.style={string type,column type=l,column name=\textbf{Stenosis}},
-        columns/target_time/.style={fixed,precision=4,column name=$\boldsymbol{T_{\mathrm{target}}}$},
-        columns/completed_time/.style={fixed,precision=4,column name=$\boldsymbol{T_{\mathrm{done}}}$},
-        columns/cross_model_time_offset/.style={sci,precision=2,column name=$\boldsymbol{|\Delta t_{\mathrm{1D--3D}}|}$},
-        columns/dt_min/.style={sci,precision=2,column name=$\boldsymbol{\Delta t_{\min}}$},
-        columns/dt_max/.style={sci,precision=2,column name=$\boldsymbol{\Delta t_{\max}}$},
-        columns/cfl_max/.style={fixed,precision=2,column name=\textbf{CFL$_{\max}$}},
-        columns/min_Aphys/.style={fixed,precision=5,column name=$\boldsymbol{\min \pi a}$},
-        columns/volume_defect/.style={sci,precision=2,column name=$\boldsymbol{\Delta\!\int a\,dz}$},
-        columns/positivity_count/.style={int detect,column name=\textbf{pos. count}},
-        columns/area_flux_balance/.style={sci,precision=2,column name=\textbf{area-flux balance}},
-        columns/rhs_area_max/.style={sci,precision=2,column name=$\boldsymbol{\max|\dot a|}$},
-        columns/rhs_flow_max/.style={fixed,precision=5,column name=$\boldsymbol{\max|\dot q|}$}
-    ]\TOneProductionDiagnostics
-    }
-\end{table}
-
-\FloatBarrier
-
 \subsubsection{Observation Operator and Deformed Coordinates}
 \label{subsec:cross-sectional-sampling-protocol-results}
 
-The comparison uses the declared \texttt{CrossSectionQuadratureOperator}. For a
+The comparison uses the declared cross-section quadrature operator. For a
 target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the operator intersects
 the tetrahedral mesh with the plane, triangulates the cut polygon, and computes
 \begin{flalign*}
@@ -172,6 +107,9 @@ reference-radius profile in Eq.~\ref{eq:1d-stenosis-profile}. For the comparison
 geometry this gives $z^\star\approx2.451\,\mathrm{cm}$, with
 $R_{\min}=0.1386\,\mathrm{cm}$ for the 23\% stenosis case and
 $R_{\min}=0.1080\,\mathrm{cm}$ for the 40\% stenosis case.
+The area check below shows that the section cuts track the analytic reference
+geometry closely enough for the velocity comparison to be interpreted as an
+observation-map comparison rather than a gross cut-geometry mismatch.
 
 \begin{table}[!htb]
     \centering
@@ -206,7 +144,8 @@ $\langle Q_{1D}\rangle=2.288\,\mathrm{cm}^3/\mathrm{s}$ and
 $\langle Q_{3D}\rangle=2.241\,\mathrm{cm}^3/\mathrm{s}$ for the 23\% stenosis
 case, and $\langle Q_{1D}\rangle=2.287\,\mathrm{cm}^3/\mathrm{s}$ and
 $\langle Q_{3D}\rangle=2.219\,\mathrm{cm}^3/\mathrm{s}$ for the 40\% stenosis
-case.
+case. The discrepancy summaries below show that the 40\% case has the larger
+section-mean velocity gap, concentrated near the stenosis throat.
 
 \begin{figure}[!htb]
     \centering
@@ -220,7 +159,7 @@ case.
     \label{fig:t1-axial-flow-comparison}
 \end{figure}
 
-The algebraic split used for flow/area bookkeeping is
+The algebraic split used for flow and area effects is
 \begin{flalign*}
     \quad
     \frac{Q_{1D}}{A_{1D}}-\frac{Q_{3D}}{A_{3D}}
@@ -230,15 +169,15 @@ The algebraic split used for flow/area bookkeeping is
     Q_{3D}\left(\frac{1}{A_{1D}}-\frac{1}{A_{3D}}\right),
     \qquad A_{1D}=\pi a. &&
 \end{flalign*}
-This decomposition is bookkeeping for the sampled sections, not causal
-attribution.
+This decomposition separates sampled-section terms algebraically; it is not
+causal attribution.
 
 \begin{table}[!htb]
     \centering
     \scriptsize
     \caption{Section-wise decomposition of the reference-coordinate
     mean-velocity discrepancy into physical-flow and area-denominator
-    contributions. Values are in cm/s. This bookkeeping split is tied to the
+    contributions. Values are in cm/s. This algebraic split is tied to the
     declared section observation operator and is not a causal error
     attribution.}
     \label{tab:t1-flow-area-decomposition}
@@ -250,7 +189,7 @@ attribution.
             & $\boldsymbol{\langle |Q_{3D}(A_{1D}^{-1}-A_{3D}^{-1})|\rangle}$
             & $\boldsymbol{z_{\max |d_u|}}$
             & $\boldsymbol{|d_u|_{\max}}$
-            & \textbf{Larger bookkeeping term at max} \\
+            & \textbf{Larger term at max} \\
         \midrule
         23\% stenosis & 0.529 & 0.112 & 2.291 & 2.35 & Flow term \\
         40\% stenosis & 1.012 & 0.133 & 2.261 & 9.92 & Flow term \\
@@ -323,49 +262,10 @@ attribution.
     \end{tabular}
 \end{table}
 
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Optional production-grid sensitivity for the reference-coordinate
-    resolved-velocity observation map. Flow discrepancies are in cm$^3$/s and
-    velocity discrepancies are in cm/s; the rows test numerical sensitivity of
-    the comparison output, not patient-specific interpretation.}
-    \label{tab:t1-grid-sensitivity-summary}
-    \resizebox{\textwidth}{!}{%
-    \input{report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex}%
-    }
-\end{table}
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Five largest section-wise velocity discrepancies in the
-    reference-coordinate comparison. Velocities and velocity discrepancies are
-    in cm/s; physical flows and flow discrepancies are in cm$^3$/s. The ranking
-    identifies where the declared observation map differs most strongly between
-    tiers.}
-    \label{tab:t1-largest-section-discrepancies}
-    \begin{tabular}{@{}rlrrrrrrrr@{}}
-        \toprule
-        \textbf{Rank}
-            & \textbf{Case}
-            & $\boldsymbol{z}$ \textbf{(cm)}
-            & $\boldsymbol{\bar u_{1D}}$
-            & $\boldsymbol{\bar u_{3D}}$
-            & $\boldsymbol{|d_u|}$
-            & $\boldsymbol{Q_{1D}}$
-            & $\boldsymbol{Q_{3D}}$
-            & $\boldsymbol{|d_Q|}$
-            & \textbf{Tri.} \\
-        \midrule
-        1 & 40\% stenosis & 2.261 & 52.58 & 42.66 & 9.92 & 2.201 & 1.862 & 0.339 & 759 \\
-        2 & 40\% stenosis & 2.291 & 56.94 & 48.20 & 8.74 & 2.230 & 1.903 & 0.327 & 749 \\
-        3 & 40\% stenosis & 2.352 & 61.43 & 53.22 & 8.21 & 2.270 & 1.980 & 0.290 & 743 \\
-        4 & 40\% stenosis & 2.322 & 59.81 & 52.09 & 7.72 & 2.253 & 1.970 & 0.283 & 771 \\
-        5 & 40\% stenosis & 2.231 & 46.95 & 39.94 & 7.01 & 2.174 & 1.918 & 0.256 & 833 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+Appendix~\ref{app:num-additional-resolved-comparator-diagnostics} retains the
+optional production-grid sensitivity rows and the five largest section-wise
+velocity discrepancies. Those rows support the stated localization and
+numerical-sensitivity reading without changing the main comparison claim.
 
 \subsubsection{Deformed-Coordinate Comparison}
 \label{subsec:deformed-coordinate-comparison}
@@ -374,7 +274,7 @@ The deformed-coordinate comparison repeats the same section operator after
 moving each resolved node by its displacement value. Table~\ref{tab:t1-coordinate-mode-comparison}
 shows that applying displacement changes the final-time discrepancy measures
 only modestly for these two datasets. This is still not a full wall-motion
-match: the available comparison record contains the final displacement field, not the
+match: the available comparison data contain the final displacement field, not the
 resolved wall history or boundary histories.
 
 \begin{table}[!htb]
@@ -456,26 +356,12 @@ validation.
     \label{fig:t1-membrane-fsi-fixed-point-history}
 \end{figure}
 
-\subsubsection{Radial-Profile Audit}
+\subsubsection{Radial-Profile Limitation}
 \label{subsec:reconstructed-radial-profile-results}
 
-The radial-profile reducer was rerun for slices
-$z=1.951$, $2.451$, and $2.951\,\mathrm{cm}$ in both reference and deformed
-coordinate modes. Its summary-discrepancy recomputation matched the generated
-radial summaries, but the area-closure gate failed because those slices are not
-members of the retained 200-section axial target set. The radial-profile plot is
-therefore not promoted into the main evidence.
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \caption{Radial-profile promotion check. The zero summary delta confirms
-    that the raw radial rows reproduce the generated radial-summary statistic;
-    the area-closure gate remains failed, so no radial figure or radial-bin
-    localization claim is retained.}
-    \label{tab:t1-radial-profile-audit}
-    \input{report/assets/tables/stenosis-comparison/radial_profile_audit.tex}
-\end{table}
+Radial-profile outputs are not used for a main-body localization claim because
+the selected slices do not coincide with the retained 200-section axial target
+set; the comparison remains a section-mean velocity comparison.
 
 \subsubsection{Interpretation Limits}
 \label{subsec:spatial-localization-discrepancies}

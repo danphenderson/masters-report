@@ -13,6 +13,8 @@ distinguish lumped global pressure--flow interactions from distributed 1D pulse
 propagation; and Quarteroni--Veneziani multiscale coupling shows that boundary
 data can be a reduced model of omitted circulation
 \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,QuarteroniVeneziani2003GeometricalMultiscale}.
+Thus 0D, 1D, and 2D formulations should not be described as weaker versions of
+3D CFD; they retain different states and require different observation maps.
 
 The case study demonstrates this answer by using a distributed 1D
 area--flow state only for quantities it can natively or reconstructively
@@ -36,12 +38,16 @@ aneurysm case
 \cite{Blanco2018FFR1D3D,LiuEtAl2021ICASRheology,JohnEtAl2017WallShearStressVectorForm,GambarutoEtAl2011GeometryRheologySensitivity}.
 
 The case study therefore presents its closure list as mathematical information,
-not as implementation bookkeeping: Newtonian principal rheology, parabolic
+not as implementation detail: Newtonian principal rheology, parabolic
 profile closure, an elastic pressure--area wall law, analytic reference
 geometry, fixed-area characteristic boundary approximation, and a
 plane--tetrahedron velocity observation operator. The resulting comparison is a
 velocity-observation comparison under those assumptions, not a WSS,
 wall-displacement, or FFR evidence claim.
+The membrane discussion sharpens the same boundary: Newtonian or
+generalized-Newtonian terminology belongs to the fluid stress law, while the
+membrane model is a structural wall closure and the quasi-static comparator is
+not a full transient FSI validation target.
 
 \subsection{RQ3: Numerical Evidence and Cross-Dimensional Interpretation}
 \label{subsec:discussion-numerical-evidence-observation}
@@ -61,7 +67,7 @@ solution supports code-verification claims for a forced operator. Its
 geometry-rest test supports a separate statement about equilibrium preservation
 and exposes the current non-well-balanced limitation. Its 1D--3D comparison is
 interpretable only after physical flow and area-mean velocity are extracted
-through a common observation operator. These records support a bounded
+through a common observation operator. These checks support a bounded
 diagnostic cross-model comparison, not an accepted-reference prediction result.
 
 \subsection{Contribution and Limitations}
@@ -73,8 +79,8 @@ closures, boundary data, discretization, observation operator, and evidence
 type. It applies that contract once in an idealized stenosis computation.
 
 The limitations are correspondingly bounded. The review is narrative and
-scoping, not systematic. Some sources remain preprints, software records, or
-metadata records with roles narrower than peer-reviewed empirical evidence. The
+scoping, not systematic. Some sources remain preprints, software artifacts, or
+metadata entries with roles narrower than peer-reviewed empirical evidence. The
 case geometry, wall law, rheology, and boundary approximation are idealized.
 The numerical evidence distinguishes verification, equilibrium preservation,
 and diagnostic comparison, but it does not provide externally validated
@@ -90,6 +96,9 @@ together. Model dimension alone does not determine interpretation, and neither
 a benchmark, a grid study, a cross-model comparison, nor a learned surrogate
 result substitutes for validation against an external target for a specified
 quantity and context.
+Likewise, a membrane-wall update, a pressure--area law, and a resolved FSI
+calculation answer different structural questions unless their wall state,
+loads, and observation operators are matched.
 
 The report does not claim externally validated clinical prediction for the
 idealized stenosis case or universal superiority of any model tier. Future work
