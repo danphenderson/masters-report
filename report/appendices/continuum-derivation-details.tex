@@ -8,8 +8,10 @@ model hierarchy, not additional evidence for the numerical study.
 All identities below are classical identities under the regularity needed for
 the displayed derivatives, traces, and changes of variables. In particular,
 $\Divbf$ is the row-divergence of a tensor field, and boundary forms assume the
-trace and normal hypotheses needed for the displayed integrals; no weak
-formulation is being asserted in this appendix.
+trace and normal hypotheses needed for the displayed integrals. The final
+subsection gives compact integral and variational bridge forms used to
+distinguish finite-volume, finite-element, and moving-domain discretization
+contracts.
 
 \subsection{Material Derivative and Trajectory Details}
 \label{subsec:material-derivative-trajectory-details}
@@ -134,3 +136,51 @@ is equivalent whenever the continuity equation holds, because
     \rho\left(\pd_t \vu+(\vu\cdot\nabla)\vu\right)
     +\vu\left(\pd_t \rho+\Div(\rho\vu)\right). &&
 \end{flalign*}
+
+\subsection{Integral and variational bridge forms}
+\label{subsec:continuum-integral-variational-bridge}
+
+For a fixed control volume $K$, the finite-volume bridge is the integral
+balance
+\begin{flalign*}
+    \quad
+    \frac{d}{dt}\int_K U\dx
+    +
+    \int_{\partial K}F(U)\cdot\nhat\,dS
+    =
+    \int_K S(U)\dx, &&
+\end{flalign*}
+with the numerical flux supplying the discrete approximation to the boundary
+integral. This is distinct from a mixed finite-element incompressible weak
+form. On a fixed fluid domain $\OmgB$ with boundary parts $\Gamma_D$ and
+$\Gamma_N$, the Newtonian schematic weak form is: find $(\vu,p)$ satisfying
+the essential velocity data such that
+\begin{flalign*}
+    \quad
+    \int_{\OmgB}\rho\left(\pd_t\vu+(\vu\cdot\nabla)\vu\right)\cdot\vv\,d\vx
+    +
+    \int_{\OmgB}2\eta\vct{D}(\vu):\vct{D}(\vv)\,d\vx
+    -
+    \int_{\OmgB}p\,\Div\vv\,d\vx
+    &=
+    \int_{\OmgB}\rho\vfb\cdot\vv\,d\vx
+    +
+    \int_{\Gamma_N}\vt_N\cdot\vv\,dS, &&\\
+    \quad
+    \int_{\OmgB}r\,\Div\vu\,d\vx &=0, &&
+\end{flalign*}
+for admissible velocity tests $\vv$ and pressure tests $r$. The pressure space
+must specify a gauge or quotient convention when the boundary conditions leave
+pressure determined only up to a constant. In an ALE or moving-domain FSI
+variant, the convective derivative is written with relative velocity
+$\vu-\vw$, and the fluid--structure interface contributes the kinematic and
+traction conditions
+\begin{flalign*}
+    \quad
+    \vu_f=\pd_t\vd_s,
+    \qquad
+    \vT_f\nhat_f+\vT_s\nhat_s=\zero. &&
+\end{flalign*}
+These bridge forms identify the mathematical contracts later numerical methods
+may discretize; they do not assert that every retained computational workflow
+implements the full moving-domain FSI form.

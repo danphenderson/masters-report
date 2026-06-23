@@ -67,16 +67,26 @@ Section~\ref{sec:continuum-description}, a resolved finite-element calculation
 discretizes the corresponding weak incompressible-flow or FSI problem. The
 numerical claim is therefore a mixed weak-form and interface-coupling claim, not
 simply a mesh claim. A finite-element realization chooses discrete velocity and
-pressure spaces and solves the resulting saddle-point problem. The mixed
-velocity--pressure pair is not a cosmetic choice: the discrete spaces must
-control the pressure null mode and avoid spurious pressure oscillations. Stable
-Taylor--Hood-type pairs, divergence-conforming constructions, or equal-order
-pairs augmented by pressure-stabilization, streamline-upwind/Petrov--Galerkin,
-least-squares, local projection, or grad-div terms are different numerical
-contracts. Galdi and coauthors are useful here not as a generic FEM citation,
-but because their hemodynamical-flow treatment ties continuum equations,
-mixed discretization, stabilization, and simulation evidence together
-\cite{GaldiEtAl2008HemodynamicalFlows}.
+pressure spaces and solves the resulting saddle-point problem. Several
+numerical contracts have to be kept separate. First, when the continuous
+problem determines pressure only up to an additive constant, the discrete
+problem needs a pressure gauge, quotient space, or equivalent null-mode
+constraint; that is a pressure-uniqueness convention. Second, the
+velocity--pressure pair must satisfy an appropriate discrete inf-sup condition,
+or it must include pressure stabilization such as pressure projection, PSPG, or
+local-projection stabilization. Stable Taylor--Hood-type pairs and suitable
+divergence-conforming constructions address this mixed-space requirement
+directly, while equal-order pairs generally need an added pressure-space
+stabilization contract. Third, advective stabilization such as SUPG addresses
+convection-dominated transport behavior. Fourth, grad-div terms improve
+discrete divergence control. SUPG and grad-div terms do not by themselves
+repair an inf-sup-unstable pressure space. Galdi and coauthors are useful here
+not as a generic FEM citation, but because their hemodynamical-flow treatment
+ties continuum equations, mixed discretization, stabilization, and simulation
+evidence together \cite{GaldiEtAl2008HemodynamicalFlows}. Package-facing Gridap
+wording in this report is therefore bounded to provisional continuous
+P2-velocity/P1-pressure routes until FEM-01 through FEM-04 settle the
+mathematical contract.
 At the algebraic level, this local dependency appears as sparsity. For
 element-local Galerkin terms, a stiffness or coupling block associated with
 basis functions $\phi_i$ and $\phi_j$ is nonzero only when their supports meet

@@ -79,8 +79,20 @@ parameters have viscosity units, $\tau_y$ has stress units, and
 $K_{\mathrm{pl}}$ has units $\mathrm{Pa}\cdot\mathrm{s}^{n_{\mathrm{pl}}}$ in
 SI.
 
-\subsection{Source-to-implementation map}
+\subsection{Relationship to the extended 1D model of Canic et al.}
 \label{app:num-source-implementation-map}
+
+Section~4.1 of Canic et al.\ is the source comparison target for this
+case-study family, but the retained report implementation is a documented
+specialization rather than a literal reproduction of every paper parameter,
+wall normalization, and resolved-FSI setting. The source model is an
+$(A,Q)$ area--flow system with a variable-radius correction $\alpha_c$, a
+viscous correction $p_2$, a pressure--area wall law, and a velocity-profile
+closure. The selected report realization uses the solver coordinates
+$(a,q)$ with $A_{\mathrm{phys}}=\pi a$ and $Q_{\mathrm{phys}}=\pi q$, the
+parabolic-profile constants $\alpha_{\mathcal P}=4/3$ and
+$g_{\mathcal P}=4$, the $R_{\max}^{-2}$ wall-law normalization, and a locally
+frozen effective-viscosity treatment in the $p_2$ derivative.
 
 \begin{table}[!htb]
     \centering
@@ -104,6 +116,12 @@ SI.
             & Principal runs use the parabolic profile
             $\alpha_{\mathcal P}=4/3$, $g_{\mathcal P}=4$; power-profile runs
             are sensitivity/diagnostic records. \\
+        Variable-radius momentum correction
+            & The extended 1D model includes the correction $\alpha_c$ tied to
+            reference-radius variation.
+            & The extended member uses the retained $\alpha_c$ switch in the
+            finite-volume operator; the classical baseline sets that switch to
+            zero. \\
         Friction coefficient
             & Profile-dependent wall/friction closure in the reduced model.
             & Implemented through the declared velocity-profile shear factor
@@ -122,6 +140,11 @@ SI.
             & Boundary conditions are model/problem dependent.
             & Fixed-area characteristic approximation applied with persisted
             subcritical-regime diagnostics. \\
+        Radial velocity reconstruction
+            & Canic-style formulas may reconstruct a radial velocity component
+            from the reduced fields.
+            & The current axial-profile helper reconstructs axial velocity
+            distributions only; it is not a Canic-style $u_r$ reconstruction. \\
         Discrete well balancing
             & Continuous rest equilibrium is a model-level property.
             & Rusanov/MUSCL is not exactly well balanced for spatially varying
@@ -267,7 +290,10 @@ Section~\ref{sec:resolved-3d-comparison} reports the main final-time velocity
 comparison. The optional rows below retain the production-grid sensitivity
 summary and the largest section-wise discrepancies so that the main text can
 state the comparison result without turning the chapter into a diagnostic
-listing.
+listing. The retained cross-dimensional observation is section-mean axial
+velocity on declared plane cuts. Radial distributions of axial velocity remain
+unevaluable as profile-closure evidence until the section and radial-bin
+operators are evaluated on identical axial cuts.
 
 \begin{table}[!htb]
     \centering
@@ -380,37 +406,16 @@ directory and manifest remain provenance records for regenerating the
 report-owned assets.
 
 The native resolved-FSI exact-boundary path is separate package-development
-diagnostic work, not a promoted report-evidence surface. Its current support
-establishes low-level smoke-scale and development artifact-readiness behavior,
-including status reporting for wall stability, FE pressure-nullspace hygiene,
-the explicit membrane-oscillator time-step guard, and wall mass and stiffness
-scales. Exact inlet/outlet mode uses stationary no-slip wall data on the
-deformed geometry; the separate pressure-drop smoke mode retains prescribed
-radial wall-velocity data. The reduced membrane update is semi-implicit and is
-guarded by pressure-load plausibility checks before wall-state mutation. For the
-23\% exact-boundary case, the $(40,3,16)$ development gate with
-$dt_s=10^{-4}$ and $t_{\mathrm{final}}=10^{-2}$ completed with final-snapshot
-output, wrote native velocity, pressure, and displacement bundles with
-sidecars, and reported finite fields, positive current radius
-($0.13957282830806$~cm), positive tetrahedron orientation
-\texttt{minimum\_signed\_tetra\_volume6} $=0.00012424821794278102$, direct
-finite wall-pressure sampling with zero projection fallbacks, and
-\texttt{fluid\_wall\_boundary\_mode=stationary\_wall\_on\_deformed\_geometry}.
-The run used one coupling iteration per step and recorded bounded but
-non-converged coupling history, so this is development artifact-readiness
-evidence only, not a Section~4.1 reproduction or validation claim. A
-development-output parity artifact loaded the imported observations and wrote
-native observation and summary CSVs, but nonzero discrepancies remained:
-$2.317$~cm/s in maximum mean velocity difference and $813.906$~dyn/cm$^2$ in
-maximum mean pressure difference. That artifact is therefore
-operator-readiness and discrepancy-classification evidence, not imported-data
-parity. Preproduction, larger case-set generation, and validated
-moving-boundary FSI claims remain deferred. Production metadata now writes
-schema-v2 checkpoint sidecars with manifest role, path, byte-size, and SHA-256
-checks, but durable FE-state serialization and reconstruction are not
-implemented; the sidecars remain diagnostic metadata and do not enable persisted
-restart or resume. FE pressure-nullspace status remains distinct from the outlet
-normalization applied after pressure sampling.
+diagnostic work, not a promoted report-evidence surface. Hybrid batch
+runner/process-thread support is interpreted as observability and batch-safety
+infrastructure only. It does not establish production parity, imported parity,
+moving-wall/ALE fidelity, durable restart or resume support, or
+manuscript-grade reproduction of Section~4.1 of Canic et al. The package-owned
+Lane 11 mathematical-contract gate blocks exact Section~4.1 reproduction claims
+until FEM-01 through FEM-04, GEOM-01, and OBS-01 are resolved and the report
+evidence is regenerated. Current Gridap-based resolved-flow language is
+therefore provisional development context rather than a backend-replacement or
+production-claim basis.
 
 The corresponding report-generation entry point is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]

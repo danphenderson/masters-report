@@ -251,6 +251,53 @@ models; reduced arterial models inherit their conservation structure after
 geometric averaging and closure choices
 \cite[Sec.~6]{QuarteroniFormaggia2004CardiovascularModeling}.
 
+\subsection{Integral, Weak, and Moving-Domain Forms}
+\label{subsec:continuum-integral-weak-moving-forms}
+
+The continuum equations also determine which numerical form is being
+discretized. A finite-volume method starts from a control-volume balance: for a
+conserved state $U$, flux $F(U)$, source $S(U)$, and fixed control volume $K$,
+\begin{flalign*}
+    \quad
+    \frac{d}{dt}\int_K U\dx
+    +
+    \int_{\partial K}F(U)\cdot\nhat\,dS
+    =
+    \int_K S(U)\dx. &&
+\end{flalign*}
+A mixed finite-element incompressible-flow method instead starts from a weak
+velocity--pressure statement. On a fixed fluid domain with Dirichlet boundary
+part $\Gamma_D$ and traction boundary part $\Gamma_N$, a schematic Newtonian
+form asks for $(\vu,p)$ in trial spaces satisfying the velocity boundary data
+such that, for velocity tests $\vv$ and pressure tests $r$,
+\begin{flalign*}
+    \quad
+    \int_{\OmgB}\rho\left(\pd_t\vu+(\vu\cdot\nabla)\vu\right)\cdot\vv\,d\vx
+    +
+    \int_{\OmgB}2\eta\vct{D}(\vu):\vct{D}(\vv)\,d\vx
+    -
+    \int_{\OmgB}p\,\Div\vv\,d\vx
+    &=
+    \int_{\OmgB}\rho\vfb\cdot\vv\,d\vx
+    +
+    \int_{\Gamma_N}\vt_N\cdot\vv\,dS, &&\\
+    \quad
+    \int_{\OmgB}r\,\Div\vu\,d\vx &=0. &&
+\end{flalign*}
+The pressure space or boundary data must declare how the pressure gauge is
+fixed when pressure is determined only up to an additive constant. In a moving
+domain or ALE statement, the convective velocity is replaced by the relative
+velocity $\vu-\vw$ against the mesh velocity $\vw$. A fluid--structure
+interface also imposes kinematic and traction compatibility, schematically
+\begin{flalign*}
+    \quad
+    \vu_f=\pd_t\vd_s,
+    \qquad
+    \vT_f\nhat_f+\vT_s\nhat_s=\zero. &&
+\end{flalign*}
+Appendix~\ref{app:continuum-derivation-details} records these as bridge
+forms, not as a completed discretization or solver claim.
+
 \subsection{Cross-Sectional Bridge to Area--Flow Models}
 \label{subsec:continuum-area-flow-bridge}
 

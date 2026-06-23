@@ -4,10 +4,16 @@
 
 The prior final-submission/no-op closeout is withdrawn. A grounded review of the
 independent audit found that the manuscript and package now need a coordinated
-mathematical-alignment pass before the report can be treated as final.
+mathematical-alignment pass before the report can be treated as final. Package
+commit `5aafb22 Plan native FSI math contract alignment` has established the
+package-owned Lane 11 boundary after `2c765ee Prepare native FSI hybrid
+batches`; this report TODO remains the report-owner plan for manuscript and
+appendix alignment.
 
 The last public PDF remains a useful pre-alignment artifact, not the final
-submission artifact after this new lane begins:
+submission artifact after this new lane begins, and
+`public/final-report.pdf` must not be treated as final while the alignment lane
+is open:
 
 ```text
 public/final-report.pdf
@@ -16,14 +22,18 @@ sha256: a7646013b30307a5adc33d3cecc78a743f9f38e61b4fc025dc5a6993d82d634f
 
 Live-tree grounding for this TODO refresh:
 
-- `master` was at `790cbc4 Prepare native FSI preproduction batches`.
-- The dirty tree was package-only: seven Julia files in the native
-  resolved-FSI concurrency/batch-prep lane.
-- `report/TODO.md`, `packages/stenotic-hemodynamics/TODO.md`, and
-  `public/final-report.pdf` were clean before this report TODO patch.
-- The package-side TODO refresh was delegated to the principal Julia developer
-  thread. That thread owns `packages/stenotic-hemodynamics/TODO.md`; the report
-  lane owns this file.
+- `master` is at `5aafb22 Plan native FSI math contract alignment`.
+- The package TODO now owns `Lane 11: Mathematical Contract Alignment` as a P0
+  gate before native Section 4.1 preproduction execution, production
+  execution, imported parity promotion, or manuscript-facing reproduction
+  claims.
+- The package-owned hybrid batch runner/process-thread work from `2c765ee` is
+  observability and batch-safety work only. It does not establish production
+  parity, imported parity, moving-wall/ALE fidelity, restart/resume support, or
+  manuscript-grade Section 4.1 reproduction.
+- The live dirty tree includes package, viewer, and `public/final-report.pdf`
+  changes owned by other lanes. This report lane must not revert, stage, or
+  normalize those files.
 
 Grounded audit findings confirmed from the live checkout:
 
@@ -183,12 +193,17 @@ After the mathematical and evidence work lands:
 
 ## Package Coordination Requirements
 
-The principal Julia developer thread owns
-`packages/stenotic-hemodynamics/TODO.md` and package implementation. The report
+The package TODO introduced `Lane 11: Mathematical Contract Alignment` in
+`5aafb22`. The principal Julia developer thread owns
+`packages/stenotic-hemodynamics/TODO.md` and package implementation; the report
 lane should not edit package TODO or package code unless explicitly reassigned.
+This file remains the report-owner alignment plan.
 
-Package TODO must introduce `Lane 11: Mathematical Contract Alignment` before
-native Section 4.1 preproduction/production claims.
+Lane 11 is P0 before native Section 4.1 preproduction execution, production
+execution, imported parity promotion, or manuscript-facing reproduction claims.
+Current exact-boundary strings such as `exact_section41`,
+`implemented_smoke_validated`, and `zero_outlet_stress_natural_traction` are
+provisional implementation/status labels until FEM-01 through FEM-04 pass.
 
 P0 package items:
 
@@ -222,9 +237,9 @@ P1 package items:
 - FSI-01: classify the current path as repeated deformed-domain solves with a
   reduced membrane update, not monolithic ALE.
 
-Status strings such as `exact_section41`, `implemented_smoke_validated`, and
-`zero_outlet_stress_natural_traction` must be downgraded until FEM-01 through
-FEM-04 pass.
+Gridap remains in place for now. The package review found no evidence
+justifying backend replacement yet; the next performance work is phase
+telemetry and wrapper-allocation fixes, not manuscript claim promotion.
 
 ## Evidence Regeneration Plan
 
@@ -245,13 +260,12 @@ alignment lane begins.
 
 ## Validation Commands
 
-For this report TODO patch:
+For this report-side alignment patch:
 
 ```sh
-git status --short
-pipenv run ops-orchestrate status --json
-git diff --check -- report/TODO.md
-sed -n '1,260p' report/TODO.md
+git diff --check -- report/TODO.md report/sections report/appendices
+pipenv run ops-audit-report-prose --json
+pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
 ```
 
 For the later manuscript/package implementation:
