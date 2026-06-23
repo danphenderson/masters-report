@@ -27,6 +27,73 @@ const run_native_resolved_fsi_navier_stokes_smoke = StenoticHemodynamics.run_nat
 const run_native_resolved_fsi_partitioned_smoke = StenoticHemodynamics.run_native_resolved_fsi_partitioned_smoke
 const run_native_resolved_fsi_smoke = StenoticHemodynamics.run_native_resolved_fsi_smoke
 
+@testset "StenoticHemodynamics native resolved-FSI scalar sampling helpers" begin
+    sample_point = StenoticHemodynamics.Point(0.0, 0.0, 0.0)
+    smoke_state = StenoticHemodynamics.native_resolved_fsi_try_sample_smoke_state(
+        _ -> (BigFloat("1.25"), BigFloat("2.5"), BigFloat("3.75")),
+        _ -> BigFloat("4.5"),
+        sample_point,
+    )
+    @test smoke_state !== nothing
+    @test all(component -> component isa BigFloat, smoke_state[1])
+    @test smoke_state[2] isa BigFloat
+    @test smoke_state[1] == (BigFloat("1.25"), BigFloat("2.5"), BigFloat("3.75"))
+    @test smoke_state[2] == BigFloat("4.5")
+    @test StenoticHemodynamics.native_resolved_fsi_try_sample_smoke_state(
+        _ -> (Float32(1.0), Float32(2.0), Float32(3.0)),
+        _ -> Float32(NaN),
+        sample_point,
+    ) === nothing
+    @test StenoticHemodynamics.native_resolved_fsi_try_sample_smoke_state(
+        _ -> (Float32(1.0), "not-real", Float32(3.0)),
+        _ -> Float32(4.0),
+        sample_point,
+    ) === nothing
+
+    big_pressure, big_used_fallback =
+        StenoticHemodynamics.native_resolved_fsi_partitioned_wall_pressure_at_station(
+            _ -> BigFloat("12.5"),
+            BigFloat("0.5"),
+            BigFloat("1.0"),
+            BigFloat("0.0"),
+            6;
+            allow_pressure_fallback=false,
+        )
+    @test big_pressure isa BigFloat
+    @test big_pressure == BigFloat("12.5")
+    @test !big_used_fallback
+    float32_pressure, float32_used_fallback =
+        StenoticHemodynamics.native_resolved_fsi_partitioned_wall_pressure_at_station(
+            _ -> Float32(3.25),
+            Float32(0.5),
+            Float32(1.0),
+            Float32(7.0),
+            6,
+        )
+    @test float32_pressure isa Float32
+    @test float32_pressure == Float32(3.25)
+    @test !float32_used_fallback
+    fallback_pressure, fallback_used =
+        StenoticHemodynamics.native_resolved_fsi_partitioned_wall_pressure_at_station(
+            _ -> NaN,
+            Float32(0.5),
+            Float32(1.0),
+            Float32(7.0),
+            6,
+        )
+    @test fallback_pressure isa Float32
+    @test fallback_pressure == Float32(7.0)
+    @test fallback_used
+    @test_throws ArgumentError StenoticHemodynamics.native_resolved_fsi_partitioned_wall_pressure_at_station(
+        _ -> NaN,
+        BigFloat("0.5"),
+        BigFloat("1.0"),
+        BigFloat("0.0"),
+        6;
+        allow_pressure_fallback=false,
+    )
+end
+
 @testset "StenoticHemodynamics native resolved-FSI radial wall velocity helper" begin
     resolution = NativeResolvedFSIMeshResolution(axial=2, radial=1, angular=6)
     mesh = native_resolved_fsi_mesh(:sev23, resolution)

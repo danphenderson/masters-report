@@ -116,35 +116,46 @@ end
 
 function native_resolved_fsi_partitioned_try_pressure(pressure_h, point::Point)
     value = try
-        Float64(pressure_h(point))
+        pressure_h(point)
     catch
         return nothing
     end
-    return isfinite(value) ? value : nothing
+    return value isa Real && isfinite(value) ? value : nothing
 end
 
 function native_resolved_fsi_partitioned_wall_pressure_at_station(
     pressure_h,
-    z_cm::Float64,
-    radius_cm::Float64,
-    fallback::Float64,
+    z_cm::AbstractFloat,
+    radius_cm::AbstractFloat,
+    fallback::Real,
     angular_samples::Int;
     allow_pressure_fallback::Bool = true,
 )
     radius_cm > 0.0 || throw(ArgumentError("native resolved-FSI partitioned wall pressure sampling requires positive radius"))
-    for radial_scale in (1.0 - 1.0e-6, 0.95, 0.75, 0.5, 0.25, 0.0)
-        acc = 0.0
+    T = promote_type(typeof(z_cm), typeof(radius_cm))
+    z = convert(T, z_cm)
+    radius = convert(T, radius_cm)
+    radial_scales = (
+        one(T) - convert(T, 1.0e-6),
+        convert(T, 0.95),
+        convert(T, 0.75),
+        convert(T, 0.5),
+        convert(T, 0.25),
+        zero(T),
+    )
+    for radial_scale in radial_scales
+        acc = nothing
         count = 0
-        sample_radius = radius_cm * radial_scale
+        sample_radius = radius * radial_scale
         for sample in 1:angular_samples
-            theta = 2.0 * pi * (sample - 0.5) / angular_samples
-            value = try
-                Float64(pressure_h(Point(sample_radius * cos(theta), sample_radius * sin(theta), z_cm)))
-            catch
-                NaN
-            end
-            if isfinite(value)
-                acc += value
+            theta = convert(T, 2) * convert(T, pi) * (convert(T, sample) - convert(T, 0.5)) /
+                    convert(T, angular_samples)
+            value = native_resolved_fsi_partitioned_try_pressure(
+                pressure_h,
+                Point(sample_radius * cos(theta), sample_radius * sin(theta), z),
+            )
+            if value !== nothing
+                acc = acc === nothing ? value : acc + value
                 count += 1
             end
         end

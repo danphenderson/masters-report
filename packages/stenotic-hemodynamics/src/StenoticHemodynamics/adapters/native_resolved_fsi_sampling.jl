@@ -56,11 +56,13 @@ function native_resolved_fsi_try_sample_smoke_state(velocity_h, pressure_h, poin
         return nothing
     end
     velocity_components = (
-        Float64(velocity_value[1]),
-        Float64(velocity_value[2]),
-        Float64(velocity_value[3]),
+        velocity_value[1],
+        velocity_value[2],
+        velocity_value[3],
     )
-    pressure_scalar = Float64(pressure_value)
+    all(component -> component isa Real, velocity_components) || return nothing
+    pressure_value isa Real || return nothing
+    pressure_scalar = pressure_value
     all(isfinite, velocity_components) && isfinite(pressure_scalar) || return nothing
     return velocity_components, pressure_scalar
 end
