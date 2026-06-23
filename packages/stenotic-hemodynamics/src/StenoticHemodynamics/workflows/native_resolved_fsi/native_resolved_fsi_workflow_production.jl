@@ -26,6 +26,9 @@ const NATIVE_RESOLVED_FSI_PRODUCTION_CHECKPOINT_ROLES = (
     "coupling_state",
     "output_linkage",
 )
+const NATIVE_RESOLVED_FSI_PRODUCTION_BATCH_CLAIM_BOUNDARY =
+    "batch row records native resolved-FSI execution observability only; not production parity, " *
+    "imported parity, moving-wall/ALE fidelity, restart/resume support, or paper-grade Section 4.1 reproduction"
 
 function native_resolved_fsi_production_boundary_mode(value::Union{Symbol,AbstractString})
     if isdefined(@__MODULE__, :native_resolved_fsi_inlet_outlet_boundary_mode)
@@ -311,6 +314,68 @@ function default_native_resolved_fsi_partitioned_production_output_dir(
     )
 end
 
+"""
+    native_resolved_fsi_partitioned_production_sidecar_paths(spec)
+
+Return the deterministic sidecar paths for one partitioned native production
+spec. The paths describe observability and restart-identification artifacts;
+they do not imply production parity or resumable checkpoint support.
+"""
+function native_resolved_fsi_partitioned_production_sidecar_paths(
+    spec::NativeResolvedFSIPartitionedProductionSpec,
+)
+    output_dir = default_native_resolved_fsi_partitioned_production_output_dir(spec)
+    return (
+        output_dir=output_dir,
+        manifest_csv=joinpath(output_dir, "snapshot_manifest.csv"),
+        diagnostics_csv=joinpath(output_dir, "snapshot_diagnostics.csv"),
+        restart_metadata_json=joinpath(output_dir, "restart_metadata.json"),
+        batch_status_jsonl=joinpath(output_dir, "batch_status.jsonl"),
+        batch_status_csv=joinpath(output_dir, "batch_status.csv"),
+        batch_benchmark_json=joinpath(output_dir, "batch_benchmark.json"),
+        batch_failure_json=joinpath(output_dir, "batch_failure.json"),
+        checkpoint_dir=joinpath(output_dir, "checkpoint"),
+    )
+end
+
+"""
+    native_resolved_fsi_partitioned_production_snapshot_output_dirs(spec)
+
+Return the resolved-3D bundle output directories in snapshot order.
+Single-snapshot runs write directly into the production output directory; multi-
+snapshot runs use one child directory per snapshot time.
+"""
+function native_resolved_fsi_partitioned_production_snapshot_output_dirs(
+    spec::NativeResolvedFSIPartitionedProductionSpec,
+)
+    output_dir = default_native_resolved_fsi_partitioned_production_output_dir(spec)
+    length(spec.snapshot_times_s) == 1 && return String[output_dir]
+    return String[joinpath(output_dir, "snapshot-t$(path_token(snapshot_time_s))") for snapshot_time_s in spec.snapshot_times_s]
+end
+
+"""
+    native_resolved_fsi_execution_layout(; parallel_workers, threads_per_worker, force_process)
+
+Capture process/thread provenance for native resolved-FSI status artifacts. For
+a single production solve this is metadata; multi-case scheduling is handled by
+`run_native_resolved_fsi_partitioned_production_batch`.
+"""
+function native_resolved_fsi_execution_layout(;
+    parallel_workers::Integer,
+    threads_per_worker::Integer,
+    force_process::Bool,
+)
+    parallel_workers >= 0 ||
+        throw(ArgumentError("native resolved-FSI production parallel_workers must be nonnegative"))
+    return (
+        process_id=Distributed.myid(),
+        thread_count=Threads.nthreads(),
+        parallel_workers=Int(parallel_workers),
+        threads_per_worker=validate_threads_per_worker(threads_per_worker),
+        force_process=force_process,
+    )
+end
+
 function native_resolved_fsi_partitioned_production_estimated_field_payload_bytes(
     spec::NativeResolvedFSIPartitionedProductionSpec,
 )
@@ -455,6 +520,9 @@ struct NativeResolvedFSIProductionDryRunPlan
     checkpoint_dir::String
     checkpoint_roles::Vector{String}
     production_spec_digest::String
+    parallel_workers::Int
+    threads_per_worker::Int
+    force_process::Bool
     output_dir::String
     snapshot_output_dirs::Vector{String}
     manifest_csv::String
@@ -649,15 +717,17 @@ specs and their normal output-volume validation/overrides.
 function native_resolved_fsi_partitioned_production_dry_run(
     plan::NativeResolvedFSIProductionWorkflowPlan;
     imported_data_root::AbstractString = default_resolved3d_data_root(),
+    parallel_workers::Integer = default_case_workers(),
+    threads_per_worker::Integer = 1,
+    force_process::Bool = false,
 )
     spec = validate(plan.production_spec)
+    parallel_workers >= 0 || throw(ArgumentError("native resolved-FSI dry-run parallel_workers must be nonnegative"))
+    requested_threads_per_worker = validate_threads_per_worker(threads_per_worker)
     resolution = spec.resolution
-    output_dir = default_native_resolved_fsi_partitioned_production_output_dir(spec)
-    snapshot_output_dirs = if length(spec.snapshot_times_s) == 1
-        String[output_dir]
-    else
-        String[joinpath(output_dir, "snapshot-t$(path_token(snapshot_time_s))") for snapshot_time_s in spec.snapshot_times_s]
-    end
+    paths = native_resolved_fsi_partitioned_production_sidecar_paths(spec)
+    output_dir = paths.output_dir
+    snapshot_output_dirs = native_resolved_fsi_partitioned_production_snapshot_output_dirs(spec)
     parity_plan = only(native_resolved_fsi_production_parity_plans(
         workflow_plans=[plan],
         imported_data_root=String(imported_data_root),
@@ -680,16 +750,14 @@ function native_resolved_fsi_partitioned_production_dry_run(
         "default guards satisfied; required override flags: none" :
         "default guards would block production without required override flags: $(join(guard_report.required_override_flags, ", "))"
     imported_status = parity_plan.imported_available ? "imported bundle available" : "imported bundle expected-skip"
+    layout_status =
+        "requested process/thread layout: parallel_workers=$(Int(parallel_workers)), " *
+        "threads_per_worker=$(requested_threads_per_worker), force_process=$(force_process)"
     execution_status =
         spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41 ?
         "production execution is available only through explicit production specs and remains smoke-scale/operator-readiness evidence, not paper-grade reproduction" :
         "production execution remains opt-in through explicit production specs and output-volume overrides"
-    status = "dry-run ready: no production solver executed and no files written; $(override_status); $(imported_status); boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); pressure_nullspace_status=$(pressure_nullspace_status); wall_stability_status=$(wall_stability_status); $(execution_status)"
-    batch_status_jsonl = joinpath(output_dir, "batch_status.jsonl")
-    batch_status_csv = joinpath(output_dir, "batch_status.csv")
-    batch_benchmark_json = joinpath(output_dir, "batch_benchmark.json")
-    batch_failure_json = joinpath(output_dir, "batch_failure.json")
-    checkpoint_dir = joinpath(output_dir, "checkpoint")
+    status = "dry-run ready: no production solver executed and no files written; $(layout_status); $(override_status); $(imported_status); boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); pressure_nullspace_status=$(pressure_nullspace_status); wall_stability_status=$(wall_stability_status); $(execution_status)"
     return NativeResolvedFSIProductionDryRunPlan(
         plan,
         spec.case_spec.case_id,
@@ -704,18 +772,21 @@ function native_resolved_fsi_partitioned_production_dry_run(
         estimated_time_step_count,
         expected_fluid_solve_upper_bound,
         estimated_preproduction_runtime_s,
-        batch_status_jsonl,
-        batch_status_csv,
-        batch_benchmark_json,
-        batch_failure_json,
-        checkpoint_dir,
+        paths.batch_status_jsonl,
+        paths.batch_status_csv,
+        paths.batch_benchmark_json,
+        paths.batch_failure_json,
+        paths.checkpoint_dir,
         collect(String, NATIVE_RESOLVED_FSI_PRODUCTION_CHECKPOINT_ROLES),
         native_resolved_fsi_partitioned_production_spec_digest(spec),
+        Int(parallel_workers),
+        requested_threads_per_worker,
+        force_process,
         output_dir,
         snapshot_output_dirs,
-        joinpath(output_dir, "snapshot_manifest.csv"),
-        joinpath(output_dir, "snapshot_diagnostics.csv"),
-        joinpath(output_dir, "restart_metadata.json"),
+        paths.manifest_csv,
+        paths.diagnostics_csv,
+        paths.restart_metadata_json,
         native_resolved_fsi_production_parity_observations_csv(parity_plan),
         native_resolved_fsi_production_parity_summary_csv(parity_plan),
         boundary_status.boundary_mode,
@@ -735,7 +806,9 @@ function native_resolved_fsi_partitioned_production_dry_run(
 end
 
 """
-    run_native_resolved_fsi_partitioned_production(spec)
+    run_native_resolved_fsi_partitioned_production(spec; parallel_workers=1,
+                                                   threads_per_worker=Threads.nthreads(),
+                                                   force_process=false)
 
 Run the production-depth partitioned native snapshot harness by advancing one
 coarse partitioned state through each requested positive snapshot time. The
@@ -743,9 +816,22 @@ driver carries reduced wall displacement, wall velocity, current radii, wall
 pressure, coupling residual history, and fluid free-DOF state between steps.
 It writes one normal resolved-3D bundle per snapshot plus a compact CSV
 manifest, per-snapshot diagnostics CSV, and restart-identification metadata.
-Persisted external resume remains explicitly deferred.
+The process/thread keywords are recorded in status sidecars for provenance; they
+do not schedule multiple specs. Persisted external resume remains explicitly
+deferred.
 """
-function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIPartitionedProductionSpec)
+function run_native_resolved_fsi_partitioned_production(
+    spec::NativeResolvedFSIPartitionedProductionSpec;
+    parallel_workers::Integer = 1,
+    threads_per_worker::Integer = Threads.nthreads(),
+    force_process::Bool = false,
+)
+    execution_layout = native_resolved_fsi_execution_layout(
+        parallel_workers=parallel_workers,
+        threads_per_worker=threads_per_worker,
+        force_process=force_process,
+    )
+
     function validate_runner_scope(local_spec::NativeResolvedFSIPartitionedProductionSpec)
         if any(time_s -> time_s <= 0.0, local_spec.snapshot_times_s)
             throw(ArgumentError(
@@ -805,28 +891,28 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
     end
 
     manifest_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
-        joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "snapshot_manifest.csv")
+        native_resolved_fsi_partitioned_production_sidecar_paths(local_spec).manifest_csv
 
     diagnostics_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
-        joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "snapshot_diagnostics.csv")
+        native_resolved_fsi_partitioned_production_sidecar_paths(local_spec).diagnostics_csv
 
     restart_metadata_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
-        joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "restart_metadata.json")
+        native_resolved_fsi_partitioned_production_sidecar_paths(local_spec).restart_metadata_json
 
     batch_status_jsonl_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
-        joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "batch_status.jsonl")
+        native_resolved_fsi_partitioned_production_sidecar_paths(local_spec).batch_status_jsonl
 
     batch_status_csv_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
-        joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "batch_status.csv")
+        native_resolved_fsi_partitioned_production_sidecar_paths(local_spec).batch_status_csv
 
     batch_benchmark_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
-        joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "batch_benchmark.json")
+        native_resolved_fsi_partitioned_production_sidecar_paths(local_spec).batch_benchmark_json
 
     batch_failure_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
-        joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "batch_failure.json")
+        native_resolved_fsi_partitioned_production_sidecar_paths(local_spec).batch_failure_json
 
     function checkpoint_sidecar_paths(local_spec::NativeResolvedFSIPartitionedProductionSpec)
-        checkpoint_dir = joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "checkpoint")
+        checkpoint_dir = native_resolved_fsi_partitioned_production_sidecar_paths(local_spec).checkpoint_dir
         return String[
             joinpath(checkpoint_dir, "wall_state.json"),
             joinpath(checkpoint_dir, "mesh_identity.json"),
@@ -899,6 +985,11 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
         "elapsed_s",
         "estimated_remaining_s",
         "maxrss_bytes",
+        "process_id",
+        "thread_count",
+        "parallel_workers",
+        "threads_per_worker",
+        "force_process",
         "minimum_current_radius_cm",
         "minimum_signed_tetra_volume6",
         "field_finite_status",
@@ -976,6 +1067,11 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             elapsed_s=elapsed_s,
             estimated_remaining_s=estimated_remaining_s,
             maxrss_bytes=batch_memory_bytes(),
+            process_id=execution_layout.process_id,
+            thread_count=execution_layout.thread_count,
+            parallel_workers=execution_layout.parallel_workers,
+            threads_per_worker=execution_layout.threads_per_worker,
+            force_process=execution_layout.force_process,
             minimum_current_radius_cm=batch_event_value(event, :minimum_current_radius_cm, NaN),
             minimum_signed_tetra_volume6=batch_event_value(event, :minimum_signed_tetra_volume6, NaN),
             field_finite_status=string(batch_event_value(event, :field_finite_status, "unknown")),
@@ -1091,6 +1187,11 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "estimated_runtime_s_from_development_reference" =>
                 native_resolved_fsi_partitioned_production_estimated_runtime_s(local_spec),
             "maxrss_bytes" => batch_memory_bytes(),
+            "process_id" => execution_layout.process_id,
+            "thread_count" => execution_layout.thread_count,
+            "parallel_workers" => execution_layout.parallel_workers,
+            "threads_per_worker" => execution_layout.threads_per_worker,
+            "force_process" => execution_layout.force_process,
             "coupling_converged" => result.smoke_result.coupling_converged,
             "final_coupling_displacement_residual_cm" =>
                 result.smoke_result.final_coupling_displacement_residual_cm,
@@ -1669,6 +1770,11 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "tfinal_s" => local_spec.tfinal_s,
             "output_root" => local_spec.output_root,
             "production_output_dir" => default_native_resolved_fsi_partitioned_production_output_dir(local_spec),
+            "process_id" => execution_layout.process_id,
+            "thread_count" => execution_layout.thread_count,
+            "parallel_workers" => execution_layout.parallel_workers,
+            "threads_per_worker" => execution_layout.threads_per_worker,
+            "force_process" => execution_layout.force_process,
             "snapshot_times_s" => copy(local_spec.snapshot_times_s),
             "current_snapshot_index" => length(snapshot_results),
             "current_snapshot_time_s" => final_snapshot.snapshot_time_s,
@@ -1890,6 +1996,130 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
         @telemetry_error "native resolved-FSI production failed" event="native_resolved_fsi_production_failed" stage="native_resolved_fsi_production" status="error" case_id=string(spec.case_spec.case_id) elapsed_s=telemetry_elapsed_s(start_ns) output_dir=production_output_dir reason=sprint(showerror, err) production_spec_digest=native_resolved_fsi_partitioned_production_spec_digest(spec)
         rethrow()
     end
+end
+
+function native_resolved_fsi_partitioned_production_batch_row(
+    index::Int,
+    spec::NativeResolvedFSIPartitionedProductionSpec;
+    parallel_workers::Integer,
+    threads_per_worker::Integer,
+    force_process::Bool,
+)
+    paths = native_resolved_fsi_partitioned_production_sidecar_paths(spec)
+    start_ns = telemetry_start_ns()
+    execution_layout = native_resolved_fsi_execution_layout(
+        parallel_workers=parallel_workers,
+        threads_per_worker=threads_per_worker,
+        force_process=force_process,
+    )
+    try
+        result = run_native_resolved_fsi_partitioned_production(
+            spec;
+            parallel_workers=parallel_workers,
+            threads_per_worker=threads_per_worker,
+            force_process=force_process,
+        )
+        ready = result.output_status.ready &&
+                result.method_status.ready &&
+                result.diagnostics_status.ready &&
+                result.restart_status.ready
+        return (
+            index=index,
+            case_id=string(spec.case_spec.case_id),
+            process_id=execution_layout.process_id,
+            thread_count=execution_layout.thread_count,
+            parallel_workers=execution_layout.parallel_workers,
+            threads_per_worker=execution_layout.threads_per_worker,
+            force_process=execution_layout.force_process,
+            output_dir=result.output_dir,
+            snapshot_output_dirs=native_resolved_fsi_partitioned_production_snapshot_output_dirs(spec),
+            velocity_xdmf=result.smoke_result.velocity_xdmf,
+            pressure_xdmf=result.smoke_result.pressure_xdmf,
+            displacement_xdmf=result.smoke_result.displacement_xdmf,
+            manifest_csv=result.manifest_csv,
+            diagnostics_csv=result.diagnostics_csv,
+            restart_metadata_json=result.restart_metadata_json,
+            batch_status_jsonl=paths.batch_status_jsonl,
+            batch_status_csv=paths.batch_status_csv,
+            batch_benchmark_json=paths.batch_benchmark_json,
+            batch_failure_json=paths.batch_failure_json,
+            status=ready ? "ready" : "failed",
+            elapsed_s=telemetry_elapsed_s(start_ns),
+            saved_time_s=result.saved_time_s,
+            snapshot_times_s=copy(result.snapshot_times_s),
+            claim_boundary=NATIVE_RESOLVED_FSI_PRODUCTION_BATCH_CLAIM_BOUNDARY,
+            method_status=result.method_status.status,
+            failure_message="",
+        )
+    catch err
+        return (
+            index=index,
+            case_id=string(spec.case_spec.case_id),
+            process_id=execution_layout.process_id,
+            thread_count=execution_layout.thread_count,
+            parallel_workers=execution_layout.parallel_workers,
+            threads_per_worker=execution_layout.threads_per_worker,
+            force_process=execution_layout.force_process,
+            output_dir=paths.output_dir,
+            snapshot_output_dirs=native_resolved_fsi_partitioned_production_snapshot_output_dirs(spec),
+            velocity_xdmf="",
+            pressure_xdmf="",
+            displacement_xdmf="",
+            manifest_csv=paths.manifest_csv,
+            diagnostics_csv=paths.diagnostics_csv,
+            restart_metadata_json=paths.restart_metadata_json,
+            batch_status_jsonl=paths.batch_status_jsonl,
+            batch_status_csv=paths.batch_status_csv,
+            batch_benchmark_json=paths.batch_benchmark_json,
+            batch_failure_json=paths.batch_failure_json,
+            status="error",
+            elapsed_s=telemetry_elapsed_s(start_ns),
+            saved_time_s=NaN,
+            snapshot_times_s=copy(spec.snapshot_times_s),
+            claim_boundary=NATIVE_RESOLVED_FSI_PRODUCTION_BATCH_CLAIM_BOUNDARY,
+            method_status="native resolved-FSI batch production did not complete",
+            failure_message=sprint(showerror, err),
+        )
+    end
+end
+
+"""
+    run_native_resolved_fsi_partitioned_production_batch(specs; parallel_workers,
+                                                         threads_per_worker,
+                                                         force_process=false)
+
+Run multiple explicit partitioned production specs through the package case
+worker pool and return deterministic rows sorted by input order. Each row is an
+observability summary only; it is not a production-parity, imported-parity,
+moving-wall/ALE fidelity, or restart/resume claim.
+"""
+function run_native_resolved_fsi_partitioned_production_batch(
+    specs::AbstractVector{<:NativeResolvedFSIPartitionedProductionSpec};
+    parallel_workers::Integer = default_case_workers(),
+    threads_per_worker::Integer = 1,
+    force_process::Bool = false,
+)
+    parallel_workers >= 0 ||
+        throw(ArgumentError("native resolved-FSI production batch parallel_workers must be nonnegative"))
+    worker_threads = validate_threads_per_worker(threads_per_worker)
+    indexed_specs = collect(enumerate(specs))
+    isempty(indexed_specs) && return NamedTuple[]
+    rows = parallel_case_map(
+        indexed_specs;
+        parallel_workers=parallel_workers,
+        threads_per_worker=worker_threads,
+        force_process=force_process,
+    ) do indexed_spec
+        native_resolved_fsi_partitioned_production_batch_row(
+            indexed_spec[1],
+            indexed_spec[2];
+            parallel_workers=parallel_workers,
+            threads_per_worker=worker_threads,
+            force_process=force_process,
+        )
+    end
+    sort!(rows; by=row -> row.index)
+    return rows
 end
 
 run_native_resolved_fsi(spec::NativeResolvedFSIPartitionedProductionSpec) =

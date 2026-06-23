@@ -34,9 +34,9 @@ function native_resolved_fsi_partitioned_wall_pressure_profile(
         ) :
         fill(NaN, length(axial_coordinates_cm))
     pressure_values = similar(current_radii_cm)
-    fallback_count = 0
     angular_samples = max(mesh.geometry.resolution.angular, 6)
     z_eps = max(mesh.case_spec.length_cm, 1.0) * 1.0e-8
+    fallback_count = 0
     for index in eachindex(axial_coordinates_cm)
         z_sample = clamp(axial_coordinates_cm[index], z_eps, mesh.case_spec.length_cm - z_eps)
         plane_pressure = native_resolved_fsi_partitioned_wall_pressure_at_plane(
@@ -180,12 +180,23 @@ function native_resolved_fsi_partitioned_pressure_fallback_profile(
     total_resistance = membrane_resistance_integral(mesh.case_spec.length_cm, radius_at_z)
     total_resistance > 0.0 || throw(ArgumentError("native resolved-FSI partitioned resistance fallback integral must be positive"))
     drop = Float64(pressure_drop_dyn_cm2)
-    return [
-        drop * membrane_resistance_integral(
+    fallback_profile = Vector{Float64}(undef, length(axial_coordinates_cm))
+    function fallback_value(index)
+        return drop * membrane_resistance_integral(
             mesh.case_spec.length_cm - axial_coordinates_cm[index],
             zeta -> radius_at_z(axial_coordinates_cm[index] + zeta),
-        ) / total_resistance for index in eachindex(axial_coordinates_cm)
-    ]
+        ) / total_resistance
+    end
+    if native_resolved_fsi_use_threads(length(axial_coordinates_cm))
+        Threads.@threads :static for index in eachindex(axial_coordinates_cm)
+            fallback_profile[index] = fallback_value(index)
+        end
+    else
+        for index in eachindex(axial_coordinates_cm)
+            fallback_profile[index] = fallback_value(index)
+        end
+    end
+    return fallback_profile
 end
 
 function native_resolved_fsi_partitioned_smoke_validate_deformed_mesh(
@@ -197,24 +208,53 @@ function native_resolved_fsi_partitioned_smoke_validate_deformed_mesh(
         throw(ArgumentError("native resolved-FSI partitioned smoke deformed coordinates must be finite"))
     minimum(current_radii_cm) > 0.0 ||
         throw(ArgumentError("native resolved-FSI partitioned smoke produced a non-positive lumen radius"))
-    minimum_signed_volume6 = Inf
-    for row in axes(mesh.topology, 1)
-        signed_volume6 = tetrahedron_signed_volume6(
+    function signed_volume6_at_row(row)
+        return tetrahedron_signed_volume6(
             mesh.topology[row, 1],
             mesh.topology[row, 2],
             mesh.topology[row, 3],
             mesh.topology[row, 4],
             deformed_coordinates,
         )
-        signed_volume6 > 1.0e-14 || throw(ArgumentError(
+    end
+    function throw_bad_tetrahedron(row, signed_volume6)
+        throw(ArgumentError(
             "native resolved-FSI partitioned smoke produced an inverted or degenerate tetrahedron at cell $(row); " *
             "signed_volume6=$(signed_volume6), minimum_current_radius_cm=$(minimum(current_radii_cm)), " *
             "maximum_wall_displacement_cm=$(maximum(current_radii_cm .- mesh.geometry.reference_radii_cm)), " *
             "minimum_wall_displacement_cm=$(minimum(current_radii_cm .- mesh.geometry.reference_radii_cm))",
         ))
-        minimum_signed_volume6 = min(minimum_signed_volume6, signed_volume6)
     end
-    return minimum_signed_volume6
+    if native_resolved_fsi_use_threads(size(mesh.topology, 1))
+        thread_slot_count = Threads.maxthreadid()
+        minimum_by_thread = fill(Inf, thread_slot_count)
+        bad_row_by_thread = fill(0, thread_slot_count)
+        Threads.@threads :static for row in axes(mesh.topology, 1)
+            signed_volume6 = signed_volume6_at_row(row)
+            thread_index = Threads.threadid()
+            minimum_by_thread[thread_index] = min(minimum_by_thread[thread_index], signed_volume6)
+            if signed_volume6 <= 1.0e-14 &&
+               (bad_row_by_thread[thread_index] == 0 || row < bad_row_by_thread[thread_index])
+                bad_row_by_thread[thread_index] = row
+            end
+        end
+        bad_row = 0
+        for row in bad_row_by_thread
+            if row != 0 && (bad_row == 0 || row < bad_row)
+                bad_row = row
+            end
+        end
+        bad_row == 0 || throw_bad_tetrahedron(bad_row, signed_volume6_at_row(bad_row))
+        return minimum(minimum_by_thread)
+    else
+        minimum_signed_volume6 = Inf
+        for row in axes(mesh.topology, 1)
+            signed_volume6 = signed_volume6_at_row(row)
+            signed_volume6 > 1.0e-14 || throw_bad_tetrahedron(row, signed_volume6)
+            minimum_signed_volume6 = min(minimum_signed_volume6, signed_volume6)
+        end
+        return minimum_signed_volume6
+    end
 end
 
 function native_resolved_fsi_partitioned_wall_state!(

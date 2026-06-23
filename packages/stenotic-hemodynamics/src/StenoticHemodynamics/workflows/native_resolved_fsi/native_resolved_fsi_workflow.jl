@@ -8,6 +8,11 @@ const NATIVE_RESOLVED_FSI_DEFAULT_PRESSURE_H5 = "pressure.h5"
 const NATIVE_RESOLVED_FSI_DEFAULT_DISPLACEMENT_XDMF = "displace.xdmf"
 const NATIVE_RESOLVED_FSI_DEFAULT_DISPLACEMENT_H5 = "displace.h5"
 const NATIVE_RESOLVED_FSI_DISPLACEMENT_MODES = (:zero, :synthetic_radial_lift)
+const NATIVE_RESOLVED_FSI_THREAD_LOOP_THRESHOLD = 256
+
+function native_resolved_fsi_use_threads(item_count::Integer)
+    return Threads.nthreads() > 1 && item_count >= NATIVE_RESOLVED_FSI_THREAD_LOOP_THRESHOLD
+end
 
 """
     NativeResolvedFSIWorkflowSpec(; kwargs...)
@@ -172,7 +177,16 @@ function native_resolved_fsi_synthetic_wall_lift(mesh::NativeResolvedFSIMesh; am
     amplitude >= 0.0 || throw(ArgumentError("synthetic wall-lift amplitude must be nonnegative"))
     length_cm = mesh.case_spec.length_cm
     axial_coordinates = mesh.geometry.axial_coordinates_cm
-    wall_lift = Float64[amplitude * sin(pi * z / length_cm) for z in axial_coordinates]
+    wall_lift = Vector{Float64}(undef, length(axial_coordinates))
+    if native_resolved_fsi_use_threads(length(axial_coordinates))
+        Threads.@threads :static for index in eachindex(axial_coordinates)
+            wall_lift[index] = amplitude * sin(pi * axial_coordinates[index] / length_cm)
+        end
+    else
+        for index in eachindex(axial_coordinates)
+            wall_lift[index] = amplitude * sin(pi * axial_coordinates[index] / length_cm)
+        end
+    end
     wall_lift[1] = 0.0
     wall_lift[end] = 0.0
     return wall_lift
@@ -197,19 +211,29 @@ function native_resolved_fsi_lifted_displacement(mesh::NativeResolvedFSIMesh, wa
     lift[end] = 0.0
 
     displacement = zeros(Float64, size(mesh.coordinates, 1), 3)
-    for node in axes(mesh.coordinates, 1)
+    function write_node_displacement!(node)
         x = mesh.coordinates[node, 1]
         y = mesh.coordinates[node, 2]
         z = mesh.coordinates[node, 3]
         eta = native_resolved_fsi_interpolate_wall_lift(axial_coordinates, lift, z)
         radial_distance = hypot(x, y)
-        radial_distance == 0.0 && continue
+        radial_distance == 0.0 && return nothing
         reference_radius = native_resolved_fsi_radius(mesh.case_spec, z)
-        reference_radius > 0.0 || continue
+        reference_radius > 0.0 || return nothing
         radial_fraction = clamp(radial_distance / reference_radius, 0.0, 1.0)
         radial_scale = radial_fraction * eta / radial_distance
         displacement[node, 1] = radial_scale * x
         displacement[node, 2] = radial_scale * y
+        return nothing
+    end
+    if native_resolved_fsi_use_threads(size(mesh.coordinates, 1))
+        Threads.@threads :static for node in axes(mesh.coordinates, 1)
+            write_node_displacement!(node)
+        end
+    else
+        for node in axes(mesh.coordinates, 1)
+            write_node_displacement!(node)
+        end
     end
 
     return displacement

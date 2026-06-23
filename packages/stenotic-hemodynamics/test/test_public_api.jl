@@ -343,6 +343,7 @@ using StenoticHemodynamics
         :NativeResolvedFSINavierStokesSmokeSpec,
         :NativeResolvedFSIPartitionedSmokeSpec,
         :run_native_resolved_fsi_parity,
+        :run_native_resolved_fsi_partitioned_production_batch,
         :run_native_resolved_fsi_navier_stokes_smoke,
         :run_native_resolved_fsi_partitioned_production,
         :run_native_resolved_fsi_partitioned_smoke,

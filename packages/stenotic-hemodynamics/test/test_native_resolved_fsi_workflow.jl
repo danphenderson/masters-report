@@ -1,4 +1,5 @@
 using Test
+using Distributed
 using StenoticHemodynamics
 
 const NativeResolvedFSIWorkflowSpec = StenoticHemodynamics.NativeResolvedFSIWorkflowSpec
@@ -31,6 +32,8 @@ const native_resolved_fsi_zero_displacement = StenoticHemodynamics.native_resolv
 const run_native_resolved_fsi = StenoticHemodynamics.run_native_resolved_fsi
 const run_native_resolved_fsi_partitioned_production =
     StenoticHemodynamics.run_native_resolved_fsi_partitioned_production
+const run_native_resolved_fsi_partitioned_production_batch =
+    StenoticHemodynamics.run_native_resolved_fsi_partitioned_production_batch
 const run_native_resolved_fsi_production_workflow = StenoticHemodynamics.run_native_resolved_fsi_production_workflow
 const run_native_resolved_fsi_workflow = StenoticHemodynamics.run_native_resolved_fsi_workflow
 
@@ -52,6 +55,22 @@ const run_native_resolved_fsi_workflow = StenoticHemodynamics.run_native_resolve
     @test maximum(abs, lifted_displacement) > 0.0
     @test all(iszero, lifted_displacement[node, component] for node in mesh.tags.inlet_nodes for component in 1:3)
     @test all(iszero, lifted_displacement[node, component] for node in mesh.tags.outlet_nodes for component in 1:3)
+
+    guard_mesh = native_resolved_fsi_mesh(:sev23, NativeResolvedFSIMeshResolution(axial=16, radial=3, angular=12))
+    if Threads.nthreads() > 1
+        @test StenoticHemodynamics.native_resolved_fsi_use_threads(size(guard_mesh.topology, 1))
+    end
+    guard_lift = native_resolved_fsi_synthetic_wall_lift(guard_mesh; amplitude_cm=0.001)
+    guard_displacement = native_resolved_fsi_lifted_displacement(guard_mesh, guard_lift)
+    guard_coordinates = guard_mesh.coordinates .+ guard_displacement
+    guard_radii = guard_mesh.geometry.reference_radii_cm .+ guard_lift
+    minimum_signed_volume6 = StenoticHemodynamics.native_resolved_fsi_partitioned_smoke_validate_deformed_mesh(
+        guard_mesh,
+        guard_coordinates,
+        guard_radii,
+    )
+    @test isfinite(minimum_signed_volume6)
+    @test minimum_signed_volume6 > 0.0
 end
 
 @testset "StenoticHemodynamics native resolved-FSI workflow round trip" begin
@@ -334,6 +353,9 @@ end
         @test Set(dry_run.checkpoint_roles) ==
               Set(["wall_state", "mesh_identity", "fluid_state", "coupling_state", "output_linkage"])
         @test length(dry_run.production_spec_digest) == 16
+        @test dry_run.parallel_workers == StenoticHemodynamics.default_case_workers()
+        @test dry_run.threads_per_worker == 1
+        @test !dry_run.force_process
         @test dry_run.output_dir == expected_output_dir
         @test dry_run.snapshot_output_dirs == [
             joinpath(expected_output_dir, "snapshot-t0p0001"),
@@ -367,9 +389,26 @@ end
         @test occursin("section41_boundary_status=deferred_or_not_selected", dry_run.status)
         @test occursin("pressure_nullspace_status=gridap_zero_mean_pressure_constraint_active", dry_run.status)
         @test occursin("wall_stability_status=", dry_run.status)
+        @test occursin("parallel_workers=$(StenoticHemodynamics.default_case_workers())", dry_run.status)
+        @test occursin("threads_per_worker=1", dry_run.status)
+        @test occursin("force_process=false", dry_run.status)
         @test occursin("required override flags: none", dry_run.status)
         @test !ispath(dry_run.output_dir)
         @test !ispath(dirname(dry_run.parity_observations_csv))
+
+        threaded_dry_run = native_resolved_fsi_partitioned_production_dry_run(
+            plan;
+            imported_data_root=joinpath(dir, "missing-imported"),
+            parallel_workers=2,
+            threads_per_worker=3,
+            force_process=true,
+        )
+        @test threaded_dry_run.parallel_workers == 2
+        @test threaded_dry_run.threads_per_worker == 3
+        @test threaded_dry_run.force_process
+        @test occursin("parallel_workers=2", threaded_dry_run.status)
+        @test occursin("threads_per_worker=3", threaded_dry_run.status)
+        @test occursin("force_process=true", threaded_dry_run.status)
 
         blocked_resolution = NativeResolvedFSIMeshResolution(axial=1000, radial=1000, angular=20)
         blocked_snapshot_times = [index * 1.0e-4 for index in 1:51]
@@ -559,9 +598,17 @@ end
         @test any(occursin("\"minimum_signed_tetra_volume6\":", line) for line in batch_status_lines)
         @test any(occursin("\"field_finite_status\":\"ready\"", line) for line in batch_status_lines)
         @test any(occursin("\"production_spec_digest\":", line) for line in batch_status_lines)
+        @test any(occursin("\"process_id\":$(Distributed.myid())", line) for line in batch_status_lines)
+        @test any(occursin("\"thread_count\":$(Threads.nthreads())", line) for line in batch_status_lines)
+        @test any(occursin("\"parallel_workers\":1", line) for line in batch_status_lines)
+        @test any(occursin("\"threads_per_worker\":$(Threads.nthreads())", line) for line in batch_status_lines)
+        @test any(occursin("\"force_process\":false", line) for line in batch_status_lines)
         batch_status_csv_lines = readlines(batch_status_csv)
         @test length(batch_status_csv_lines) == length(batch_status_lines) + 1
         @test occursin("estimated_remaining_s", first(batch_status_csv_lines))
+        @test occursin("process_id", first(batch_status_csv_lines))
+        @test occursin("threads_per_worker", first(batch_status_csv_lines))
+        @test occursin("force_process", first(batch_status_csv_lines))
         @test occursin("fluid_wall_boundary_mode", first(batch_status_csv_lines))
         @test occursin("production_spec_digest", first(batch_status_csv_lines))
         batch_benchmark_text = read(batch_benchmark_json, String)
@@ -569,6 +616,11 @@ end
         @test occursin("\"seconds_per_step\":", batch_benchmark_text)
         @test occursin("\"tetrahedron_steps_per_second\":", batch_benchmark_text)
         @test occursin("\"production_spec_digest\":", batch_benchmark_text)
+        @test occursin("\"process_id\": $(Distributed.myid())", batch_benchmark_text)
+        @test occursin("\"thread_count\": $(Threads.nthreads())", batch_benchmark_text)
+        @test occursin("\"parallel_workers\": 1", batch_benchmark_text)
+        @test occursin("\"threads_per_worker\": $(Threads.nthreads())", batch_benchmark_text)
+        @test occursin("\"force_process\": false", batch_benchmark_text)
         @test occursin("observability only", batch_benchmark_text)
         @test result.restart_metadata["snapshot_manifest_csv"] == result.manifest_csv
         @test result.restart_metadata["diagnostics_csv"] == result.diagnostics_csv
@@ -576,6 +628,11 @@ end
         @test result.restart_metadata["batch_status_csv"] == batch_status_csv
         @test result.restart_metadata["batch_benchmark_json"] == batch_benchmark_json
         @test result.restart_metadata["batch_failure_json"] == batch_failure_json
+        @test result.restart_metadata["process_id"] == Distributed.myid()
+        @test result.restart_metadata["thread_count"] == Threads.nthreads()
+        @test result.restart_metadata["parallel_workers"] == 1
+        @test result.restart_metadata["threads_per_worker"] == Threads.nthreads()
+        @test result.restart_metadata["force_process"] == false
         @test length(result.restart_metadata["production_spec_digest"]) == 16
         @test result.restart_metadata["restart_provenance"] == "state_carrying_partitioned"
         @test result.restart_metadata["state_carrying_restart"] == true
@@ -886,6 +943,67 @@ end
         @test occursin("state_payload", sprint(showerror, malformed_payload_error))
         @test occursin("current_radii_cm", sprint(showerror, malformed_payload_error))
         @test occursin("positive", sprint(showerror, malformed_payload_error))
+    end
+
+    mktempdir() do dir
+        batch_spec = NativeResolvedFSIPartitionedProductionSpec(
+            resolution=resolution,
+            output_root=joinpath(dir, "batch-production"),
+            dt_s=1.0e-4,
+            tfinal_s=1.0e-4,
+            snapshot_times_s=[1.0e-4],
+            time_atol=1.0e-12,
+        )
+        batch_rows = run_native_resolved_fsi_partitioned_production_batch(
+            [batch_spec];
+            parallel_workers=1,
+            threads_per_worker=2,
+            force_process=true,
+        )
+        @test length(batch_rows) == 1
+        batch_row = only(batch_rows)
+        @test batch_row.index == 1
+        @test batch_row.case_id == "sev23"
+        @test batch_row.process_id != Distributed.myid()
+        @test batch_row.thread_count == 2
+        @test batch_row.parallel_workers == 1
+        @test batch_row.threads_per_worker == 2
+        @test batch_row.force_process
+        @test batch_row.status == "ready"
+        @test occursin("observability only", batch_row.claim_boundary)
+        @test occursin("not production parity", batch_row.claim_boundary)
+        @test occursin("restart/resume support", batch_row.claim_boundary)
+        @test occursin("paper-grade Section 4.1 reproduction", batch_row.claim_boundary)
+        @test occursin("persisted resume", batch_row.method_status)
+        @test isempty(batch_row.failure_message)
+        @test batch_row.saved_time_s ≈ 1.0e-4
+        @test batch_row.snapshot_times_s == [1.0e-4]
+        @test isfile(batch_row.velocity_xdmf)
+        @test isfile(batch_row.pressure_xdmf)
+        @test isfile(batch_row.displacement_xdmf)
+        @test isfile(batch_row.manifest_csv)
+        @test isfile(batch_row.diagnostics_csv)
+        @test isfile(batch_row.restart_metadata_json)
+        @test isfile(batch_row.batch_status_jsonl)
+        @test isfile(batch_row.batch_status_csv)
+        @test isfile(batch_row.batch_benchmark_json)
+        @test !isfile(batch_row.batch_failure_json)
+        batch_status_text = read(batch_row.batch_status_jsonl, String)
+        @test occursin("\"process_id\":$(batch_row.process_id)", batch_status_text)
+        @test occursin("\"thread_count\":2", batch_status_text)
+        @test occursin("\"parallel_workers\":1", batch_status_text)
+        @test occursin("\"threads_per_worker\":2", batch_status_text)
+        @test occursin("\"force_process\":true", batch_status_text)
+        batch_benchmark_text = read(batch_row.batch_benchmark_json, String)
+        @test occursin("\"thread_count\": 2", batch_benchmark_text)
+        @test occursin("\"threads_per_worker\": 2", batch_benchmark_text)
+        @test occursin("\"force_process\": true", batch_benchmark_text)
+        batch_metadata = native_resolved_fsi_read_restart_metadata(batch_row.restart_metadata_json)
+        @test batch_metadata["process_id"] == batch_row.process_id
+        @test batch_metadata["thread_count"] == 2
+        @test batch_metadata["parallel_workers"] == 1
+        @test batch_metadata["threads_per_worker"] == 2
+        @test batch_metadata["force_process"] == true
     end
 
     mktempdir() do dir
