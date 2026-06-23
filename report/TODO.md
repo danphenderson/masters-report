@@ -34,10 +34,16 @@ responsibility subdirectories under
 source-path references should use the new subdirectory paths. The package
 roadmap now records production-scale Section 4.1 validation planning in
 `public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`;
-that document is a roadmap, not completed reproduction evidence. Recent package
-scalar-helper cleanup preserves local `Float32`/`BigFloat` sampling values where
-safe, but production arrays, Gridap solve surfaces, and XDMF/HDF5 schemas remain
-`Float64`-oriented.
+that document is a roadmap, not completed reproduction evidence. A status-only
+dry-run matrix for `sev23`, `sev40`, and `sev50` now exists as package planning
+evidence; it did not execute production or write solver outputs. Package
+restart/resume planning now lives in
+`public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`;
+that design keeps current `state_payload` as audit metadata and keeps persisted
+resume fail-closed until schema, serialization, runner, and validation tests
+land. Recent package scalar-helper cleanup preserves local `Float32`/`BigFloat`
+sampling values where safe, but production arrays, Gridap solve surfaces, and
+XDMF/HDF5 schemas remain `Float64`-oriented.
 
 Validation for the source-only pass:
 
@@ -168,6 +174,12 @@ later, it must preserve these boundaries:
 - production-scale Section 4.1 validation planning now lives in
   `public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`;
   do not treat that roadmap as completed reproduction evidence;
+- the current `sev23`/`sev40`/`sev50` dry-run matrix is status-only planning
+  evidence and must not be described as production execution or generated
+  Section 4.1 data;
+- restart/resume design now lives in
+  `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`;
+  it is future implementation guidance, not active persisted resume support;
 - scalar-helper genericity changes preserve local `Float32`/`BigFloat` sampling
   values where safe, but manuscript text must not imply the native resolved-FSI
   Gridap/production/XDMF-HDF5 stack is type-generic.

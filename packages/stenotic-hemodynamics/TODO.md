@@ -68,6 +68,18 @@ Implemented and committed:
   `public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`.
   The plan keeps smoke-scale exact-boundary evidence, production-scale native
   generation, imported-data parity, and manuscript claim readiness separate.
+- Lane 10C preflight dry-run matrix completed as status-only planning evidence.
+  In the current checkout, `sev23`, `sev40`, and `sev50` development,
+  preproduction, and production-target single-snapshot plans all reported
+  snapshot-count and payload guards passing, no required override flags, and
+  exact-boundary status `implemented_smoke_validated`. Imported bundles were
+  observed for `sev23` and `sev40`; `sev50` remains expected-skip unless a
+  bundle is explicitly supplied. This did not run production or write solver
+  outputs.
+- Lane 10D records the persisted restart/resume design in
+  `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`.
+  The design keeps current `state_payload` as audit metadata and keeps resume
+  fail-closed until schema, serialization, runner, and tests land.
 
 ## Orchestration Rules
 
@@ -102,9 +114,9 @@ Objective: implement and run the staged roadmap in
 
 Recommended dispatch order:
 
-1. Produce a status-only dry-run matrix for `sev23`, `sev40`, and `sev50`
-   across the development, preproduction, and production target mesh/time
-   schedule.
+1. Start from the completed status-only dry-run matrix. Refresh it only if
+   case parameters, guard policy, imported-data roots, or output schedules
+   change.
 2. Execute the exact-boundary `sev23` development and preproduction runs first,
    validating finite fields, wall displacement, pressure normalization,
    importer round-trip, sidecars, and observation rows.
@@ -121,26 +133,33 @@ Recommended dispatch order:
 Validation is lane-specific. At minimum, start with dry-run/status output and
 run `git diff --check` on any touched docs or package files.
 
-### Lane 10D: Restart Resume Implementation Design
+### Lane 10D Follow-Up: Restart Resume Implementation
 
-Priority: P1 design-only unless explicitly promoted.
+Priority: P1 after 10C planning and before any resume claim.
 
-Objective: design true persisted restart/resume support while preserving the
-current fail-closed contract.
+Objective: implement the staged design in
+`public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`
+while preserving the current fail-closed behavior for legacy audit metadata.
 
-Owned write scope:
+Recommended dispatch order:
 
-- `packages/stenotic-hemodynamics/TODO.md`
-- optional design doc under `public/docs/stenotic-hemodynamics/**`
+1. Define restart schema v2 with state-file manifest, checksums, parent
+   checkpoint linkage, boundary status, pressure gauge/projection status,
+   solver controls, and snapshot cursor fields.
+2. Add durable wall, mesh, FE fluid, coupling, and cursor state
+   serialization. Node-centered XDMF/HDF5 output bundles are not enough for
+   exact solver resume.
+3. Implement a qualified-internal resume runner that validates the checkpoint,
+   reconstructs state, and continues from the next pending snapshot without
+   exposing production resume through default CLI paths.
+4. Add metadata, serialization, split-run/resume, sidecar ownership, exact
+   boundary status, and skip-safe imported parity tests.
+5. Update public docs and editorial handoff text only after implementation and
+   tests land. Preserve the Section 4.1 claim boundary: persisted restart does
+   not imply paper-grade reproduction or monolithic ALE FSI.
 
-Requirements:
-
-1. Define the persisted state required to restart partitioned production:
-   wall state, carried velocity/pressure state, coupling history, mesh
-   deformation, snapshot schedule cursor, and solver controls.
-2. Explain why current `state_payload` is audit metadata only.
-3. Keep `native_resolved_fsi_resume_partitioned_production(...)` fail-closed
-   until implementation and tests land.
+Until then, `native_resolved_fsi_resume_partitioned_production(...)` must keep
+validating metadata and failing closed.
 
 ### Lane 10E: CLI Surface Follow-Up After Workflow Split
 
