@@ -80,6 +80,12 @@ Implemented and committed:
   observed for `sev23` and `sev40`; `sev50` remains expected-skip unless a
   bundle is explicitly supplied. This did not run production or write solver
   outputs.
+- Lane 10C development execution probe reached the exact-boundary partitioned
+  production path for `sev23` at `(40, 3, 16)`, `dt_s=1e-4`,
+  `tfinal_s=1e-2`, then failed closed at time step 2 before writing solver
+  artifacts: the explicit wall update produced a non-positive current radius.
+  The blocker is wall-state stability/pressure-load scaling, not boundary-mode
+  selection, dry-run guard policy, importer schema, or output volume.
 - Lane 10D records the persisted restart/resume design in
   `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`.
   The design keeps current `state_payload` as audit metadata and keeps resume
@@ -121,17 +127,24 @@ Recommended dispatch order:
 1. Start from the completed status-only dry-run matrix. Refresh it only if
    case parameters, guard policy, imported-data roots, or output schedules
    change.
-2. Execute the exact-boundary `sev23` development and preproduction runs first,
+2. Resolve the `sev23` development wall-stability blocker before rerunning
+   development/preproduction. Candidate remediations must be scientific, not
+   clipping: compatible exact-boundary initialization or inflow ramping,
+   semi-implicit/implicit membrane update, coupling under-relaxation feasibility
+   that preserves positive relaxed radii, or a justified smaller `dt_s`.
+   Diagnostics must report the failing station, pressure load, radius,
+   mass/stiffness/damping, and stability scale.
+3. Re-run the exact-boundary `sev23` development and preproduction gates,
    validating finite fields, wall displacement, pressure normalization,
    importer round-trip, sidecars, and observation rows.
-3. Execute the full case set at the production target mesh
+4. Execute the full case set at the production target mesh
    `(axial=120, radial=5, angular=32)`, `dt_s=1e-4`, `T=1.0 s`, final snapshot
    only, with `u_max=45 cm/s` and
    `:poiseuille_inlet_zero_outlet_stress_section41`.
-4. Run imported-data parity as a separate skip-safe lane. `sev23` maps to
+5. Run imported-data parity as a separate skip-safe lane. `sev23` maps to
    imported case `77`, `sev40` maps to `60`, and `sev50` remains expected-skip
    unless a bundle is explicitly supplied.
-5. Send the manuscript owner a claim-readiness handoff only after the roadmap
+6. Send the manuscript owner a claim-readiness handoff only after the roadmap
    gates pass; do not edit report/manuscript files from package lanes.
 
 Validation is lane-specific. At minimum, start with dry-run/status output and

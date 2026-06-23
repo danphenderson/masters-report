@@ -36,7 +36,12 @@ roadmap now records production-scale Section 4.1 validation planning in
 `public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`;
 that document is a roadmap, not completed reproduction evidence. A status-only
 dry-run matrix for `sev23`, `sev40`, and `sev50` now exists as package planning
-evidence; it did not execute production or write solver outputs. Package
+evidence; it did not execute production or write solver outputs. A first
+`sev23` development execution probe reached the exact-boundary partitioned
+production path, then failed closed at time step 2 before writing solver
+artifacts because the explicit wall update produced a non-positive current
+radius. This is a wall-state stability/pressure-load blocker, not Section 4.1
+reproduction evidence and not a boundary-mode success claim. Package
 restart/resume planning now lives in
 `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`;
 that design keeps current `state_payload` as audit metadata and keeps persisted
@@ -177,6 +182,9 @@ later, it must preserve these boundaries:
 - the current `sev23`/`sev40`/`sev50` dry-run matrix is status-only planning
   evidence and must not be described as production execution or generated
   Section 4.1 data;
+- the attempted `sev23` development production-path run is currently blocked
+  by explicit wall-update stability/pressure-load failure at time step 2 and
+  must not be described as completed native generation;
 - restart/resume design now lives in
   `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`;
   it is future implementation guidance, not active persisted resume support;

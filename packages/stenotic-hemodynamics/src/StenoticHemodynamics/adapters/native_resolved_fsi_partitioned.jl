@@ -243,6 +243,47 @@ function native_resolved_fsi_partitioned_wall_state!(
     return nothing
 end
 
+function native_resolved_fsi_partitioned_wall_update_diagnostics(
+    wall_axial_coordinates_cm::Vector{Float64},
+    reference_radii_cm::Vector{Float64},
+    wall_pressure_dyn_cm2::Vector{Float64},
+    wall_displacement_cm::Vector{Float64},
+    wall_velocity_cm_s::Vector{Float64},
+    current_radii_cm::Vector{Float64},
+    wall_mass_g_cm2::Float64,
+    wall_stiffness_c0_dyn_cm3::Float64,
+    wall_damping_g_cm2_s::Float64,
+    dt_step_s::Float64;
+    radius_label::String = "candidate_radius_cm",
+)
+    length(wall_axial_coordinates_cm) == length(reference_radii_cm) == length(wall_pressure_dyn_cm2) ==
+        length(wall_displacement_cm) == length(wall_velocity_cm_s) == length(current_radii_cm) ||
+        return "wall-update diagnostics unavailable because wall-state vector lengths differ"
+    isempty(current_radii_cm) && return "wall-update diagnostics unavailable because wall state is empty"
+    min_radius_cm, min_radius_index = findmin(current_radii_cm)
+    abs_wall_pressure = abs.(wall_pressure_dyn_cm2)
+    max_abs_wall_pressure_dyn_cm2, max_abs_pressure_index = findmax(abs_wall_pressure)
+    stability_dt_limit_s = wall_mass_g_cm2 > 0.0 && wall_stiffness_c0_dyn_cm3 > 0.0 ?
+                           1.9 * sqrt(wall_mass_g_cm2 / wall_stiffness_c0_dyn_cm3) : NaN
+    static_pressure_displacement_cm = wall_stiffness_c0_dyn_cm3 > 0.0 ?
+                                      wall_pressure_dyn_cm2[min_radius_index] / wall_stiffness_c0_dyn_cm3 : NaN
+    return "wall-update diagnostics: min_station_index=$(min_radius_index), " *
+           "z_cm=$(wall_axial_coordinates_cm[min_radius_index]), " *
+           "reference_radius_cm=$(reference_radii_cm[min_radius_index]), " *
+           "$(radius_label)=$(min_radius_cm), " *
+           "wall_displacement_cm=$(wall_displacement_cm[min_radius_index]), " *
+           "wall_velocity_cm_s=$(wall_velocity_cm_s[min_radius_index]), " *
+           "wall_pressure_dyn_cm2=$(wall_pressure_dyn_cm2[min_radius_index]), " *
+           "static_pressure_displacement_cm=$(static_pressure_displacement_cm), " *
+           "max_abs_wall_pressure_dyn_cm2=$(max_abs_wall_pressure_dyn_cm2), " *
+           "max_abs_pressure_station_index=$(max_abs_pressure_index), " *
+           "wall_mass_g_cm2=$(wall_mass_g_cm2), " *
+           "wall_stiffness_c0_dyn_cm3=$(wall_stiffness_c0_dyn_cm3), " *
+           "wall_damping_g_cm2_s=$(wall_damping_g_cm2_s), " *
+           "dt_step_s=$(dt_step_s), " *
+           "explicit_stability_dt_limit_s=$(stability_dt_limit_s)"
+end
+
 function native_resolved_fsi_copy_free_dof_values(field)
     return Float64[Float64(value) for value in get_free_dof_values(field)]
 end
@@ -386,8 +427,21 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                         dt_step,
                     )
                 catch error
+                    diagnostics = native_resolved_fsi_partitioned_wall_update_diagnostics(
+                        wall_axial_coordinates_cm,
+                        reference_radii_cm,
+                        wall_pressure_dyn_cm2,
+                        candidate_displacement_cm,
+                        candidate_velocity_cm_s,
+                        candidate_radii_cm,
+                        wall_mass_g_cm2,
+                        wall_stiffness_c0_dyn_cm3,
+                        spec.wall_damping_g_cm2_s,
+                        dt_step;
+                        radius_label="candidate_radius_cm",
+                    )
                     throw(ArgumentError(
-                        "native resolved-FSI partitioned smoke wall-update guard failed at time step $(step_index), coupling iteration $(coupling_iteration): $(sprint(showerror, error))",
+                        "native resolved-FSI partitioned smoke wall-update guard failed at time step $(step_index), coupling iteration $(coupling_iteration): $(sprint(showerror, error)); $(diagnostics)",
                     ))
                 end
 
@@ -406,9 +460,24 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                 all(isfinite, relaxed_velocity_cm_s) || throw(ArgumentError(
                     "native resolved-FSI partitioned smoke produced non-finite relaxed wall velocity at time step $(step_index), coupling iteration $(coupling_iteration)",
                 ))
-                minimum(relaxed_radii_cm) > 0.0 || throw(ArgumentError(
-                    "native resolved-FSI partitioned smoke produced a non-positive relaxed radius at time step $(step_index), coupling iteration $(coupling_iteration)",
-                ))
+                if minimum(relaxed_radii_cm) <= 0.0
+                    diagnostics = native_resolved_fsi_partitioned_wall_update_diagnostics(
+                        wall_axial_coordinates_cm,
+                        reference_radii_cm,
+                        wall_pressure_dyn_cm2,
+                        relaxed_displacement_cm,
+                        relaxed_velocity_cm_s,
+                        relaxed_radii_cm,
+                        wall_mass_g_cm2,
+                        wall_stiffness_c0_dyn_cm3,
+                        spec.wall_damping_g_cm2_s,
+                        dt_step;
+                        radius_label="relaxed_radius_cm",
+                    )
+                    throw(ArgumentError(
+                        "native resolved-FSI partitioned smoke produced a non-positive relaxed radius at time step $(step_index), coupling iteration $(coupling_iteration); $(diagnostics)",
+                    ))
+                end
 
                 step_coupling_residual_cm = maximum(abs, relaxed_displacement_cm .- iteration_displacement_cm)
                 iteration_displacement_cm .= relaxed_displacement_cm

@@ -359,6 +359,23 @@ end
     )
     @test exact_spec_policy.inlet_outlet_boundary_mode == :poiseuille_inlet_zero_outlet_stress_section41
     @test exact_spec_policy.pressure_drop_dyn_cm2 == 0.0
+    wall_update_diagnostics = StenoticHemodynamics.native_resolved_fsi_partitioned_wall_update_diagnostics(
+        [0.0, 1.0],
+        [0.18, 0.16],
+        [-2.0e7, 1.0],
+        [-0.19, 0.0],
+        [-10.0, 0.0],
+        [-0.01, 0.16],
+        0.0633,
+        1.2e7,
+        0.0,
+        1.0e-4;
+        radius_label="candidate_radius_cm",
+    )
+    @test occursin("min_station_index=1", wall_update_diagnostics)
+    @test occursin("candidate_radius_cm=-0.01", wall_update_diagnostics)
+    @test occursin("wall_pressure_dyn_cm2=-2.0e7", wall_update_diagnostics)
+    @test occursin("explicit_stability_dt_limit_s=", wall_update_diagnostics)
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_iteration_count=0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_tolerance=0.0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_under_relaxation=0.0)
