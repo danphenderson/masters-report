@@ -16,6 +16,7 @@ const native_resolved_fsi_partitioned_smoke_spec = StenoticHemodynamics.native_r
 const native_resolved_fsi_mesh = StenoticHemodynamics.native_resolved_fsi_mesh
 const native_resolved_fsi_radial_wall_velocity_function =
     StenoticHemodynamics.native_resolved_fsi_radial_wall_velocity_function
+const native_resolved_fsi_solve_navier_stokes = StenoticHemodynamics.native_resolved_fsi_solve_navier_stokes
 const native_resolved_fsi_smoke_spec = StenoticHemodynamics.native_resolved_fsi_smoke_spec
 const run_native_resolved_fsi_navier_stokes_smoke = StenoticHemodynamics.run_native_resolved_fsi_navier_stokes_smoke
 const run_native_resolved_fsi_partitioned_smoke = StenoticHemodynamics.run_native_resolved_fsi_partitioned_smoke
@@ -68,6 +69,24 @@ const run_native_resolved_fsi_smoke = StenoticHemodynamics.run_native_resolved_f
     @test inward_velocity[1] ≈ -1.25 * wall_point[1] / radial_distance
     @test inward_velocity[2] ≈ -1.25 * wall_point[2] / radial_distance
     @test inward_velocity[3] == 0.0
+
+    section41_boundary_error = try
+        native_resolved_fsi_solve_navier_stokes(
+            mesh;
+            inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+            dt_s=1.0e-4,
+            tfinal_s=1.0e-4,
+            pressure_drop_dyn_cm2=40.0,
+            picard_iteration_count=1,
+            picard_tolerance=1.0e-8,
+        )
+        nothing
+    catch err
+        err
+    end
+    @test section41_boundary_error isa ArgumentError
+    @test occursin("Poiseuille inlet / zero-outlet-stress", sprint(showerror, section41_boundary_error))
+    @test occursin("deferred", sprint(showerror, section41_boundary_error))
 end
 
 @testset "StenoticHemodynamics native resolved-FSI fixed-wall Stokes smoke" begin
@@ -99,6 +118,11 @@ end
         @test result.time_status.ready
         @test result.field_status.ready
         @test result.fluid_model == :fixed_wall_stokes
+        @test result.inlet_outlet_boundary_mode == :pressure_drop_weak_inlet_outlet_gauge_smoke
+        @test !result.section41_boundary_status.ready
+        @test occursin("local smoke boundary evidence", result.section41_boundary_status.status)
+        @test occursin("not exact Section 4.1", result.section41_boundary_status.status)
+        @test occursin("Poiseuille inlet / zero-outlet-stress", result.section41_boundary_status.status)
         @test result.velocity_dofs > 0
         @test result.pressure_dofs > 0
         @test result.saved_time_s ≈ 1.0 atol=1.0e-12
@@ -191,6 +215,10 @@ end
         @test !occursin("ALE", result.field_status.status)
         @test !occursin("fixed-wall-fluid", result.field_status.status)
         @test result.fluid_model == :partitioned_prescribed_wall_velocity_iterated_wall_output_smoke
+        @test result.inlet_outlet_boundary_mode == :pressure_drop_weak_inlet_outlet_gauge_smoke
+        @test !result.section41_boundary_status.ready
+        @test occursin("local smoke boundary evidence", result.section41_boundary_status.status)
+        @test occursin("not exact Section 4.1", result.section41_boundary_status.status)
         @test result.velocity_dofs > 0
         @test result.pressure_dofs > 0
         @test result.time_step_count == 1
@@ -299,6 +327,10 @@ end
         @test result.time_status.ready
         @test result.field_status.ready
         @test result.fluid_model == :fixed_wall_navier_stokes_backward_euler_picard
+        @test result.inlet_outlet_boundary_mode == :pressure_drop_weak_inlet_outlet_gauge_smoke
+        @test !result.section41_boundary_status.ready
+        @test occursin("local smoke boundary evidence", result.section41_boundary_status.status)
+        @test occursin("not exact Section 4.1", result.section41_boundary_status.status)
         @test result.velocity_dofs > 0
         @test result.pressure_dofs > 0
         @test result.time_step_count == 2

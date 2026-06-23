@@ -174,7 +174,10 @@ native_resolved_fsi_partitioned_smoke_spec(; kwargs...) = NativeResolvedFSIParti
 
 Bundle returned by [`run_native_resolved_fsi_smoke`](@ref). It records the
 solver-backed field round trip together with schema, geometry, time, and field
-status for the staged fixed-wall smoke target.
+status for the staged fixed-wall smoke target. `inlet_outlet_boundary_mode`
+records the package-local smoke boundary realization, while
+`section41_boundary_status` reports whether that realization is exact Section
+4.1 inlet/outlet boundary reproduction.
 """
 struct NativeResolvedFSISmokeResult
     spec::NativeResolvedFSISmokeSpec
@@ -189,6 +192,8 @@ struct NativeResolvedFSISmokeResult
     displacement_h5::String
     saved_time_s::Float64
     fluid_model::Symbol
+    inlet_outlet_boundary_mode::Symbol
+    section41_boundary_status::NativeResolvedFSIWorkflowStatus
     velocity_dofs::Int
     pressure_dofs::Int
     sampling_fallback_count::Int
@@ -218,7 +223,8 @@ end
 
 Bundle returned by [`run_native_resolved_fsi_navier_stokes_smoke`](@ref). It
 records the final fixed-wall bundle round trip together with the coarse
-backward-Euler/Picard stepper summary used to reach the saved state.
+backward-Euler/Picard stepper summary used to reach the saved state and the
+bounded Section 4.1 inlet/outlet boundary status.
 """
 struct NativeResolvedFSINavierStokesSmokeResult
     spec::NativeResolvedFSINavierStokesSmokeSpec
@@ -233,6 +239,8 @@ struct NativeResolvedFSINavierStokesSmokeResult
     displacement_h5::String
     saved_time_s::Float64
     fluid_model::Symbol
+    inlet_outlet_boundary_mode::Symbol
+    section41_boundary_status::NativeResolvedFSIWorkflowStatus
     velocity_dofs::Int
     pressure_dofs::Int
     time_step_count::Int
@@ -271,7 +279,9 @@ end
 Bundle returned by [`run_native_resolved_fsi_partitioned_smoke`](@ref). It
 records the staged partitioned coupling summary, including the reduced wall
 state on native axial stations and the final three-field writer/importer round
-trip.
+trip. The inlet/outlet boundary status is separate from the wall-velocity mode
+because the current smoke path couples the wall radially while retaining
+pressure-drop-driven inlet/outlet loading.
 """
 struct NativeResolvedFSIPartitionedSmokeResult
     spec::NativeResolvedFSIPartitionedSmokeSpec
@@ -286,6 +296,8 @@ struct NativeResolvedFSIPartitionedSmokeResult
     displacement_h5::String
     saved_time_s::Float64
     fluid_model::Symbol
+    inlet_outlet_boundary_mode::Symbol
+    section41_boundary_status::NativeResolvedFSIWorkflowStatus
     velocity_dofs::Int
     pressure_dofs::Int
     time_step_count::Int
@@ -523,6 +535,11 @@ function run_native_resolved_fsi_smoke(spec::NativeResolvedFSISmokeSpec = Native
         roundtrip.writer_result.paths.displacement_h5,
         roundtrip.writer_result.time,
         NATIVE_RESOLVED_FSI_SMOKE_STAGE,
+        :pressure_drop_weak_inlet_outlet_gauge_smoke,
+        NativeResolvedFSIWorkflowStatus(
+            false,
+            "local smoke boundary evidence only: Gridap solve uses pressure-drop weak inlet/outlet loading with outlet-gauge pressure; not exact Section 4.1 Poiseuille inlet / zero-outlet-stress reproduction",
+        ),
         solve_result.velocity_dofs,
         solve_result.pressure_dofs,
         sampling_fallback_count,
@@ -608,6 +625,11 @@ function run_native_resolved_fsi_navier_stokes_smoke(
         roundtrip.writer_result.paths.displacement_h5,
         roundtrip.writer_result.time,
         NATIVE_RESOLVED_FSI_NAVIER_STOKES_SMOKE_STAGE,
+        :pressure_drop_weak_inlet_outlet_gauge_smoke,
+        NativeResolvedFSIWorkflowStatus(
+            false,
+            "local smoke boundary evidence only: Gridap solve uses pressure-drop weak inlet/outlet loading with outlet-gauge pressure; not exact Section 4.1 Poiseuille inlet / zero-outlet-stress reproduction",
+        ),
         solve_result.velocity_dofs,
         solve_result.pressure_dofs,
         solve_result.time_step_count,
@@ -732,6 +754,11 @@ function native_resolved_fsi_partitioned_smoke_result(
         roundtrip.writer_result.paths.displacement_h5,
         roundtrip.writer_result.time,
         NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_STAGE,
+        :pressure_drop_weak_inlet_outlet_gauge_smoke,
+        NativeResolvedFSIWorkflowStatus(
+            false,
+            "local smoke boundary evidence only: Gridap solve uses pressure-drop weak inlet/outlet loading with outlet-gauge pressure; not exact Section 4.1 Poiseuille inlet / zero-outlet-stress reproduction",
+        ),
         solve_result.velocity_dofs,
         solve_result.pressure_dofs,
         solve_result.time_step_count,

@@ -130,6 +130,7 @@ function native_resolved_fsi_solve_navier_stokes(
     mesh::NativeResolvedFSIMesh;
     coordinates::AbstractMatrix{<:Real} = mesh.coordinates,
     wall_radius_at_z = z -> native_resolved_fsi_radius(mesh.case_spec, z),
+    inlet_outlet_boundary_mode::Union{Symbol,AbstractString} = :pressure_drop_weak_inlet_outlet_gauge_smoke,
     dt_s::Real,
     tfinal_s::Real,
     pressure_drop_dyn_cm2::Real,
@@ -150,6 +151,18 @@ function native_resolved_fsi_solve_navier_stokes(
     picard_iteration_count_value > 0 || throw(ArgumentError("native resolved-FSI Navier-Stokes picard_iteration_count must be positive"))
     isfinite(picard_tolerance_value) || throw(ArgumentError("native resolved-FSI Navier-Stokes picard_tolerance must be finite"))
     picard_tolerance_value > 0.0 || throw(ArgumentError("native resolved-FSI Navier-Stokes picard_tolerance must be positive"))
+    inlet_outlet_boundary_mode_value = Symbol(inlet_outlet_boundary_mode)
+    if inlet_outlet_boundary_mode_value == :poiseuille_inlet_zero_outlet_stress_section41
+        throw(ArgumentError(
+            "native resolved-FSI Section 4.1 Poiseuille inlet / zero-outlet-stress boundary mode is deferred; " *
+            "the current Gridap smoke path supports only pressure-drop weak inlet/outlet loading with outlet-gauge pressure",
+        ))
+    elseif inlet_outlet_boundary_mode_value != :pressure_drop_weak_inlet_outlet_gauge_smoke
+        throw(ArgumentError(
+            "unsupported native resolved-FSI inlet/outlet boundary mode $(repr(inlet_outlet_boundary_mode_value)); " *
+            "supported modes are (:pressure_drop_weak_inlet_outlet_gauge_smoke, :poiseuille_inlet_zero_outlet_stress_section41)",
+        ))
+    end
 
     params = Params(severity=mesh.case_spec.severity_percent, tfinal=tfinal_value, initial_condition=GeometryRestIC())
     rho = params.rho

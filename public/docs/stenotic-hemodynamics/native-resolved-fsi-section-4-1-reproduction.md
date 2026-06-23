@@ -33,19 +33,26 @@ local operator evidence in separate tiers:
   `run_native_resolved_fsi_workflow(...)`, loaded through the retained
   resolved-3D importer.
 - Fixed-wall smoke: coarse fixed-wall Stokes and Navier-Stokes smoke bundles
-  with explicit zero displacement.
+  with explicit zero displacement and package-local pressure-drop weak
+  inlet/outlet loading.
 - Partitioned smoke: a reduced membrane update with prescribed radial
-  wall-velocity Dirichlet data on the fluid wall, not an ALE formulation.
+  wall-velocity Dirichlet data on the fluid wall, still using the same
+  pressure-drop-driven inlet/outlet smoke loading, not an ALE formulation.
+- Boundary-condition audit: the current Gridap smoke status is local boundary
+  evidence only. It is not an exact Section 4.1 reproduction of the paper's
+  Poiseuille inlet and zero-outlet-stress contract. The internal
+  `poiseuille_inlet_zero_outlet_stress_section41` mode is tracked as deferred
+  rather than silently mapped to the smoke path.
 - Production dry-run: `native_resolved_fsi_partitioned_production_dry_run(...)`
   resolves snapshot, sidecar, restart, and imported-parity paths without
   running a solver or writing files.
 - Production sidecars: `run_native_resolved_fsi_partitioned_production(...)`
-  writes independent smoke-backed snapshot bundles plus
+  writes state-carrying-in-run partitioned snapshot bundles plus
   `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, and
   `restart_metadata.json`.
 - Restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
   identification-only metadata; `native_resolved_fsi_resume_partitioned_production(...)`
-  intentionally fails closed because state-carrying resume is deferred.
+  intentionally fails closed because persisted resume is deferred.
 - Observation artifacts: native/imported/parity rows are written to
   `section41_observations.csv` and summarized in
   `section41_observation_summary.csv`.
@@ -118,8 +125,8 @@ artifacts or local operator summaries are marked `non-blocker`.
 | Wall thickness | `h = 0.06 cm` | explicit | no | Table 1. |
 | Poisson ratio | `nu = 0.5` | explicit | no | Table 1; map to package `sigma`. |
 | Young modulus | `E = 5.02e6 dyn/cm^2` | explicit | no | Table 1. |
-| Inlet condition | Poiseuille inflow with `u_max = 45 cm/s` | explicit | no | Section 4.1 text. Mean inflow is inferred as `22.5 cm/s`. |
-| Outlet condition | zero stress `sigma n = 0` at `Gamma_out` | explicit | no | Section 4.1 text. |
+| Inlet condition | Poiseuille inflow with `u_max = 45 cm/s` | explicit; deferred in current smoke | no for generated artifacts; yes for exact boundary parity | Section 4.1 text. Mean inflow is inferred as `22.5 cm/s`. Current Gridap smoke uses pressure-drop weak inlet loading instead. |
+| Outlet condition | zero stress `sigma n = 0` at `Gamma_out` | explicit; deferred in current smoke | no for generated artifacts; yes for exact boundary parity | Section 4.1 text. Current Gridap smoke records outlet-gauge pressure after pressure-drop weak loading, not exact paper boundary reproduction. |
 | End constraint | artery clamped at both ends, radial deformation allowed | explicit | no | Section 4.1 text. |
 | Comparison time | steady-state 3D snapshot at `T = 1 s` | explicit | no | Section 4.1 text. |
 | Legacy imported XDMF time | current local cases expect `0.9995 +/- time_atol` | inferred/local | no | From `Resolved3DCaseSpec` defaults and README; keep for importer compatibility only. |
@@ -148,8 +155,8 @@ artifacts or local operator summaries are marked `non-blocker`.
 | `E` | `dyn/cm^2` | `Params.young` | Exact match. |
 | `nu` (Poisson ratio) | dimensionless | `Params.sigma` | Same physical role, different field name. |
 | `h` | `cm` | `Params.wall_h` | Exact match. |
-| Poiseuille inlet with `u_max = 45 cm/s` | `cm/s` | Section 4.1 paper contract; not yet the exact native smoke boundary realization | Current Gridap smoke uses pressure-drop-driven weak loading and should not be described as paper-grade inlet reproduction. |
-| zero outlet stress | traction BC | Section 4.1 paper contract; local smoke uses its own weak loading/gauge choices | Do not map this to the current 1D characteristic outlet literally. |
+| Poiseuille inlet with `u_max = 45 cm/s` | `cm/s` | Section 4.1 paper contract; deferred internal mode `poiseuille_inlet_zero_outlet_stress_section41` | Current Gridap smoke uses pressure-drop-driven weak loading and should not be described as paper-grade inlet reproduction. |
+| zero outlet stress | traction BC | Section 4.1 paper contract; deferred internal mode `poiseuille_inlet_zero_outlet_stress_section41` | Do not map this to the current smoke outlet gauge or to the current 1D characteristic outlet literally. |
 | `eta_r` | `cm` | displacement state and exported displacement field | At minimum this is a wall radial displacement; full node-centered export is a local package extension. |
 | `C0` | `dyn/cm^3` after dividing force by displacement | closest local surfaces: `wall_stiffness`, `wall_elastic_coefficient`, `canic_membrane_c0` | Current local wall helpers are the nearest fit but do not, by themselves, prove exact Section 4.1 parity. |
 | benchmark time `T = 1 s` | `s` | native `Resolved3DCaseSpec.target_time = 1.0` | Do not inherit `0.9995` for new native outputs. |
@@ -232,7 +239,18 @@ displacement and therefore do not use the velocity-only schema as their target.
 - For wall-coupled cases, clamped-end displacement should evaluate to zero at
   inlet and outlet boundary nodes.
 
-### 5. Observation-operator parity tier
+### 5. Boundary-condition tier
+
+- Current smoke outputs must report
+  `pressure_drop_weak_inlet_outlet_gauge_smoke` as local smoke boundary
+  evidence.
+- Current smoke outputs must not report exact Section 4.1 boundary
+  reproduction.
+- Exact paper boundary parity remains deferred until a strong Poiseuille inlet
+  and zero-outlet-stress Gridap mode is implemented and validated without
+  removing the pressure-drop smoke path.
+
+### 6. Observation-operator parity tier
 
 - Full Section 4.1 parity requires longitudinal curves of cross-sectional
   average axial velocity and cross-sectional average pressure versus `z`.
@@ -259,17 +277,20 @@ Current generated artifacts may support these bounded statements:
   external imported bundles under the existing optional-data rules;
 - fixed-wall and partitioned smoke outputs can be written, reloaded, and
   summarized locally;
-- production sidecars document independent smoke-backed snapshots, not a
-  state-carrying transient production run;
+- production sidecars document state-carrying behavior within a production run,
+  not persisted process resume or a paper-grade transient reproduction;
 - local velocity and pressure observation artifacts can be generated and
   summarized in `section41_observation_summary.csv`.
+- smoke results now carry executable boundary-condition status showing
+  pressure-drop weak inlet/outlet loading as local evidence, not exact Section
+  4.1 inlet/outlet reproduction.
 
 Deferred claims:
 
 - public CLI exposure for native resolved-FSI production, dry-run, restart, and
   observation-artifact workflows;
-- state-carrying restart and resume beyond the identification-only metadata
-  reader;
-- exact Section 4.1 inlet/outlet boundary reproduction;
+- persisted restart and resume beyond the identification-only metadata reader;
+- exact Section 4.1 inlet/outlet boundary reproduction with Poiseuille inlet and
+  zero outlet stress;
 - monolithic ALE FSI;
 - paper-grade Section 4.1 numerical reproduction or validation.
