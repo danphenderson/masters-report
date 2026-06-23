@@ -105,6 +105,164 @@ function native_resolved_fsi_production_parity_summary_csv(
 end
 
 """
+    native_resolved_fsi_production_parity_matrix_rows(dry_runs; parity_plans=(), artifacts=())
+
+Return compact qualified-internal matrix rows for Section 4.1 native/imported
+parity handoff. The helper is side-effect-free: it composes existing production
+dry-run records, parity planning records, and optional observation-artifact
+summaries without loading optional external bundles or writing files.
+"""
+function native_resolved_fsi_production_parity_matrix_rows(
+    dry_runs;
+    parity_plans = (),
+    artifacts = (),
+)
+    dry_run_list = collect(dry_runs)
+    parity_plan_by_case = Dict(
+        string(plan.workflow_plan.case_spec.case_id) => plan for plan in parity_plans
+    )
+    artifact_by_case = Dict{String,Any}()
+    for artifact in artifacts
+        case_id = string(artifact.plan.workflow_plan.case_spec.case_id)
+        haskey(artifact_by_case, case_id) &&
+            throw(ArgumentError("native resolved-FSI parity matrix received duplicate artifact rows for case $case_id"))
+        artifact_by_case[case_id] = artifact
+    end
+
+    rows = NamedTuple[]
+    for dry_run in dry_run_list
+        case_id = string(dry_run.case_id)
+        parity_plan = get(parity_plan_by_case, case_id, nothing)
+        if haskey(artifact_by_case, case_id)
+            append!(
+                rows,
+                native_resolved_fsi_production_parity_matrix_artifact_rows(
+                    dry_run,
+                    artifact_by_case[case_id],
+                ),
+            )
+        else
+            append!(
+                rows,
+                native_resolved_fsi_production_parity_matrix_planned_rows(
+                    dry_run,
+                    parity_plan,
+                ),
+            )
+        end
+    end
+    return sort(rows; by=row -> (row.case_id, row.source, row.quantity))
+end
+
+function native_resolved_fsi_production_parity_matrix_rows(
+    dry_run::NativeResolvedFSIProductionDryRunPlan;
+    kwargs...,
+)
+    return native_resolved_fsi_production_parity_matrix_rows([dry_run]; kwargs...)
+end
+
+function native_resolved_fsi_production_parity_matrix_rows(;
+    workflow_plans = native_resolved_fsi_production_workflow_plans(),
+    imported_data_root::AbstractString = default_resolved3d_data_root(),
+    artifacts = (),
+)
+    dry_runs = [
+        native_resolved_fsi_partitioned_production_dry_run(plan; imported_data_root=imported_data_root)
+        for plan in workflow_plans
+    ]
+    parity_plans = native_resolved_fsi_production_parity_plans(
+        workflow_plans=workflow_plans,
+        imported_data_root=imported_data_root,
+    )
+    return native_resolved_fsi_production_parity_matrix_rows(dry_runs; parity_plans, artifacts)
+end
+
+function native_resolved_fsi_production_parity_matrix_artifact_rows(
+    dry_run::NativeResolvedFSIProductionDryRunPlan,
+    artifact,
+)
+    return NamedTuple[
+        native_resolved_fsi_production_parity_matrix_row(
+            dry_run,
+            summary_row.source,
+            summary_row.quantity;
+            row_count=summary_row.row_count,
+            ready_row_count=summary_row.ready_row_count,
+            max_mean_velocity_abs_difference_cm_s=summary_row.max_mean_velocity_abs_difference_cm_s,
+            max_mean_pressure_abs_difference_dyn_cm2=summary_row.max_mean_pressure_abs_difference_dyn_cm2,
+            status=summary_row.status,
+        )
+        for summary_row in artifact.summary_rows
+    ]
+end
+
+function native_resolved_fsi_production_parity_matrix_planned_rows(
+    dry_run::NativeResolvedFSIProductionDryRunPlan,
+    parity_plan,
+)
+    rows = NamedTuple[]
+    plan_status = parity_plan === nothing ? dry_run.status : parity_plan.status
+    for quantity in ("pressure", "velocity")
+        push!(rows, native_resolved_fsi_production_parity_matrix_row(
+            dry_run,
+            "native",
+            quantity;
+            status=dry_run.status,
+        ))
+        push!(rows, native_resolved_fsi_production_parity_matrix_row(
+            dry_run,
+            "imported",
+            quantity;
+            status=plan_status,
+        ))
+        dry_run.imported_available && push!(rows, native_resolved_fsi_production_parity_matrix_row(
+            dry_run,
+            "parity",
+            quantity;
+            status=plan_status,
+        ))
+    end
+    return rows
+end
+
+function native_resolved_fsi_production_parity_matrix_row(
+    dry_run::NativeResolvedFSIProductionDryRunPlan,
+    source::AbstractString,
+    quantity::AbstractString;
+    row_count::Integer = 0,
+    ready_row_count::Integer = 0,
+    max_mean_velocity_abs_difference_cm_s::Real = NaN,
+    max_mean_pressure_abs_difference_dyn_cm2::Real = NaN,
+    status::AbstractString,
+)
+    return (
+        case_id=string(dry_run.case_id),
+        source=String(source),
+        quantity=String(quantity),
+        qualification="qualified-internal",
+        source_label=native_resolved_fsi_production_parity_matrix_source_label(dry_run, source),
+        imported_available=dry_run.imported_available,
+        observations_csv=dry_run.parity_observations_csv,
+        summary_csv=dry_run.parity_summary_csv,
+        row_count=Int(row_count),
+        ready_row_count=Int(ready_row_count),
+        max_mean_velocity_abs_difference_cm_s=Float64(max_mean_velocity_abs_difference_cm_s),
+        max_mean_pressure_abs_difference_dyn_cm2=Float64(max_mean_pressure_abs_difference_dyn_cm2),
+        status=String(status),
+    )
+end
+
+function native_resolved_fsi_production_parity_matrix_source_label(
+    dry_run::NativeResolvedFSIProductionDryRunPlan,
+    source::AbstractString,
+)
+    source == "native" && return string(dry_run.case_id)
+    source == "imported" && return dry_run.imported_case.case_label
+    source == "parity" && return "$(dry_run.case_id):$(dry_run.imported_case.case_label)"
+    return String(source)
+end
+
+"""
     run_native_resolved_fsi_parity(plan, native_case; output_dir="", kwargs...)
 
 Write Section 4.1 observation rows for one native generated bundle and, when

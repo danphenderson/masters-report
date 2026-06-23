@@ -327,6 +327,7 @@
         :native_resolved_fsi_partitioned_production_spec,
         :native_resolved_fsi_partitioned_smoke_spec,
         :native_resolved_fsi_parity_spec,
+        :native_resolved_fsi_production_parity_matrix_rows,
         :native_resolved_fsi_production_parity_plans,
         :native_resolved_fsi_production_workflow_plans,
         :native_resolved_fsi_read_restart_metadata,

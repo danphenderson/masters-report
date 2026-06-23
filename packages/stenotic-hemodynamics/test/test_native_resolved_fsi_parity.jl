@@ -6,6 +6,8 @@ const NativeResolvedFSIProductionParityPlan = StenoticHemodynamics.NativeResolve
 const Resolved3DCaseSpec = StenoticHemodynamics.Resolved3DCaseSpec
 const native_resolved_fsi_partitioned_production_dry_run =
     StenoticHemodynamics.native_resolved_fsi_partitioned_production_dry_run
+const native_resolved_fsi_production_parity_matrix_rows =
+    StenoticHemodynamics.native_resolved_fsi_production_parity_matrix_rows
 const native_resolved_fsi_production_parity_plans = StenoticHemodynamics.native_resolved_fsi_production_parity_plans
 const native_resolved_fsi_production_workflow_plans = StenoticHemodynamics.native_resolved_fsi_production_workflow_plans
 const run_native_resolved_fsi_parity = StenoticHemodynamics.run_native_resolved_fsi_parity
@@ -311,6 +313,100 @@ end
         @test !ispath(dry_run.output_dir)
         @test !ispath(dirname(dry_run.parity_summary_csv))
         @test ispath(joinpath(dir, "77", "velocity.xdmf"))
+    end
+end
+
+@testset "StenoticHemodynamics native resolved-FSI production parity matrix rows" begin
+    mktempdir() do dir
+        write_native_resolved_fsi_parity_fixture(dir, "77")
+        write_native_resolved_fsi_parity_fixture(dir, "60")
+        workflow_plans = native_resolved_fsi_production_workflow_plans(
+            output_root=joinpath(dir, "production"),
+        )
+        parity_plans = native_resolved_fsi_production_parity_plans(
+            workflow_plans=workflow_plans,
+            imported_data_root=dir,
+        )
+        dry_runs = [
+            native_resolved_fsi_partitioned_production_dry_run(plan; imported_data_root=dir)
+            for plan in workflow_plans
+        ]
+
+        sev23_artifact = run_native_resolved_fsi_parity(
+            parity_plans[1],
+            write_native_resolved_fsi_parity_fixture(dir, "native-sev23");
+            output_dir=joinpath(dir, "observations-sev23"),
+            sample_z_cm=[0.25, 0.5, 0.75],
+            radial_profile_z_cm=[0.5],
+            radial_bin_count=3,
+            node_slab_half_widths_cm=[0.6],
+        )
+        sev50_artifact = run_native_resolved_fsi_parity(
+            parity_plans[3],
+            write_native_resolved_fsi_parity_fixture(dir, "native-sev50");
+            output_dir=joinpath(dir, "observations-sev50"),
+            sample_z_cm=[0.25, 0.5],
+            radial_profile_z_cm=[0.5],
+            radial_bin_count=3,
+            node_slab_half_widths_cm=[0.6],
+        )
+
+        rows = native_resolved_fsi_production_parity_matrix_rows(
+            dry_runs;
+            parity_plans=parity_plans,
+            artifacts=[sev50_artifact, sev23_artifact],
+        )
+
+        sort_keys = [(row.case_id, row.source, row.quantity) for row in rows]
+        @test sort_keys == sort(sort_keys)
+        @test length(rows) == 16
+        @test Set(row.case_id for row in rows) == Set(["sev23", "sev40", "sev50"])
+        @test all(row -> row.qualification == "qualified-internal", rows)
+        @test all(row -> row.source in ("native", "imported", "parity"), rows)
+        @test all(row -> row.quantity in ("velocity", "pressure"), rows)
+        @test count(row -> row.case_id == "sev23", rows) == 6
+        @test count(row -> row.case_id == "sev40", rows) == 6
+        @test count(row -> row.case_id == "sev50", rows) == 4
+        @test !any(row -> row.case_id == "sev50" && row.source == "parity", rows)
+
+        sev23_velocity = only(row for row in rows if row.case_id == "sev23" && row.source == "parity" && row.quantity == "velocity")
+        sev23_pressure = only(row for row in rows if row.case_id == "sev23" && row.source == "parity" && row.quantity == "pressure")
+        @test sev23_velocity.row_count == 3
+        @test sev23_velocity.ready_row_count == 3
+        @test sev23_velocity.max_mean_velocity_abs_difference_cm_s ≈ 0.0 atol = 1.0e-12
+        @test isnan(sev23_velocity.max_mean_pressure_abs_difference_dyn_cm2)
+        @test occursin("velocity section/radial/node-slab observations matched", sev23_velocity.status)
+        @test sev23_pressure.row_count == 3
+        @test sev23_pressure.ready_row_count == 3
+        @test isnan(sev23_pressure.max_mean_velocity_abs_difference_cm_s)
+        @test sev23_pressure.max_mean_pressure_abs_difference_dyn_cm2 ≈ 0.0 atol = 1.0e-12
+        @test occursin("pressure section-average observations matched", sev23_pressure.status)
+
+        sev40_parity_rows = [row for row in rows if row.case_id == "sev40" && row.source == "parity"]
+        @test length(sev40_parity_rows) == 2
+        @test all(row -> row.row_count == 0, sev40_parity_rows)
+        @test all(row -> row.ready_row_count == 0, sev40_parity_rows)
+        @test all(row -> row.imported_available, sev40_parity_rows)
+        @test all(row -> occursin("ready: native production plan", row.status), sev40_parity_rows)
+
+        sev50_imported_rows = [row for row in rows if row.case_id == "sev50" && row.source == "imported"]
+        @test length(sev50_imported_rows) == 2
+        @test all(row -> row.row_count == 0, sev50_imported_rows)
+        @test all(row -> row.ready_row_count == 0, sev50_imported_rows)
+        @test all(row -> !row.imported_available, sev50_imported_rows)
+        @test all(row -> isnan(row.max_mean_velocity_abs_difference_cm_s), sev50_imported_rows)
+        @test all(row -> isnan(row.max_mean_pressure_abs_difference_dyn_cm2), sev50_imported_rows)
+        @test all(row -> occursin("expected-skip", row.status), sev50_imported_rows)
+
+        planned_rows = native_resolved_fsi_production_parity_matrix_rows(
+            workflow_plans=workflow_plans,
+            imported_data_root=dir,
+        )
+        @test length(planned_rows) == 16
+        @test [(row.case_id, row.source, row.quantity) for row in planned_rows] ==
+              sort([(row.case_id, row.source, row.quantity) for row in planned_rows])
+        @test all(row -> row.row_count == 0, planned_rows)
+        @test !ispath(dry_runs[1].output_dir)
     end
 end
 
