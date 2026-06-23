@@ -12,32 +12,115 @@ function native_resolved_fsi_partitioned_wall_pressure_profile(
     mesh::NativeResolvedFSIMesh,
     pressure_h,
     current_radii_cm::Vector{Float64};
+    coordinates::AbstractMatrix{<:Real} = mesh.coordinates,
+    wall_radius_at_z = z -> native_resolved_fsi_radius(mesh.case_spec, z),
     pressure_drop_dyn_cm2::Real,
+    allow_pressure_fallback::Bool = true,
 )
     axial_coordinates_cm = mesh.geometry.axial_coordinates_cm
     length(current_radii_cm) == length(axial_coordinates_cm) || throw(DimensionMismatch(
         "native resolved-FSI partitioned current_radii_cm length must match the native axial station count",
     ))
-    fallback_profile = native_resolved_fsi_partitioned_pressure_fallback_profile(
-        mesh,
-        axial_coordinates_cm,
-        current_radii_cm;
-        pressure_drop_dyn_cm2=pressure_drop_dyn_cm2,
-    )
+    size(coordinates, 1) == size(mesh.coordinates, 1) ||
+        throw(DimensionMismatch("native resolved-FSI partitioned pressure-sampling coordinates must match the mesh node count"))
+    size(coordinates, 2) == 3 ||
+        throw(DimensionMismatch("native resolved-FSI partitioned pressure-sampling coordinates must have 3 columns"))
+    fallback_profile = allow_pressure_fallback ?
+        native_resolved_fsi_partitioned_pressure_fallback_profile(
+            mesh,
+            axial_coordinates_cm,
+            current_radii_cm;
+            pressure_drop_dyn_cm2=pressure_drop_dyn_cm2,
+        ) :
+        fill(NaN, length(axial_coordinates_cm))
     pressure_values = similar(current_radii_cm)
     fallback_count = 0
     angular_samples = max(mesh.geometry.resolution.angular, 6)
+    z_eps = max(mesh.case_spec.length_cm, 1.0) * 1.0e-8
     for index in eachindex(axial_coordinates_cm)
-        pressure_values[index], used_fallback = native_resolved_fsi_partitioned_wall_pressure_at_station(
+        z_sample = clamp(axial_coordinates_cm[index], z_eps, mesh.case_spec.length_cm - z_eps)
+        plane_pressure = native_resolved_fsi_partitioned_wall_pressure_at_plane(
+            mesh,
             pressure_h,
-            axial_coordinates_cm[index],
-            current_radii_cm[index],
-            fallback_profile[index],
-            angular_samples,
+            index,
+            coordinates,
+            wall_radius_at_z,
         )
+        if plane_pressure === nothing
+            pressure_values[index], used_fallback = native_resolved_fsi_partitioned_wall_pressure_at_station(
+                pressure_h,
+                z_sample,
+                current_radii_cm[index],
+                fallback_profile[index],
+                angular_samples;
+                allow_pressure_fallback=allow_pressure_fallback,
+            )
+        else
+            pressure_values[index] = plane_pressure
+            used_fallback = false
+        end
         fallback_count += used_fallback ? 1 : 0
     end
     return gauge_normalized_pressure_profile(pressure_values), fallback_count
+end
+
+function native_resolved_fsi_partitioned_wall_pressure_at_plane(
+    mesh::NativeResolvedFSIMesh,
+    pressure_h,
+    plane_index::Int,
+    coordinates::AbstractMatrix{<:Real},
+    wall_radius_at_z,
+)
+    resolution = mesh.geometry.resolution
+    plane_node_count = native_resolved_fsi_nodes_per_plane(resolution)
+    offset = (plane_index - 1) * plane_node_count
+    acc = 0.0
+    count = 0
+    for sector in 1:resolution.angular
+        node = offset + native_resolved_fsi_plane_node_index(resolution, resolution.radial, sector)
+        value = native_resolved_fsi_partitioned_try_pressure_at_node(
+            mesh,
+            node,
+            pressure_h;
+            coordinates=coordinates,
+            wall_radius_at_z=wall_radius_at_z,
+        )
+        if value !== nothing
+            acc += value
+            count += 1
+        end
+    end
+    return count > 0 ? acc / count : nothing
+end
+
+function native_resolved_fsi_partitioned_try_pressure_at_node(
+    mesh::NativeResolvedFSIMesh,
+    node::Int,
+    pressure_h;
+    coordinates::AbstractMatrix{<:Real},
+    wall_radius_at_z,
+)
+    x = Float64(coordinates[node, 1])
+    y = Float64(coordinates[node, 2])
+    z = Float64(coordinates[node, 3])
+    direct = native_resolved_fsi_partitioned_try_pressure(pressure_h, Point(x, y, z))
+    direct !== nothing && return direct
+    fallback_point = native_resolved_fsi_smoke_interior_sample_point(
+        mesh,
+        node;
+        coordinates=coordinates,
+        wall_radius_at_z=wall_radius_at_z,
+    )
+    return native_resolved_fsi_partitioned_try_pressure(pressure_h, fallback_point)
+end
+
+function native_resolved_fsi_partitioned_try_pressure(pressure_h, point::Point)
+    value = try
+        Float64(pressure_h(point))
+    catch
+        return nothing
+    end
+    return isfinite(value) ? value : nothing
 end
 
 function native_resolved_fsi_partitioned_wall_pressure_at_station(
@@ -45,27 +128,33 @@ function native_resolved_fsi_partitioned_wall_pressure_at_station(
     z_cm::Float64,
     radius_cm::Float64,
     fallback::Float64,
-    angular_samples::Int,
+    angular_samples::Int;
+    allow_pressure_fallback::Bool = true,
 )
     radius_cm > 0.0 || throw(ArgumentError("native resolved-FSI partitioned wall pressure sampling requires positive radius"))
-    acc = 0.0
-    count = 0
-    sample_radius = radius_cm * (1.0 - 1.0e-8)
-    for sample in 1:angular_samples
-        theta = 2.0 * pi * (sample - 0.5) / angular_samples
-        value = try
-            Float64(pressure_h(Point(sample_radius * cos(theta), sample_radius * sin(theta), z_cm)))
-        catch
-            NaN
+    for radial_scale in (1.0 - 1.0e-6, 0.95, 0.75, 0.5, 0.25, 0.0)
+        acc = 0.0
+        count = 0
+        sample_radius = radius_cm * radial_scale
+        for sample in 1:angular_samples
+            theta = 2.0 * pi * (sample - 0.5) / angular_samples
+            value = try
+                Float64(pressure_h(Point(sample_radius * cos(theta), sample_radius * sin(theta), z_cm)))
+            catch
+                NaN
+            end
+            if isfinite(value)
+                acc += value
+                count += 1
+            end
         end
-        if isfinite(value)
-            acc += value
-            count += 1
+        if count > 0
+            return acc / count, false
         end
     end
-    if count > 0
-        return acc / count, false
-    end
+    allow_pressure_fallback || throw(ArgumentError(
+        "native resolved-FSI exact inlet/outlet boundary mode requires direct finite wall-pressure sampling; pressure-drop fallback is disabled",
+    ))
     isfinite(fallback) || throw(ArgumentError("native resolved-FSI partitioned wall-pressure fallback must be finite"))
     return fallback, true
 end
@@ -248,6 +337,8 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     coordinates=deformed_coordinates,
                     wall_radius_at_z=wall_radius_at_z,
                     wall_velocity_at=wall_velocity_at_z,
+                    inlet_outlet_boundary_mode=controls.inlet_outlet_boundary_mode,
+                    inlet_umax_cm_s=controls.inlet_umax_cm_s,
                     dt_s=dt_step,
                     tfinal_s=dt_step,
                     pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
@@ -260,7 +351,11 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     mesh,
                     fluid_state.pressure,
                     iteration_radii_cm;
+                    coordinates=deformed_coordinates,
+                    wall_radius_at_z=wall_radius_at_z,
                     pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
+                    allow_pressure_fallback=
+                        controls.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke,
                 )
                 pressure_projection_fallback_count += step_pressure_fallback_count
 
@@ -319,6 +414,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     under_relaxation=spec.coupling_under_relaxation,
                     converged=step_coupling_converged,
                     fluid_wall_boundary_mode=string(fluid_wall_boundary_mode),
+                    inlet_outlet_boundary_mode=string(controls.inlet_outlet_boundary_mode),
                 ))
                 max_coupling_iterations_used = max(max_coupling_iterations_used, coupling_iteration)
                 final_coupling_displacement_residual_cm = step_coupling_residual_cm
@@ -355,6 +451,8 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             coordinates=final_deformed_coordinates,
             wall_radius_at_z=wall_radius_at_z,
             wall_velocity_at=wall_velocity_at_z,
+            inlet_outlet_boundary_mode=controls.inlet_outlet_boundary_mode,
+            inlet_umax_cm_s=controls.inlet_umax_cm_s,
             dt_s=refresh_dt,
             tfinal_s=refresh_dt,
             pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
@@ -370,7 +468,11 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             mesh,
             fluid_state.pressure,
             current_radii_cm;
+            coordinates=final_deformed_coordinates,
+            wall_radius_at_z=wall_radius_at_z,
             pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
+            allow_pressure_fallback=
+                controls.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke,
         )
         pressure_projection_fallback_count += refresh_pressure_fallback_count
 
@@ -379,6 +481,9 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             fluid_state.pressure,
             fluid_state.velocity_dofs,
             fluid_state.pressure_dofs,
+            fluid_state.inlet_outlet_boundary_mode,
+            fluid_state.inlet_umax_cm_s,
+            fluid_state.inlet_outlet_boundary_status,
             time_step_count,
             max_picard_iterations_used,
             final_picard_update_norm,

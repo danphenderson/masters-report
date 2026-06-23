@@ -139,6 +139,7 @@ end
         "native-resolved-fsi-production",
         "sev23",
         "4x2x10",
+        "boundary-pressure_drop_weak_inlet_outlet_gauge_smoke",
         "partitioned-production-dt0p0001-tfinal1",
         "snapshot-t1",
     )
@@ -166,6 +167,7 @@ end
         "tmp/native-production-test",
         "sev40",
         "4x2x10",
+        "boundary-pressure_drop_weak_inlet_outlet_gauge_smoke",
         "partitioned-production-dt0p0001-tfinal0p0002",
         "snapshots-n2-t0p0001-to-t0p0002",
     )
@@ -198,6 +200,12 @@ end
     @test exact_boundary_spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
     @test exact_boundary_spec.inlet_umax_cm_s ≈ 45.0
     @test exact_boundary_spec.pressure_drop_dyn_cm2 == 0.0
+    @test occursin(
+        "boundary-poiseuille_inlet_zero_outlet_stress_section41-umax45",
+        default_native_resolved_fsi_partitioned_production_output_dir(exact_boundary_spec),
+    )
+    @test default_native_resolved_fsi_partitioned_production_output_dir(exact_boundary_spec) !=
+          default_native_resolved_fsi_partitioned_production_output_dir(NativeResolvedFSIPartitionedProductionSpec())
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(coupling_iteration_count=0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(coupling_tolerance=0.0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedProductionSpec(coupling_under_relaxation=0.0)
@@ -256,6 +264,7 @@ end
             "production",
             "sev23",
             "4x2x10",
+            "boundary-pressure_drop_weak_inlet_outlet_gauge_smoke",
             "partitioned-production-dt0p0001-tfinal1",
             "snapshot-t1",
         )
@@ -386,13 +395,13 @@ end
         @test exact_dry_run.pressure_gauge_status ==
               "post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint"
         @test exact_dry_run.section41_boundary_status == "implemented_smoke_validated"
-        @test occursin("low-level Gridap mode is smoke-test validated", exact_dry_run.boundary_status)
+        @test occursin("partitioned production smoke-scale threading evidence", exact_dry_run.boundary_status)
         @test occursin("exact_section41_boundary_mode_selected_smoke_validated", exact_dry_run.boundary_equivalence_status)
-        @test occursin("production runner execution is fail-closed", exact_plan.status)
+        @test occursin("production runner support advances the exact inlet/outlet boundary mode", exact_plan.status)
         @test occursin("section41_boundary_status=implemented_smoke_validated", exact_plan.status)
         @test occursin("boundary_mode=poiseuille_inlet_zero_outlet_stress_section41", exact_dry_run.status)
         @test occursin("section41_boundary_status=implemented_smoke_validated", exact_dry_run.status)
-        @test occursin("production execution remains fail-closed", exact_dry_run.status)
+        @test occursin("production execution is available only through explicit production specs", exact_dry_run.status)
     end
 end
 
@@ -818,23 +827,90 @@ end
         @test occursin("prescribed radial wall-velocity Dirichlet", coupling_result.method_status.status)
     end
 
-    exact_production_spec = NativeResolvedFSIPartitionedProductionSpec(
-        resolution=resolution,
-        inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
-        pressure_drop_dyn_cm2=0.0,
-        dt_s=1.0e-4,
-        tfinal_s=1.0e-4,
-        snapshot_times_s=[1.0e-4],
-    )
-    exact_production_error = try
-        run_native_resolved_fsi_partitioned_production(exact_production_spec)
-        nothing
-    catch err
-        err
+    mktempdir() do dir
+        exact_production_spec = NativeResolvedFSIPartitionedProductionSpec(
+            resolution=resolution,
+            output_root=joinpath(dir, "exact-production"),
+            inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+            inlet_umax_cm_s=45.0,
+            pressure_drop_dyn_cm2=0.0,
+            dt_s=1.0e-6,
+            tfinal_s=1.0e-6,
+            snapshot_times_s=[1.0e-6],
+        )
+        exact_production_result = run_native_resolved_fsi_partitioned_production(exact_production_spec)
+        @test exact_production_result.output_status.ready
+        @test exact_production_result.method_status.ready
+        @test exact_production_result.restart_status.ready
+        @test exact_production_result.smoke_result.inlet_outlet_boundary_mode ==
+              :poiseuille_inlet_zero_outlet_stress_section41
+        @test exact_production_result.smoke_result.section41_boundary_status.ready
+        @test exact_production_result.smoke_result.pressure_projection_fallback_count == 0
+        @test occursin("exact Section 4.1 inlet/outlet boundary mode", exact_production_result.method_status.status)
+        @test occursin("pressure-drop fallback disabled", exact_production_result.method_status.status)
+        @test occursin("paper-grade Section 4.1 parity", exact_production_result.method_status.status)
+        @test occursin("remain out of scope", exact_production_result.method_status.status)
+        exact_diagnostic_row = only(exact_production_result.diagnostic_rows)
+        @test exact_diagnostic_row.boundary_mode == "poiseuille_inlet_zero_outlet_stress_section41"
+        @test exact_diagnostic_row.boundary_mode_class == "exact_section41"
+        @test exact_diagnostic_row.inlet_condition_status == "poiseuille_profile_umax_45_cm_s"
+        @test exact_diagnostic_row.outlet_condition_status == "zero_outlet_stress_natural_traction"
+        @test occursin(
+            "pressure_drop_resistance_fallback_disabled",
+            exact_diagnostic_row.wall_pressure_projection_status,
+        )
+        @test exact_diagnostic_row.section41_boundary_status == "implemented_smoke_validated"
+        @test occursin("exact_section41_boundary_mode_selected_smoke_validated", exact_diagnostic_row.boundary_equivalence_status)
+        @test exact_diagnostic_row.pressure_projection_fallback_count == 0
+        @test exact_production_result.restart_metadata["inlet_umax_cm_s"] ≈ 45.0
+        @test exact_production_result.restart_metadata["boundary_mode"] ==
+              "poiseuille_inlet_zero_outlet_stress_section41"
+        @test occursin(
+            "pressure_drop_resistance_fallback_disabled",
+            exact_production_result.restart_metadata["wall_pressure_projection_status"],
+        )
+        @test exact_production_result.restart_metadata["section41_boundary_status"] == "implemented_smoke_validated"
+        exact_snapshot_metadata = only(exact_production_result.restart_metadata["snapshot_outputs"])
+        @test exact_snapshot_metadata["inlet_umax_cm_s"] ≈ 45.0
+        @test exact_snapshot_metadata["boundary_mode"] == "poiseuille_inlet_zero_outlet_stress_section41"
+        @test occursin("pressure_drop_resistance_fallback_disabled", exact_snapshot_metadata["wall_pressure_projection_status"])
+        parsed_exact_metadata = native_resolved_fsi_read_restart_metadata(
+            exact_production_result.restart_metadata_json,
+        )
+        @test parsed_exact_metadata["inlet_umax_cm_s"] ≈ 45.0
+        @test parsed_exact_metadata["boundary_mode"] == "poiseuille_inlet_zero_outlet_stress_section41"
+        @test occursin(
+            "pressure_drop_resistance_fallback_disabled",
+            parsed_exact_metadata["wall_pressure_projection_status"],
+        )
+
+        missing_umax_metadata = deepcopy(exact_production_result.restart_metadata)
+        delete!(missing_umax_metadata, "inlet_umax_cm_s")
+        missing_umax_path = joinpath(dir, "missing-exact-umax-restart-metadata.json")
+        StenoticHemodynamics.write_json(missing_umax_path, missing_umax_metadata; overwrite=true)
+        missing_umax_error = try
+            native_resolved_fsi_read_restart_metadata(missing_umax_path)
+            nothing
+        catch err
+            err
+        end
+        @test missing_umax_error isa ArgumentError
+        @test occursin("inlet_umax_cm_s", sprint(showerror, missing_umax_error))
+
+        invalid_projection_metadata = deepcopy(exact_production_result.restart_metadata)
+        invalid_projection_metadata["wall_pressure_projection_status"] =
+            "direct_wall_pressure_sampling_with_pressure_drop_resistance_fallback_if_needed; wall_pressure_profile_outlet_gauged_before_membrane_update"
+        invalid_projection_path = joinpath(dir, "invalid-wall-pressure-projection-restart-metadata.json")
+        StenoticHemodynamics.write_json(invalid_projection_path, invalid_projection_metadata; overwrite=true)
+        invalid_projection_error = try
+            native_resolved_fsi_read_restart_metadata(invalid_projection_path)
+            nothing
+        catch err
+            err
+        end
+        @test invalid_projection_error isa ArgumentError
+        @test occursin("wall_pressure_projection_status", sprint(showerror, invalid_projection_error))
     end
-    @test exact_production_error isa ArgumentError
-    @test occursin("fail-closed", sprint(showerror, exact_production_error))
-    @test occursin("partitioned production has not yet threaded", sprint(showerror, exact_production_error))
 
     zero_snapshot_spec = NativeResolvedFSIPartitionedProductionSpec(
         resolution=resolution,

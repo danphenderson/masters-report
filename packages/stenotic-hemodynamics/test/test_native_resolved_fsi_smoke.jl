@@ -224,6 +224,8 @@ end
     @test default_spec.coupling_iteration_count == 1
     @test default_spec.coupling_tolerance ≈ 1.0e-8
     @test default_spec.coupling_under_relaxation ≈ 1.0
+    @test default_spec.inlet_outlet_boundary_mode == :pressure_drop_weak_inlet_outlet_gauge_smoke
+    @test default_spec.inlet_umax_cm_s ≈ 45.0
     @test default_native_resolved_fsi_partitioned_smoke_output_dir(default_spec) ==
           joinpath(
         "tmp",
@@ -241,7 +243,20 @@ end
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(picard_tolerance=0.0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(wall_density_g_cm3=0.0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(wall_damping_g_cm2_s=-1.0)
+    @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(inlet_outlet_boundary_mode=:unsupported)
+    @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(inlet_umax_cm_s=NaN)
+    @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(
+        inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+        inlet_umax_cm_s=0.0,
+        pressure_drop_dyn_cm2=0.0,
+    )
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(pressure_drop_dyn_cm2=0.0)
+    exact_spec_policy = NativeResolvedFSIPartitionedSmokeSpec(
+        inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+        pressure_drop_dyn_cm2=0.0,
+    )
+    @test exact_spec_policy.inlet_outlet_boundary_mode == :poiseuille_inlet_zero_outlet_stress_section41
+    @test exact_spec_policy.pressure_drop_dyn_cm2 == 0.0
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_iteration_count=0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_tolerance=0.0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_under_relaxation=0.0)
@@ -342,6 +357,56 @@ end
         @test occursin("partitioned", lowercase(result.field_status.status))
         @test occursin("R_ref = p.rmax", result.field_status.status)
         @test occursin("required pressure, displacement", result.schema_status.status)
+    end
+
+    mktempdir() do dir
+        exact_spec = NativeResolvedFSIPartitionedSmokeSpec(
+            case_id=:sev23,
+            resolution=resolution,
+            output_dir=joinpath(dir, "partitioned-exact-boundary-bundle"),
+            dt_s=1.0e-6,
+            tfinal_s=1.0e-6,
+            time_atol=1.0e-12,
+            inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+            inlet_umax_cm_s=45.0,
+            pressure_drop_dyn_cm2=0.0,
+            picard_iteration_count=8,
+            picard_tolerance=1.0e-8,
+            wall_density_g_cm3=1.0,
+            wall_damping_g_cm2_s=0.0,
+            coupling_iteration_count=1,
+            coupling_tolerance=1.0e-8,
+            coupling_under_relaxation=1.0,
+        )
+        exact_result = run_native_resolved_fsi_partitioned_smoke(exact_spec)
+
+        @test exact_result isa NativeResolvedFSIPartitionedSmokeResult
+        @test exact_result.schema_status.ready
+        @test exact_result.geometry_status.ready
+        @test exact_result.time_status.ready
+        @test exact_result.field_status.ready
+        @test exact_result.inlet_outlet_boundary_mode == :poiseuille_inlet_zero_outlet_stress_section41
+        @test exact_result.inlet_outlet_boundary_mode == exact_spec.inlet_outlet_boundary_mode
+        @test exact_result.section41_boundary_status.ready
+        @test occursin("poiseuille_inlet_zero_outlet_stress_section41 active", exact_result.section41_boundary_status.status)
+        @test occursin("u_max=45.0 cm/s", exact_result.section41_boundary_status.status)
+        @test occursin("zero outlet stress", exact_result.section41_boundary_status.status)
+        @test occursin("no pressure-drop weak inlet/outlet loading", exact_result.section41_boundary_status.status)
+        @test exact_result.pressure_projection_fallback_count == 0
+        @test exact_result.fluid_wall_boundary_mode == :prescribed_radial_wall_velocity
+        @test all(isfinite, exact_result.loaded_velocity)
+        @test all(isfinite, exact_result.loaded_pressure)
+        @test all(isfinite, exact_result.loaded_displacement)
+        inlet_center_node = only(filter(
+            node -> hypot(exact_result.mesh.coordinates[node, 1], exact_result.mesh.coordinates[node, 2]) <= 1.0e-12,
+            exact_result.mesh.tags.inlet_nodes,
+        ))
+        @test exact_result.loaded_velocity[inlet_center_node, 3] ≈ 45.0 atol=1.0e-8
+        outlet_pressure_mean =
+            sum(exact_result.loaded_pressure[node] for node in exact_result.mesh.tags.outlet_nodes) /
+            length(exact_result.mesh.tags.outlet_nodes)
+        exact_pressure_scale = max(maximum(abs, exact_result.loaded_pressure), 1.0)
+        @test abs(outlet_pressure_mean) <= max(1.0e-9, 1.0e-15 * exact_pressure_scale)
     end
 end
 

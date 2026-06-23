@@ -54,10 +54,10 @@ end
 
 function native_resolved_fsi_inlet_outlet_boundary_mode(value::Union{Symbol,AbstractString})
     mode = Symbol(value)
-    mode in (:pressure_drop_weak_inlet_outlet_gauge_smoke, :poiseuille_inlet_zero_outlet_stress_section41) ||
+    mode in NATIVE_RESOLVED_FSI_INLET_OUTLET_BOUNDARY_MODES ||
         throw(ArgumentError(
             "unsupported native resolved-FSI inlet/outlet boundary mode $(repr(mode)); " *
-            "supported modes are (:pressure_drop_weak_inlet_outlet_gauge_smoke, :poiseuille_inlet_zero_outlet_stress_section41)",
+            "supported modes are $(NATIVE_RESOLVED_FSI_INLET_OUTLET_BOUNDARY_MODES)",
         ))
     return mode
 end
@@ -91,7 +91,8 @@ function native_resolved_fsi_inlet_outlet_boundary_status(
 )
     if mode === :pressure_drop_weak_inlet_outlet_gauge_smoke
         return "pressure_drop_weak_inlet_outlet_gauge_smoke active: weak pressure-drop inlet loading " *
-               "with outlet-gauge pressure normalization; local smoke boundary evidence only"
+               "with outlet-gauge pressure normalization; local smoke boundary evidence only, " *
+               "not exact Section 4.1 Poiseuille inlet / zero-outlet-stress reproduction"
     end
     if mode === :poiseuille_inlet_zero_outlet_stress_section41
         return "poiseuille_inlet_zero_outlet_stress_section41 active: strong inlet Dirichlet " *
@@ -170,6 +171,8 @@ function native_resolved_fsi_navier_stokes_controls(spec::NativeResolvedFSIParti
     return (
         dt_s=spec.dt_s,
         tfinal_s=spec.tfinal_s,
+        inlet_outlet_boundary_mode=spec.inlet_outlet_boundary_mode,
+        inlet_umax_cm_s=spec.inlet_umax_cm_s,
         pressure_drop_dyn_cm2=spec.pressure_drop_dyn_cm2,
         picard_iteration_count=spec.picard_iteration_count,
         picard_tolerance=spec.picard_tolerance,

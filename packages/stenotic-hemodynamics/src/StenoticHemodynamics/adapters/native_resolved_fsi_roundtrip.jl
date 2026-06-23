@@ -241,7 +241,8 @@ function native_resolved_fsi_partitioned_smoke_field_status(
                            iszero(wall_velocity_cm_s[begin]) &&
                            iszero(wall_velocity_cm_s[end])
     outlet_pressure_mean = sum(pressure[node] for node in mesh.tags.outlet_nodes) / length(mesh.tags.outlet_nodes)
-    outlet_gauge_ok = abs(outlet_pressure_mean) <= 1.0e-9
+    pressure_scale = max(maximum(abs, pressure), 1.0)
+    outlet_gauge_ok = abs(outlet_pressure_mean) <= max(1.0e-9, 1.0e-15 * pressure_scale)
     positive_radius_ok = minimum_current_radius_cm > 0.0
     positive_tetra_ok = minimum_signed_tetra_volume6 > 0.0
     deformed_ok = deformed_coordinates == mesh.coordinates .+ displacement

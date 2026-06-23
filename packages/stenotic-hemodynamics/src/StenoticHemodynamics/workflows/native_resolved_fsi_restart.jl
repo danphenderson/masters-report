@@ -232,15 +232,37 @@ function native_resolved_fsi_require_restart_metadata_vector(metadata::Dict{Stri
 end
 
 const NATIVE_RESOLVED_FSI_RESTART_BOUNDARY_STATUS_KEYS = (
+    "inlet_umax_cm_s",
     "boundary_mode",
     "boundary_mode_class",
     "inlet_condition_status",
     "outlet_condition_status",
     "pressure_gauge_status",
+    "wall_pressure_projection_status",
     "section41_boundary_status",
     "boundary_status",
     "boundary_equivalence_status",
 )
+
+function native_resolved_fsi_restart_boundary_inlet_umax_cm_s(
+    metadata::Dict{String,Any},
+    mode::Symbol;
+    context::String,
+)
+    if haskey(metadata, "inlet_umax_cm_s")
+        value = native_resolved_fsi_require_restart_metadata_finite_real(
+            metadata,
+            "inlet_umax_cm_s";
+            context=context,
+        )
+        value > 0.0 || throw(ArgumentError("$(context) 'inlet_umax_cm_s' must be positive"))
+        return value
+    end
+    mode === :poiseuille_inlet_zero_outlet_stress_section41 && throw(ArgumentError(
+        "$(context) exact Section 4.1 boundary metadata requires 'inlet_umax_cm_s'",
+    ))
+    return NATIVE_RESOLVED_FSI_PRODUCTION_SECTION41_INLET_UMAX_CM_S
+end
 
 function native_resolved_fsi_validate_restart_boundary_status_if_present(
     metadata::Dict{String,Any};
@@ -248,7 +270,13 @@ function native_resolved_fsi_validate_restart_boundary_status_if_present(
 )
     any(key -> haskey(metadata, key), NATIVE_RESOLVED_FSI_RESTART_BOUNDARY_STATUS_KEYS) || return nothing
     mode = native_resolved_fsi_require_restart_metadata_string(metadata, "boundary_mode"; context=context)
-    boundary_status = native_resolved_fsi_boundary_status_fields(Symbol(mode))
+    mode_symbol = Symbol(mode)
+    inlet_umax_cm_s = native_resolved_fsi_restart_boundary_inlet_umax_cm_s(
+        metadata,
+        mode_symbol;
+        context=context,
+    )
+    boundary_status = native_resolved_fsi_boundary_status_fields(mode_symbol; inlet_umax_cm_s=inlet_umax_cm_s)
     expected_values = Dict{String,String}(
         "boundary_mode" => boundary_status.boundary_mode,
         "boundary_mode_class" => boundary_status.boundary_mode_class,
@@ -261,6 +289,14 @@ function native_resolved_fsi_validate_restart_boundary_status_if_present(
     )
     for (key, expected) in expected_values
         native_resolved_fsi_require_restart_metadata_value(metadata, key, expected; context=context)
+    end
+    if haskey(metadata, "wall_pressure_projection_status")
+        native_resolved_fsi_require_restart_metadata_value(
+            metadata,
+            "wall_pressure_projection_status",
+            native_resolved_fsi_wall_pressure_projection_status(mode_symbol);
+            context=context,
+        )
     end
     return nothing
 end

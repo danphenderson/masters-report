@@ -14,6 +14,12 @@ const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_DEFAULT_WALL_DENSITY_G_CM3 = 1.0
 const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_DEFAULT_WALL_DAMPING_G_CM2_S = 0.0
 const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_STAGE = :partitioned_prescribed_wall_velocity_iterated_wall_output_smoke
 const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_FLUID_WALL_BOUNDARY_MODE = :prescribed_radial_wall_velocity
+const NATIVE_RESOLVED_FSI_INLET_OUTLET_BOUNDARY_MODES = (
+    :pressure_drop_weak_inlet_outlet_gauge_smoke,
+    :poiseuille_inlet_zero_outlet_stress_section41,
+)
+const NATIVE_RESOLVED_FSI_DEFAULT_INLET_OUTLET_BOUNDARY_MODE =
+    :pressure_drop_weak_inlet_outlet_gauge_smoke
 
 """
     NativeResolvedFSISmokeSpec(; kwargs...)
@@ -112,7 +118,9 @@ with the current reduced wall velocity prescribed as a radial wall Dirichlet
 condition, projects wall pressure onto the native axial stations, updates a
 reduced radial membrane state explicitly with under-relaxation, and refreshes
 the fluid on the saved geometry for output. This is not a monolithic transient
-3D FSI solve.
+3D FSI solve. `inlet_outlet_boundary_mode` distinguishes the local pressure-drop
+smoke loading from the exact Section 4.1 Poiseuille-inlet / zero-outlet-stress
+boundary mode.
 """
 struct NativeResolvedFSIPartitionedSmokeSpec
     case_spec::NativeResolvedFSICaseSpec
@@ -122,6 +130,8 @@ struct NativeResolvedFSIPartitionedSmokeSpec
     tfinal_s::Float64
     time_atol::Float64
     overwrite::Bool
+    inlet_outlet_boundary_mode::Symbol
+    inlet_umax_cm_s::Float64
     pressure_drop_dyn_cm2::Float64
     picard_iteration_count::Int
     picard_tolerance::Float64
@@ -140,6 +150,8 @@ function NativeResolvedFSIPartitionedSmokeSpec(;
     tfinal_s::Real = NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_DEFAULT_TFINAL_S,
     time_atol::Real = 1.0e-12,
     overwrite::Bool = false,
+    inlet_outlet_boundary_mode::Union{Symbol,AbstractString} = NATIVE_RESOLVED_FSI_DEFAULT_INLET_OUTLET_BOUNDARY_MODE,
+    inlet_umax_cm_s::Real = NATIVE_RESOLVED_FSI_SECTION41_INLET_UMAX_CM_S,
     pressure_drop_dyn_cm2::Real = 40.0,
     picard_iteration_count::Integer = NATIVE_RESOLVED_FSI_NAVIER_STOKES_SMOKE_DEFAULT_PICARD_ITERATION_COUNT,
     picard_tolerance::Real = NATIVE_RESOLVED_FSI_NAVIER_STOKES_SMOKE_DEFAULT_PICARD_TOLERANCE,
@@ -157,6 +169,8 @@ function NativeResolvedFSIPartitionedSmokeSpec(;
         Float64(tfinal_s),
         Float64(time_atol),
         overwrite,
+        Symbol(inlet_outlet_boundary_mode),
+        Float64(inlet_umax_cm_s),
         Float64(pressure_drop_dyn_cm2),
         Int(picard_iteration_count),
         Float64(picard_tolerance),
@@ -346,6 +360,9 @@ struct NativeResolvedFSIPartitionedSmokeSolve
     pressure
     velocity_dofs::Int
     pressure_dofs::Int
+    inlet_outlet_boundary_mode::Symbol
+    inlet_umax_cm_s::Float64
+    inlet_outlet_boundary_status::String
     time_step_count::Int
     max_picard_iterations_used::Int
     final_picard_update_norm::Float64
@@ -403,10 +420,21 @@ function validate(spec::NativeResolvedFSIPartitionedSmokeSpec)
     isfinite(spec.tfinal_s) || throw(ArgumentError("native resolved-FSI partitioned smoke tfinal_s must be finite"))
     spec.tfinal_s > 0.0 || throw(ArgumentError("native resolved-FSI partitioned smoke tfinal_s must be positive"))
     spec.time_atol > 0.0 || throw(ArgumentError("native resolved-FSI partitioned smoke time_atol must be positive"))
+    spec.inlet_outlet_boundary_mode in NATIVE_RESOLVED_FSI_INLET_OUTLET_BOUNDARY_MODES || throw(ArgumentError(
+        "native resolved-FSI partitioned smoke inlet_outlet_boundary_mode must be one of $(NATIVE_RESOLVED_FSI_INLET_OUTLET_BOUNDARY_MODES)",
+    ))
+    isfinite(spec.inlet_umax_cm_s) ||
+        throw(ArgumentError("native resolved-FSI partitioned smoke inlet_umax_cm_s must be finite"))
+    if spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
+        spec.inlet_umax_cm_s > 0.0 ||
+            throw(ArgumentError("native resolved-FSI partitioned smoke inlet_umax_cm_s must be positive for exact Section 4.1 mode"))
+    end
     isfinite(spec.pressure_drop_dyn_cm2) ||
         throw(ArgumentError("native resolved-FSI partitioned smoke pressure_drop_dyn_cm2 must be finite"))
-    spec.pressure_drop_dyn_cm2 > 0.0 ||
-        throw(ArgumentError("native resolved-FSI partitioned smoke pressure_drop_dyn_cm2 must be positive"))
+    if spec.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke
+        spec.pressure_drop_dyn_cm2 > 0.0 ||
+            throw(ArgumentError("native resolved-FSI partitioned smoke pressure_drop_dyn_cm2 must be positive"))
+    end
     spec.picard_iteration_count > 0 ||
         throw(ArgumentError("native resolved-FSI partitioned smoke picard_iteration_count must be positive"))
     isfinite(spec.picard_tolerance) ||
@@ -720,6 +748,16 @@ function native_resolved_fsi_partitioned_smoke_result(
         solve_result.wall_axial_coordinates_cm,
         solve_result.current_radii_cm,
     )
+    solve_result.inlet_outlet_boundary_mode == spec.inlet_outlet_boundary_mode || throw(ArgumentError(
+        "native resolved-FSI partitioned smoke solve/result inlet_outlet_boundary_mode mismatch: " *
+        "spec=$(repr(spec.inlet_outlet_boundary_mode)), solve=$(repr(solve_result.inlet_outlet_boundary_mode))",
+    ))
+    if solve_result.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
+        isapprox(solve_result.inlet_umax_cm_s, spec.inlet_umax_cm_s; atol=0.0, rtol=1.0e-12) || throw(ArgumentError(
+            "native resolved-FSI partitioned smoke solve/result inlet_umax_cm_s mismatch: " *
+            "spec=$(spec.inlet_umax_cm_s), solve=$(solve_result.inlet_umax_cm_s)",
+        ))
+    end
 
     velocity, pressure, sampling_fallback_count = native_resolved_fsi_sample_smoke_fields(
         mesh,
@@ -758,10 +796,10 @@ function native_resolved_fsi_partitioned_smoke_result(
         roundtrip.writer_result.paths.displacement_h5,
         roundtrip.writer_result.time,
         NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_STAGE,
-        :pressure_drop_weak_inlet_outlet_gauge_smoke,
+        solve_result.inlet_outlet_boundary_mode,
         NativeResolvedFSIWorkflowStatus(
-            false,
-            "local smoke boundary evidence only: Gridap solve uses pressure-drop weak inlet/outlet loading with outlet-gauge pressure; not exact Section 4.1 Poiseuille inlet / zero-outlet-stress reproduction",
+            solve_result.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41,
+            solve_result.inlet_outlet_boundary_status,
         ),
         solve_result.velocity_dofs,
         solve_result.pressure_dofs,
