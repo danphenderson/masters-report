@@ -1,151 +1,239 @@
-# Final Submission Closeout Checklist
+# Next-Round Mathematical and Numerical Narrative Plan
 
 ## Current Status
 
-The broad manuscript prose refresh is complete. The current report is
-committee-ready at an overall `A` to near-`A+` level, with remaining work limited
-to final submission readiness rather than another mathematical or prose rewrite.
+The public report PDF has been refreshed and committed from the current report
+source.
 
-The latest scratch critique/build basis was:
+- Build command: `pipenv run ops-build-report --outdir /tmp/masters-report-build`
+- Build result: `passed`
+- Consumed report inputs: `63`
+- Untracked consumed inputs: none
+- Synced PDF: `public/final-report.pdf`
+- Synced PDF SHA-256:
+  `c0d76a37e34142499c7fdfb3628459eb805468f48af05768069d126935f1d3a7`
+- PDF refresh commit: `7920835 Refresh final report PDF`
 
-```sh
-pipenv run ops-build-report --outdir /tmp/masters-report-plan-audit --no-sync-final-pdf
-pdftotext -layout /tmp/masters-report-plan-audit/final-report.pdf /tmp/final-report-plan-audit.txt
+The mathematical and numerical narrative is committee-ready at an overall
+`A` to near-`A+` level. The next round should be a small source-only editorial
+pass, not another broad rewrite. The only concrete prose-audit finding from
+`pipenv run ops-audit-report-prose --json` is a low-severity topic-ownership
+warning in `report/sections/05-numerical-methods/index.tex:65`: the opening of
+the FEM/FSI subsection restates continuum-foundation language inside the
+numerical-methods chapter.
+
+The rendered-text scan of the refreshed PDF found no reader-visible matches for:
+
+```text
+backend parity
+implementation-check
+accepted-reference
+validation workflow
+regeneration command
+Newtonian wall
+clinical validation result
+reference standard
+pending_final_release
+TODO
+FIXME
 ```
 
-That scratch build passed with 63 consumed report inputs and no untracked
-consumed inputs. `public/final-report.pdf` remains intentionally unsynced unless
-an artifact refresh is explicitly requested.
+The live dirty tree may include unrelated Julia package/runtime files under
+`packages/stenotic-hemodynamics/**`. Those files are outside this editorial lane
+and must not be staged, normalized, or reverted as part of the next report prose
+pass.
 
-The current live dirty tree includes unrelated Julia package/runtime work under
-`packages/stenotic-hemodynamics/**`. That work is out of scope for this report
-submission checklist and must not be staged, normalized, or reverted as part of
-the final manuscript closeout.
+## Audit Grades
 
-Memory/layout cleanup is complete: the live manuscript spine starts at
-`report/final-report.tex`, the discussion and conclusion live in
-`report/sections/08-discussion-conclusion/index.tex`, repo documentation lives
-under `public/docs/**`, and old references to root `docs/**` revision-ledger
-paths are stale in this checkout.
-
-## Prose Critique and Grades
-
-| Area | Grade | Critique |
+| Area | Grade | Editorial assessment |
 | --- | --- | --- |
-| Abstract/front matter | A+ | Clear scope, model-tier framing, and bounded case-study role. |
-| 1 Introduction | A+ | Strong review-first setup; the case study is correctly positioned as illustrative, not controlling. |
-| 2 Continuum | A | Mathematically precise and well-oriented; still dense, but acceptable for the audience. |
-| 3 Model hierarchy | A+ | Excellent retained-state and observation-map framing; dimension language is clean. |
-| 4 Closures/observables | A+ | Wall, rheology, geometry, boundary, and observable distinctions are clear and bounded. |
-| 5 Numerical methods | A | Strong stencil/evidence standard; method catalog remains dense but defensible. |
-| 6 Synthesis | A | Coherent proposition-family synthesis; compact and effective. |
-| 7 Case-study overview | A+ | The chapter now opens with positive result, negative limitation, and comparison target. |
-| 7.1 Methodology | A | Model contract leads, but table/equation density still makes this the heaviest reading surface. |
-| 7.2 Verification | A | Evidence hierarchy is right; MMS/rest-state distinction is clear. |
-| 7.3 Comparison | A | Main 23%/40% result is interpreted, not just reported; still table-heavy by necessity. |
-| 8 Discussion | A+ | Research questions are answered directly and with bounded claim language. |
-| 9 Conclusion | A | Clean, accurate, and submission-ready; brief relative to report length, but not underdeveloped. |
-| Appendices | A | Appendix G/H are long and command-heavy, but now appropriately appendix-scoped. |
+| Abstract/front matter | A+ | Clear scope, bounded contribution, and clean review-first framing. |
+| 1 Introduction | A+ | Strong motivation and correct positioning of the case study as illustrative evidence. |
+| 2 Continuum | A | Mathematically precise and well organized; dense, but appropriate for the audience. |
+| 3 Model hierarchy | A+ | Retained-state and dimension language are explicit and useful. |
+| 4 Closures/observables | A+ | Constitutive roles, wall closure, geometry, boundary data, and observables are cleanly separated. |
+| 5 Numerical methods | A | Strong stencil and evidence standard; one subsection opening should cross-reference continuum setup rather than restating it. |
+| 6 Synthesis | A | Compact proposition-family summary; effective as a bridge to the case study. |
+| 7 Case-study overview | A+ | The chapter opens with positive evidence, negative limitation, and comparison target. |
+| 7.1 Methodology | A | Model contract leads; table/equation density remains high but defensible. |
+| 7.2 Verification | A | MMS evidence, rest-state limitation, and admissibility distinction are clear. |
+| 7.3 Comparison | A | The 23%/40% result is interpreted rather than merely reported; secondary diagnostics remain dense. |
+| 8 Discussion | A+ | Research questions and claim boundaries are answered directly. |
+| 9 Conclusion | A | Submission-ready and accurate; intentionally concise. |
+| Appendices | A | Long and command-heavy where appropriate; appendix scope keeps main prose clean. |
 
-## Do Not Reopen
+## Next Round Objective
 
-This closeout lane should not reopen settled manuscript structure or claim
-boundaries. Keep the following out of scope unless a later instruction assigns
-them explicitly:
+Lift the numerical-methods narrative from `A` to `A+` by resolving the Section 5
+topic-ownership warning and checking the case-study numerical narrative for
+only concrete cadence defects. Preserve all mathematical claims, citations,
+tables, figures, labels, numerical values, public claim registers, bibliography
+metadata, package files, generated assets, and `public/final-report.pdf` unless
+the next instruction explicitly widens scope.
 
-- broad mathematical rewrites or new prose-development rounds;
-- bibliography entries or `public/references/source-inventory.tsv`;
-- package/runtime work under `packages/stenotic-hemodynamics/**`;
-- public claim-register or reproducibility-metadata changes;
-- raw-data work under `public/var/data/**`;
-- `public/final-report.pdf` refreshes, unless explicitly requested.
+## Implementation Plan
 
-## Layout and Path Guardrails
+### Step 1 - Re-Anchor and Protect Unrelated Work
 
-Use the live layout, not stale historical paths:
-
-- manuscript entrypoint: `report/final-report.tex`;
-- discussion and conclusion: `report/sections/08-discussion-conclusion/index.tex`;
-- Appendix G: `report/appendices/numerical-methods-details.tex`;
-- Appendix H: `report/appendices/code-and-ai-use.tex`;
-- repo docs: `public/docs/**`.
-
-Do not reference nonexistent root `docs/revision-claim-ledger.md`,
-`docs/revision-release-gates.md`, or
-`report/sections/03-conclusions/index.tex` in future closeout plans.
-
-## Final Readiness Steps
-
-### Step 1 - Re-Anchor
+Run:
 
 ```sh
 git status --short
 pipenv run ops-orchestrate status --json
 ```
 
-Confirm that any dirty `packages/stenotic-hemodynamics/**` files remain
-unrelated and unstaged for report submission closeout.
+Confirm any dirty `packages/stenotic-hemodynamics/**` files are unrelated to the
+report prose lane. Do not stage or edit them.
 
-### Step 2 - Rebuild the Scratch Manuscript
+### Step 2 - Patch the Section 5.1 Opening
+
+Edit only `report/sections/05-numerical-methods/index.tex`.
+
+Target: the first paragraph of
+`\subsection{Finite-Element Incompressible Flow and FSI}` around line 65.
+
+Required change:
+
+- Make the paragraph begin from the continuum fields and weak-form setup already
+  established in Section~\ref{sec:continuum-description}.
+- Avoid restating Navier--Stokes or Stokes foundations as if Section 5 owns the
+  continuum derivation.
+- Preserve the claim that the FEM/FSI numerical assertion is a mixed weak-form
+  and interface-coupling assertion, not simply a mesh assertion.
+- Preserve the existing citation to `GaldiEtAl2008HemodynamicalFlows`.
+- Preserve the stiffness/sparsity/stencil paragraph that follows.
+
+Suggested replacement shape:
+
+```tex
+With the continuum fields and weak balances fixed in
+Section~\ref{sec:continuum-description}, a resolved finite-element calculation
+discretizes the weak incompressible-flow or FSI problem. The numerical claim is
+therefore a mixed weak-form and interface-coupling claim, not simply a mesh
+claim. A finite-element realization chooses discrete velocity and pressure
+spaces ...
+```
+
+Adjust the final wording to fit local cadence and avoid duplicate "weak" usage.
+Do not introduce new citations or derivations.
+
+### Step 3 - Run the Prose Audit Before Any Wider Edit
+
+Run:
 
 ```sh
+pipenv run ops-audit-report-prose --json > /tmp/report-prose-audit.json
+jq '{chunks, context_files, files_seen, primary_files, findings: [.findings[] | {path,line,severity,rule,message}]}' \
+  /tmp/report-prose-audit.json
+```
+
+Expected result: the Section 5 topic-owner warning is gone. If a different
+low-severity finding appears, inspect it before editing. If the tool still flags
+the same paragraph, make one more local Section 5 adjustment rather than
+rewriting Section 2 or Section 7.
+
+### Step 4 - Bounded Case-Study Cadence Check
+
+Do not reopen Section 7 by default. Review only for concrete mathematical or
+numerical narrative defects introduced by the previous prose passes:
+
+```sh
+rg -n "not validation|diagnostic|finite-volume|MMS|rest-state|23\\%|40\\%|observation operator|membrane" \
+  report/sections/07-case-study -g '*.tex'
+```
+
+Allowed edits:
+
+- one-sentence transition repairs;
+- obvious typo or duplicated-word fixes;
+- wording that makes verification, comparison, and validation boundaries more
+  precise without changing the claim.
+
+Disallowed edits:
+
+- moving generated table assets;
+- changing numerical values;
+- adding new citations;
+- adding new validation language;
+- refreshing the public PDF.
+
+If no concrete defect appears, leave Section 7 unchanged.
+
+### Step 5 - Leave Source Labels Alone Unless They Become Reader-Facing
+
+The source scan may still find stable TeX labels such as
+`app:num-rheology-descriptor-details` or `app:num-secondary-implementation-checks`.
+These are not reader-facing manuscript prose. Do not rename them just to satisfy
+a raw source-string search; label churn is only worth doing if a rendered
+caption, heading, or paragraph exposes the same implementation-facing wording.
+
+### Step 6 - Validate the Source-Only Patch
+
+Run:
+
+```sh
+git diff --check -- report/sections/05-numerical-methods/index.tex report/TODO.md
+pipenv run ops-audit-report-prose --json > /tmp/report-prose-audit.json
+jq '{findings: [.findings[] | {path,line,severity,rule,message}]}' /tmp/report-prose-audit.json
+pipenv run ops-audit-references
 pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
-pdftotext -layout /tmp/masters-report-build/final-report.pdf /tmp/final-report-final-check.txt
-jq '{status: .status, consumed_count: (.consumed_inputs|length), untracked_consumed_inputs: .untracked_consumed_inputs}' \
-  /tmp/masters-report-build/report-build-summary.json
-```
-
-Expected result: build status is `passed`, consumed-input count is stable or
-explained, and `untracked_consumed_inputs` is empty.
-
-### Step 3 - Run Claim-Boundary Scans on Rendered Text
-
-```sh
+pdftotext -layout /tmp/masters-report-build/final-report.pdf /tmp/final-report-next-narrative.txt
 rg -n "backend parity|implementation-check|accepted-reference|validation workflow|regeneration command|Newtonian wall|clinical validation result|reference standard|pending_final_release" \
-  /tmp/final-report-final-check.txt
-rg -n "TODO|FIXME|pending_final_release" report public/reproducibility -g '!report/TODO.md'
+  /tmp/final-report-next-narrative.txt || true
 ```
 
-Expected result: no reader-visible internal benchmark wording, no accidental
-clinical-validation or reference-standard overclaim, and no placeholder release
-wording in submitted report paths. Source filenames, TeX labels, or this TODO
-file are not reader-visible manuscript prose and should be interpreted
-separately.
+Expected result:
 
-### Step 4 - Visual Spot Check
+- no whitespace errors;
+- no new bibliography or source-inventory work;
+- report build passes;
+- `untracked_consumed_inputs` remains empty;
+- rendered claim-boundary scan is clean;
+- `public/final-report.pdf` remains unchanged in this source-only next round.
 
-Spot-check the scratch PDF, not stale local artifacts:
+### Step 7 - Commit Discipline
 
-- Section 7 opening pages;
-- Section 7 verification tables;
-- Section 7 comparison tables and figures;
-- Appendix G package-benchmark table and figure;
-- Appendix H release/provenance summary.
-
-Only fix real rendered defects: layout breaks, orphaned captions, overfull table
-text, stale reader-facing labels, or obvious typo-level issues. Do not rewrite
-settled prose during this pass.
-
-### Step 5 - Optional Public PDF Refresh
-
-Refresh `public/final-report.pdf` only when explicitly requested:
+Stage only the report-source files edited in the next round. The expected source
+patch is:
 
 ```sh
-pipenv run ops-build-report --outdir /tmp/masters-report-build
-shasum -a 256 public/final-report.pdf
+git add report/sections/05-numerical-methods/index.tex
 ```
 
-Commit a refreshed public PDF separately from any source-only typo patch when
-practical.
+If the next round updates this plan after implementation, also stage
+`report/TODO.md`. Do not stage unrelated Julia package/runtime files or refresh
+`public/final-report.pdf` unless explicitly requested.
 
-### Step 6 - Commit Discipline
+Suggested commit subject for the next source-only patch:
 
-For a TODO-only closeout refresh, stage only:
-
-```sh
-git add report/TODO.md
+```text
+Tighten numerical methods continuum bridge
 ```
 
-For a later typo-only report source patch, stage only the edited report source
-files. Do not stage unrelated Julia package/runtime files, local raw data, or
-artifact refreshes outside the explicitly assigned lane.
+## Do Not Reopen
+
+The next round should not reopen:
+
+- the report spine or section order;
+- broad mathematical derivations;
+- new literature review sources;
+- bibliography entries or `public/references/source-inventory.tsv`;
+- public claim registers or reproducibility metadata;
+- package/runtime code;
+- raw data under `public/var/data/**`;
+- generated report assets;
+- the synced public PDF.
+
+## Live Layout Guardrails
+
+Use the current layout, not stale historical paths:
+
+- manuscript entrypoint: `report/final-report.tex`;
+- discussion and conclusion: `report/sections/08-discussion-conclusion/index.tex`;
+- Appendix G: `report/appendices/numerical-methods-details.tex`;
+- Appendix H: `report/appendices/code-and-ai-use.tex`;
+- repo documentation: `public/docs/**`.
+
+Do not reference nonexistent root `docs/revision-claim-ledger.md`,
+`docs/revision-release-gates.md`, or
+`report/sections/03-conclusions/index.tex`.
