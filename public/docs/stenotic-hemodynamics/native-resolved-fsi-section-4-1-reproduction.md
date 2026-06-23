@@ -6,19 +6,54 @@ resolved-FSI reproduction note. The package-local note at
 remains only as a pointer stub. Use
 [StenoticHemodynamics Workflow Hub](workflows.md) for the package workflow map
 and [Native Resolved-FSI Design](native-resolved-fsi-design.md) for the current
-implementation gate.
+implementation boundary.
 
 This note locks the Section 4.1 benchmark contract from
 `public/references/02_report_model_hierarchy/2024_canic_extended_1d_stenotic_artery_model.pdf`
-for package lanes 2B, 2C, and 2D. It is grounded in the paper text and figures
-on PDF pages 21-24 plus the local importer/comparison code under
-`packages/stenotic-hemodynamics/src/StenoticHemodynamics/`.
+and maps it to the current generated-artifact and observation-operator surface.
+It is grounded in the paper text and figures on PDF pages 21-24 plus the local
+importer/comparison code under
+`packages/stenotic-hemodynamics/src/StenoticHemodynamics/`. It does not claim
+that the current package has reproduced the paper numerically.
 
 Scope:
 
 - exact benchmark case geometry and physical constants from the paper;
 - the local three-field XDMF/HDF5 contract required by the package;
+- the current schema, smoke, production-sidecar, restart-metadata, dry-run, and
+  observation-artifact tiers;
 - explicit separation between paper-given facts, local inferences, and unknowns.
+
+## Current package status
+
+The current native resolved-FSI implementation supports generated artifacts and
+local operator evidence in separate tiers:
+
+- Schema workflow: generated velocity/pressure/displacement bundles from
+  `run_native_resolved_fsi_workflow(...)`, loaded through the retained
+  resolved-3D importer.
+- Fixed-wall smoke: coarse fixed-wall Stokes and Navier-Stokes smoke bundles
+  with explicit zero displacement.
+- Partitioned smoke: a reduced membrane update with prescribed radial
+  wall-velocity Dirichlet data on the fluid wall, not an ALE formulation.
+- Production dry-run: `native_resolved_fsi_partitioned_production_dry_run(...)`
+  resolves snapshot, sidecar, restart, and imported-parity paths without
+  running a solver or writing files.
+- Production sidecars: `run_native_resolved_fsi_partitioned_production(...)`
+  writes independent smoke-backed snapshot bundles plus
+  `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, and
+  `restart_metadata.json`.
+- Restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
+  identification-only metadata; `native_resolved_fsi_resume_partitioned_production(...)`
+  intentionally fails closed because state-carrying resume is deferred.
+- Observation artifacts: native/imported/parity rows are written to
+  `section41_observations.csv` and summarized in
+  `section41_observation_summary.csv`.
+
+External importer support is retained and supported. The optional upstream
+XDMF/HDF5 velocity bundles, and explicitly supplied three-field bundles, remain
+valid inputs for local comparison workflows. Missing optional imported data
+must remain an expected skip, not a public-clone failure.
 
 ## Section 4.1 cases
 
@@ -54,9 +89,9 @@ Important local constraint:
   reproduction. The package interprets severity as
   `delta_r = severity/100 * Rmax`,
   which gives `Rmin = 0.1386 cm`. The paper's explicit `Rmin` is `0.1394 cm`.
-- Lanes 2B/2D should therefore treat the `23%` case as an explicit
-  `Rmin = 0.1394 cm` or `delta_r = 0.0406 cm` override, not as a plain
-  `severity=23` shorthand.
+- Native Section 4.1 case construction therefore treats the `23%` case as an
+  explicit `Rmin = 0.1394 cm` or `delta_r = 0.0406 cm` override, not as a
+  plain `severity=23` shorthand.
 
 Locally sampled throat reference from the shared analytic shape:
 
@@ -65,8 +100,9 @@ Locally sampled throat reference from the shared analytic shape:
 
 ## Requirement matrix
 
-`Blocker` below means "blocks 2B or 2C from starting." Unknowns that matter
-later but do not block mesh or writer work are marked `non-blocker`.
+`Blocker` below means "blocks current generated native artifacts." Unknowns
+that matter for later paper-grade reproduction but do not block generated
+artifacts or local operator summaries are marked `non-blocker`.
 
 | Requirement | Value or rule | Status | Blocker? | Notes |
 | --- | --- | --- | --- | --- |
@@ -88,10 +124,10 @@ later but do not block mesh or writer work are marked `non-blocker`.
 | Comparison time | steady-state 3D snapshot at `T = 1 s` | explicit | no | Section 4.1 text. |
 | Legacy imported XDMF time | current local cases expect `0.9995 +/- time_atol` | inferred/local | no | From `Resolved3DCaseSpec` defaults and README; keep for importer compatibility only. |
 | Published 3D mesh size | around `100k` tetrahedra | explicit | no | Figure 3 caption. |
-| Exact tetrahedral generator and grading | not given | unknown | non-blocker | 2B can start with a deterministic package-owned mesh contract. |
-| Full 3D solver details from reference `[21]` | not given in Section 4.1 | unknown | non-blocker | 2D must choose a local implementation strategy. |
+| Exact tetrahedral generator and grading | not given | unknown | non-blocker | The package uses a deterministic package-owned mesh contract for generated artifacts. |
+| Full 3D solver details from reference `[21]` | not given in Section 4.1 | unknown | non-blocker | Current local smoke-backed solvers are implementation evidence, not a paper solver reconstruction. |
 | Wall displacement state | radial displacement `eta_r` on the structure | explicit | no | Equation (35). |
-| Volumetric displacement field over exported mesh | not specified by paper | unknown | non-blocker | Required by package output contract, so 2D must define it locally. |
+| Volumetric displacement field over exported mesh | not specified by paper | unknown | non-blocker | Required by package output contract; the package uses a local linear radial lift. |
 | Pressure comparison observable | averaged cross-sectional pressure vs. `z` | explicit | no | Section 4.1 text and Figure 5. |
 | Velocity comparison observable | averaged cross-sectional longitudinal velocity vs. `z` | explicit | no | Section 4.1 text and Figure 4. |
 | Displacement comparison observable | none reported | explicit absence | no | Displacement is a state/output requirement, not a published parity curve in Section 4.1. |
@@ -112,8 +148,8 @@ later but do not block mesh or writer work are marked `non-blocker`.
 | `E` | `dyn/cm^2` | `Params.young` | Exact match. |
 | `nu` (Poisson ratio) | dimensionless | `Params.sigma` | Same physical role, different field name. |
 | `h` | `cm` | `Params.wall_h` | Exact match. |
-| Poiseuille inlet with `u_max = 45 cm/s` | `cm/s` | `SteadyVelocityInlet(umax=45.0)` or `Params.inlet_umax` | Native 3D solver should preserve the max-velocity statement. |
-| zero outlet stress | traction BC | native 3D outlet BC in Lane 2D | Do not map this to the current 1D characteristic outlet literally. |
+| Poiseuille inlet with `u_max = 45 cm/s` | `cm/s` | Section 4.1 paper contract; not yet the exact native smoke boundary realization | Current Gridap smoke uses pressure-drop-driven weak loading and should not be described as paper-grade inlet reproduction. |
+| zero outlet stress | traction BC | Section 4.1 paper contract; local smoke uses its own weak loading/gauge choices | Do not map this to the current 1D characteristic outlet literally. |
 | `eta_r` | `cm` | displacement state and exported displacement field | At minimum this is a wall radial displacement; full node-centered export is a local package extension. |
 | `C0` | `dyn/cm^3` after dividing force by displacement | closest local surfaces: `wall_stiffness`, `wall_elastic_coefficient`, `canic_membrane_c0` | Current local wall helpers are the nearest fit but do not, by themselves, prove exact Section 4.1 parity. |
 | benchmark time `T = 1 s` | `s` | native `Resolved3DCaseSpec.target_time = 1.0` | Do not inherit `0.9995` for new native outputs. |
@@ -121,7 +157,7 @@ later but do not block mesh or writer work are marked `non-blocker`.
 | XDMF pressure file | scalar node field | `pressure.xdmf` / `pressure.h5` | Imported by `parse_xdmf_field(..., "Scalar")`. |
 | XDMF displacement file | vector node field | `displace.xdmf` / `displace.h5` | Imported by `parse_xdmf_field(..., "Vector")`; required for `coordinate_mode=deformed`. |
 | cross-sectional averaged velocity | section operator result | current `CrossSectionQuadratureOperator` path | Already implemented for axial velocity. |
-| cross-sectional averaged pressure | scalar section operator result | missing local operator extension | Needed later for full Figure 5 parity. |
+| cross-sectional averaged pressure | scalar section operator result | current local pressure section-observation path | Written into Section 4.1 observation artifacts and summarized in `section41_observation_summary.csv`. |
 
 ## Local three-field schema locked for native output
 
@@ -153,8 +189,9 @@ The loader computes deformed coordinates as:
 x_deformed = x_reference + displacement
 ```
 
-Velocity-only bundles remain supported for legacy imported data, but they do
-not satisfy the native Section 4.1 generator target.
+Velocity-only bundles remain supported for legacy imported data and optional
+upstream comparison workflows. Native generated artifacts require pressure and
+displacement and therefore do not use the velocity-only schema as their target.
 
 ## Acceptance tiers
 
@@ -177,7 +214,8 @@ not satisfy the native Section 4.1 generator target.
 
 ### 3. Time tier
 
-- Native Section 4.1 reproduction writes its benchmark snapshot at `T = 1.0 s`.
+- Native generated Section 4.1 artifacts target a benchmark snapshot at
+  `T = 1.0 s`.
 - Writer tests may use synthetic times, but production case specs should record
   `target_time = 1.0`.
 - Legacy imported case support may keep `target_time = 0.9995` plus tolerance
@@ -188,8 +226,9 @@ not satisfy the native Section 4.1 generator target.
 - Velocity units: `cm/s`.
 - Pressure units: `dyn/cm^2`.
 - Displacement units: `cm`.
-- Pressure and displacement files are required even if an early smoke solve
-  uses analytic or staged placeholder arrays.
+- Pressure and displacement files are required for native generated artifacts.
+  Fixed-wall smoke writes zero displacement; partitioned smoke writes the local
+  lifted wall displacement.
 - For wall-coupled cases, clamped-end displacement should evaluate to zero at
   inlet and outlet boundary nodes.
 
@@ -197,10 +236,12 @@ not satisfy the native Section 4.1 generator target.
 
 - Full Section 4.1 parity requires longitudinal curves of cross-sectional
   average axial velocity and cross-sectional average pressure versus `z`.
-- The current package already has a velocity section operator path through
+- The current package has a velocity section operator path through
   `CrossSectionQuadratureOperator`.
-- The current package does not yet have the matching pressure section-averaging
-  path; that is a later implementation requirement, not a 2B/2C blocker.
+- The current package also writes pressure section-average observation rows for
+  native and imported bundles when pressure is available.
+- Production observation artifacts write `section41_observations.csv` and
+  `section41_observation_summary.csv`.
 - The only explicit published numeric parity statement is the velocity claim:
   extended 1D maximum error within `10%`.
 - Pressure parity is qualitative in the paper; a local numeric tolerance still
@@ -208,25 +249,27 @@ not satisfy the native Section 4.1 generator target.
 - Radial profile comparisons are local diagnostics and are not the published
   Section 4.1 observables.
 
-## Lane readiness
+## Current boundary and deferred claims
 
-2B mesh lane may start now if it:
+Current generated artifacts may support these bounded statements:
 
-- uses the exact Section 4.1 radius laws above;
-- treats the `23%` case as an explicit `Rmin` override;
-- keeps boundary tagging backend-agnostic.
+- the package owns explicit Section 4.1 case specifications for `sev23`,
+  `sev40`, and `sev50`;
+- the retained importer can load native generated three-field bundles and
+  external imported bundles under the existing optional-data rules;
+- fixed-wall and partitioned smoke outputs can be written, reloaded, and
+  summarized locally;
+- production sidecars document independent smoke-backed snapshots, not a
+  state-carrying transient production run;
+- local velocity and pressure observation artifacts can be generated and
+  summarized in `section41_observation_summary.csv`.
 
-2C writer lane may start now if it:
+Deferred claims:
 
-- writes a three-field node-centered bundle compatible with the existing
-  importer;
-- writes native benchmark times at `1.0 s`;
-- keeps legacy velocity-only import behavior intact.
-
-2D design lane still needs to choose, from local evidence:
-
-- the exact volumetric displacement-field convention for exported meshes;
-- the first native 3D solver strategy and outlet traction realization;
-- the local pressure-operator parity path and its acceptance tolerance;
-- the exact interpretation of the paper's constant `R0*` in `C0` if stronger
-  wall-model parity is required.
+- public CLI exposure for native resolved-FSI production, dry-run, restart, and
+  observation-artifact workflows;
+- state-carrying restart and resume beyond the identification-only metadata
+  reader;
+- exact Section 4.1 inlet/outlet boundary reproduction;
+- monolithic ALE FSI;
+- paper-grade Section 4.1 numerical reproduction or validation.

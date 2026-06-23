@@ -6,9 +6,10 @@ area-flow state, with native finite-volume and DG discretizations, explicit
 time-stepping, and selected SciML backend support. Auxiliary workflows cover
 Gridap-based stationary-Stokes initialization, reduced membrane-FSI examples,
 OpenBF-style configuration adaptation, resolved-3D data comparison, benchmark
-studies, and report asset generation. The package does not run transient
-resolved-3D CFD; resolved-3D workflows import externally generated XDMF/HDF5
-velocity data for comparison and post-processing.
+studies, native resolved-FSI schema/smoke/production-control harnesses, and
+report asset generation. The package does not provide paper-grade transient
+resolved-3D CFD or monolithic ALE FSI; resolved-3D workflows retain supported
+XDMF/HDF5 importer paths for external comparison and post-processing data.
 
 Commands below assume they are run from the repository root.
 
@@ -48,9 +49,11 @@ pipenv run ops-experiment simulate --help
 - `../../public/docs/julia-cli-workflows.md`: command-oriented Julia CLI guide.
 - `../../public/docs/resolved3d-workflows.md`: optional resolved-3D data root,
   skip behavior, and report-asset publication boundaries.
-- `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-design.md` and
-  `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`:
-  bounded native resolved-FSI design and Section 4.1 reproduction notes.
+- `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-design.md`:
+  current native resolved-FSI tier split, sidecars, restart metadata, and
+  deferred surfaces.
+- `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`:
+  bounded Section 4.1 generated-artifact and local observation-operator note.
 
 ## Scope
 
@@ -101,12 +104,13 @@ The exported core workflow is:
 4. Derive diagnostics with exported helpers such as `velocity(result)` and
    `pressure(result, params)`.
 
-Study, benchmark, adapter, and report-asset helpers are intentionally qualified
-module internals, for example `StenoticHemodynamics.run_study(...)`. The CLI
-uses the same core protocol and owns ordinary CSV/SVG output writing.
-Native resolved-FSI production, dry-run, and restart-identification helpers are
-also Julia-qualified internal workflows for now; there is no production CLI
-command. High-output generation remains guarded by explicit spec objects and
+Study, benchmark, adapter, native resolved-FSI, and report-asset helpers are
+intentionally qualified module internals, for example
+`StenoticHemodynamics.run_study(...)`. The CLI uses the same core protocol and
+owns ordinary CSV/SVG output writing. Native resolved-FSI production, dry-run,
+restart-identification, resume-stub, and observation-artifact helpers are also
+Julia-qualified internal workflows for now; there is no production CLI command.
+High-output generation remains guarded by explicit spec objects and
 planning/dry-run surfaces.
 
 ## CLI Examples
@@ -217,6 +221,34 @@ also accepts Pa and converts with `1 Pa = 10 dyn/cm^2`. The generated FEM mesh
 defaults are `--ic-mesh-nz 64 --ic-mesh-nr 6 --ic-mesh-ntheta 32`; small smoke
 tests can lower these values.
 
+## Native Resolved-FSI Boundary
+
+The native resolved-FSI surface is intentionally tiered:
+
+- schema workflow: `run_native_resolved_fsi_workflow(...)` writes generated
+  velocity/pressure/displacement bundles and reloads them through the retained
+  resolved-3D importer;
+- fixed-wall smoke: fixed-wall Stokes and Navier-Stokes smoke paths write
+  solver-backed fields with zero displacement;
+- partitioned smoke: `run_native_resolved_fsi_partitioned_smoke(...)`
+  prescribes radial wall-velocity Dirichlet data from a reduced wall update;
+- production dry-run: `native_resolved_fsi_partitioned_production_dry_run(...)`
+  resolves output, sidecar, restart, and optional imported-parity paths without
+  writing files;
+- production sidecars: smoke-backed snapshot runs write `snapshot_manifest.csv`,
+  `snapshot_diagnostics.csv`, and `restart_metadata.json`;
+- restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
+  identification-only metadata, while
+  `native_resolved_fsi_resume_partitioned_production(...)` fails closed because
+  state-carrying resume is deferred;
+- observation artifacts: production parity can write `section41_observations.csv`
+  and `section41_observation_summary.csv` using local velocity and pressure
+  section-observation operators.
+
+These surfaces are generated-artifact and local-operator evidence. They do not
+claim paper-grade Section 4.1 reproduction, public CLI exposure, state-carrying
+restart, or monolithic ALE FSI.
+
 ## Resolved-3D Comparison Data
 
 Resolved-3D comparison workflows read optional upstream XDMF/HDF5 velocity
@@ -263,10 +295,13 @@ means are emitted only as supplemental sensitivity rows.
 - Internal semi-discrete simulation objects own mutable RHS cache arrays; do not
   share one instance across concurrent solves.
 - Study summary CSVs use simple scalar fields and minimal CSV escaping.
-- The package does not provide a general-purpose 3D CFD solver, native resolved
-  dataset generation, or clinical validation of stenosis metrics.
-- Native resolved-FSI production-control and dry-run surfaces are qualified
-  Julia internals, not public CLI commands.
+- The package does not provide a general-purpose 3D CFD solver, paper-grade
+  native resolved-FSI reproduction, or clinical validation of stenosis metrics.
+- Native resolved-FSI production-control, dry-run, restart, resume-stub, and
+  observation-artifact surfaces are qualified Julia internals, not public CLI
+  commands.
+- Native resolved-FSI restart metadata is identification-only; state-carrying
+  resume remains deferred.
 - Stationary Stokes initialization is a projection contract for the 1D state,
   not a transient FSI solve or direct finite-element field projection.
 - The model is a finite-volume reproduction for local experimentation, not a

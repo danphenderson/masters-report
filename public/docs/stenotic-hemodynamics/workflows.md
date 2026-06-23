@@ -159,7 +159,7 @@ contract, skip behavior, and report publication boundaries.
 - Focused validation command:
   - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_package_benchmark.jl")'`
 
-## Native Resolved-FSI Mesh, Workflow, Parity, And Production Plans
+## Native Resolved-FSI Mesh, Smoke, Production Sidecars, And Parity
 
 - Representative files:
   - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_mesh.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_mesh.jl)
@@ -167,9 +167,13 @@ contract, skip behavior, and report publication boundaries.
   - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_parity.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_parity.jl)
   - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl)
   - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_parity_production.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_parity_production.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_restart.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi_restart.jl)
 - Entrypoints:
   - Julia: `native_resolved_fsi_case_spec(...)`,
     `run_native_resolved_fsi_workflow(...)`,
+    `run_native_resolved_fsi_smoke(...)`,
+    `run_native_resolved_fsi_navier_stokes_smoke(...)`,
+    `run_native_resolved_fsi_partitioned_smoke(...)`,
     `run_native_resolved_fsi_parity(...)`,
     `native_resolved_fsi_production_workflow_plans(...)`,
     `native_resolved_fsi_partitioned_production_dry_run(...)`,
@@ -180,20 +184,52 @@ contract, skip behavior, and report publication boundaries.
     and restart-identification access remains qualified Julia-internal for now
 - Surface: `qualified-internal`
 - Expected outputs and artifact class:
-  - Ignored scratch schema-smoke outputs under `tmp/simulations/output/native-resolved-fsi/**`
-  - Ignored scratch production-control manifests and snapshot bundles under `tmp/simulations/output/native-resolved-fsi-production/**`
+  - Ignored scratch schema-workflow outputs under `tmp/simulations/output/native-resolved-fsi/**`
+  - Ignored scratch fixed-wall and partitioned smoke outputs under `tmp/simulations/output/native-resolved-fsi-smoke/**`
+  - Ignored scratch production sidecars and snapshot bundles under `tmp/simulations/output/native-resolved-fsi-production/**`
+  - Production sidecars include `snapshot_manifest.csv`,
+    `snapshot_diagnostics.csv`, `restart_metadata.json`, and optional
+    Section 4.1 observation artifacts such as
+    `section41_observation_summary.csv`
   - High-output generation remains guarded by explicit
     `NativeResolvedFSIPartitionedProductionSpec` values, production workflow
     plans, and dry-run checks
 - Optional-data behavior:
   - Mesh generation and native schema smoke are package-owned and do not require a public resolved-3D data root
-  - Parity workflows compare against explicitly supplied bundle paths when present
+  - External resolved-3D importer support is retained and supported for legacy
+    and supplied XDMF/HDF5 bundles
+  - Parity workflows compare against explicitly supplied bundle paths when
+    present, and otherwise produce expected skips for unavailable optional
+    imported cases
 - Focused validation command:
   - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_smoke.jl")'`
 
-Current claims are intentionally bounded. This family documents schema smoke,
-bundle parity, and production-control planning only. It does not yet establish
-paper-grade transient resolved-FSI or a production solver-depth runner.
+Current tiers are intentionally separate:
+
+- Schema workflow: `run_native_resolved_fsi_workflow(...)` writes and reloads a
+  generated three-field bundle, including deformed-coordinate importer checks.
+- Fixed-wall smoke: the fixed-wall Stokes and Navier-Stokes smoke paths exercise
+  the native mesh, Gridap solve, writer, and importer with zero displacement.
+- Partitioned smoke: `run_native_resolved_fsi_partitioned_smoke(...)` advances a
+  coarse partitioned wall update and prescribes radial wall-velocity Dirichlet
+  data on the fluid wall; this is not an ALE formulation.
+- Production dry-run: `native_resolved_fsi_partitioned_production_dry_run(...)`
+  resolves output, sidecar, and imported-parity paths without running a solver
+  or writing files.
+- Production sidecars: `run_native_resolved_fsi_partitioned_production(...)`
+  runs independent smoke-backed snapshots and writes manifest, diagnostics, and
+  restart-identification metadata.
+- Restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
+  package-written metadata, while
+  `native_resolved_fsi_resume_partitioned_production(...)` fails closed because
+  state-carrying resume is deferred.
+- Observation artifacts: production parity writes native/imported/parity
+  observation rows and `section41_observation_summary.csv` through the local
+  cross-section velocity and pressure observation operators.
+
+The current family documents generated artifacts, local operator evidence, and
+production-control sidecars. Public CLI exposure, state-carrying restart, and
+paper-grade Section 4.1 reproduction claims remain deferred.
 
 ## Native Resolved-FSI Notes
 

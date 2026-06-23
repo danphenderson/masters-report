@@ -1,41 +1,62 @@
-# Native Resolved-FSI First-Implementation Design Gate
+# Native Resolved-FSI Design Boundary
 
 This public page is the authoritative copy of the native resolved-FSI design
-gate. The package-local note at
+boundary. The package-local note at
 `packages/stenotic-hemodynamics/docs/native_resolved_fsi_design.md` now remains
 only as a pointer stub. Use [StenoticHemodynamics Workflow Hub](workflows.md)
 for the surrounding workflow map and validation entrypoints.
 
-This note locks the first implementation design for the native resolved-FSI
-roadmap after the Lane 2A spec, Lane 2B mesh contract, and Lane 2C writer
-contract. It is implementation-facing only. It does not claim that the package
-already reproduces the paper numerically.
+This note records the current implementation boundary for the native
+resolved-FSI roadmap. It is implementation-facing only. It does not claim that
+the package reproduces Section 4.1 numerically at paper grade.
 
-Scope for this gate:
+Scope for this boundary:
 
-- choose the first local Julia backend and the first solver target;
-- define the first membrane model and coupling contract;
-- define the staged velocity/pressure/displacement output contract;
-- name the first files, structs, workflow entrypoints, tests, and guards for
-  the next implementation lanes.
+- define the local Julia backend and solver tiers;
+- define the membrane model and prescribed radial wall-velocity coupling
+  contract used by the current partitioned smoke tier;
+- define the velocity/pressure/displacement output contract and production
+  sidecars;
+- identify restart metadata, production dry-run, observation artifacts, and
+  deferred surfaces without widening them into public CLI or paper-grade
+  reproduction claims.
+
+## Current implementation tiers
+
+The implemented native resolved-FSI surface is split into these tiers:
+
+| Tier | Current role | Claim boundary |
+| --- | --- | --- |
+| Schema workflow | `run_native_resolved_fsi_workflow(...)` writes a generated three-field bundle from `NativeResolvedFSIMesh` and reloads it through the retained resolved-3D importer. | Schema, geometry, time, field, and deformed-coordinate importer checks only. |
+| Fixed-wall smoke | `run_native_resolved_fsi_smoke(...)` and `run_native_resolved_fsi_navier_stokes_smoke(...)` run coarse fixed-wall Gridap smoke solves and write zero displacement. | Solver-backed smoke and importer round trip, not moving-wall FSI. |
+| Partitioned smoke | `run_native_resolved_fsi_partitioned_smoke(...)` updates a reduced radial membrane state and prescribes radial wall-velocity Dirichlet data on the fluid wall. | Coarse staggered smoke with prescribed wall velocity; not monolithic ALE. |
+| Production dry-run | `native_resolved_fsi_partitioned_production_dry_run(...)` resolves output, sidecar, restart, and imported-parity paths without running a solver or writing files. | Side-effect-free planning only. |
+| Production sidecars | `run_native_resolved_fsi_partitioned_production(...)` runs independent smoke-backed snapshots and writes `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, and `restart_metadata.json`. | Production-control and diagnostics harness, not state-carrying restart. |
+| Restart metadata | `native_resolved_fsi_read_restart_metadata(...)` validates package-written restart-identification metadata. | Resume is deferred; `native_resolved_fsi_resume_partitioned_production(...)` fails closed. |
+| Observation artifacts | Production parity writes `section41_observations.csv` and `section41_observation_summary.csv`. | Local velocity/pressure observation evidence and optional imported-bundle comparison, not a paper-grade reproduction claim. |
+
+External importer support is retained. Legacy or explicitly supplied
+XDMF/HDF5 resolved-3D bundles still enter through the existing importer and
+remain skip-safe when optional local data is absent.
 
 ## Locked design choices
 
 | Item | Choice | Reason |
 | --- | --- | --- |
 | Spatial backend | Gridap on the package-owned `NativeResolvedFSIMesh` contract | Gridap is the only local 3D FE stack already used in package code, especially in `adapters/stokes_ic.jl`. It already proves P2/P1 spaces, weak outlet traction, and package-owned tetrahedral model construction. |
-| Time advancement | Package-owned fixed-step loop | The first native resolved-FSI state mixes FE fields, wall state, mesh deformation, writer cadence, and output guards. A local fixed-step loop is easier to reason about than wrapping the first coupled version in `OrdinaryDiffEq`. |
-| First implementation target | Fixed-wall 3D incompressible Navier-Stokes smoke | This is the smallest honest next patch after mesh plus writer. It exercises the native mesh, Gridap model build, time loop, and three-field writer without pretending that full transient moving-wall FSI is already solved. |
-| First coupled strategy | Partitioned, staggered fluid solve plus radial membrane update | This is the smallest local extension from the existing stationary-Stokes and membrane surrogate surfaces. A monolithic moving-domain weak form is too large for the next patch. |
-| Deferred approach | Monolithic transient ALE FSI | No local code currently owns a coupled 3D Jacobian, moving-domain transfer, or monolithic solve path. That work should follow only after the partitioned path proves the field contract. |
+| Time advancement | Package-owned fixed-step loop | The native resolved-FSI state mixes FE fields, wall state, mesh deformation, writer cadence, and output guards. A local fixed-step loop is easier to reason about than wrapping the current coupled version in `OrdinaryDiffEq`. |
+| Fixed-wall target | Fixed-wall 3D Stokes and incompressible Navier-Stokes smoke | This exercises the native mesh, Gridap model build, time loop, and three-field writer without pretending that full transient moving-wall FSI is solved. |
+| Coupled strategy | Partitioned, staggered fluid solve plus radial membrane update | This is the smallest local extension from the existing stationary-Stokes and membrane surrogate surfaces. A monolithic moving-domain weak form remains deferred. |
+| Deferred approach | Monolithic transient ALE FSI | No local code currently owns a coupled 3D Jacobian, moving-domain transfer, or monolithic solve path. |
 
-Interpretation for next lanes:
+Interpretation:
 
-- Lane 2E may build the workflow skeleton and tiny three-field writer round-trip
-  from this design immediately.
-- Lane 2F should start with the fixed-wall smoke target below.
-- The first moving-wall step after smoke is partitioned and staged, not
-  monolithic.
+- The schema workflow, fixed-wall smoke, partitioned smoke, production dry-run,
+  restart reader/stub, and observation summary CSV surfaces are implemented as
+  qualified Julia-internal workflows.
+- Public CLI exposure remains deferred; no native resolved-FSI production
+  command is wired through `cli/dispatch.jl`.
+- The moving-wall tier remains partitioned and smoke-backed, not monolithic.
 
 ## Backend decision
 
@@ -47,9 +68,10 @@ Local evidence supports Gridap as the first backend:
   `UnstructuredDiscreteModel` from package-owned coordinates and topology.
 - The same adapter already uses Taylor-Hood style spaces, point evaluation, and
   weak outlet traction in local units.
-- Lane 2B already produced a backend-agnostic linear tetrahedral mesh contract,
-  so the Gridap-facing surface can stay thin and additive.
-- Lane 2C already produced the node-centered writer contract, so the FE solve
+- The native mesh surface already provides a backend-agnostic linear
+  tetrahedral contract, so the Gridap-facing surface can stay thin and
+  additive.
+- The node-centered writer contract is already established, so the FE solve
   only has to sample fields at the mesh vertices before writing.
 
 Local alternatives are weaker for the first round:
@@ -62,28 +84,31 @@ Local alternatives are weaker for the first round:
 
 ## First solver target and staging
 
-### Stage 0: workflow skeleton
+### Stage 0: schema workflow
 
-Lane 2E may generate a tiny synthetic bundle with:
+The schema workflow generates a tiny bundle with:
 
 - reference coordinates and topology from `NativeResolvedFSIMesh`;
 - synthetic velocity and pressure arrays;
 - displacement set either to zero or to a deterministic analytic lift used only
   to test the writer/importer contract.
 
-This is a schema gate only.
+This is a schema gate only. It uses the same importer contract as external
+resolved-3D data, with pressure and displacement required for native generated
+bundles.
 
 ### Stage 1: fixed-wall smoke
 
-Lane 2F should implement a fixed-wall smoke solve before any wall coupling.
+The fixed-wall smoke tier runs before any wall coupling.
 
 Smoke target:
 
-- 3D incompressible Navier-Stokes on the native Section 4.1 mesh;
+- coarse 3D Stokes and incompressible Navier-Stokes smoke solves on the native
+  Section 4.1 mesh;
 - fixed wall, so the fluid domain is the reference mesh;
-- constant Poiseuille inlet with `u_max = 45 cm/s`;
-- zero outlet traction;
-- output at the requested saved times, with displacement written as the zero
+- pressure-drop-driven weak boundary loading in the current Gridap smoke
+  harness;
+- output at the requested saved time, with displacement written as the zero
   vector field.
 
 This stage is successful when the workflow can:
@@ -93,26 +118,46 @@ This stage is successful when the workflow can:
 3. write node-centered velocity, pressure, and zero displacement;
 4. reload those files through `load_resolved3d_field_bundle(...)`.
 
-### Stage 2: first coupled target
+### Stage 2: partitioned smoke with prescribed radial wall velocity
 
-After the smoke stage passes, the first wall-coupled target is a partitioned
-staggered solve:
+The first wall-coupled target is a partitioned staggered smoke solve:
 
 1. advance the fluid step on the current geometry;
 2. sample the wall pressure load from that fluid state;
 3. update the radial membrane state;
 4. lift the radial wall state into a volumetric displacement field;
-5. rebuild the geometry for the next macro step from the reference coordinates
+5. prescribe the reduced wall velocity as radial wall-velocity Dirichlet data
+   on the fluid wall;
+6. rebuild the geometry for the next macro step from the reference coordinates
    plus the lifted displacement.
 
 This is still a research infrastructure step. It is not a claim of monolithic
 paper-grade transient FSI.
 
+### Stage 3: production sidecars and observation artifacts
+
+The production-oriented tier is a control and artifact harness around the
+current smoke-backed snapshots:
+
+- `native_resolved_fsi_partitioned_production_dry_run(...)` resolves snapshot
+  bundle paths, sidecar paths, imported parity availability, and estimated
+  payload without writing files.
+- `run_native_resolved_fsi_partitioned_production(...)` runs independent
+  smoke-backed snapshots and writes `snapshot_manifest.csv`,
+  `snapshot_diagnostics.csv`, and `restart_metadata.json`.
+- `native_resolved_fsi_read_restart_metadata(...)` validates the restart
+  metadata as identification-only; `native_resolved_fsi_resume_partitioned_production(...)`
+  validates metadata and then fails closed because state-carrying resume is
+  deferred.
+- Production parity writes `section41_observations.csv` and
+  `section41_observation_summary.csv` using the local cross-section velocity
+  and pressure observation operators.
+
 ## Fluid model
 
 ### Unknowns and spaces
 
-The first fluid solve should use:
+The current fluid solves use:
 
 - velocity `u(x,t)` and pressure `p(x,t)` as the primary unknowns;
 - Taylor-Hood `P2/P1` spaces on the linear tetrahedral mesh, matching the local
@@ -123,7 +168,7 @@ the linear mesh vertices, not written in FE-DOF order.
 
 ### Weak form
 
-The first fluid step should use backward Euler in time with Picard
+The current Navier-Stokes step uses backward Euler in time with Picard
 linearization of convection:
 
 ```text
@@ -140,31 +185,35 @@ with:
 - `rho = p.rho` in `g/cm^3`;
 - `mu = p.rho * p.nu` in `g/(cm*s)`.
 
-For the smoke stage the domain is the fixed reference mesh. For the first
-coupled stage the same weak form is solved on the current displaced geometry,
-but the writer still exports the original reference coordinates plus the
-displacement field.
+For the fixed-wall smoke tier the domain is the fixed reference mesh. For the
+partitioned smoke tier the same weak form is solved on the current displaced
+geometry, but the writer still exports the original reference coordinates plus
+the displacement field.
 
 ### Boundary conditions
 
-Fluid boundary conditions are locked as:
+The paper boundary data and current smoke realization are deliberately kept
+separate. Section 4.1 states a Poiseuille inlet with `u_max = 45 cm/s` and zero
+outlet stress. The current Gridap smoke harness uses pressure-drop-driven weak
+boundary loading for the smoke solves and records that as local implementation
+evidence, not as a paper-grade boundary-condition reproduction.
 
-- inlet: strong Dirichlet Poiseuille profile with axial component
-  `u_z(r) = 45 * (1 - (r / R_in)^2) cm/s`;
+The current wall boundary modes are:
+
 - wall, smoke stage: `u = 0`;
-- wall, coupled stage: `u = d_t` on wall nodes, where `d_t` is the lifted wall
-  displacement time derivative;
-- outlet: natural zero traction
-  `(-p I + 2 mu eps(u)) n = 0`.
+- wall, partitioned smoke: radial wall-velocity Dirichlet data from the
+  reduced membrane velocity, implemented through
+  `native_resolved_fsi_radial_wall_velocity_function(...)`.
 
-The first coupled target must not reinterpret the 1D characteristic outlet as a
-3D outlet condition.
+The partitioned target must not reinterpret the 1D characteristic outlet as a
+3D outlet condition or present the current pressure-drop smoke loading as the
+exact Section 4.1 inlet/outlet realization.
 
 ## Membrane model
 
 ### Structural state
 
-The first membrane model is an axisymmetric radial membrane surrogate on the
+The current membrane model is an axisymmetric radial membrane surrogate on the
 native axial stations:
 
 - radial displacement `eta(z,t)` in `cm`;
@@ -172,11 +221,11 @@ native axial stations:
 
 The wall state is stored on the axial coordinates already present in
 `NativeResolvedFSIGeometry.axial_coordinates_cm`. It is constant in `theta` at
-each axial station in the first coupled target.
+each axial station in the partitioned smoke tier.
 
 ### Parameters
 
-The first membrane model uses:
+The current membrane model uses:
 
 - wall density `rho_s = 1.055 g/cm^3`;
 - wall thickness `h = p.wall_h = 0.06 cm`;
@@ -185,20 +234,20 @@ The first membrane model uses:
 - optional numerical damping coefficient `c_m` in
   `g/(cm^2*s)`, default `0.0`.
 
-The first stiffness scale is the package-local linear membrane coefficient
+The stiffness scale is the package-local linear membrane coefficient
 
 ```text
 C0 = E h / ((1 - sigma^2) R_ref^2)
 ```
 
-with `R_ref = wall_reference_radius(p) = p.rmax` for the first implementation.
+with `R_ref = wall_reference_radius(p) = p.rmax` for the current implementation.
 This matches the current local `canic_membrane_c0(...)` convention. It is a
 local implementation choice, not a claim that the exact paper-side `R0*`
 constant has already been identified.
 
 ### Governing update
 
-The first membrane update is the clamped radial ODE
+The membrane update is the clamped radial ODE
 
 ```text
 rho_s h eta_tt + c_m eta_t + C0 eta = p_wall - p_ext
@@ -210,9 +259,9 @@ with:
 - clamped ends `eta(0,t) = eta(L,t) = 0`;
 - clamped end velocities `eta_t(0,t) = eta_t(L,t) = 0`.
 
-The first coupled target does not add axial shell tension or a full surface
+The partitioned smoke target does not add axial shell tension or a full surface
 membrane PDE. That would be a later expansion and should not be implied by the
-first patch.
+current implementation.
 
 ### Coupling terms
 
@@ -221,17 +270,18 @@ Fluid to wall:
 - circumferentially averaged wall pressure sampled slightly inside the wall,
   following the local guarded sampling pattern already used in
   `membrane_wall_pressure_profile(...)`;
-- wall shear stress is not included in the first membrane RHS.
+- wall shear stress is not included in the current membrane RHS.
 
 Wall to fluid:
 
 - wall displacement changes the geometry for the next macro step;
-- wall velocity supplies the no-slip boundary condition on the moved wall.
+- wall velocity supplies the prescribed radial wall Dirichlet condition on the
+  moved wall.
 
 ## Volumetric displacement convention
 
-The package needs a node-centered displacement field even though the first wall
-state is axisymmetric. Lane 2D locks the following export convention:
+The package needs a node-centered displacement field even though the wall state
+is axisymmetric. The current export convention is:
 
 ```text
 d(r, theta, z, t) = chi(r / R_ref_geom(z)) eta(z,t) e_r
@@ -270,12 +320,12 @@ Partitioned coupling:
 
 - staggered one-way sequence inside each macro step:
   fluid -> wall load -> wall update -> geometry update;
-- optional displacement under-relaxation `omega in (0, 1]` for the first
-  moving-wall stage.
+- optional displacement under-relaxation `omega in (0, 1]` for the partitioned
+  smoke stage.
 
 ### Stability guards
 
-The next implementation lane should enforce these guards:
+The implementation enforces these guards across smoke and production specs:
 
 1. `dt_s > 0`.
 2. `max_picard_iterations >= 1`.
@@ -295,7 +345,8 @@ The next implementation lane should enforce these guards:
 Default output policy:
 
 - write only the final requested benchmark snapshot by default;
-- smoke tests may additionally save `t = 0` when explicitly requested.
+- production runner snapshots must be positive; `t = 0` initial-condition
+  bundle output remains unimplemented.
 
 Hard guards:
 
@@ -348,83 +399,103 @@ x_deformed = x_reference + displacement
 
 and `coordinate_mode=deformed` remains valid at every saved step.
 
-## Proposed files
+## Implemented files
 
-The first implementation lane should add or update only the following source
-surfaces:
+The current implementation lives on these source surfaces:
 
 | File | Role |
 | --- | --- |
 | `src/StenoticHemodynamics/adapters/native_resolved_fsi.jl` | Always-present aggregator for the native resolved-FSI adapter family. |
-| `src/StenoticHemodynamics/adapters/native_resolved_fsi_types.jl` | Typed solver, wall, coupling, output, and result contracts. |
-| `src/StenoticHemodynamics/adapters/native_resolved_fsi_gridap.jl` | `NativeResolvedFSIMesh` to Gridap model conversion, FE spaces, weak forms, and node sampling helpers. |
-| `src/StenoticHemodynamics/adapters/native_resolved_fsi_membrane.jl` | Axisymmetric wall state, clamped update, pressure-load reduction, and volumetric displacement lift. |
-| `src/StenoticHemodynamics/adapters/native_resolved_fsi_solve.jl` | Fixed-step smoke loop first, then partitioned moving-wall macro step orchestration. |
-| `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow.jl` | Workflow-facing spec construction, scratch output planning, and writer round-trip orchestration. |
+| `src/StenoticHemodynamics/adapters/native_resolved_fsi_types.jl` | Fixed-wall and partitioned smoke specs, results, validation, writer round trips, and status construction. |
+| `src/StenoticHemodynamics/adapters/native_resolved_fsi_gridap.jl` | `NativeResolvedFSIMesh` to Gridap model conversion, FE spaces, weak forms, prescribed radial wall-velocity helper, and smoke solves. |
+| `src/StenoticHemodynamics/adapters/native_resolved_fsi_partitioned.jl` | Partitioned smoke wall update, pressure sampling, lifted-geometry solve orchestration, and reduced wall-state output. |
+| `src/StenoticHemodynamics/adapters/native_resolved_fsi_sampling.jl` | Node sampling, fallback sampling, and outlet gauge normalization for smoke bundles. |
+| `src/StenoticHemodynamics/adapters/native_resolved_fsi_roundtrip.jl` | Resolved-3D writer/importer round-trip checks for schema and smoke bundles. |
+| `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow.jl` | Schema workflow spec construction, scratch output planning, synthetic fields, displacement lift, and writer round trip. |
+| `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl` | Partitioned production spec policy, production dry-run, independent smoke-backed snapshot runner, manifest, diagnostics, and restart metadata writer. |
+| `src/StenoticHemodynamics/workflows/native_resolved_fsi_restart.jl` | Restart-identification metadata reader and fail-closed resume stub. |
+| `src/StenoticHemodynamics/workflows/native_resolved_fsi_parity.jl` | Native/imported three-field parity and observation operators. |
+| `src/StenoticHemodynamics/workflows/native_resolved_fsi_parity_production.jl` | Production observation artifact and summary CSV writer, including `section41_observation_summary.csv`. |
 
-This keeps the new surface additive and avoids repurposing `stokes_ic.jl` or the
-current membrane validation workflow into something stronger than they are.
+This keeps the native resolved-FSI surface additive and avoids repurposing
+`stokes_ic.jl` or the membrane validation workflow into something stronger
+than they are.
 
-## Proposed structs
+## Implemented structs
 
-The first implementation lane should introduce these structs:
+The current public-by-qualification contract centers on these structs:
 
-- `NativeResolvedFSISpec`:
-  case id, mesh resolution, `dt_s`, `tfinal_s`, saved times, output directory,
-  and stage selection.
-- `NativeResolvedFSIFluidOptions`:
-  Picard controls, FE order choice, and outlet pressure normalization policy.
-- `NativeResolvedFSIMembraneOptions`:
-  `rho_s`, `h`, `E`, `sigma`, `c_m`, reference radius policy, and endpoint
-  clamp policy.
-- `NativeResolvedFSICouplingOptions`:
-  wall-update mode, under-relaxation, coupling tolerance, and iteration cap.
-- `NativeResolvedFSIOutputOptions`:
-  snapshot times, overwrite, and output-volume guards.
-- `NativeResolvedFSIState`:
-  current time, FE solution, `eta`, `weta`, current displacement lift, and
-  current geometry status.
-- `NativeResolvedFSIResult`:
-  saved snapshot metadata, writer results, convergence metadata, and any guard
-  failures.
+- `NativeResolvedFSIWorkflowSpec` / `NativeResolvedFSIWorkflowResult`:
+  schema-only generated bundle and importer round-trip contract.
+- `NativeResolvedFSISmokeSpec` / `NativeResolvedFSISmokeResult`:
+  fixed-wall Stokes smoke bundle contract.
+- `NativeResolvedFSINavierStokesSmokeSpec` /
+  `NativeResolvedFSINavierStokesSmokeResult`: fixed-wall Navier-Stokes smoke
+  contract with backward-Euler/Picard controls.
+- `NativeResolvedFSIPartitionedSmokeSpec` /
+  `NativeResolvedFSIPartitionedSmokeResult`: partitioned smoke contract with
+  reduced wall state, prescribed radial wall velocity, diagnostics, and
+  deformed-geometry output.
+- `NativeResolvedFSIPartitionedProductionSpec` /
+  `NativeResolvedFSIPartitionedProductionResult`: production-oriented snapshot
+  policy, sidecars, and smoke-backed execution result.
+- `NativeResolvedFSIProductionWorkflowPlan` and
+  `NativeResolvedFSIProductionDryRunPlan`: deterministic Section 4.1 workflow
+  plans and side-effect-free dry-run records.
+- `NativeResolvedFSIProductionParityPlan`: pairing between a native production
+  plan and an optional imported resolved-3D bundle.
 
 ## Workflow entrypoints
 
-The first implementation lane should expose these internal entrypoints:
+The current internal entrypoints are qualified Julia functions, not CLI
+commands:
 
-- `run_native_resolved_fsi(spec::NativeResolvedFSISpec)`:
-  main workflow runner.
-- `native_resolved_fsi_smoke_spec(case_id; kwargs...)`:
-  convenience constructor for the fixed-wall smoke stage.
-- `native_resolved_fsi_zero_displacement(mesh::NativeResolvedFSIMesh)`:
-  deterministic smoke-stage displacement helper.
-- `native_resolved_fsi_lifted_displacement(mesh::NativeResolvedFSIMesh, eta)`:
-  volumetric displacement lift for the coupled stage.
+- `run_native_resolved_fsi_workflow(...)` and
+  `run_native_resolved_fsi(...)` for schema-only generated bundles.
+- `run_native_resolved_fsi_smoke(...)` and
+  `run_native_resolved_fsi_navier_stokes_smoke(...)` for fixed-wall smoke.
+- `run_native_resolved_fsi_partitioned_smoke(...)` for the partitioned
+  prescribed radial wall-velocity smoke tier.
+- `native_resolved_fsi_zero_displacement(...)` and
+  `native_resolved_fsi_lifted_displacement(...)` for deterministic displacement
+  fields.
+- `native_resolved_fsi_production_workflow_plans(...)`,
+  `native_resolved_fsi_partitioned_production_dry_run(...)`, and
+  `run_native_resolved_fsi_partitioned_production(...)` for production planning
+  and smoke-backed snapshot sidecars.
+- `native_resolved_fsi_read_restart_metadata(...)` and
+  `native_resolved_fsi_resume_partitioned_production(...)` for
+  restart-identification metadata validation and fail-closed resume.
+- `run_native_resolved_fsi_parity(...)` for native/imported observation and
+  parity artifacts.
 
-Public CLI exposure is not required for the first lane.
+Public CLI exposure is intentionally deferred for the native resolved-FSI
+production, dry-run, restart, and observation-artifact surfaces.
 
-## Proposed tests and first acceptance tolerances
+## Tests and acceptance tolerances
 
-Lane 2E / 2F should add the following tests:
+The current narrow tests are:
 
 | Test file | Purpose | First acceptance tolerance |
 | --- | --- | --- |
-| `test/test_native_resolved_fsi_workflow.jl` | Tiny bundle write/reload without a production fluid solve | coordinates/topology exact; time and field arrays `atol=1e-12` |
-| `test/test_native_resolved_fsi_smoke.jl` | Fixed-wall smoke solve on a coarse mesh plus writer round-trip | all fields finite; saved final time `atol=1e-12`; displacement identically zero `atol=1e-12` |
-| `test/test_native_resolved_fsi_partitioned.jl` | First moving-wall partitioned step on a tiny mesh | endpoint clamps `atol=1e-12`; coupling residual `<= 1e-6 cm`; no inverted tetrahedra |
+| `test/test_native_resolved_fsi_workflow.jl` | Schema workflow, production spec policy, dry-run, production sidecars, restart metadata reader, and fail-closed resume | coordinates/topology exact; time `atol=1e-12`; sidecars present; resume error explicit |
+| `test/test_native_resolved_fsi_smoke.jl` | Fixed-wall Stokes/Navier-Stokes smoke and partitioned prescribed radial wall-velocity smoke | all fields finite; saved final time `atol=1e-12`; fixed-wall displacement zero; partitioned wall displacement and velocity nonzero away from clamped endpoints; no inverted tetrahedra |
+| `test/test_native_resolved_fsi_parity.jl` | Native/imported parity contracts and Section 4.1 observation artifact CSVs | operator rows sorted and finite where ready; absent optional imported bundles produce expected skips |
 
-Lane 2G later adds parity tests. The paper-backed velocity target stays:
+The paper-backed velocity statement remains a benchmark context, not a current
+pass/fail production claim:
 
 - maximum relative error in the longitudinal velocity curve within `10%`.
 
-Pressure parity tolerance remains a later local choice and is not required to
-start 2E or the first smoke implementation.
+The current observation artifacts record velocity and pressure section
+averages and differences. A paper-grade pressure parity tolerance remains a
+later local choice.
 
 ## Reuse and separation
 
 ### Reuse directly
 
-The next implementation lane may reuse these existing surfaces or patterns:
+The implementation reuses these existing surfaces or patterns:
 
 - `NativeResolvedFSIMesh`, `NativeResolvedFSIGeometry`, and the stable tag
   contract from `workflows/native_resolved_fsi_mesh.jl`;
@@ -434,8 +505,8 @@ The next implementation lane may reuse these existing surfaces or patterns:
   `canic_membrane_c0(...)` as the local stiffness reference;
 - `clamp_membrane_endpoints!`, `should_capture_membrane_history(...)`, and the
   history-row pattern from the existing membrane adapter;
-- guarded pressure sampling and gauge normalization patterns from
-  `membrane_fsi_gridap.jl`;
+- guarded pressure sampling and gauge normalization patterns from the local
+  Gridap and smoke sampling adapters;
 - the `GeneratedStokesMesh` to Gridap model construction pattern in
   `stokes_ic.jl` as a template for the new native mesh adapter;
 - `safe_section_average_pressure(...)` as the local numerical pattern for later
@@ -443,8 +514,8 @@ The next implementation lane may reuse these existing surfaces or patterns:
 
 ### Keep separate
 
-The next implementation lane must not present these existing surfaces as the new
-native resolved-FSI solver:
+These existing surfaces must remain separate from the native resolved-FSI
+claim:
 
 - `solve_membrane_fsi(...)`, `QuasiStaticMembraneMode`, and
   `DynamicMembraneMode` remain a stationary-Stokes-based wall surrogate;
@@ -452,22 +523,26 @@ native resolved-FSI solver:
   generator;
 - `StationaryStokesIC` and `project_stationary_stokes(...)` remain reduced-1D
   initial-condition machinery;
-- `generated_stokes_mesh(...)` remains separate from the Lane 2B native mesh
-  contract.
+- `generated_stokes_mesh(...)` remains separate from the native resolved-FSI
+  mesh contract.
 
-## Remaining non-blockers
+## Remaining deferred items
 
-These items remain open but do not block Lane 2E or the first smoke lane:
+These items remain open and should not be implied by current documentation:
 
-- whether the first coupled stage needs outlet-node mean or outlet-quadrature
-  mean for pressure gauge normalization;
-- whether the pressure-observation parity path should extend the existing
-  resolved-3D operator family or add a dedicated scalar-field helper;
+- whether a later paper-parity stage needs outlet-node mean or
+  outlet-quadrature mean for pressure gauge normalization;
 - whether later paper-parity calibration should replace `R_ref = p.rmax` with a
   different constant `R0*`.
+- state-carrying restart and resume beyond metadata identification;
+- public CLI exposure for native resolved-FSI production, dry-run, restart, or
+  observation-artifact workflows;
+- paper-grade transient Section 4.1 reproduction.
 
 ## Blockers
 
-No blocker remains for Lane 2E or for the first fixed-wall smoke
-implementation. The design intentionally defers monolithic moving-wall FSI
-instead of pretending that it fits in the next patch.
+No documentation blocker remains for the implemented schema, smoke, production
+dry-run, restart metadata, sidecar, and observation-artifact tiers. The design
+intentionally defers monolithic moving-wall FSI, state-carrying restart, CLI
+exposure, and paper-grade reproduction claims instead of presenting the current
+smoke-backed harness as those stronger surfaces.
