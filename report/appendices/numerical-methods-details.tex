@@ -153,8 +153,8 @@ context.
 }{%
     \begin{center}
     \small
-    \emph{Benchmark table fragment unavailable in this checkout. Run the
-    benchmark renderer to populate
+    \emph{Benchmark summary fragment absent from the local report assets;
+    expected directory:
     \path{report/assets/tables/package-benchmark/}.}
     \end{center}
 }
@@ -191,9 +191,8 @@ used here as evidence for a p-convergence claim.
 }{%
     \begin{center}
     \small
-    \emph{p/h-refinement table unavailable in this checkout. Run
-    \texttt{verify ph-refinement} and the renderer to populate
-    \path{report/assets/tables/verification/}.}
+    \emph{p/h-refinement table not present in the local report asset set;
+    expected location: \path{report/assets/tables/verification/}.}
     \end{center}
 }
 
@@ -203,7 +202,7 @@ used here as evidence for a p-convergence claim.
         \includegraphics[width=0.86\linewidth]{report/assets/rendered/p-h-refinement-demo.pdf}
     }{%
         \fbox{\parbox{0.82\linewidth}{\centering p/h-refinement demonstration
-        asset unavailable in this checkout.}}
+        asset not present in the local report asset set.}}
     }
     \caption{Manufactured-solution p- and h-refinement demonstration for the
     secondary modal-DG surface. This is smooth-case implementation evidence; the
@@ -225,7 +224,8 @@ not selected evolution wall-law pressure observations.
     \IfFileExists{report/assets/rendered/package-benchmark-convergence.pdf}{%
         \includegraphics[width=0.82\linewidth]{report/assets/rendered/package-benchmark-convergence.pdf}
     }{%
-        \fbox{\parbox{0.82\linewidth}{\centering Benchmark convergence asset unavailable in this checkout.}}
+        \fbox{\parbox{0.82\linewidth}{\centering Benchmark convergence asset
+        not present in the local report asset set.}}
     }
     \caption{Secondary self-convergence summary reported by the benchmark renderer.
     Pressure bars, where present, are legacy local-denominator diagnostics
@@ -239,7 +239,8 @@ not selected evolution wall-law pressure observations.
     \IfFileExists{report/assets/rendered/package-benchmark-backend-parity.pdf}{%
         \includegraphics[width=0.82\linewidth]{report/assets/rendered/package-benchmark-backend-parity.pdf}
     }{%
-        \fbox{\parbox{0.82\linewidth}{\centering Integrator-comparison asset unavailable in this checkout.}}
+        \fbox{\parbox{0.82\linewidth}{\centering Integrator-comparison asset
+        not present in the local report asset set.}}
     }
     \caption{Secondary native/integrator discrepancy for compatible
     methods. This is an integrator-comparison check without an admitted reference
@@ -252,7 +253,8 @@ not selected evolution wall-law pressure observations.
     \IfFileExists{report/assets/rendered/package-benchmark-resolved3d.pdf}{%
         \includegraphics[width=0.70\linewidth]{report/assets/rendered/package-benchmark-resolved3d.pdf}
     }{%
-        \fbox{\parbox{0.82\linewidth}{\centering Resolved-velocity benchmark asset unavailable in this checkout.}}
+        \fbox{\parbox{0.82\linewidth}{\centering Resolved-velocity benchmark
+        asset not present in the local report asset set.}}
     }
     \caption{Secondary resolved-velocity output-operator diagnostic for available local cases.}
     \label{fig:package-benchmark-resolved3d}
@@ -316,7 +318,8 @@ listing.
     \IfFileExists{report/assets/rendered/package-benchmark-rheology-profile.pdf}{%
         \includegraphics[width=0.82\linewidth]{report/assets/rendered/package-benchmark-rheology-profile.pdf}
     }{%
-        \fbox{\parbox{0.82\linewidth}{\centering Rheology/profile benchmark asset unavailable in this checkout.}}
+        \fbox{\parbox{0.82\linewidth}{\centering Rheology/profile benchmark
+        asset not present in the local report asset set.}}
     }
     \caption{Secondary rheology/profile closure-family wiring stress test for declared
     combinations, not a calibrated physiological sensitivity study.}
@@ -340,9 +343,8 @@ refinement set.
 }{%
     \begin{center}
     \small
-    \emph{Stationary-Stokes refinement table unavailable in this checkout. Run
-    the stationary-Stokes refinement workflow to populate the verification
-    table.}
+    \emph{Stationary-Stokes refinement rows were not found at
+    \path{report/assets/tables/verification/}.}
     \end{center}
 }
 
@@ -382,13 +384,19 @@ diagnostic work, not a promoted report-evidence surface. Its current support
 establishes low-level smoke-scale and operator-readiness behavior, including
 status reporting for wall stability, the explicit membrane-oscillator time-step
 guard, and wall mass and stiffness scales. The 23\% exact-boundary case remains
-blocked at \(dt_s=10^{-4}\) before solver artifacts are written; a short
-\(dt_s=10^{-5}\) scratch probe reached a deformed-mesh orientation failure, and
-a longer \(dt_s=10^{-5}\) probe was runtime-inconclusive. These diagnostics do
-not remediate the wall-stability blocker, and reducing \(dt_s\) alone is
+blocked at $dt_s=10^{-4}$ before solver artifacts are written; a short
+$dt_s=10^{-5}$ scratch probe reached a deformed-mesh orientation failure, and
+a longer $dt_s=10^{-5}$ probe was runtime-inconclusive. These diagnostics do
+not remediate the wall-stability blocker, and reducing $dt_s$ alone is
 therefore not treated as evidence for the retained comparison. The associated
-\texttt{state\_payload} is audit metadata only; persisted restart or resume
-remains unsupported and fails closed.
+\texttt{state\_payload} is diagnostic metadata only and does not enable
+persisted restart or resume. The package diagnostics also distinguish FE
+pressure-nullspace hygiene from the outlet normalization applied after pressure
+sampling: the Gridap solve now uses a zero-mean pressure constraint, but that
+constraint did not reduce the exact-mode wall-load scale. A pressure-load
+plausibility gate can classify predicted radius inversion before wall-state
+mutation; it is diagnostic blocker evidence, not completed Section~4.1 native
+generation or accepted wall-stability remediation.
 
 The corresponding report-generation entry point is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
@@ -407,7 +415,7 @@ output directory, with the retained report assets copied to
 \path{report/assets/data/membrane-fsi/} and
 \path{report/assets/tables/membrane-fsi/}. Dynamic wall mode is a reduced radial membrane time integrator
 coupled to repeated quasi-steady Stokes solves, not a transient moving-boundary
-fluid solve, and its outputs remain scratch workflow evidence unless a later
+fluid solve, and its outputs remain diagnostic output unless a later
 artifact-refresh lane explicitly promotes them.
 
 \subsection{Elastic-potential balance-law form}
@@ -824,8 +832,7 @@ checked against the underlying rows.
 }{%
     \begin{center}
     \small
-    \emph{Full rest-state drift table unavailable in this checkout. Run
-    \texttt{verify rest} to populate
+    \emph{Full rest-state drift grid was not found at
     \path{report/assets/tables/verification/}.}
     \end{center}
 }

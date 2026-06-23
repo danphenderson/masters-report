@@ -147,7 +147,7 @@ closeout, run this active-manuscript scan before editing prose or syncing the
 PDF:
 
 ```sh
-rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|wall-pressure|inlet_umax|fsi native-status|native-status|observation-artifact|workflow|wall stability|wall_stability_status|non-positive|warm start|under-relaxation|under_relaxation|zero-mean|dt_s=1e-5|smaller-dt_s|deformed-mesh|orientation failure|runtime-inconclusive" \
+rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|pressure_nullspace_status|pressure_gauge_status|wall-pressure|pressure-load|plausibility gate|inlet_umax|fsi native-status|native-status|observation-artifact|workflow|wall stability|wall_stability_status|non-positive|warm start|under-relaxation|under_relaxation|zero-mean|dt_s=1e-5|smaller-dt_s|deformed-mesh|orientation failure|runtime-inconclusive" \
   report/sections report/appendices report/frontmatter report/final-report.tex -g '*.tex' || true
 ```
 
