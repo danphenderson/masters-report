@@ -181,10 +181,11 @@ contract, skip behavior, and report publication boundaries.
     `native_resolved_fsi_read_restart_metadata(...)`,
     `native_resolved_fsi_resume_partitioned_production(...)`,
     `run_native_resolved_fsi_partitioned_production(...)`
-  - No public CLI command is wired in `cli/dispatch.jl`; production, dry-run
-    guard reporting, restart reading, and parity helpers remain qualified
-    Julia-internal for now. The next scoped expansion is expected to consider a
-    dry-run or status CLI first, not default production execution
+  - CLI: `fsi native-status` prints dry-run/status fields for production guard
+    checks, boundary mode, output paths, and optional imported-bundle status.
+    Production execution, restart reading/resume, parity execution, and
+    observation-artifact generation remain qualified Julia-internal and are not
+    CLI commands.
 - Surface: `qualified-internal`
 - Expected outputs and artifact class:
   - Ignored scratch schema-workflow outputs under `tmp/simulations/output/native-resolved-fsi/**`
@@ -218,7 +219,8 @@ Current tiers are intentionally separate:
   data on the fluid wall; this is not an ALE formulation.
 - Production dry-run: `native_resolved_fsi_partitioned_production_dry_run(...)`
   resolves output, sidecar, guard-report, restart, and imported-parity paths
-  without running a solver or writing files.
+  without running a solver or writing files. The `fsi native-status` CLI command
+  exposes this status boundary without exposing production execution.
 - Production sidecars: `run_native_resolved_fsi_partitioned_production(...)`
   runs one state-carrying partitioned snapshot series and writes manifest,
   diagnostics, and restart metadata.
@@ -231,14 +233,12 @@ Current tiers are intentionally separate:
   observation rows and `section41_observation_summary.csv` through the local
   cross-section velocity and pressure observation operators.
 - Boundary-mode status: fixed-wall and partitioned native runs exercise
-  package-owned boundary modes, but exact Section 4.1 boundary-mode matching
-  remains deferred.
+  package-owned boundary modes. Exact mode is smoke-scale/operator-readiness
+  evidence only, not paper-grade Section 4.1 reproduction.
 
 The current family documents generated artifacts, local operator evidence, and
-production-control sidecars. Public CLI exposure, persisted restart, exact
-Section 4.1 boundary-mode matching, and paper-grade Section 4.1 reproduction
-claims remain deferred, although a dry-run or status-first CLI follow-up is now
-in scope for the next round.
+production-control sidecars. Persisted restart, production execution from CLI,
+and paper-grade Section 4.1 reproduction claims remain deferred.
 
 ## Native Resolved-FSI Notes
 

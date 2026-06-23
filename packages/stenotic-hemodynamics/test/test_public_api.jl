@@ -387,6 +387,83 @@
         handler -> any(blocked_handler -> handler === blocked_handler, native_resolved_fsi_cli_blocked_handlers),
         values(cli_handlers),
     )
+    @test cli_handlers["fsi"] === StenoticHemodynamics.run_fsi_cli
+    default_capture_path = tempname()
+    default_status = open(default_capture_path, "w") do io
+        redirect_stdout(io) do
+            StenoticHemodynamics.run_fsi_cli([
+                "native-status",
+                "--case-id",
+                "sev23",
+                "--mesh",
+                "2x1x6",
+                "--snapshot-times",
+                "1e-4",
+                "--imported-data-root",
+                joinpath(mktempdir(), "missing-imported"),
+            ])
+        end
+    end
+    default_text = read(default_capture_path, String)
+    @test default_status isa StenoticHemodynamics.NativeResolvedFSIProductionDryRunPlan
+    @test default_status.output_dir ==
+          StenoticHemodynamics.default_native_resolved_fsi_partitioned_production_output_dir(
+        default_status.workflow_plan.production_spec,
+    )
+    @test !isfile(default_status.manifest_csv)
+    @test !isfile(default_status.diagnostics_csv)
+    @test !isfile(default_status.restart_metadata_json)
+    @test default_status.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke"
+    @test occursin("native_resolved_fsi_status,dry_run", default_text)
+    @test occursin("boundary_mode,pressure_drop_weak_inlet_outlet_gauge_smoke", default_text)
+
+    mktempdir() do dir
+        output_path = joinpath(dir, "native-status-stdout.txt")
+        result = open(output_path, "w") do io
+            redirect_stdout(io) do
+                StenoticHemodynamics.run_fsi_cli([
+                    "native-status",
+                    "--case-id",
+                    "sev23",
+                    "--mesh",
+                    "2x1x6",
+                    "--snapshot-times",
+                    "1e-4",
+                    "--output-root",
+                    joinpath(dir, "native-status"),
+                    "--imported-data-root",
+                    joinpath(dir, "missing-imported"),
+                    "--inlet-outlet-boundary-mode",
+                    "poiseuille_inlet_zero_outlet_stress_section41",
+                    "--ic-pressure-drop-dyn-cm2",
+                    "0.0",
+                ])
+            end
+        end
+        text = read(output_path, String)
+        @test result isa StenoticHemodynamics.NativeResolvedFSIProductionDryRunPlan
+        @test result.boundary_mode == "poiseuille_inlet_zero_outlet_stress_section41"
+        @test result.boundary_mode_class == "exact_section41"
+        @test result.section41_boundary_status == "implemented_smoke_validated"
+        @test !ispath(result.output_dir)
+        @test occursin("native_resolved_fsi_status,dry_run", text)
+        @test occursin("required_override_flags,none", text)
+        @test occursin("boundary_mode,poiseuille_inlet_zero_outlet_stress_section41", text)
+        @test occursin("boundary_mode=poiseuille_inlet_zero_outlet_stress_section41", text)
+        @test occursin("boundary_mode_class,exact_section41", text)
+        @test occursin("section41_boundary_status,implemented_smoke_validated", text)
+        @test occursin("section41_boundary_status=implemented_smoke_validated", text)
+        @test occursin("boundary_equivalence_status,exact_section41_boundary_mode_selected_smoke_validated", text)
+        @test occursin("snapshot_manifest_csv,", text)
+        @test occursin("snapshot_diagnostics_csv,", text)
+        @test occursin("restart_metadata_json,", text)
+        @test occursin("parity_observations_csv,", text)
+        @test occursin("parity_summary_csv,", text)
+        @test occursin("imported_bundle_status,expected-skip", text)
+        @test occursin("smoke-scale/operator-readiness evidence only", text)
+        @test occursin("not paper-grade Section 4.1 reproduction", text)
+        @test occursin("no production solver executed", result.status)
+    end
 
     private_partitioned_production_helpers = Symbol[
         :native_resolved_fsi_partitioned_production_manifest_path,

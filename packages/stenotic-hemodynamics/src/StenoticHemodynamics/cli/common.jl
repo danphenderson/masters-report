@@ -71,6 +71,12 @@ const STUDY_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
 const STUDY_FLAG_OPTIONS = union(FLAG_OPTIONS, Set(["overwrite"]))
 
 const FSI_VALUE_OPTIONS = union(STUDY_VALUE_OPTIONS, Set([
+    "case-id",
+    "mesh",
+    "snapshot-times",
+    "output-root",
+    "imported-data-root",
+    "inlet-outlet-boundary-mode",
     "wall-mode",
     "max-coupling-iters",
     "coupling-tolerance-cm",
@@ -84,7 +90,12 @@ const FSI_VALUE_OPTIONS = union(STUDY_VALUE_OPTIONS, Set([
     "summary-tex",
     "report-assets-dir",
 ]))
-const FSI_FLAG_OPTIONS = union(STUDY_FLAG_OPTIONS, Set(["overwrite", "publish-report-assets"]))
+const FSI_FLAG_OPTIONS = union(STUDY_FLAG_OPTIONS, Set([
+    "overwrite",
+    "publish-report-assets",
+    "allow-many-snapshots",
+    "allow-large-output",
+]))
 
 const VERIFY_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
     "degrees",
