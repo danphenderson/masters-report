@@ -50,7 +50,12 @@ alone is not accepted remediation. Package dry-run/status surfaces now expose a
 generation. A short `dt_s=1e-5` scratch probe reached the deformed-mesh guard
 and failed on an inverted/degenerate tetrahedron, while a longer `dt_s=1e-5`
 probe was runtime-inconclusive, so smaller time steps alone are not accepted
-remediation. Package
+remediation. Package diagnostics also expose `pressure_nullspace_status` for
+the active Gridap zero-mean pressure constraint; scratch probing showed this is
+pressure-gauge hygiene only and does not resolve the exact-boundary wall-load
+scale. A fail-fast pressure-load plausibility gate now classifies predicted
+radius inversion before wall-state mutation, but this remains blocker
+diagnostics rather than completed native generation. Package
 restart/resume planning now lives in
 `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`;
 that design keeps current `state_payload` as audit metadata and keeps persisted
@@ -199,6 +204,8 @@ later, it must preserve these boundaries:
   generated Section 4.1 evidence;
 - `wall_stability_status` in package dry-run or CLI output is diagnostic
   status only, not a successful production execution result;
+- `pressure_nullspace_status` records FE pressure gauge hygiene only and must
+  not be presented as the wall-stability remediation;
 - smaller-`dt_s` scratch probes have not cleared the native exact-boundary
   gate and must not be presented as completed Section 4.1 native generation;
 - restart/resume design now lives in

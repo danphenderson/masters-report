@@ -83,6 +83,14 @@ function native_resolved_fsi_wall_pressure_projection_status(boundary_mode::Unio
     return "direct_wall_pressure_sampling_with_pressure_drop_resistance_fallback_if_needed; wall_pressure_profile_outlet_gauged_before_membrane_update"
 end
 
+function native_resolved_fsi_pressure_nullspace_status(boundary_mode::Union{Symbol,AbstractString})
+    mode = native_resolved_fsi_production_boundary_mode(boundary_mode)
+    if mode === :poiseuille_inlet_zero_outlet_stress_section41
+        return "gridap_zero_mean_pressure_constraint_active; post_sampling_outlet_mean_normalization_remains_export_gauge; not_wall_stability_remediation"
+    end
+    return "gridap_zero_mean_pressure_constraint_active; post_sampling_outlet_mean_normalization_remains_export_gauge; local_smoke_loading_only"
+end
+
 """
     NativeResolvedFSIPartitionedProductionSpec(; kwargs...)
 
@@ -369,6 +377,7 @@ struct NativeResolvedFSIProductionDryRunPlan
     inlet_condition_status::String
     outlet_condition_status::String
     pressure_gauge_status::String
+    pressure_nullspace_status::String
     section41_boundary_status::String
     boundary_status::String
     boundary_equivalence_status::String
@@ -567,6 +576,7 @@ function native_resolved_fsi_partitioned_production_dry_run(
         inlet_umax_cm_s=spec.inlet_umax_cm_s,
     )
     boundary_equivalence_status = native_resolved_fsi_boundary_equivalence_status(boundary_status)
+    pressure_nullspace_status = native_resolved_fsi_pressure_nullspace_status(spec.inlet_outlet_boundary_mode)
     wall_stability_status = native_resolved_fsi_partitioned_wall_stability_status(spec)
     override_status = isempty(guard_report.required_override_flags) ?
         "default guards satisfied; required override flags: none" :
@@ -576,7 +586,7 @@ function native_resolved_fsi_partitioned_production_dry_run(
         spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41 ?
         "production execution is available only through explicit production specs and remains smoke-scale/operator-readiness evidence, not paper-grade reproduction" :
         "production execution remains opt-in through explicit production specs and output-volume overrides"
-    status = "dry-run ready: no production solver executed and no files written; $(override_status); $(imported_status); boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); wall_stability_status=$(wall_stability_status); $(execution_status)"
+    status = "dry-run ready: no production solver executed and no files written; $(override_status); $(imported_status); boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); pressure_nullspace_status=$(pressure_nullspace_status); wall_stability_status=$(wall_stability_status); $(execution_status)"
     return NativeResolvedFSIProductionDryRunPlan(
         plan,
         spec.case_spec.case_id,
@@ -600,6 +610,7 @@ function native_resolved_fsi_partitioned_production_dry_run(
         boundary_status.inlet_condition_status,
         boundary_status.outlet_condition_status,
         boundary_status.pressure_gauge_status,
+        pressure_nullspace_status,
         boundary_status.section41_boundary_status,
         boundary_status.boundary_status,
         boundary_equivalence_status,
@@ -916,6 +927,8 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             inlet_condition_status=boundary_status.inlet_condition_status,
             outlet_condition_status=boundary_status.outlet_condition_status,
             pressure_gauge_status=boundary_status.pressure_gauge_status,
+            pressure_nullspace_status=
+                native_resolved_fsi_pressure_nullspace_status(smoke_result.inlet_outlet_boundary_mode),
             wall_pressure_projection_status=
                 native_resolved_fsi_wall_pressure_projection_status(smoke_result.inlet_outlet_boundary_mode),
             section41_boundary_status=boundary_status.section41_boundary_status,
@@ -1020,6 +1033,8 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
                 "inlet_condition_status" => snapshot_boundary_status.inlet_condition_status,
                 "outlet_condition_status" => snapshot_boundary_status.outlet_condition_status,
                 "pressure_gauge_status" => snapshot_boundary_status.pressure_gauge_status,
+                "pressure_nullspace_status" =>
+                    native_resolved_fsi_pressure_nullspace_status(snapshot.smoke_result.inlet_outlet_boundary_mode),
                 "wall_pressure_projection_status" =>
                     native_resolved_fsi_wall_pressure_projection_status(snapshot.smoke_result.inlet_outlet_boundary_mode),
                 "section41_boundary_status" => snapshot_boundary_status.section41_boundary_status,
@@ -1088,6 +1103,8 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "inlet_condition_status" => final_boundary_status.inlet_condition_status,
             "outlet_condition_status" => final_boundary_status.outlet_condition_status,
             "pressure_gauge_status" => final_boundary_status.pressure_gauge_status,
+            "pressure_nullspace_status" =>
+                native_resolved_fsi_pressure_nullspace_status(final_smoke.inlet_outlet_boundary_mode),
             "wall_pressure_projection_status" =>
                 native_resolved_fsi_wall_pressure_projection_status(final_smoke.inlet_outlet_boundary_mode),
             "section41_boundary_status" => final_boundary_status.section41_boundary_status,

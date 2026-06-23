@@ -129,8 +129,9 @@ Pressure handling gates:
 - exported pressure must be finite at every mesh node;
 - exported pressure must be outlet-gauged by subtracting the arithmetic mean on
   outlet boundary nodes after sampling;
-- the pressure gauge operation must be described as post-sampling
-  normalization, not as a Gridap pressure nullspace constraint.
+- the Gridap Navier-Stokes solve must record its pressure-nullspace treatment
+  separately from the post-sampling outlet normalization used for exported
+  fields and wall-pressure profiles.
 
 ## Wall Parameters
 
@@ -327,7 +328,10 @@ Operational policy for non-smoke runs:
    scratch run reached a deformed-mesh orientation failure. Remediation must
    preserve positive relaxed radii and positive tetrahedron orientation without
    clipping and must keep `wall_stability_status` visible in dry-run/status
-   surfaces.
+   surfaces. Gridap zero-mean pressure is now active and auditable as
+   pressure-nullspace hygiene, but scratch probing showed it does not resolve
+   the wall-load scale. A fail-fast pressure-load plausibility gate now
+   classifies predicted radius inversion before wall-state mutation.
 3. **10C-impl2b: development/preproduction execution.** After remediation,
    run exact-boundary
    `sev23` at development then preproduction scale, exercising finite fields,

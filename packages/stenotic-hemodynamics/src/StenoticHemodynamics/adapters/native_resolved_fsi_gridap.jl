@@ -91,14 +91,15 @@ function native_resolved_fsi_inlet_outlet_boundary_status(
 )
     if mode === :pressure_drop_weak_inlet_outlet_gauge_smoke
         return "pressure_drop_weak_inlet_outlet_gauge_smoke active: weak pressure-drop inlet loading " *
-               "with outlet-gauge pressure normalization; local smoke boundary evidence only, " *
+               "with Gridap zero-mean pressure constraint and post-sampling outlet-gauge pressure normalization; " *
+               "local smoke boundary evidence only, " *
                "not exact Section 4.1 Poiseuille inlet / zero-outlet-stress reproduction"
     end
     if mode === :poiseuille_inlet_zero_outlet_stress_section41
         return "poiseuille_inlet_zero_outlet_stress_section41 active: strong inlet Dirichlet " *
                "Poiseuille profile with u_max=$(Float64(inlet_umax_cm_s)) cm/s, zero outlet stress " *
-               "as the natural traction boundary, post-sampling outlet pressure gauge normalization " *
-               "(not a Gridap pressure-nullspace constraint), and no pressure-drop weak inlet/outlet loading"
+               "as the natural traction boundary, Gridap zero-mean pressure constraint, " *
+               "post-sampling outlet pressure gauge normalization, and no pressure-drop weak inlet/outlet loading"
     end
     throw(ArgumentError("unsupported native resolved-FSI inlet/outlet boundary mode $(repr(mode))"))
 end
@@ -253,7 +254,7 @@ function native_resolved_fsi_solve_navier_stokes(
     else
         TestFESpace(model, reffe_u, labels=labels, dirichlet_tags=["wall", "inlet"], conformity=:H1)
     end
-    Q = TestFESpace(model, reffe_p, labels=labels, conformity=:H1)
+    Q = TestFESpace(model, reffe_p, labels=labels, conformity=:H1, constraint=:zeromean)
     U = if inlet_outlet_boundary_mode_value === :pressure_drop_weak_inlet_outlet_gauge_smoke
         TrialFESpace(V, wall_velocity_function)
     else

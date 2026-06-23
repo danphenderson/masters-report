@@ -68,6 +68,7 @@ function print_native_resolved_fsi_status(dry_run::NativeResolvedFSIProductionDr
     println("boundary_mode_class,$(dry_run.boundary_mode_class)")
     println("section41_boundary_status,$(dry_run.section41_boundary_status)")
     println("boundary_equivalence_status,$(dry_run.boundary_equivalence_status)")
+    println("pressure_nullspace_status,$(dry_run.pressure_nullspace_status)")
     println("wall_stability_status,$(dry_run.wall_stability_status)")
     println("imported_bundle_status,$(dry_run.imported_available ? "available" : "expected-skip")")
     println("imported_case,$(dry_run.imported_case.case_label)")

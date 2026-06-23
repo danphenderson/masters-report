@@ -376,6 +376,31 @@ end
     @test occursin("candidate_radius_cm=-0.01", wall_update_diagnostics)
     @test occursin("wall_pressure_dyn_cm2=-2.0e7", wall_update_diagnostics)
     @test occursin("explicit_stability_dt_limit_s=", wall_update_diagnostics)
+    displacement_probe = [0.0, 0.0, 0.0]
+    velocity_probe = [0.0, 0.0, 0.0]
+    current_radii_probe = [0.18, 0.16, 0.18]
+    pressure_load_error = try
+        StenoticHemodynamics.native_resolved_fsi_partitioned_wall_state!(
+            displacement_probe,
+            velocity_probe,
+            current_radii_probe,
+            [0.18, 0.16, 0.18],
+            [0.0, -2.0e9, 0.0],
+            0.0633,
+            1.2e7,
+            0.0,
+            1.0e-4,
+        )
+        nothing
+    catch err
+        err
+    end
+    @test pressure_load_error isa ArgumentError
+    @test occursin("pressure-load plausibility gate", sprint(showerror, pressure_load_error))
+    @test occursin("predicted_radius_cm", sprint(showerror, pressure_load_error))
+    @test occursin("explicit_pressure_displacement_increment_cm", sprint(showerror, pressure_load_error))
+    @test displacement_probe == [0.0, 0.0, 0.0]
+    @test velocity_probe == [0.0, 0.0, 0.0]
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_iteration_count=0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_tolerance=0.0)
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_under_relaxation=0.0)
@@ -510,6 +535,7 @@ end
         @test occursin("poiseuille_inlet_zero_outlet_stress_section41 active", exact_result.section41_boundary_status.status)
         @test occursin("u_max=45.0 cm/s", exact_result.section41_boundary_status.status)
         @test occursin("zero outlet stress", exact_result.section41_boundary_status.status)
+        @test occursin("Gridap zero-mean pressure constraint", exact_result.section41_boundary_status.status)
         @test occursin("no pressure-drop weak inlet/outlet loading", exact_result.section41_boundary_status.status)
         @test exact_result.pressure_projection_fallback_count == 0
         @test exact_result.fluid_wall_boundary_mode == :prescribed_radial_wall_velocity

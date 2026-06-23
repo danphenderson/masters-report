@@ -234,11 +234,39 @@ function native_resolved_fsi_partitioned_wall_state!(
         (wall_pressure_dyn_cm2 .- wall_damping_g_cm2_s .* wall_velocity_cm_s .- wall_stiffness_c0_dyn_cm3 .* wall_displacement_cm) ./
         wall_mass_g_cm2
     clamp_membrane_endpoints!(acceleration_cm_s2)
-    wall_displacement_cm .= wall_displacement_cm .+ dt_step_s .* wall_velocity_cm_s .+ 0.5 * dt_step_s^2 .* acceleration_cm_s2
-    clamp_membrane_endpoints!(wall_displacement_cm)
-    wall_velocity_cm_s .= wall_velocity_cm_s .+ dt_step_s .* acceleration_cm_s2
-    clamp_membrane_endpoints!(wall_velocity_cm_s)
-    current_radii_cm .= reference_radii_cm .+ wall_displacement_cm
+    predicted_displacement_cm =
+        wall_displacement_cm .+ dt_step_s .* wall_velocity_cm_s .+ 0.5 * dt_step_s^2 .* acceleration_cm_s2
+    clamp_membrane_endpoints!(predicted_displacement_cm)
+    predicted_velocity_cm_s = wall_velocity_cm_s .+ dt_step_s .* acceleration_cm_s2
+    clamp_membrane_endpoints!(predicted_velocity_cm_s)
+    predicted_radii_cm = reference_radii_cm .+ predicted_displacement_cm
+    if !all(isfinite, predicted_displacement_cm) ||
+       !all(isfinite, predicted_velocity_cm_s) ||
+       !all(isfinite, predicted_radii_cm)
+        throw(ArgumentError("native resolved-FSI partitioned smoke pressure-load plausibility gate produced non-finite predicted wall state"))
+    end
+    if minimum(predicted_radii_cm) <= 0.0
+        min_radius_cm, min_radius_index = findmin(predicted_radii_cm)
+        max_abs_wall_pressure_dyn_cm2 = maximum(abs, wall_pressure_dyn_cm2)
+        static_pressure_displacement_cm = wall_stiffness_c0_dyn_cm3 > 0.0 ?
+                                          wall_pressure_dyn_cm2[min_radius_index] / wall_stiffness_c0_dyn_cm3 : NaN
+        explicit_pressure_displacement_increment_cm =
+            0.5 * dt_step_s^2 * wall_pressure_dyn_cm2[min_radius_index] / wall_mass_g_cm2
+        throw(ArgumentError(
+            "native resolved-FSI partitioned smoke pressure-load plausibility gate predicted a non-positive radius before applying the wall update; " *
+            "min_station_index=$(min_radius_index), predicted_radius_cm=$(min_radius_cm), " *
+            "reference_radius_cm=$(reference_radii_cm[min_radius_index]), " *
+            "wall_pressure_dyn_cm2=$(wall_pressure_dyn_cm2[min_radius_index]), " *
+            "max_abs_wall_pressure_dyn_cm2=$(max_abs_wall_pressure_dyn_cm2), " *
+            "static_pressure_displacement_cm=$(static_pressure_displacement_cm), " *
+            "explicit_pressure_displacement_increment_cm=$(explicit_pressure_displacement_increment_cm), " *
+            "wall_mass_g_cm2=$(wall_mass_g_cm2), wall_stiffness_c0_dyn_cm3=$(wall_stiffness_c0_dyn_cm3), " *
+            "dt_step_s=$(dt_step_s)",
+        ))
+    end
+    wall_displacement_cm .= predicted_displacement_cm
+    wall_velocity_cm_s .= predicted_velocity_cm_s
+    current_radii_cm .= predicted_radii_cm
     all(isfinite, wall_displacement_cm) || throw(ArgumentError("native resolved-FSI partitioned smoke wall displacement must remain finite"))
     all(isfinite, wall_velocity_cm_s) || throw(ArgumentError("native resolved-FSI partitioned smoke wall velocity must remain finite"))
     minimum(current_radii_cm) > 0.0 ||

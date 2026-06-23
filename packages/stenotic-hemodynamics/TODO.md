@@ -98,6 +98,14 @@ Implemented and committed:
   deformed-mesh guard and failed on an inverted/degenerate tetrahedron, while a
   longer `dt_s=1e-5` probe was runtime-inconclusive. Smaller `dt_s` alone is
   not yet a validated remediation.
+- The partitioned Navier-Stokes pressure space now uses a Gridap zero-mean
+  pressure constraint and records `pressure_nullspace_status` through dry-run,
+  `fsi native-status`, diagnostics, and restart metadata. Scratch probing
+  showed this is pressure-gauge hygiene only: it did not reduce the exact-mode
+  wall-pressure/load scale and is not accepted as wall-stability remediation.
+- The partitioned wall update now has a fail-fast pressure-load plausibility
+  gate that predicts radius inversion before mutating wall state. This improves
+  blocker classification but does not complete the `sev23` development gate.
 - Lane 10D records the persisted restart/resume design in
   `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`.
   The design keeps current `state_payload` as audit metadata and keeps resume
@@ -142,12 +150,12 @@ Recommended dispatch order:
 2. Resolve the `sev23` development wall-stability blocker before rerunning
    development/preproduction. Candidate remediations must be scientific, not
    clipping: compatible exact-boundary initialization or inflow ramping,
-   semi-implicit/implicit membrane update, coupling under-relaxation feasibility
-   that preserves positive relaxed radii and mesh orientation, a justified
-   smaller `dt_s`, or a pressure/load stabilization path. Diagnostics must
-   report the failing station, pressure load, radius, mass/stiffness/damping,
-   stability scale, and deformed-mesh cell/volume details when mesh orientation
-   fails.
+   moving-wall boundary handoff stabilization, semi-implicit/implicit membrane
+   update, coupling under-relaxation feasibility that preserves positive
+   relaxed radii and mesh orientation, a justified smaller `dt_s`, or a
+   pressure/load stabilization path. Diagnostics must report the failing
+   station, pressure load, radius, mass/stiffness/damping, stability scale, and
+   deformed-mesh cell/volume details when mesh orientation fails.
 3. Re-run the exact-boundary `sev23` development and preproduction gates,
    validating finite fields, wall displacement, pressure normalization,
    importer round-trip, sidecars, and observation rows.

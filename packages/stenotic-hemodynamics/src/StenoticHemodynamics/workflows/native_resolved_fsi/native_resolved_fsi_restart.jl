@@ -298,6 +298,14 @@ function native_resolved_fsi_validate_restart_boundary_status_if_present(
             context=context,
         )
     end
+    if haskey(metadata, "pressure_nullspace_status")
+        native_resolved_fsi_require_restart_metadata_value(
+            metadata,
+            "pressure_nullspace_status",
+            native_resolved_fsi_pressure_nullspace_status(mode_symbol);
+            context=context,
+        )
+    end
     return nothing
 end
 
