@@ -336,25 +336,36 @@ Operational policy for non-smoke runs:
 1. **10C-impl1: production-scale dry-run matrix.** Completed as status-only
    planning evidence. The dry-run matrix confirmed guard flags and output paths
    without running production or writing solver artifacts.
-2. **10C-impl2a: short-development wall-stability remediation.** Completed at
-   short-development scope. Earlier exact-mode probes failed closed before
+2. **10C-impl2a: development wall-stability remediation.** Completed at
+   development-artifact scope. Earlier exact-mode probes failed closed before
    output artifacts because the moving-wall/explicit membrane handoff produced
    non-positive current radii. The current reduced path uses stationary
-   no-slip wall solves on deformed geometry for exact inlet/outlet mode,
-   advances the membrane with a semi-implicit update, and passes a five-step
-   `sev23` development-mesh gate at `(40, 3, 16)`, `dt_s=1e-4`,
-   `tfinal_s=5e-4`, writing solver artifacts with positive current radii and
-   positive tetrahedron orientation. This is not full development or
-   production evidence.
-3. **10C-impl2b: full development/preproduction execution.** Run
-   exact-boundary `sev23` at the full development target (`tfinal_s=1e-2`)
-   and then preproduction scale, exercising finite fields, pressure
-   normalization, importer round-trip, sidecars, and observation rows. Keep
+   no-slip wall solves on deformed geometry for exact inlet/outlet mode and
+   advances the membrane with a semi-implicit update. The full `sev23`
+   development-mesh gate at `(40, 3, 16)`, `dt_s=1e-4`, `tfinal_s=1e-2`
+   writes solver artifacts with finite fields, positive current radii,
+   positive tetrahedron orientation, direct finite wall-pressure sampling, and
+   importer-compatible sidecars. The run uses one coupling iteration per step
+   and records bounded but non-converged coupling history, so this is not
+   preproduction, production, parity, or moving-wall ALE evidence.
+3. **10C-impl2b: preproduction execution.** Run exact-boundary `sev23` at
+   preproduction scale, exercising finite fields, pressure normalization,
+   importer round-trip, sidecars, observation rows, and stronger coupling
+   settings or explicitly bounded coupling status. Keep
    `wall_stability_status`, `pressure_nullspace_status`, fluid wall-boundary
-   handoff status, and pressure-load plausibility diagnostics visible.
+   handoff status, and pressure-load plausibility diagnostics visible. The
+   development gate took about 25 minutes for 101 steps at 9,600 tetrahedra;
+   preproduction and production-target execution should be treated as
+   long-running batch work, not as an interactive smoke test.
 4. **10C-impl3: full case-set production generation.** Run `sev23`, `sev40`,
    and `sev50` at `(120, 5, 32)`, `dt_s=1e-4`, `T=1.0`, final snapshot only.
-5. **10C-impl4: imported-data parity.** Pair generated native outputs with
+5. **10C-impl4: imported-data parity.** Development-output parity has run for
+   `sev23` against imported case `77`: observation and summary artifacts were
+   written, imported observations loaded, and nonzero development-scale
+   discrepancies were recorded (`max_mean_velocity_abs_difference_cm_s ≈
+   2.317`, `max_mean_pressure_abs_difference_dyn_cm2 ≈ 813.906`). This is
+   operator/artifact and discrepancy-classification evidence only. Production
+   parity still requires generated production-target outputs paired with
    optional imported bundles; keep `sev50` and missing pressure/displacement
    data skip-safe.
 6. **10C-editorial: manuscript claim review.** Update manuscript/report claims

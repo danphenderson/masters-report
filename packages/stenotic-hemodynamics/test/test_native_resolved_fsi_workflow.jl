@@ -405,14 +405,18 @@ end
         @test exact_dry_run.section41_boundary_status == "implemented_smoke_validated"
         @test occursin("partitioned production smoke-scale threading evidence", exact_dry_run.boundary_status)
         @test occursin("exact_section41_boundary_mode_selected_smoke_validated", exact_dry_run.boundary_equivalence_status)
-        @test occursin("known_wall_stability_blocker", exact_dry_run.wall_stability_status)
+        @test occursin(
+            "sev23_development_exact_boundary_artifact_gate_passed_tfinal0p01",
+            exact_dry_run.wall_stability_status,
+        )
+        @test occursin("one-iteration coupling remains bounded evidence", exact_dry_run.wall_stability_status)
         @test occursin("dry-run does not certify wall-pressure/load stability", exact_dry_run.wall_stability_status)
         @test occursin("production runner support advances the exact inlet/outlet boundary mode", exact_plan.status)
         @test occursin("section41_boundary_status=implemented_smoke_validated", exact_plan.status)
         @test occursin("boundary_mode=poiseuille_inlet_zero_outlet_stress_section41", exact_dry_run.status)
         @test occursin("section41_boundary_status=implemented_smoke_validated", exact_dry_run.status)
         @test occursin("pressure_nullspace_status=gridap_zero_mean_pressure_constraint_active", exact_dry_run.status)
-        @test occursin("known_wall_stability_blocker", exact_dry_run.status)
+        @test occursin("sev23_development_exact_boundary_artifact_gate_passed_tfinal0p01", exact_dry_run.status)
         @test occursin("production execution is available only through explicit production specs", exact_dry_run.status)
     end
 end
@@ -537,6 +541,10 @@ end
               length(result.smoke_result.coupling_residual_history)
         @test result.restart_metadata["resume_supported"] == false
         @test result.restart_metadata["resume_status"] == "deferred"
+        @test result.restart_metadata["restart_schema_version"] == 1
+        @test result.restart_metadata["restart_schema_status"] == "schema_v1_audit_metadata_only"
+        @test result.restart_metadata["checkpoint_schema_status"] == "not_persisted_solver_checkpoint"
+        @test isempty(result.restart_metadata["checkpoint_manifest"])
         @test result.restart_metadata["current_snapshot_time_s"] ≈ result.saved_time_s
         @test length(result.restart_metadata["current_wall_displacement_cm"]) ==
               length(result.smoke_result.wall_displacement_cm)
@@ -555,6 +563,9 @@ end
         @test state_payload["resume_status"] == "deferred"
         restart_metadata_text = read(result.restart_metadata_json, String)
         @test occursin("\"resume_supported\": false", restart_metadata_text)
+        @test occursin("\"restart_schema_version\": 1", restart_metadata_text)
+        @test occursin("\"restart_schema_status\": \"schema_v1_audit_metadata_only\"", restart_metadata_text)
+        @test occursin("\"checkpoint_schema_status\": \"not_persisted_solver_checkpoint\"", restart_metadata_text)
         @test occursin("\"restart_provenance\": \"state_carrying_partitioned\"", restart_metadata_text)
         @test occursin("\"state_carrying_restart\": true", restart_metadata_text)
         @test occursin("\"state_payload\"", restart_metadata_text)
@@ -577,6 +588,10 @@ end
         @test parsed_restart_metadata["state_carrying_restart"] == true
         @test parsed_restart_metadata["resume_supported"] == false
         @test parsed_restart_metadata["resume_status"] == "deferred"
+        @test parsed_restart_metadata["restart_schema_version"] == 1
+        @test parsed_restart_metadata["restart_schema_status"] == "schema_v1_audit_metadata_only"
+        @test parsed_restart_metadata["checkpoint_schema_status"] == "not_persisted_solver_checkpoint"
+        @test isempty(parsed_restart_metadata["checkpoint_manifest"])
         @test parsed_restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
         @test parsed_restart_metadata["boundary_mode_class"] == "local_smoke_loading"
         @test occursin("gridap_zero_mean_pressure_constraint_active", parsed_restart_metadata["pressure_nullspace_status"])
@@ -614,6 +629,47 @@ end
         @test occursin("state_carrying_partitioned", sprint(showerror, resume_error))
         @test occursin("state_payload may record state", sprint(showerror, resume_error))
         @test occursin("resume_supported is false", sprint(showerror, resume_error))
+
+        schema_v2_metadata = deepcopy(result.restart_metadata)
+        schema_v2_metadata["restart_schema_version"] = 2
+        schema_v2_metadata["restart_schema_status"] = "schema_v2_checkpoint_manifest"
+        schema_v2_metadata["checkpoint_schema_status"] = "checkpoint_manifest_present_resume_not_implemented"
+        schema_v2_metadata["checkpoint_manifest"] = Any[Dict{String,Any}(
+            "role" => "wall_state",
+            "path" => "checkpoint/wall-state.bin",
+            "sha256" => repeat("0", 64),
+            "byte_size" => 128,
+        )]
+        schema_v2_metadata_path = joinpath(dir, "schema-v2-restart-metadata.json")
+        StenoticHemodynamics.write_json(schema_v2_metadata_path, schema_v2_metadata; overwrite=true)
+        parsed_schema_v2_metadata = native_resolved_fsi_read_restart_metadata(schema_v2_metadata_path)
+        @test parsed_schema_v2_metadata["restart_schema_version"] == 2
+        @test parsed_schema_v2_metadata["restart_schema_status"] == "schema_v2_checkpoint_manifest"
+        @test parsed_schema_v2_metadata["checkpoint_schema_status"] ==
+              "checkpoint_manifest_present_resume_not_implemented"
+        @test only(parsed_schema_v2_metadata["checkpoint_manifest"])["role"] == "wall_state"
+        schema_v2_resume_error = try
+            native_resolved_fsi_resume_partitioned_production(schema_v2_metadata_path)
+            nothing
+        catch err
+            err
+        end
+        @test schema_v2_resume_error isa ArgumentError
+        @test occursin("restart_schema_version 2", sprint(showerror, schema_v2_resume_error))
+        @test occursin("no durable FE-state checkpoint runner", sprint(showerror, schema_v2_resume_error))
+
+        invalid_schema_v2_metadata = deepcopy(schema_v2_metadata)
+        invalid_schema_v2_metadata["resume_supported"] = true
+        invalid_schema_v2_path = joinpath(dir, "invalid-schema-v2-restart-metadata.json")
+        StenoticHemodynamics.write_json(invalid_schema_v2_path, invalid_schema_v2_metadata; overwrite=true)
+        invalid_schema_v2_error = try
+            native_resolved_fsi_read_restart_metadata(invalid_schema_v2_path)
+            nothing
+        catch err
+            err
+        end
+        @test invalid_schema_v2_error isa ArgumentError
+        @test occursin("resume_supported == false", sprint(showerror, invalid_schema_v2_error))
 
         payloadless_metadata = deepcopy(result.restart_metadata)
         delete!(payloadless_metadata, "state_payload")

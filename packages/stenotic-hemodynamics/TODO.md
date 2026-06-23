@@ -46,6 +46,11 @@ Implemented and committed:
   remains readable, exact metadata requires positive `inlet_umax_cm_s`,
   `state_payload` remains versioned audit metadata, and persisted resume
   remains fail-closed.
+- Lane 10D-1 restart schema boundary: production metadata now writes explicit
+  schema-v1 audit fields, legacy metadata without `restart_schema_version`
+  remains readable, schema-v2 checkpoint-manifest metadata is shape-validated,
+  and `resume_supported=true` remains rejected until durable FE-state
+  serialization and a reconstruction runner land.
 
 ## Non-Negotiable Claim Boundary
 
@@ -92,17 +97,27 @@ Implemented and committed:
   moving-wall/explicit membrane handoff produced non-positive current radii.
   The current patch changes exact-mode fluid solves to stationary no-slip wall
   data on deformed geometry and advances the reduced membrane with a
-  semi-implicit update. A five-step development-mesh gate
-  (`tfinal_s=5e-4`, final snapshot only) now completes, writes solver
-  artifacts, and reports positive current radii and positive tetrahedron
-  orientation. This resolves the immediate early-step P0 failure at smoke/
-  short-development scope only. The full `tfinal_s=1e-2` development gate,
-  preproduction gate, production target, imported-data parity, and moving-wall
-  ALE-fidelity question remain open.
+  semi-implicit update. The full development-mesh gate (`tfinal_s=1e-2`, final
+  snapshot only) now completes, writes solver artifacts, and reports finite
+  fields, positive current radii, positive tetrahedron orientation, direct
+  finite wall-pressure sampling, importer-compatible sidecars, and exact
+  stationary-wall handoff metadata. This resolves the immediate early-step P0
+  failure at development scope. The run used one coupling iteration per step
+  and records bounded, non-converged coupling history, so preproduction,
+  production target, imported-data parity, stronger coupling evidence, and the
+  moving-wall ALE-fidelity question remain open.
+- Lane 10C development-output parity artifact generation ran on the completed
+  `sev23` development bundle against imported case `77`. The observation and
+  summary CSVs were written under the scratch snapshot directory, imported
+  observations loaded, and parity rows remained exact-boundary/status-bounded.
+  Development-scale differences were nonzero (`max_mean_velocity_abs_difference_cm_s
+  ≈ 2.317`, `max_mean_pressure_abs_difference_dyn_cm2 ≈ 813.906`), so this is
+  operator/artifact evidence and discrepancy classification, not production
+  parity.
 - Wall-stability observability now propagates through production dry-run plans
   and `fsi native-status`: dry-run reports the membrane oscillator `dt_s`
-  guard, the mass/stiffness scale, and whether the exact-mode short
-  development gate is the strongest observed evidence. Historical smaller
+  guard, the mass/stiffness scale, and whether the exact-mode development
+  artifact gate is the strongest observed evidence. Historical smaller
   `dt_s` scratch probes alone did not clear the gate: one `dt_s=1e-5` run
   reached the deformed-mesh guard and failed on an inverted/degenerate
   tetrahedron, while a longer `dt_s=1e-5` probe was runtime-inconclusive.
@@ -117,8 +132,11 @@ Implemented and committed:
   step.
 - Lane 10D records the persisted restart/resume design in
   `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`.
-  The design keeps current `state_payload` as audit metadata and keeps resume
-  fail-closed until schema, serialization, runner, and tests land.
+  Schema-v1 audit metadata and schema-v2 checkpoint-manifest reader boundaries
+  are implemented. Current `state_payload` remains audit metadata, and resume
+  remains fail-closed until durable wall/mesh/FE-state serialization, a
+  reconstruction runner, sidecar ownership, and split-run equivalence tests
+  land.
 
 ## Orchestration Rules
 
@@ -156,14 +174,19 @@ Recommended dispatch order:
 1. Start from the completed status-only dry-run matrix. Refresh it only if
    case parameters, guard policy, imported-data roots, or output schedules
    change.
-2. Promote the short-development stability fix into the full `sev23`
-   development gate (`tfinal_s=1e-2`) before rerunning preproduction.
-   Diagnostics must continue to report the failing station, pressure load,
-   radius, mass/stiffness/damping, stability scale, wall-boundary handoff mode,
-   and deformed-mesh cell/volume details when mesh orientation fails.
-3. Re-run the exact-boundary `sev23` development and preproduction gates,
+2. Treat the `sev23` full development gate (`tfinal_s=1e-2`) as completed for
+   artifact readiness, with the explicit caveat that one-iteration coupling
+   was bounded but not converged. Diagnostics must continue to report the
+   failing station, pressure load, radius, mass/stiffness/damping, stability
+   scale, wall-boundary handoff mode, coupling status, and deformed-mesh
+   cell/volume details when mesh orientation fails.
+3. Run the exact-boundary `sev23` preproduction gate in a batch-scale lane,
    validating finite fields, wall displacement, pressure normalization,
-   importer round-trip, sidecars, and observation rows.
+   importer round-trip, sidecars, observation rows, and stronger coupling
+   settings or explicitly bounded coupling status. The development gate took
+   about 25 minutes for 101 steps at 9,600 tetrahedra; preproduction and
+   production target execution must be scheduled as long-running compute work,
+   not assumed interactive.
 4. Execute the full case set at the production target mesh
    `(axial=120, radial=5, angular=32)`, `dt_s=1e-4`, `T=1.0 s`, final snapshot
    only, with `u_max=45 cm/s` and
@@ -187,9 +210,8 @@ while preserving the current fail-closed behavior for legacy audit metadata.
 
 Recommended dispatch order:
 
-1. Define restart schema v2 with state-file manifest, checksums, parent
-   checkpoint linkage, boundary status, pressure gauge/projection status,
-   solver controls, and snapshot cursor fields.
+1. Treat schema-v1 audit metadata and schema-v2 checkpoint-manifest validation
+   as landed. Do not add public exports or CLI resume commands.
 2. Add durable wall, mesh, FE fluid, coupling, and cursor state
    serialization. Node-centered XDMF/HDF5 output bundles are not enough for
    exact solver resume.

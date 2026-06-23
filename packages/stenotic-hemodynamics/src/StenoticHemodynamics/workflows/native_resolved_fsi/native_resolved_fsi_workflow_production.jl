@@ -426,7 +426,7 @@ function native_resolved_fsi_partitioned_wall_stability_status(spec::NativeResol
         known_probe_status =
             spec.case_spec.case_id === :sev23 &&
             isapprox(spec.dt_s, 1.0e-4; atol=0.0, rtol=1.0e-12) ?
-            "known_wall_stability_blocker: sev23 development exact-boundary execution at dt_s=1e-4 failed before writing solver artifacts" :
+            "sev23_development_exact_boundary_artifact_gate_passed_tfinal0p01: finite fields, positive radii, positive tetrahedra, direct wall-pressure sampling, and sidecars observed with stationary wall-on-deformed-geometry handoff; one-iteration coupling remains bounded evidence, not production/preproduction validation" :
             "pressure_load_stability_requires_execution_gate"
         return "$(common_status); $(known_probe_status); dry-run does not certify wall-pressure/load stability"
     end
@@ -1133,11 +1133,16 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "snapshot_outputs" => snapshot_outputs,
             "state_payload" => state_payload,
             "production_spec_digest" => production_spec_digest(local_spec),
+            "restart_schema_version" => 1,
+            "restart_schema_status" => "schema_v1_audit_metadata_only",
+            "checkpoint_manifest" => Any[],
+            "checkpoint_schema_status" => "not_persisted_solver_checkpoint",
             "restart_provenance" => "state_carrying_partitioned",
             "state_carrying_restart" => true,
             "resume_supported" => false,
             "resume_status" => "deferred",
-            "resume_note" => "Production snapshots carry partitioned state within the run; persisted resume from restart metadata remains deferred.",
+            "resume_note" =>
+                "Production snapshots carry partitioned state within the run; schema v1 state_payload is audit metadata only and persisted resume from restart metadata remains deferred.",
         )
     end
 
@@ -1148,6 +1153,7 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
         ready = isfile(restart_metadata_json) &&
                 get(metadata, "restart_provenance", "") == "state_carrying_partitioned" &&
                 get(metadata, "state_carrying_restart", false) == true &&
+                get(metadata, "restart_schema_version", 1) == 1 &&
                 get(metadata, "resume_supported", true) == false &&
                 get(metadata, "resume_status", "") == "deferred" &&
                 get(get(metadata, "state_payload", Dict{String,Any}()), "schema_version", nothing) == 1

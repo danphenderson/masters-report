@@ -3,8 +3,10 @@
 This design describes what must exist before
 `native_resolved_fsi_resume_partitioned_production(...)` can resume a
 partitioned production run from disk. It preserves the current fail-closed
-contract: the existing restart reader may validate metadata, but resume remains
-unsupported until schema, serialization, runner, and validation tests land.
+contract: the existing restart reader validates schema-v1 audit metadata and
+schema-v2 checkpoint-manifest metadata, but resume remains unsupported until
+durable state serialization, a reconstruction runner, and validation tests
+land.
 
 The current `state_payload` is audit metadata only. It proves that one
 state-carrying production run recorded finite wall state at the last saved
@@ -15,18 +17,29 @@ persisted restart support.
 
 Current package-written restart metadata can record:
 
+- `restart_schema_version = 1`;
+- `restart_schema_status = "schema_v1_audit_metadata_only"`;
 - `restart_provenance = "state_carrying_partitioned"`;
 - `resume_supported = false`;
 - `resume_status = "deferred"`;
+- `checkpoint_schema_status = "not_persisted_solver_checkpoint"`;
+- `checkpoint_manifest = []`;
 - snapshot manifest and diagnostics paths;
 - snapshot output bundle paths;
 - boundary mode/status fields;
 - optional versioned `state_payload` with final wall displacement, wall
   velocity, current radius, wall pressure, saved time, and last snapshot index.
 
+The restart reader also recognizes schema-v2 checkpoint-manifest metadata with
+`restart_schema_status = "schema_v2_checkpoint_manifest"` and
+`checkpoint_schema_status = "checkpoint_manifest_present_resume_not_implemented"`.
+That metadata must still carry `resume_supported = false` and
+`resume_status = "deferred"` in the current implementation. The manifest shape
+is validated, but it is not yet a resumable solver checkpoint.
+
 `native_resolved_fsi_resume_partitioned_production(path; kwargs...)` must keep
-validating metadata and then failing closed until this design is implemented
-and tested.
+validating metadata and then failing closed until state serialization, FE-state
+reconstruction, sidecar ownership, and split-run equivalence tests land.
 
 ## Why `state_payload` Is Audit Metadata Only
 
@@ -68,7 +81,8 @@ status:
 - checksums and byte sizes for checkpoint payloads, sidecars, and last
   completed output bundles.
 
-Legacy metadata must remain readable and fail-closed.
+Legacy metadata without `restart_schema_version` is treated as schema v1 and
+must remain readable and fail-closed.
 
 ### Wall State
 
@@ -219,9 +233,13 @@ docs prove it is safe. No default CLI path should trigger production resume.
 
 - legacy audit metadata remains readable and fail-closed;
 - unsupported schema versions fail with clear errors;
-- missing state files, bad checksums, or inconsistent paths fail;
+- schema-v2 checkpoint manifests validate required role/path/checksum/size
+  fields but still fail closed for resume;
+- missing state files, bad checksums, or inconsistent paths fail once durable
+  checkpoint state files are written;
 - exact boundary metadata still requires positive `inlet_umax_cm_s`;
-- `resume_supported=true` is accepted only for the new checkpoint schema.
+- `resume_supported=true` remains rejected until the reconstruction runner
+  lands.
 
 ### State Serialization Tests
 
@@ -256,9 +274,10 @@ docs prove it is safe. No default CLI path should trigger production resume.
 
 ## Follow-Up Lanes
 
-1. **10D-1 metadata schema.** Define schema v2 fields, state-file manifest,
-   checksums, parent checkpoint linkage, and fail-closed migration from current
-   audit metadata.
+1. **10D-1 metadata schema.** Completed for the current boundary. Current
+   production metadata writes explicit schema-v1 audit fields, legacy metadata
+   remains readable, and the reader validates schema-v2 checkpoint-manifest
+   shape while keeping resume fail-closed.
 2. **10D-2 state serialization.** Add durable wall, mesh, FE fluid, coupling,
    and cursor state writers/readers under ignored scratch output roots.
 3. **10D-3 resume runner.** Implement a qualified-internal resume runner that

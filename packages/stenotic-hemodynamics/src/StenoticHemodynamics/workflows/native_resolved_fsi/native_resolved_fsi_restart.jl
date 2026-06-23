@@ -1,3 +1,6 @@
+const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_AUDIT_METADATA_VERSION = 1
+const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_CHECKPOINT_MANIFEST_VERSION = 2
+
 """
     native_resolved_fsi_read_restart_metadata(path)
 
@@ -17,6 +20,8 @@ function native_resolved_fsi_read_restart_metadata(path::AbstractString)
     loaded = load_yaml_file(path_string)
     metadata = native_resolved_fsi_normalize_restart_metadata(loaded)
     metadata_dir = dirname(path_string)
+    restart_schema_version = native_resolved_fsi_restart_schema_version(metadata)
+    native_resolved_fsi_validate_restart_schema_contract(metadata, restart_schema_version)
 
     provenance = native_resolved_fsi_require_restart_metadata_string(metadata, "restart_provenance")
     provenance in ("independent_smoke_backed_snapshots", "state_carrying_partitioned") || throw(ArgumentError(
@@ -101,10 +106,16 @@ implemented and tested.
 function native_resolved_fsi_resume_partitioned_production(path::AbstractString; kwargs...)
     metadata = native_resolved_fsi_read_restart_metadata(path)
     provenance = String(metadata["restart_provenance"])
+    restart_schema_version = get(
+        metadata,
+        "restart_schema_version",
+        NATIVE_RESOLVED_FSI_RESTART_SCHEMA_AUDIT_METADATA_VERSION,
+    )
     throw(ArgumentError(
         "native resolved-FSI persisted resume from restart metadata is unsupported for provenance " *
-        "$(repr(provenance)); state_payload may record state carried within a production run, but " *
-        "resume_supported is false and resume_status is deferred",
+        "$(repr(provenance)) and restart_schema_version $(restart_schema_version); state_payload may record state " *
+        "carried within a production run, but no durable FE-state checkpoint runner is implemented and " *
+        "resume_supported is false with resume_status deferred",
     ))
 end
 
@@ -229,6 +240,80 @@ function native_resolved_fsi_require_restart_metadata_vector(metadata::Dict{Stri
     value isa AbstractVector ||
         throw(ArgumentError("native resolved-FSI restart metadata '$(key)' must be an array"))
     return value
+end
+
+function native_resolved_fsi_restart_schema_version(metadata::Dict{String,Any})
+    haskey(metadata, "restart_schema_version") || return NATIVE_RESOLVED_FSI_RESTART_SCHEMA_AUDIT_METADATA_VERSION
+    version = native_resolved_fsi_require_restart_metadata_positive_integer(metadata, "restart_schema_version")
+    version in (
+        NATIVE_RESOLVED_FSI_RESTART_SCHEMA_AUDIT_METADATA_VERSION,
+        NATIVE_RESOLVED_FSI_RESTART_SCHEMA_CHECKPOINT_MANIFEST_VERSION,
+    ) || throw(ArgumentError(
+        "native resolved-FSI restart metadata restart_schema_version must be 1 or 2; got $(repr(version))",
+    ))
+    return version
+end
+
+function native_resolved_fsi_validate_restart_schema_contract(
+    metadata::Dict{String,Any},
+    restart_schema_version::Int,
+)
+    if restart_schema_version == NATIVE_RESOLVED_FSI_RESTART_SCHEMA_AUDIT_METADATA_VERSION
+        if haskey(metadata, "restart_schema_status")
+            native_resolved_fsi_require_restart_metadata_value(
+                metadata,
+                "restart_schema_status",
+                "schema_v1_audit_metadata_only",
+            )
+        end
+        if haskey(metadata, "checkpoint_schema_status")
+            native_resolved_fsi_require_restart_metadata_value(
+                metadata,
+                "checkpoint_schema_status",
+                "not_persisted_solver_checkpoint",
+            )
+        end
+        if haskey(metadata, "checkpoint_manifest")
+            checkpoint_manifest = native_resolved_fsi_require_restart_metadata_vector(metadata, "checkpoint_manifest")
+            isempty(checkpoint_manifest) || throw(ArgumentError(
+                "native resolved-FSI restart metadata schema v1 checkpoint_manifest must be empty",
+            ))
+        end
+        return nothing
+    end
+
+    native_resolved_fsi_require_restart_metadata_value(
+        metadata,
+        "restart_schema_status",
+        "schema_v2_checkpoint_manifest",
+    )
+    native_resolved_fsi_require_restart_metadata_value(
+        metadata,
+        "checkpoint_schema_status",
+        "checkpoint_manifest_present_resume_not_implemented",
+    )
+    checkpoint_manifest = native_resolved_fsi_require_restart_metadata_vector(metadata, "checkpoint_manifest")
+    isempty(checkpoint_manifest) && throw(ArgumentError(
+        "native resolved-FSI restart metadata schema v2 requires a non-empty checkpoint_manifest",
+    ))
+    for (index, checkpoint_entry) in enumerate(checkpoint_manifest)
+        context = "native resolved-FSI restart metadata checkpoint_manifest[$(index)]"
+        checkpoint_entry isa Dict{String,Any} ||
+            throw(ArgumentError("$(context) must be a mapping"))
+        native_resolved_fsi_require_restart_metadata_string(checkpoint_entry, "role"; context=context)
+        native_resolved_fsi_require_restart_metadata_string(checkpoint_entry, "path"; context=context)
+        sha256 = native_resolved_fsi_require_restart_metadata_string(checkpoint_entry, "sha256"; context=context)
+        length(sha256) == 64 || throw(ArgumentError("$(context) 'sha256' must be a 64-character hex digest"))
+        all(character -> ('0' <= character <= '9') || ('a' <= character <= 'f'), sha256) ||
+            throw(ArgumentError("$(context) 'sha256' must be lowercase hexadecimal"))
+        byte_size = native_resolved_fsi_require_restart_metadata_finite_real(
+            checkpoint_entry,
+            "byte_size";
+            context=context,
+        )
+        byte_size > 0.0 || throw(ArgumentError("$(context) 'byte_size' must be positive"))
+    end
+    return nothing
 end
 
 const NATIVE_RESOLVED_FSI_RESTART_BOUNDARY_STATUS_KEYS = (

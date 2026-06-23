@@ -42,13 +42,16 @@ development probes reached the partitioned production path for `sev23` at
 before writing solver artifacts because the moving-wall/explicit membrane
 handoff produced non-positive current radii. The current reduced path now uses
 stationary no-slip wall solves on deformed geometry for exact inlet/outlet
-mode and advances the reduced membrane with a semi-implicit update; a five-step
-development-mesh gate (`tfinal_s=5e-4`, final snapshot only) completed, wrote
-solver artifacts, and reported positive current radii and positive tetrahedron
-orientation. This is short-development implementation evidence only, not
-completed Section 4.1 numerical reproduction, not production-scale native
-generation, not imported-data parity, and not monolithic ALE or moving-wall FSI
-validation. Package dry-run/status surfaces expose `wall_stability_status`;
+mode and advances the reduced membrane with a semi-implicit update; the full
+development-mesh gate (`tfinal_s=1e-2`, final snapshot only) completed, wrote
+solver artifacts, and reported finite fields, positive current radii, positive
+tetrahedron orientation, direct finite wall-pressure sampling, and exact
+stationary-wall handoff metadata. The run used one coupling iteration per step
+and records bounded but non-converged coupling history. This is development
+artifact-readiness evidence only, not completed Section 4.1 numerical
+reproduction, not production-scale native generation, not imported-data parity,
+and not monolithic ALE or moving-wall FSI validation. Package dry-run/status
+surfaces expose `wall_stability_status`;
 this is diagnostic/status evidence, not completed native generation. Package
 diagnostics also expose `pressure_nullspace_status` for the active Gridap
 zero-mean pressure constraint; scratch probing showed this is pressure-gauge
@@ -58,9 +61,12 @@ inversion before wall-state mutation and reports the semi-implicit wall
 increment used by the current reduced update. Package
 restart/resume planning now lives in
 `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`;
-that design keeps current `state_payload` as audit metadata and keeps persisted
-resume fail-closed until schema, serialization, runner, and validation tests
-land. Recent package scalar-helper cleanup preserves local `Float32`/`BigFloat`
+current package metadata now writes explicit schema-v1 audit fields and the
+reader validates schema-v2 checkpoint-manifest shape, but current
+`state_payload` remains audit metadata and persisted resume remains fail-closed
+until durable state serialization, a reconstruction runner, sidecar ownership,
+and validation tests land. Recent package scalar-helper cleanup preserves local
+`Float32`/`BigFloat`
 sampling values where safe, but production arrays, Gridap solve surfaces, and
 XDMF/HDF5 schemas remain `Float64`-oriented.
 
@@ -147,7 +153,7 @@ closeout, run this active-manuscript scan before editing prose or syncing the
 PDF:
 
 ```sh
-rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|pressure_nullspace_status|pressure_gauge_status|wall-pressure|pressure-load|plausibility gate|inlet_umax|fsi native-status|native-status|observation-artifact|workflow|wall stability|wall_stability_status|non-positive|stationary no-slip|stationary_wall_on_deformed_geometry|semi-implicit|moving-wall|ALE|short-development|warm start|under-relaxation|under_relaxation|zero-mean|dt_s=1e-5|smaller-dt_s|deformed-mesh|orientation failure|runtime-inconclusive" \
+rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|pressure_nullspace_status|pressure_gauge_status|wall-pressure|pressure-load|plausibility gate|inlet_umax|fsi native-status|native-status|observation-artifact|workflow|wall stability|wall_stability_status|non-positive|stationary no-slip|stationary_wall_on_deformed_geometry|semi-implicit|moving-wall|ALE|development artifact|bounded coupling|coupling_converged|short-development|warm start|under-relaxation|under_relaxation|zero-mean|dt_s=1e-5|smaller-dt_s|deformed-mesh|orientation failure|runtime-inconclusive" \
   report/sections report/appendices report/frontmatter report/final-report.tex -g '*.tex' || true
 ```
 
@@ -160,8 +166,9 @@ later, it must preserve these boundaries:
   writing importer-compatible velocity/pressure/displacement bundles plus
   manifest, diagnostics, and restart metadata;
 - restart metadata may include versioned `state_payload` audit data and
-  boundary/status fields, including `inlet_umax_cm_s`, but persisted
-  restart/resume remains unsupported and fail-closed;
+  boundary/status fields, including `inlet_umax_cm_s`; schema-v2 checkpoint
+  manifests may be validated by the reader, but persisted restart/resume
+  remains unsupported and fail-closed;
 - the low-level native Gridap Navier--Stokes adapter has smoke-tested exact
   Section 4.1 boundary-mode support through
   `poiseuille_inlet_zero_outlet_stress_section41`;
@@ -196,15 +203,16 @@ later, it must preserve these boundaries:
 - the current `sev23`/`sev40`/`sev50` dry-run matrix is status-only planning
   evidence and must not be described as production execution or generated
   Section 4.1 data;
-- short-development exact-mode `sev23` evidence may be described only as a
-  five-step development-mesh gate with stationary no-slip wall solves on
-  deformed geometry and a semi-implicit reduced membrane update; it must not
-  be described as full development, preproduction, production-scale native
-  generation, imported-data parity, monolithic ALE, or paper-grade moving-wall
-  FSI validation;
-- the full `tfinal_s=1e-2` `sev23` development production-path run remains
-  the next package gate and must not be described as completed native
-  generation until it passes;
+- development exact-mode `sev23` evidence may be described only as a
+  development-mesh artifact-readiness gate with stationary no-slip wall solves
+  on deformed geometry, a semi-implicit reduced membrane update, finite
+  fields, positive radii, positive tetrahedra, direct wall-pressure sampling,
+  and bounded one-iteration coupling status; it must not be described as
+  preproduction, production-scale native generation, imported-data parity,
+  monolithic ALE, paper-grade moving-wall FSI validation, or completed
+  Section 4.1 reproduction;
+- preproduction and production-scale `sev23` gates remain package work and
+  must not be described as completed native generation until they pass;
 - zero-mean pressure, fixed-wall warm start, and under-relaxation probes are
   diagnostic evidence for the blocker, not accepted remediation and not
   generated Section 4.1 evidence;
@@ -216,7 +224,8 @@ later, it must preserve these boundaries:
   gate and must not be presented as completed Section 4.1 native generation;
 - restart/resume design now lives in
   `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`;
-  it is future implementation guidance, not active persisted resume support;
+  schema-v1 audit metadata and schema-v2 checkpoint-manifest validation are
+  package-side implementation details, not active persisted resume support;
 - scalar-helper genericity changes preserve local `Float32`/`BigFloat` sampling
   values where safe, but manuscript text must not imply the native resolved-FSI
   Gridap/production/XDMF-HDF5 stack is type-generic.
