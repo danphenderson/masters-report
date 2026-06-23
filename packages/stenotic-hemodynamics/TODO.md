@@ -35,6 +35,9 @@ Implemented and committed:
 - `df95c58`: follow-up scalar helper audit extended the same boundary to outlet
   pressure gauging and wall-pressure plane sampling, with focused
   `Float32`/`BigFloat` tests.
+- `b8451e4` / `3f1b7c7`: wall-stability and pressure-load diagnostics now
+  surface through dry-run/status and fail fast before mutating wall state when
+  a pressure load would invert a radius.
 - Lane 10E CLI follow-up: top-level `fsi` help now describes membrane-FSI
   validation and native resolved-FSI status workflows, while `fsi
   native-status` remains dry-run/status-only and cannot trigger production
@@ -55,6 +58,9 @@ Implemented and committed:
 - `:poiseuille_inlet_zero_outlet_stress_section41` remains smoke-scale
   exact-boundary/operator-readiness evidence until production-scale validation
   and imported-data parity evidence land.
+- The current exact-boundary reduced partitioned path uses stationary no-slip
+  wall solves on deformed geometry, not a monolithic ALE or strong moving-wall
+  fluid boundary claim.
 - Post-sampling outlet pressure normalization is not a Gridap pressure
   nullspace constraint.
 - Restart `state_payload` is audit metadata only; persisted restart/resume is
@@ -80,32 +86,35 @@ Implemented and committed:
   observed for `sev23` and `sev40`; `sev50` remains expected-skip unless a
   bundle is explicitly supplied. This did not run production or write solver
   outputs.
-- Lane 10C development execution probe reached the exact-boundary partitioned
-  production path for `sev23` at `(40, 3, 16)`, `dt_s=1e-4`,
-  `tfinal_s=1e-2`, then failed closed at time step 2 before writing solver
-  artifacts: the explicit wall update produced a non-positive current radius.
-  The blocker is wall-state stability/pressure-load scaling, not boundary-mode
-  selection, dry-run guard policy, importer schema, or output volume.
-  Scratch probes showed that a Gridap zero-mean pressure constraint does not
-  change the scale; a short fixed-wall exact-boundary warm start plus
-  `coupling_under_relaxation=0.1` reaches two development-mesh steps but still
-  fails at step 3. Do not treat warm start or relaxation alone as the full
-  remediation.
+- Lane 10C development execution probes reached the exact-boundary partitioned
+  production path for `sev23` at `(40, 3, 16)`, `dt_s=1e-4`. Earlier probes
+  failed closed at time steps 2-4 before writing solver artifacts because the
+  moving-wall/explicit membrane handoff produced non-positive current radii.
+  The current patch changes exact-mode fluid solves to stationary no-slip wall
+  data on deformed geometry and advances the reduced membrane with a
+  semi-implicit update. A five-step development-mesh gate
+  (`tfinal_s=5e-4`, final snapshot only) now completes, writes solver
+  artifacts, and reports positive current radii and positive tetrahedron
+  orientation. This resolves the immediate early-step P0 failure at smoke/
+  short-development scope only. The full `tfinal_s=1e-2` development gate,
+  preproduction gate, production target, imported-data parity, and moving-wall
+  ALE-fidelity question remain open.
 - Wall-stability observability now propagates through production dry-run plans
-  and `fsi native-status`: dry-run reports the explicit membrane oscillator
-  `dt_s` guard, the mass/stiffness scale, and the known `sev23` exact-boundary
-  `dt_s=1e-4` blocker. A short scratch probe at `dt_s=1e-5` reached the
-  deformed-mesh guard and failed on an inverted/degenerate tetrahedron, while a
-  longer `dt_s=1e-5` probe was runtime-inconclusive. Smaller `dt_s` alone is
-  not yet a validated remediation.
+  and `fsi native-status`: dry-run reports the membrane oscillator `dt_s`
+  guard, the mass/stiffness scale, and whether the exact-mode short
+  development gate is the strongest observed evidence. Historical smaller
+  `dt_s` scratch probes alone did not clear the gate: one `dt_s=1e-5` run
+  reached the deformed-mesh guard and failed on an inverted/degenerate
+  tetrahedron, while a longer `dt_s=1e-5` probe was runtime-inconclusive.
 - The partitioned Navier-Stokes pressure space now uses a Gridap zero-mean
   pressure constraint and records `pressure_nullspace_status` through dry-run,
   `fsi native-status`, diagnostics, and restart metadata. Scratch probing
   showed this is pressure-gauge hygiene only: it did not reduce the exact-mode
   wall-pressure/load scale and is not accepted as wall-stability remediation.
 - The partitioned wall update now has a fail-fast pressure-load plausibility
-  gate that predicts radius inversion before mutating wall state. This improves
-  blocker classification but does not complete the `sev23` development gate.
+  gate that predicts radius inversion before mutating wall state and reports
+  the semi-implicit displacement increment used by the current reduced wall
+  step.
 - Lane 10D records the persisted restart/resume design in
   `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`.
   The design keeps current `state_payload` as audit metadata and keeps resume
@@ -147,15 +156,11 @@ Recommended dispatch order:
 1. Start from the completed status-only dry-run matrix. Refresh it only if
    case parameters, guard policy, imported-data roots, or output schedules
    change.
-2. Resolve the `sev23` development wall-stability blocker before rerunning
-   development/preproduction. Candidate remediations must be scientific, not
-   clipping: compatible exact-boundary initialization or inflow ramping,
-   moving-wall boundary handoff stabilization, semi-implicit/implicit membrane
-   update, coupling under-relaxation feasibility that preserves positive
-   relaxed radii and mesh orientation, a justified smaller `dt_s`, or a
-   pressure/load stabilization path. Diagnostics must report the failing
-   station, pressure load, radius, mass/stiffness/damping, stability scale, and
-   deformed-mesh cell/volume details when mesh orientation fails.
+2. Promote the short-development stability fix into the full `sev23`
+   development gate (`tfinal_s=1e-2`) before rerunning preproduction.
+   Diagnostics must continue to report the failing station, pressure load,
+   radius, mass/stiffness/damping, stability scale, wall-boundary handoff mode,
+   and deformed-mesh cell/volume details when mesh orientation fails.
 3. Re-run the exact-boundary `sev23` development and preproduction gates,
    validating finite fields, wall displacement, pressure normalization,
    importer round-trip, sidecars, and observation rows.

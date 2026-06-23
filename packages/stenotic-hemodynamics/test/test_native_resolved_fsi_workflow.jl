@@ -863,13 +863,17 @@ end
         @test exact_production_result.restart_status.ready
         @test exact_production_result.smoke_result.inlet_outlet_boundary_mode ==
               :poiseuille_inlet_zero_outlet_stress_section41
+        @test exact_production_result.smoke_result.fluid_wall_boundary_mode ==
+              :stationary_wall_on_deformed_geometry
         @test exact_production_result.smoke_result.section41_boundary_status.ready
         @test exact_production_result.smoke_result.pressure_projection_fallback_count == 0
+        @test occursin("stationary no-slip wall", exact_production_result.method_status.status)
         @test occursin("exact Section 4.1 inlet/outlet boundary mode", exact_production_result.method_status.status)
         @test occursin("pressure-drop fallback disabled", exact_production_result.method_status.status)
         @test occursin("paper-grade Section 4.1 parity", exact_production_result.method_status.status)
         @test occursin("remain out of scope", exact_production_result.method_status.status)
         exact_diagnostic_row = only(exact_production_result.diagnostic_rows)
+        @test exact_diagnostic_row.fluid_wall_boundary_mode == "stationary_wall_on_deformed_geometry"
         @test exact_diagnostic_row.boundary_mode == "poiseuille_inlet_zero_outlet_stress_section41"
         @test exact_diagnostic_row.boundary_mode_class == "exact_section41"
         @test exact_diagnostic_row.inlet_condition_status == "poiseuille_profile_umax_45_cm_s"
@@ -884,6 +888,10 @@ end
         @test occursin("exact_section41_boundary_mode_selected_smoke_validated", exact_diagnostic_row.boundary_equivalence_status)
         @test exact_diagnostic_row.pressure_projection_fallback_count == 0
         @test exact_production_result.restart_metadata["inlet_umax_cm_s"] ≈ 45.0
+        @test exact_production_result.restart_metadata["fluid_wall_boundary_mode"] ==
+              "stationary_wall_on_deformed_geometry"
+        @test exact_production_result.restart_metadata["wall_velocity_fluid_bc_status"] ==
+              "stationary_wall_on_deformed_geometry_for_exact_inlet_outlet_mode"
         @test exact_production_result.restart_metadata["boundary_mode"] ==
               "poiseuille_inlet_zero_outlet_stress_section41"
         @test occursin(

@@ -398,7 +398,7 @@ end
     @test pressure_load_error isa ArgumentError
     @test occursin("pressure-load plausibility gate", sprint(showerror, pressure_load_error))
     @test occursin("predicted_radius_cm", sprint(showerror, pressure_load_error))
-    @test occursin("explicit_pressure_displacement_increment_cm", sprint(showerror, pressure_load_error))
+    @test occursin("semi_implicit_displacement_increment_cm", sprint(showerror, pressure_load_error))
     @test displacement_probe == [0.0, 0.0, 0.0]
     @test velocity_probe == [0.0, 0.0, 0.0]
     @test_throws ArgumentError NativeResolvedFSIPartitionedSmokeSpec(coupling_iteration_count=0)
@@ -538,7 +538,8 @@ end
         @test occursin("Gridap zero-mean pressure constraint", exact_result.section41_boundary_status.status)
         @test occursin("no pressure-drop weak inlet/outlet loading", exact_result.section41_boundary_status.status)
         @test exact_result.pressure_projection_fallback_count == 0
-        @test exact_result.fluid_wall_boundary_mode == :prescribed_radial_wall_velocity
+        @test exact_result.fluid_wall_boundary_mode == :stationary_wall_on_deformed_geometry
+        @test occursin("stationary no-slip wall", exact_result.field_status.status)
         @test all(isfinite, exact_result.loaded_velocity)
         @test all(isfinite, exact_result.loaded_pressure)
         @test all(isfinite, exact_result.loaded_displacement)

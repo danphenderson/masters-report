@@ -9,6 +9,8 @@ The current implementation has:
 
 - exact Section 4.1 inlet/outlet boundary threading in the low-level Gridap
   path and tiny partitioned production smoke harness;
+- exact-mode reduced partitioned solves that use stationary no-slip wall data
+  on deformed geometry, with a semi-implicit reduced membrane update;
 - status-only CLI reporting through `fsi native-status`;
 - state-carrying in-run production sidecars and restart audit metadata;
 - local native/imported observation rows and parity summary surfaces.
@@ -16,6 +18,8 @@ The current implementation has:
 The current implementation does not yet have:
 
 - production-scale exact-boundary native generation for all Section 4.1 cases;
+- monolithic ALE FSI or a validated moving-wall fluid boundary handoff for
+  paper-grade FSI fidelity;
 - validated imported-data parity for the exact-boundary generated outputs;
 - persisted restart/resume;
 - paper-grade Section 4.1 numerical reproduction.
@@ -132,6 +136,18 @@ Pressure handling gates:
 - the Gridap Navier-Stokes solve must record its pressure-nullspace treatment
   separately from the post-sampling outlet normalization used for exported
   fields and wall-pressure profiles.
+
+Current reduced-partitioned wall-boundary evidence:
+
+- exact inlet/outlet mode currently selects stationary no-slip wall solves on
+  the deformed geometry to avoid feeding reduced membrane wall velocity back
+  into the fluid Dirichlet data;
+- pressure-drop smoke mode retains the prescribed radial wall-velocity
+  Dirichlet handoff;
+- this distinction must remain visible in diagnostics and restart metadata;
+- stationary-wall-on-deformed-geometry evidence is a stability step for the
+  current reduced partitioned implementation, not monolithic ALE or paper-grade
+  moving-wall FSI validation.
 
 ## Wall Parameters
 
@@ -320,22 +336,22 @@ Operational policy for non-smoke runs:
 1. **10C-impl1: production-scale dry-run matrix.** Completed as status-only
    planning evidence. The dry-run matrix confirmed guard flags and output paths
    without running production or writing solver artifacts.
-2. **10C-impl2a: wall-stability remediation.** Current `sev23` development
-   execution reaches the exact-boundary partitioned production path, then fails
-   closed before output artifacts. The known blocker is wall-state
-   stability/pressure-load scaling, with additional short-probe evidence that
-   smaller `dt_s` alone has not cleared the gate because a `dt_s=1e-5`
-   scratch run reached a deformed-mesh orientation failure. Remediation must
-   preserve positive relaxed radii and positive tetrahedron orientation without
-   clipping and must keep `wall_stability_status` visible in dry-run/status
-   surfaces. Gridap zero-mean pressure is now active and auditable as
-   pressure-nullspace hygiene, but scratch probing showed it does not resolve
-   the wall-load scale. A fail-fast pressure-load plausibility gate now
-   classifies predicted radius inversion before wall-state mutation.
-3. **10C-impl2b: development/preproduction execution.** After remediation,
-   run exact-boundary
-   `sev23` at development then preproduction scale, exercising finite fields,
-   pressure normalization, importer round-trip, and sidecars.
+2. **10C-impl2a: short-development wall-stability remediation.** Completed at
+   short-development scope. Earlier exact-mode probes failed closed before
+   output artifacts because the moving-wall/explicit membrane handoff produced
+   non-positive current radii. The current reduced path uses stationary
+   no-slip wall solves on deformed geometry for exact inlet/outlet mode,
+   advances the membrane with a semi-implicit update, and passes a five-step
+   `sev23` development-mesh gate at `(40, 3, 16)`, `dt_s=1e-4`,
+   `tfinal_s=5e-4`, writing solver artifacts with positive current radii and
+   positive tetrahedron orientation. This is not full development or
+   production evidence.
+3. **10C-impl2b: full development/preproduction execution.** Run
+   exact-boundary `sev23` at the full development target (`tfinal_s=1e-2`)
+   and then preproduction scale, exercising finite fields, pressure
+   normalization, importer round-trip, sidecars, and observation rows. Keep
+   `wall_stability_status`, `pressure_nullspace_status`, fluid wall-boundary
+   handoff status, and pressure-load plausibility diagnostics visible.
 4. **10C-impl3: full case-set production generation.** Run `sev23`, `sev40`,
    and `sev50` at `(120, 5, 32)`, `dt_s=1e-4`, `T=1.0`, final snapshot only.
 5. **10C-impl4: imported-data parity.** Pair generated native outputs with

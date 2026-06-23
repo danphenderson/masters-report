@@ -657,6 +657,16 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
     restart_metadata_path(local_spec::NativeResolvedFSIPartitionedProductionSpec) =
         joinpath(default_native_resolved_fsi_partitioned_production_output_dir(local_spec), "restart_metadata.json")
 
+    function wall_velocity_fluid_bc_status(fluid_wall_boundary_mode::Symbol)
+        if fluid_wall_boundary_mode === NATIVE_RESOLVED_FSI_PARTITIONED_EXACT_FLUID_WALL_BOUNDARY_MODE
+            return "stationary_wall_on_deformed_geometry_for_exact_inlet_outlet_mode"
+        end
+        if fluid_wall_boundary_mode === NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_FLUID_WALL_BOUNDARY_MODE
+            return "prescribed_radial_wall_velocity_on_deformed_geometry"
+        end
+        return "unknown_wall_boundary_handoff"
+    end
+
     function production_spec_digest(local_spec::NativeResolvedFSIPartitionedProductionSpec)
         resolution = local_spec.resolution
         parts = String[
@@ -1096,7 +1106,7 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "coupling_converged" => final_smoke.coupling_converged,
             "coupling_residual_history" => coupling_residual_history,
             "fluid_wall_boundary_mode" => string(final_smoke.fluid_wall_boundary_mode),
-            "wall_velocity_fluid_bc_status" => "prescribed_radial_wall_velocity_on_deformed_geometry",
+            "wall_velocity_fluid_bc_status" => wall_velocity_fluid_bc_status(final_smoke.fluid_wall_boundary_mode),
             "inlet_umax_cm_s" => local_spec.inlet_umax_cm_s,
             "boundary_mode" => final_boundary_status.boundary_mode,
             "boundary_mode_class" => final_boundary_status.boundary_mode_class,
@@ -1175,9 +1185,7 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
                     snapshot.smoke_result.field_status.ready &&
                     snapshot.smoke_result.post_update_fluid_refresh &&
                     snapshot.provenance == "state_carrying_partitioned" &&
-                    snapshot.smoke_result.fluid_model === NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_STAGE &&
-                    snapshot.smoke_result.fluid_wall_boundary_mode ===
-                        NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_FLUID_WALL_BOUNDARY_MODE,
+                    snapshot.smoke_result.fluid_model === NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_STAGE,
             snapshot_results,
         )
         exact_boundary_mode =
@@ -1186,9 +1194,9 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
                 snapshot -> snapshot.smoke_result.inlet_outlet_boundary_mode ===
                             :poiseuille_inlet_zero_outlet_stress_section41,
                 snapshot_results,
-            )
+        )
         ready_status = if exact_boundary_mode
-            "production snapshot harness advanced one state-carrying partitioned solve through each requested time with prescribed radial wall-velocity Dirichlet data on deformed geometry and exact Section 4.1 inlet/outlet boundary mode; direct finite wall-pressure sampling was required with pressure-drop fallback disabled; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, paper-grade Section 4.1 parity, and monolithic ALE coupling remain out of scope"
+            "production snapshot harness advanced one state-carrying partitioned solve through each requested time with stationary no-slip wall solves on deformed geometry and exact Section 4.1 inlet/outlet boundary mode; direct finite wall-pressure sampling was required with pressure-drop fallback disabled; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, paper-grade Section 4.1 parity, and monolithic ALE coupling remain out of scope"
         else
             "production snapshot harness advanced one state-carrying partitioned solve through each requested time with prescribed radial wall-velocity Dirichlet data on deformed geometry; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, validated Section 4.1 parity, and monolithic ALE coupling remain out of scope"
         end

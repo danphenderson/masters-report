@@ -36,26 +36,26 @@ roadmap now records production-scale Section 4.1 validation planning in
 `public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`;
 that document is a roadmap, not completed reproduction evidence. A status-only
 dry-run matrix for `sev23`, `sev40`, and `sev50` now exists as package planning
-evidence; it did not execute production or write solver outputs. A first
-`sev23` development execution probe reached the exact-boundary partitioned
-production path, then failed closed at time step 2 before writing solver
-artifacts because the explicit wall update produced a non-positive current
-radius. This is a wall-state stability/pressure-load blocker, not Section 4.1
-reproduction evidence and not a boundary-mode success claim. A Gridap zero-mean
-pressure constraint did not change the pressure scale; a short fixed-wall
-exact-boundary warm start plus `coupling_under_relaxation=0.1` reached two
-development-mesh steps but still failed at step 3, so warm start or relaxation
-alone is not accepted remediation. Package dry-run/status surfaces now expose a
-`wall_stability_status` field; this is diagnostic status, not completed native
-generation. A short `dt_s=1e-5` scratch probe reached the deformed-mesh guard
-and failed on an inverted/degenerate tetrahedron, while a longer `dt_s=1e-5`
-probe was runtime-inconclusive, so smaller time steps alone are not accepted
-remediation. Package diagnostics also expose `pressure_nullspace_status` for
-the active Gridap zero-mean pressure constraint; scratch probing showed this is
-pressure-gauge hygiene only and does not resolve the exact-boundary wall-load
-scale. A fail-fast pressure-load plausibility gate now classifies predicted
-radius inversion before wall-state mutation, but this remains blocker
-diagnostics rather than completed native generation. Package
+evidence; it did not execute production or write solver outputs. Exact-mode
+development probes reached the partitioned production path for `sev23` at
+`(40, 3, 16)`, `dt_s=1e-4`. Earlier probes failed closed at time steps 2--4
+before writing solver artifacts because the moving-wall/explicit membrane
+handoff produced non-positive current radii. The current reduced path now uses
+stationary no-slip wall solves on deformed geometry for exact inlet/outlet
+mode and advances the reduced membrane with a semi-implicit update; a five-step
+development-mesh gate (`tfinal_s=5e-4`, final snapshot only) completed, wrote
+solver artifacts, and reported positive current radii and positive tetrahedron
+orientation. This is short-development implementation evidence only, not
+completed Section 4.1 numerical reproduction, not production-scale native
+generation, not imported-data parity, and not monolithic ALE or moving-wall FSI
+validation. Package dry-run/status surfaces expose `wall_stability_status`;
+this is diagnostic/status evidence, not completed native generation. Package
+diagnostics also expose `pressure_nullspace_status` for the active Gridap
+zero-mean pressure constraint; scratch probing showed this is pressure-gauge
+hygiene only and does not resolve the exact-boundary wall-load scale by itself.
+A fail-fast pressure-load plausibility gate now classifies predicted radius
+inversion before wall-state mutation and reports the semi-implicit wall
+increment used by the current reduced update. Package
 restart/resume planning now lives in
 `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`;
 that design keeps current `state_payload` as audit metadata and keeps persisted
@@ -147,7 +147,7 @@ closeout, run this active-manuscript scan before editing prose or syncing the
 PDF:
 
 ```sh
-rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|pressure_nullspace_status|pressure_gauge_status|wall-pressure|pressure-load|plausibility gate|inlet_umax|fsi native-status|native-status|observation-artifact|workflow|wall stability|wall_stability_status|non-positive|warm start|under-relaxation|under_relaxation|zero-mean|dt_s=1e-5|smaller-dt_s|deformed-mesh|orientation failure|runtime-inconclusive" \
+rg -n "native resolved-FSI|native resolved FSI|native_resolved|Section 4\\.1|Poiseuille|zero-outlet|zero outlet|pressure_drop_weak_inlet_outlet_gauge_smoke|poiseuille_inlet_zero_outlet_stress_section41|boundary mode|boundary contract|paper-grade|production execution|dry-run|state_payload|persisted restart|persisted resume|outlet-gauge|pressure-nullspace|nullspace|pressure_nullspace_status|pressure_gauge_status|wall-pressure|pressure-load|plausibility gate|inlet_umax|fsi native-status|native-status|observation-artifact|workflow|wall stability|wall_stability_status|non-positive|stationary no-slip|stationary_wall_on_deformed_geometry|semi-implicit|moving-wall|ALE|short-development|warm start|under-relaxation|under_relaxation|zero-mean|dt_s=1e-5|smaller-dt_s|deformed-mesh|orientation failure|runtime-inconclusive" \
   report/sections report/appendices report/frontmatter report/final-report.tex -g '*.tex' || true
 ```
 
@@ -196,9 +196,15 @@ later, it must preserve these boundaries:
 - the current `sev23`/`sev40`/`sev50` dry-run matrix is status-only planning
   evidence and must not be described as production execution or generated
   Section 4.1 data;
-- the attempted `sev23` development production-path run is currently blocked
-  by explicit wall-update stability/pressure-load failure at time step 2 and
-  must not be described as completed native generation;
+- short-development exact-mode `sev23` evidence may be described only as a
+  five-step development-mesh gate with stationary no-slip wall solves on
+  deformed geometry and a semi-implicit reduced membrane update; it must not
+  be described as full development, preproduction, production-scale native
+  generation, imported-data parity, monolithic ALE, or paper-grade moving-wall
+  FSI validation;
+- the full `tfinal_s=1e-2` `sev23` development production-path run remains
+  the next package gate and must not be described as completed native
+  generation until it passes;
 - zero-mean pressure, fixed-wall warm start, and under-relaxation probes are
   diagnostic evidence for the blocker, not accepted remediation and not
   generated Section 4.1 evidence;

@@ -14,6 +14,7 @@ const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_DEFAULT_WALL_DENSITY_G_CM3 = 1.0
 const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_DEFAULT_WALL_DAMPING_G_CM2_S = 0.0
 const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_STAGE = :partitioned_prescribed_wall_velocity_iterated_wall_output_smoke
 const NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_FLUID_WALL_BOUNDARY_MODE = :prescribed_radial_wall_velocity
+const NATIVE_RESOLVED_FSI_PARTITIONED_EXACT_FLUID_WALL_BOUNDARY_MODE = :stationary_wall_on_deformed_geometry
 const NATIVE_RESOLVED_FSI_INLET_OUTLET_BOUNDARY_MODES = (
     :pressure_drop_weak_inlet_outlet_gauge_smoke,
     :poiseuille_inlet_zero_outlet_stress_section41,

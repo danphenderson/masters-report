@@ -230,15 +230,15 @@ function native_resolved_fsi_partitioned_wall_state!(
 )
     all(isfinite, wall_pressure_dyn_cm2) ||
         throw(ArgumentError("native resolved-FSI partitioned smoke wall pressure must be finite"))
-    acceleration_cm_s2 =
-        (wall_pressure_dyn_cm2 .- wall_damping_g_cm2_s .* wall_velocity_cm_s .- wall_stiffness_c0_dyn_cm3 .* wall_displacement_cm) ./
-        wall_mass_g_cm2
-    clamp_membrane_endpoints!(acceleration_cm_s2)
-    predicted_displacement_cm =
-        wall_displacement_cm .+ dt_step_s .* wall_velocity_cm_s .+ 0.5 * dt_step_s^2 .* acceleration_cm_s2
-    clamp_membrane_endpoints!(predicted_displacement_cm)
-    predicted_velocity_cm_s = wall_velocity_cm_s .+ dt_step_s .* acceleration_cm_s2
+    denominator = wall_mass_g_cm2 + dt_step_s * wall_damping_g_cm2_s + dt_step_s^2 * wall_stiffness_c0_dyn_cm3
+    denominator > 0.0 ||
+        throw(ArgumentError("native resolved-FSI partitioned smoke semi-implicit wall denominator must be positive"))
+    predicted_velocity_cm_s =
+        (wall_mass_g_cm2 .* wall_velocity_cm_s .+
+         dt_step_s .* (wall_pressure_dyn_cm2 .- wall_stiffness_c0_dyn_cm3 .* wall_displacement_cm)) ./ denominator
     clamp_membrane_endpoints!(predicted_velocity_cm_s)
+    predicted_displacement_cm = wall_displacement_cm .+ dt_step_s .* predicted_velocity_cm_s
+    clamp_membrane_endpoints!(predicted_displacement_cm)
     predicted_radii_cm = reference_radii_cm .+ predicted_displacement_cm
     if !all(isfinite, predicted_displacement_cm) ||
        !all(isfinite, predicted_velocity_cm_s) ||
@@ -250,8 +250,8 @@ function native_resolved_fsi_partitioned_wall_state!(
         max_abs_wall_pressure_dyn_cm2 = maximum(abs, wall_pressure_dyn_cm2)
         static_pressure_displacement_cm = wall_stiffness_c0_dyn_cm3 > 0.0 ?
                                           wall_pressure_dyn_cm2[min_radius_index] / wall_stiffness_c0_dyn_cm3 : NaN
-        explicit_pressure_displacement_increment_cm =
-            0.5 * dt_step_s^2 * wall_pressure_dyn_cm2[min_radius_index] / wall_mass_g_cm2
+        semi_implicit_displacement_increment_cm =
+            predicted_displacement_cm[min_radius_index] - wall_displacement_cm[min_radius_index]
         throw(ArgumentError(
             "native resolved-FSI partitioned smoke pressure-load plausibility gate predicted a non-positive radius before applying the wall update; " *
             "min_station_index=$(min_radius_index), predicted_radius_cm=$(min_radius_cm), " *
@@ -259,7 +259,7 @@ function native_resolved_fsi_partitioned_wall_state!(
             "wall_pressure_dyn_cm2=$(wall_pressure_dyn_cm2[min_radius_index]), " *
             "max_abs_wall_pressure_dyn_cm2=$(max_abs_wall_pressure_dyn_cm2), " *
             "static_pressure_displacement_cm=$(static_pressure_displacement_cm), " *
-            "explicit_pressure_displacement_increment_cm=$(explicit_pressure_displacement_increment_cm), " *
+            "semi_implicit_displacement_increment_cm=$(semi_implicit_displacement_increment_cm), " *
             "wall_mass_g_cm2=$(wall_mass_g_cm2), wall_stiffness_c0_dyn_cm3=$(wall_stiffness_c0_dyn_cm3), " *
             "dt_step_s=$(dt_step_s)",
         ))
@@ -317,6 +317,23 @@ end
 
 function native_resolved_fsi_copy_free_dof_values(field)
     return Float64[Float64(value) for value in get_free_dof_values(field)]
+end
+
+function native_resolved_fsi_partitioned_fluid_wall_boundary_mode(inlet_outlet_boundary_mode::Symbol)
+    if inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
+        return NATIVE_RESOLVED_FSI_PARTITIONED_EXACT_FLUID_WALL_BOUNDARY_MODE
+    end
+    return NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_FLUID_WALL_BOUNDARY_MODE
+end
+
+function native_resolved_fsi_partitioned_wall_velocity_at(
+    fluid_wall_boundary_mode::Symbol,
+    wall_axial_coordinates_cm::Vector{Float64},
+    wall_velocity_cm_s::Vector{Float64},
+)
+    fluid_wall_boundary_mode === NATIVE_RESOLVED_FSI_PARTITIONED_EXACT_FLUID_WALL_BOUNDARY_MODE &&
+        return nothing
+    return z -> native_resolved_fsi_interpolate_wall_lift(wall_axial_coordinates_cm, wall_velocity_cm_s, z)
 end
 
 function native_resolved_fsi_solve_partitioned_smoke(
@@ -379,7 +396,9 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
     final_coupling_displacement_residual_cm = 0.0
     coupling_converged = true
     coupling_residual_history = NamedTuple[]
-    fluid_wall_boundary_mode = NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_FLUID_WALL_BOUNDARY_MODE
+    fluid_wall_boundary_mode = native_resolved_fsi_partitioned_fluid_wall_boundary_mode(
+        controls.inlet_outlet_boundary_mode,
+    )
     snapshots = NativeResolvedFSIPartitionedSmokeSolve[]
 
     for snapshot_time_s in requested_snapshot_times_s
@@ -413,8 +432,11 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     wall_axial_coordinates_cm,
                     iteration_radii_cm,
                 )
-                wall_velocity_at_z =
-                    z -> native_resolved_fsi_interpolate_wall_lift(wall_axial_coordinates_cm, iteration_velocity_cm_s, z)
+                wall_velocity_at_z = native_resolved_fsi_partitioned_wall_velocity_at(
+                    fluid_wall_boundary_mode,
+                    wall_axial_coordinates_cm,
+                    iteration_velocity_cm_s,
+                )
                 fluid_state = native_resolved_fsi_solve_navier_stokes(
                     mesh;
                     coordinates=deformed_coordinates,
@@ -554,8 +576,11 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             current_radii_cm,
         )
         wall_radius_at_z = native_resolved_fsi_partitioned_radius_profile(wall_axial_coordinates_cm, current_radii_cm)
-        wall_velocity_at_z =
-            z -> native_resolved_fsi_interpolate_wall_lift(wall_axial_coordinates_cm, wall_velocity_cm_s, z)
+        wall_velocity_at_z = native_resolved_fsi_partitioned_wall_velocity_at(
+            fluid_wall_boundary_mode,
+            wall_axial_coordinates_cm,
+            wall_velocity_cm_s,
+        )
         refresh_dt = min(spec.dt_s, snapshot_time_s)
         fluid_state = native_resolved_fsi_solve_navier_stokes(
             mesh;
