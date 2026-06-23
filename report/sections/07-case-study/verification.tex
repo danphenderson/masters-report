@@ -74,11 +74,11 @@ convergence theorem for the full nonlinear stenosis solver.
 \subsubsection{Manufactured-Solution Evidence}
 \label{subsec:mms-verification}
 
-The implementation exposes an opt-in manufactured forcing term. Production
-runs use the no-forcing path by default. The verification run supplies a smooth
-exact state $(a^\star(z,t),q^\star(z,t))$, exact initial data, exact boundary
-traces, and forcing residuals for the selected finite-volume operator. In
-solver coordinates, let
+For verification only, the selected finite-volume operator is paired with a
+manufactured forcing term. Production runs use no manufactured forcing. The
+verification run supplies a smooth exact state
+$(a^\star(z,t),q^\star(z,t))$, exact initial data, exact boundary traces, and
+forcing residuals for the selected operator. In solver coordinates, let
 \begin{flalign*}
     \quad
     s(z)&=\sin\!\left(\frac{\pi z}{L}\right),&
@@ -118,13 +118,12 @@ source realization,
     \pd_t q^\star+
     \pd_z F_q(a^\star,q^\star;z)-S_q(a^\star,q^\star;z), &&
 \end{flalign*}
-where $F_a,F_q$ and $S_q$ are the selected discrete-model point flux and source
-functions. The forcing is assembled independently enough to test the declared
+where $F_a,F_q$ and $S_q$ are the selected point flux and source functions.
+The forcing consistency check is independent enough to test the declared
 finite-volume operator rather than only replaying a stored output; the table
-reports the maximum absolute forcing mismatch from that consistency check. The
-run therefore checks the implemented operator against a declared manufactured
-state with an independent forcing consistency check; it remains
-implementation-verification evidence, not a physical stenosis experiment.
+reports its maximum absolute mismatch. The run therefore checks the operator
+against a declared manufactured state. It remains implementation-verification
+evidence, not a physical stenosis experiment.
 
 The verification table reports cell-center discrete errors
 \begin{flalign*}
@@ -196,8 +195,7 @@ component magnitudes before the drift history is interpreted.
 }
 
 The zero-forcing rest test starts the selected 23\% and 40\% stenosis
-geometries from the
-rest state with a zero-velocity inlet and reports
+geometries from the rest state with a zero-velocity inlet and reports
 \begin{flalign*}
     \quad
     &\max_i |q_i|,&
@@ -269,14 +267,12 @@ discretization-accuracy study.
 \subsubsection{Boundary, CFL, Positivity, and Conservation Diagnostics}
 \label{subsec:boundary-diagnostics}
 
-The native solver reports accepted timestep extrema, realized CFL extrema,
-$\lambda_-$ and $\lambda_+$ extrema, the minimum subcriticality margin
-$\min(-\lambda_-,\lambda_+)$, solver-coordinate volume extrema and signed
-defect, positivity projection count, and total area correction from the
-positivity lower bound. The fixed-area characteristic boundary rule is used under the
-subcritical sign condition $\lambda_-<0<\lambda_+$. A positive characteristic
-radicand alone is not the boundary-regime evidence; the persisted sign extrema
-and subcriticality margin are the relevant diagnostics.
+The accepted runs report timestep, realized CFL, characteristic-speed,
+solver-volume, positivity, and finite-volume balance diagnostics. The
+fixed-area characteristic boundary rule is used under the subcritical sign
+condition $\lambda_-<0<\lambda_+$. A positive characteristic radicand alone is
+not the boundary-regime evidence; the persisted sign extrema and
+subcriticality margin are the relevant diagnostics.
 
 In the rest-state table, the finest-grid 23\% and 40\% stenosis $t=1$ s rows retain
 positive subcritical margins, zero requested and applied inlet flow, signed

@@ -6,7 +6,9 @@ The model tier, retained variables, closure choices, boundary approximation,
 finite-volume operator, observation map, and matching limits are stated before
 any result is interpreted. Dense operator formulas, secondary numerical
 surfaces, and reproducibility commands remain in the appendices unless they are
-needed to understand a main-body claim.
+needed to understand a main-body claim. The paragraphs below therefore name
+mathematical roles first; implementation labels appear only as traceability
+tags for reproducing the selected runs.
 
 \begin{center}
 \fbox{\begin{minipage}{0.90\linewidth}
@@ -291,15 +293,12 @@ follows standard compliant-artery and dimension-reduced modeling arguments
 \label{subsec:conservative-form-source-terms}
 
 The selected 1D model is an area--flow balance law closed by the profile,
-rheology, wall, geometry, and boundary choices stated above. In review terms,
-the important point is that the model retains only axial area and flow while
-moving transverse velocity, wall response, friction, rheology, and
-variable-radius effects into closures. Appendix~\ref{app:num-current-solver-operator}
-gives the corresponding semi-discrete operator in solver coordinates, including
-the $R_{\max}$-normalized wall potential, wall/geometry source, friction term,
-effective-alpha correction, and locally frozen $p_2$ derivative. The main-body
-case study uses that appendix as the implementation authority and states here
-only the model contract needed to interpret the evidence.
+rheology, wall, geometry, and boundary choices stated above. The important
+mathematical point is that the retained state is only axial area and flow;
+transverse velocity, wall response, friction, rheology, and variable-radius
+effects enter through closures. Appendix~\ref{app:num-current-solver-operator}
+is the operator authority in solver coordinates. The main text uses it only to
+state the contract needed to interpret the evidence.
 
 The selected continuous law has a rest state that matters for the evidence
 standard. Under constant external pressure and compatible zero-flow boundary
@@ -418,11 +417,9 @@ balance law.
 \label{subsec:muscl-ssprk3-discretization}
 
 Only the principal comparison method belongs in the main narrative. The reported
-two-case severity comparison uses the finite-volume method specified in
-Appendix~\ref{app:num-current-solver-operator}: the radius-squared state
-$(a,q)$ is advanced on a one-dimensional grid with MUSCL reconstruction,
-minmod-limited conservative states, Rusanov flux, source splitting for the
-wall/geometry and variable-radius terms, and SSPRK3 time integration.
+two-case severity comparison advances the radius-squared state $(a,q)$ on a
+one-dimensional finite-volume grid using the MUSCL/Rusanov/SSPRK3 operator
+specified in Appendix~\ref{app:num-current-solver-operator}.
 The principal numerical comparison uses $N=400$ cells on $0\le z\le6$ cm, a
 timestep cap of $10^{-5}$ s, and a CFL cap of 0.45. The optional
 output-sensitivity check reruns the same comparison protocol at

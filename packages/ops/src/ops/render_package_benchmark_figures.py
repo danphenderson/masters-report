@@ -39,6 +39,10 @@ CSV_FILES = {
     "resolved3d": "resolved3d.csv",
 }
 
+STAGE_LABELS = {
+    "backend_parity": "time-integrator comparison",
+}
+
 METRIC_LABELS = {
     "area_l2": "Area",
     "flow_l2": "Flow",
@@ -288,7 +292,7 @@ def backend_parity_figure(rows: list[dict[str, str]]) -> plt.Figure:
         if native is not None and sciml is not None and finite_errors:
             points.append((row.get("method", ""), row.get("algorithm", ""), native + sciml, max(finite_errors)))
     if not points:
-        return placeholder_figure("Backend Parity", "No finite native/SciML parity rows.")
+        return placeholder_figure("Time-Integrator Comparison", "No finite native/SciML comparison rows.")
 
     methods = ordered_unique(method for method, _, _, _ in points)
     algorithms = ordered_unique(algorithm for _, algorithm, _, _ in points)
@@ -312,7 +316,7 @@ def backend_parity_figure(rows: list[dict[str, str]]) -> plt.Figure:
     ax.set_yscale("log")
     ax.set_xlabel("Combined runtime, seconds")
     ax.set_ylabel("Max final-state L2 difference")
-    ax.set_title("Backend parity: runtime versus final-state difference")
+    ax.set_title("Time-integrator comparison: runtime versus final-state difference")
     ax.grid(True, which="both", alpha=0.25)
     ax.annotate(
         "Lower left is better",
@@ -508,6 +512,10 @@ def latex_escape(value: str) -> str:
     return value
 
 
+def stage_label(name: str) -> str:
+    return STAGE_LABELS.get(name, name.replace("_", " "))
+
+
 def write_summary_table(tables: dict[str, list[dict[str, str]]], table_dir: Path) -> Path:
     table_dir.mkdir(parents=True, exist_ok=True)
     path = table_dir / "package-benchmark-summary.tex"
@@ -526,7 +534,7 @@ def write_summary_table(tables: dict[str, list[dict[str, str]]], table_dir: Path
         statuses = Counter((row.get("status") or "").strip().lower() for row in rows)
         ok = statuses.get("ok", 0)
         skipped_or_error = len(rows) - ok
-        lines.append(f"        {latex_escape(name.replace('_', ' '))} & {len(rows)} & {ok} & {skipped_or_error} \\\\")
+        lines.append(f"        {latex_escape(stage_label(name))} & {len(rows)} & {ok} & {skipped_or_error} \\\\")
     lines.extend(
         [
             r"        \bottomrule",

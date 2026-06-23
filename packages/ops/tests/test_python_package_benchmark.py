@@ -69,3 +69,5 @@ def test_renderer_generates_figures_and_table(tmp_path: Path) -> None:
     table = table_dir / "package-benchmark-summary.tex"
     assert table.exists()
     assert "Package benchmark stage summary" in table.read_text()
+    assert "time-integrator comparison" in table.read_text()
+    assert "backend parity" not in table.read_text()
