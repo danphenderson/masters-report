@@ -85,7 +85,7 @@ Julia package tests are run through the Python ops validation wrapper:
 pipenv run ops-julia-check
 \end{lstlisting}
 
-\paragraph*{Case-study regeneration record.}
+\paragraph*{Case-study reproduction commands.}
 The Section~\ref{sec:case-study} verification tables are regenerated with:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify mms \
@@ -110,7 +110,7 @@ descriptions in the main text. These correspond to local source IDs 77 and 60,
 respectively. The raw 3D fields are optional local inputs rather than archived
 thesis assets; the detailed input root and upstream pointer are recorded below.
 
-\paragraph*{Comparison-asset regeneration command.}
+\paragraph*{Comparison-asset reproduction commands.}
 When the optional raw 3D inputs are restored locally, the tracked comparison
 assets are regenerated with:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
@@ -197,7 +197,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --grid-summary-csv report/assets/data/stenosis-comparison/grid-sensitivity-summary.csv \
   --grid-summary-tex report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex
 \end{lstlisting}
-The manuscript treats this as an output-sensitivity record for the retained
+The manuscript treats this as output-sensitivity evidence for the retained
 23\% and 40\% severity section means and physical flows. It does not change the
 matched-data boundary: wall, boundary, material, current-geometry, and
 transient-history metadata for the resolved cases remain unmatched or
@@ -215,7 +215,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics benchmark \
 pipenv run ops-render-package-benchmark-figures \
   --benchmark-dir tmp/simulations/output/package_benchmark/overnight-YYYYMMDD
 \end{lstlisting}
-Those rows are secondary implementation-check records, not the principal
+Those rows are secondary numerical diagnostics, not the principal
 comparison method.
 
 \paragraph*{Raw 3D inputs and manifest.}
@@ -236,19 +236,18 @@ For each local case used by the resolved-FSI loaders, the expected companion
 files are \path{velocity.xdmf}/\path{velocity.h5},
 \path{pressure.xdmf}/\path{pressure.h5}, and
 \path{displace.xdmf}/\path{displace.h5}. The report archives generated CSV and
-PGFPlots-ready static assets, not the raw fields. Deformed-coordinate plane
-cuts are now implemented in the Julia loader when displacement companions are
-present, but the retained comparison assets still use the earlier
-reference-coordinate velocity comparison. Wall/boundary/material histories and
-earlier transient histories remain unresolved unless a later release record
-adds those data.
+PGFPlots-ready static assets, not the raw fields. The retained comparison assets
+include the reference-coordinate and deformed-coordinate section summaries
+consumed by Section~\ref{subsec:deformed-coordinate-comparison}; wall,
+boundary, material, and earlier transient histories remain unresolved unless a
+later release entry adds those data.
 
 The tracked release manifest is stored outside the thesis PDF:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 public/reproducibility/release-manifest.json
 \end{lstlisting}
 That manifest records the build command, raw-input policy, upstream 3D input
-pointer, comparison-asset regeneration command, and the absence of a declared
+pointer, comparison-asset reproduction command, and the absence of a declared
 public repository URL or archival DOI. No populated standalone SHA-256
 file-hash manifest was present in the tracked source tree inspected for this
 revision; per-run workflow manifests record SHA-256 output hashes when those

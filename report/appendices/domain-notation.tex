@@ -95,8 +95,8 @@ traction outputs.
         $\bar u=q/a$ & section-mean velocity used by the 1D--3D observation comparison & length/time \\
         $\alpha_{\mathcal P}$ & momentum-flux correction for the declared velocity profile; the parabolic baseline uses $4/3$ & -- \\
         $g_{\mathcal P}$ & profile shear-rate factor used in the reduced wall-friction and viscosity proxy & -- \\
-        $\mathcal R$ & rheology descriptor used by the reduced closure & mixed \\
-        $\mathcal W$ & wall descriptor; the selected report model uses the Canic--Koiter law & mixed \\
+        $\mathcal R$ & rheology closure family used by the reduced closure & mixed \\
+        $\mathcal W$ & wall closure family; the selected report model uses the Canic--Koiter law & mixed \\
         $K=Eh/(1-\sigma^2)$ & wall stiffness coefficient used by the implemented wall law & force/length \\
         $\beta(z)$ & wall-law stiffness parameter; for the selected evolution law $\beta=\sqrt\pi K R_0^2/R_{\max}^2$ & pressure\,$\cdot$\,length \\
         $\Psi$ & elastic flux potential satisfying $\pd_A\Psi=(A/\rho)\pd_Ap_{\mathcal W,\mathrm g}^{\mathrm{evol}}$ in the physical-area notation & length$^4$/time$^2$ \\
@@ -104,7 +104,7 @@ traction outputs.
         $\widehat{\mathbf F}_{i+1/2}$ & numerical flux at a finite-volume interface & mixed \\
         $\widehat S_i$ & cell-centered source term used by the implemented operator & mixed \\
         $D_z^h$ & recorded finite-difference operator on cell-centered quantities & 1/length \\
-        $\dot\gamma_{1D}=g_{\mathcal P}|q|/(a\sqrt a)$ & reduced shear-rate proxy used for generalized-Newtonian computed descriptor cases & 1/time \\
+        $\dot\gamma_{1D}=g_{\mathcal P}|q|/(a\sqrt a)$ & reduced shear-rate proxy used for generalized-Newtonian computed closure-family cases & 1/time \\
         $\nu_{\mathrm{eff}}^{\mathcal R}$ & density-scaled effective kinematic viscosity used in reduced source terms & length$^2$/time \\
         $c$ or $c_{\mathrm{wave}}$ & 1D pulse-wave speed for the declared wall law & length/time \\
         $p_{\mathcal W,\mathrm g}^{\mathrm{evol}}$ & reduced gauge pressure produced by the selected evolution wall law & pressure \\
@@ -122,7 +122,7 @@ This report writes $\eta$ for dynamic viscosity and
 \begin{flalign*}
     \quad \nu:=\frac{\eta}{\rho} &&
 \end{flalign*}
-for kinematic viscosity. Generalized-Newtonian descriptors use a stress-level
+for kinematic viscosity. Generalized-Newtonian closure families use a stress-level
 effective dynamic viscosity $\eta_{\mathrm{eff}}(\dot\gamma)$ and the
 corresponding density-scaled coefficient
 $\nu_{\mathrm{eff}}^{\mathcal R}=\eta_{\mathrm{eff}}^{\mathcal R}/\rho$ in

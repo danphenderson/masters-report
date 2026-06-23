@@ -1,9 +1,9 @@
 \section{Numerical Methods Details}
 \label{app:numerical-methods-details}
-This appendix records the numerical-method details needed to interpret the
-implemented solver contract, the verification records, and the diagnostic
+This appendix gives the numerical-method details needed to interpret the
+implemented solver contract, the verification evidence, and the diagnostic
 1D--3D velocity comparison. Secondary solver surfaces are included only where
-they support retained implementation-check records; the principal comparison
+they support retained secondary numerical diagnostics; the principal comparison
 method remains MUSCL finite volume with minmod limiting, Rusanov flux, source
 splitting, and native SSPRK3.
 
@@ -16,14 +16,14 @@ numerical fluxes, residual arrays, and sampled norms denote recorded discrete
 objects unless a section explicitly switches back to a continuum identity.
 \end{convention}
 
-\subsection{Case-study rheology descriptor details}
+\subsection{Case-study rheology closure details}
 \label{app:num-rheology-descriptor-details}
 
-The reduced model evaluates a declared rheology descriptor
+The reduced model evaluates a declared rheology closure family
 $\mathcal R$ through an effective dynamic-viscosity law
 $\eta_{\mathrm{eff}}^{\mathcal R}(\dot\gamma)$ and then uses
 $\nu_{\mathrm{eff}}^{\mathcal R}=\eta_{\mathrm{eff}}^{\mathcal R}/\rho$ in
-the source terms. For computed non-Newtonian descriptor cases, singular or
+the source terms. For computed non-Newtonian closure-family cases, singular or
 degenerate zero-shear behavior is regularized by
 \begin{flalign*}
     \quad
@@ -107,7 +107,7 @@ SI.
         Friction coefficient
             & Profile-dependent wall/friction closure in the reduced model.
             & Implemented through the declared velocity-profile shear factor
-            and rheology descriptor. \\
+            and rheology closure family. \\
         $p_2$ differentiation
             & Variable-radius pressure correction differentiated in the model.
             & Locally frozen-viscosity treatment for the $p_2$ derivative. \\
@@ -131,21 +131,22 @@ SI.
     \end{tabularx}
 \end{table}
 
-\subsection{Secondary implementation-check records}
+\subsection{Secondary numerical diagnostics}
 \label{app:num-secondary-implementation-checks}
 \label{subsec:verification-reproducibility}
 \label{subsec:package-benchmark-suite}
 
-The package benchmark suite records implementation-check stages for the Julia
-solver: descriptor health, sampled self-convergence, native/SciML
-cross-integrator discrepancy, stationary-Stokes projection rows,
+The package benchmark suite reports secondary numerical diagnostics for the
+Julia solver: closure-catalog health, sampled self-convergence,
+native/integrator discrepancy, stationary-Stokes projection rows,
 rheology/profile sensitivity, OpenBF-style boundary handling, and
-resolved-velocity output diagnostics. These records keep documented solver
+resolved-velocity output diagnostics. These diagnostics keep documented solver
 surfaces runnable and generated assets schema-consistent. They do not supersede
 the MMS or geometry-rest evidence in Section~\ref{sec:numerical-verification},
 and they are not the principal two-case comparison method. When a secondary
-record lacks a declared reference solution, hardware-normalized runtime target,
-or admitted threshold, it is interpreted only as implementation-check context.
+diagnostic lacks a declared reference solution, hardware-normalized runtime
+target, or admitted threshold, it is interpreted only as numerical-diagnostic
+context.
 
 \IfFileExists{report/assets/tables/package-benchmark/package-benchmark-summary.tex}{%
     \input{report/assets/tables/package-benchmark/package-benchmark-summary.tex}
@@ -161,7 +162,7 @@ or admitted threshold, it is interpreted only as implementation-check context.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Implemented discretization surfaces retained as secondary appendix context. The principal 23\% and 40\% stenosis comparison uses the MUSCL finite-volume row with native SSPRK3; other rows are implementation-check, sensitivity, or backend-context surfaces.}
+    \caption{Implemented discretization surfaces retained as secondary appendix context. The principal 23\% and 40\% stenosis comparison uses the MUSCL finite-volume row with native SSPRK3; other rows are diagnostic, sensitivity, or integrator-context surfaces.}
     \label{tab:implemented-discretization-surface}
     \begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}p{0.34\textwidth}X@{}}
         \toprule
@@ -169,9 +170,9 @@ or admitted threshold, it is interpreted only as implementation-check context.
         \midrule
         Spatial & First-order finite-volume Rusanov & Low-order cell-average baseline and DG $p=0$ bridge. \\
         Spatial & MUSCL finite volume, minmod limiter, Rusanov flux & Principal 23\% and 40\% stenosis comparison method and main verification target. \\
-        Spatial & Characteristic WENO3 and Richtmyer/Lax--Wendroff finite volume & Native sensitivity and implementation-check paths, not principal comparison methods. \\
+        Spatial & Characteristic WENO3 and Richtmyer/Lax--Wendroff finite volume & Native sensitivity and diagnostic paths, not principal comparison methods. \\
         Spatial & Modal Legendre DG degrees $p=0,\ldots,4$ & Secondary native-DG surface; selected benchmark rows may use only subsets such as $p=0,1,2$. \\
-        Time & Forward Euler, SSPRK2, SSPRK3, SSPRK54, and selected SciML wrappers & Native SSPRK3 is selected for the principal comparison; other backends are diagnostic context. \\
+        Time & Forward Euler, SSPRK2, SSPRK3, SSPRK54, and selected integrator wrappers & Native SSPRK3 is selected for the principal comparison; other integrators are diagnostic context. \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -179,7 +180,7 @@ or admitted threshold, it is interpreted only as implementation-check context.
 \paragraph{Nonselected DG p/h demonstration.}
 The manufactured-solution p/h demonstration is a secondary smooth-solution
 implementation check for the native modal-DG surface. The implementation
-supports modal Legendre DG degrees $p=0,\ldots,4$; selected descriptor-health or
+supports modal Legendre DG degrees $p=0,\ldots,4$; selected closure-catalog or
 package-benchmark rows may exercise only subsets such as $p=0,1,2$, while the
 p-refinement verification workflow runs through $p=4$. The fixed-grid
 p-refinement rows plateau after $p=1$ in the generated record, so they are not
@@ -210,10 +211,10 @@ used here as evidence for a p-convergence claim.
     \label{fig:ph-refinement-demo}
 \end{figure}
 
-\paragraph{Self-convergence, backend parity, and descriptor sensitivity.}
+\paragraph{Self-convergence, integrator comparison, and closure sensitivity.}
 The remaining package-benchmark figures are retained as compact
-implementation-check side records. They can expose grid sensitivity,
-integration-policy discrepancies, or descriptor wiring problems, but they do not
+secondary numerical diagnostics. They can expose grid sensitivity,
+integration-policy discrepancies, or closure-family wiring problems, but they do not
 establish a convergence theorem for the nonlinear operator. The benchmark
 pressure traces are legacy local-denominator diagnostics
 $p_{\mathrm{loc},\mathrm g}^{\mathrm{diag}}$ from the implementation helpers,
@@ -238,10 +239,10 @@ not selected evolution wall-law pressure observations.
     \IfFileExists{report/assets/rendered/package-benchmark-backend-parity.pdf}{%
         \includegraphics[width=0.82\linewidth]{report/assets/rendered/package-benchmark-backend-parity.pdf}
     }{%
-        \fbox{\parbox{0.82\linewidth}{\centering Backend-parity asset unavailable in this checkout.}}
+        \fbox{\parbox{0.82\linewidth}{\centering Integrator-comparison asset unavailable in this checkout.}}
     }
-    \caption{Secondary native/SciML cross-integrator discrepancy for compatible
-    methods. This is a backend smoke record without an admitted reference
+    \caption{Secondary native/integrator discrepancy for compatible
+    methods. This is an integrator-comparison check without an admitted reference
     solution, hardware-normalized runtime specification, or pass/fail threshold.}
     \label{fig:package-benchmark-backend-parity}
 \end{figure}
@@ -317,12 +318,12 @@ listing.
     }{%
         \fbox{\parbox{0.82\linewidth}{\centering Rheology/profile benchmark asset unavailable in this checkout.}}
     }
-    \caption{Secondary rheology/profile descriptor-wiring stress test for declared
+    \caption{Secondary rheology/profile closure-family wiring stress test for declared
     combinations, not a calibrated physiological sensitivity study.}
     \label{fig:package-benchmark-rheology-profile}
 \end{figure}
 
-\subsection{Fixed-wall stationary-Stokes refinement record}
+\subsection{Fixed-wall stationary-Stokes refinement check}
 \label{app:num-stationary-stokes-refinement}
 \label{subsec:stationary-stokes-projection-checks}
 
@@ -345,10 +346,10 @@ refinement set.
     \end{center}
 }
 
-\subsection{Quasi-static membrane-FSI validation workflow}
+\subsection{Quasi-static membrane-FSI comparator workflow}
 \label{app:num-membrane-fsi-validation}
 
-The Julia package now contains a separate membrane-FSI validation workflow for
+The Julia package now contains a separate membrane-FSI comparator workflow for
 Canic-style resolved-wall comparison experiments. It is not the fixed-wall
 stationary-Stokes refinement record above. The steady mode solves a fixed-point
 problem on the current lumen geometry: a Stokes solve supplies the wall pressure
@@ -510,7 +511,7 @@ $\alpha_c(R_0')=-2(R_0')^2/35$, the model-family switch is
     \iota_{\mathcal M}
     =
     \begin{cases}
-        1, & \text{extended 1D descriptor},\\
+        1, & \text{extended 1D model member},\\
         0, & \text{classical parabolic-profile baseline}.
     \end{cases} &&
 \end{flalign*}
@@ -687,7 +688,7 @@ $\iota_{\mathcal M}=0$.
 
 Other implemented surfaces include lower-order finite volume, WENO3 finite
 volume, a Lax--Wendroff variant, modal Legendre DG with $p=0,\ldots,4$, and
-selected SciML time backends. They remain implementation-check context unless a
+selected integrator wrappers. They remain numerical-diagnostic context unless a
 retained table or figure explicitly invokes them.
 
 \subsection{Time-integration realization}
