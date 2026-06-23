@@ -95,12 +95,20 @@ end
     flat_default = FlatVelocityProfile()
     @test flat_default isa FlatVelocityProfile{Float64}
 
+    flat32_positional = FlatVelocityProfile(Float32(5.0))
+    @test flat32_positional isa FlatVelocityProfile{Float32}
+    @test typeof(flat32_positional.shear_rate_factor) === Float32
+
     flat32 = FlatVelocityProfile(shear_rate_factor=Float32(5.0))
     @test flat32 isa FlatVelocityProfile{Float32}
     @test typeof(shear_rate_factor(flat32)) === Float32
     @test typeof(momentum_alpha(flat32)) === Float32
     @test typeof(mean_to_max_velocity_ratio(flat32)) === Float32
     @test radial_profile_velocity(Float32(3.0), Float32(1.5), Float32(2.0), flat32) === Float32(3.0)
+
+    power32_positional = PowerVelocityProfile(Float32(2.0))
+    @test power32_positional isa PowerVelocityProfile{Float32}
+    @test typeof(power32_positional.exponent) === Float32
 
     power32 = PowerVelocityProfile(exponent=Float32(2.0))
     @test power32 isa PowerVelocityProfile{Float32}
@@ -126,6 +134,11 @@ end
     parabolic_velocity = radial_profile_velocity(big"3.0", big"1.0", big"2.0", ParabolicVelocityProfile())
     @test typeof(parabolic_velocity) === BigFloat
     @test parabolic_velocity == big"4.5"
+
+    # Parameter-free parabolic metadata remains Float64 because the profile carries no scalar parameter.
+    @test typeof(momentum_alpha(ParabolicVelocityProfile())) === Float64
+    @test typeof(shear_rate_factor(ParabolicVelocityProfile())) === Float64
+    @test typeof(profile_exponent(ParabolicVelocityProfile())) === Float64
 end
 
 @testset "StenoticHemodynamics scalar-generic rheology configs" begin
@@ -170,6 +183,39 @@ end
     casson_nu_big = effective_kinematic_viscosity(casson_big, big"9.0", big"1.055", big"0.04")
     @test typeof(casson_nu_big) === BigFloat
     @test casson_nu_big == casson_eta / big"1.055"
+end
+
+@testset "StenoticHemodynamics scalar-generic shear-rate kernels" begin
+    params32 = Params(
+        velocity_profile=FlatVelocityProfile(Float32(5.0)),
+        rheology=CarreauRheology(
+            eta0=Float32(0.10),
+            eta_inf=Float32(0.02),
+            lambda_s=Float32(2.0),
+            n=Float32(0.5),
+        ),
+    )
+    shear32 = characteristic_shear_rate(Float32(0.04), Float32(0.10), Float32(0.20), params32)
+    @test typeof(shear32) === Float32
+    @test shear32 ≈ Float32(62.5)
+
+    nu_eff32 = effective_kinematic_viscosity(Float32(0.04), Float32(0.10), Float32(0.20), params32)
+    @test typeof(nu_eff32) === Float32
+    @test nu_eff32 ≈ effective_kinematic_viscosity(
+        params32.rheology,
+        shear32,
+        Float32(params32.rho),
+        Float32(params32.nu),
+    )
+
+    params_big = Params(velocity_profile=ParabolicVelocityProfile(), rheology=NewtonianRheology())
+    shear_big = characteristic_shear_rate(big"0.04", big"0.10", big"0.20", params_big)
+    @test typeof(shear_big) === BigFloat
+    @test shear_big == big"50.0"
+
+    nu_eff_big = effective_kinematic_viscosity(big"0.04", big"0.10", big"0.20", params_big)
+    @test typeof(nu_eff_big) === BigFloat
+    @test nu_eff_big == BigFloat(params_big.nu)
 end
 
 @testset "StenoticHemodynamics scalar-generic boundary configs" begin

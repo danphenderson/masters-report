@@ -1,4 +1,152 @@
+const EXTENSION_CONTRACT_PACKAGE_ROOT = normpath(joinpath(@__DIR__, ".."))
+const EXTENSION_CONTRACT_SRC_ROOT = joinpath(EXTENSION_CONTRACT_PACKAGE_ROOT, "src", "StenoticHemodynamics")
+const EXTENSION_CONTRACT_TEST_ROOT = joinpath(EXTENSION_CONTRACT_PACKAGE_ROOT, "test")
+
+function extension_contract_julia_files(root::String)
+    files = String[]
+    for (dir, _, names) in walkdir(root)
+        for name in sort(names)
+            endswith(name, ".jl") || continue
+            push!(files, joinpath(dir, name))
+        end
+    end
+    return sort(files)
+end
+
+function extension_contract_import_roots(node)::Vector{Symbol}
+    node isa Symbol && return Symbol[node]
+    node isa Expr || return Symbol[]
+
+    if node.head == :. || node.head == Symbol(":")
+        isempty(node.args) && return Symbol[]
+        return extension_contract_import_roots(first(node.args))
+    end
+
+    roots = Symbol[]
+    for arg in node.args
+        append!(roots, extension_contract_import_roots(arg))
+    end
+    return roots
+end
+
+function extension_contract_direct_import_lines(file::String, module_name::String)
+    source = read(file, String)
+    module_symbol = Symbol(module_name)
+    lines = Int[]
+    pos = firstindex(source)
+
+    while true
+        line_number = pos <= firstindex(source) ? 1 : count(==('\n'), SubString(source, firstindex(source), prevind(source, pos))) + 1
+        expr, next_pos = Meta.parse(source, pos; raise=true, filename=file)
+        expr === nothing && break
+
+        if expr isa Expr && expr.head in (:using, :import)
+            roots = Set{Symbol}()
+            for arg in expr.args
+                union!(roots, extension_contract_import_roots(arg))
+            end
+            module_symbol in roots && push!(lines, line_number)
+        end
+
+        pos = next_pos
+    end
+
+    return lines
+end
+
+function extension_contract_scan_direct_imports(files::Vector{String}, module_name::String)
+    hits = Dict{String,Vector{Int}}()
+    for file in files
+        lines = extension_contract_direct_import_lines(file, module_name)
+        isempty(lines) || (hits[relpath(file, EXTENSION_CONTRACT_PACKAGE_ROOT)] = lines)
+    end
+    return hits
+end
+
+function extension_contract_disallowed_sites(
+    sites::Dict{String,Vector{Int}},
+    allowed_relpaths::AbstractSet{String},
+)
+    return Dict(path => lines for (path, lines) in sites if !(path in allowed_relpaths))
+end
+
+function extension_contract_format_sites(sites::Dict{String,Vector{Int}})
+    entries = String[]
+    for path in sort(collect(keys(sites)))
+        push!(entries, "  - $path (lines $(join(sites[path], ", ")))")
+    end
+    return join(entries, "\n")
+end
+
+function extension_contract_failure_message(policy::String, sites::Dict{String,Vector{Int}})
+    return string(policy, "\nViolating files:\n", extension_contract_format_sites(sites))
+end
+
+function extension_contract_no_violations(policy::String, sites::Dict{String,Vector{Int}})
+    isempty(sites) && return true
+    @error extension_contract_failure_message(policy, sites)
+    return false
+end
+
 @testset "StenoticHemodynamics extension contracts" begin
+    @testset "dependency boundary imports" begin
+        src_files = extension_contract_julia_files(EXTENSION_CONTRACT_SRC_ROOT)
+        test_files = extension_contract_julia_files(EXTENSION_CONTRACT_TEST_ROOT)
+        src_and_test_files = sort!(vcat(src_files, test_files))
+
+        for module_name in ("SciMLBase", "OrdinaryDiffEq")
+            hits = extension_contract_scan_direct_imports(src_files, module_name)
+            @test extension_contract_no_violations(
+                "$module_name should not be imported directly in src; keep SciML loading behind src/StenoticHemodynamics/adapters/sciml_problem.jl.",
+                hits,
+            )
+        end
+
+        yaml_hits = extension_contract_scan_direct_imports(src_files, "YAML")
+        @test extension_contract_no_violations(
+            "YAML should not be imported directly in src; keep lazy loading behind src/StenoticHemodynamics/adapters/openbf_protocol.jl.",
+            yaml_hits,
+        )
+
+        hdf5_violations = extension_contract_disallowed_sites(
+            extension_contract_scan_direct_imports(src_and_test_files, "HDF5"),
+            Set([
+                joinpath("src", "StenoticHemodynamics", "adapters", "resolved3d_io.jl"),
+                joinpath("src", "StenoticHemodynamics", "adapters", "resolved3d_writer.jl"),
+                joinpath("test", "runtests.jl"),
+            ]),
+        )
+        @test extension_contract_no_violations(
+            "HDF5 imports should stay confined to resolved-3D I/O/writer adapters and the HDF5-inspecting test harness.",
+            hdf5_violations,
+        )
+
+        ezxml_violations = extension_contract_disallowed_sites(
+            extension_contract_scan_direct_imports(src_and_test_files, "EzXML"),
+            Set([
+                joinpath("src", "StenoticHemodynamics", "adapters", "resolved3d_io.jl"),
+            ]),
+        )
+        @test extension_contract_no_violations(
+            "EzXML imports should stay confined to the resolved-3D XDMF reader adapter.",
+            ezxml_violations,
+        )
+
+        gridap_violations = extension_contract_disallowed_sites(
+            extension_contract_scan_direct_imports(src_files, "Gridap"),
+            Set([
+                joinpath("src", "StenoticHemodynamics", "adapters", "stokes_ic.jl"),
+                joinpath("src", "StenoticHemodynamics", "adapters", "native_resolved_fsi.jl"),
+                joinpath("src", "StenoticHemodynamics", "workflows", "stationary_stokes_refinement_gridap.jl"),
+                joinpath("src", "StenoticHemodynamics", "workflows", "geometry_export_stokes_common.jl"),
+            ]),
+        )
+        @test extension_contract_no_violations(
+            "Gridap imports should stay confined to Gridap adapter seams and stationary-Stokes geometry-export helpers.",
+            gridap_violations,
+        )
+    end
+
     @testset "spatial method traits" begin
         fv_methods = (
             FVFirstOrderMethod(),

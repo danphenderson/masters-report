@@ -4,6 +4,10 @@ Resolved-3D workflows are optional because the XDMF/HDF5 inputs are not tracked
 in public Git releases. Missing inputs must produce skipped evidence or skipped
 commands, not false failures.
 
+For the broader `StenoticHemodynamics` workflow map, including native
+resolved-FSI planning notes that stay inside package-owned schema/parity lanes,
+use `public/docs/stenotic-hemodynamics/workflows.md`.
+
 ## Local Data Root
 
 The default optional data root is:
@@ -175,5 +179,7 @@ absent.
 
 - Use `public/docs/artifact-policy.md` before moving or publishing artifacts.
 - Use `public/docs/report-assets-and-provenance.md` for asset ownership.
+- Use `public/docs/stenotic-hemodynamics/workflows.md` for the package workflow
+  map and links to the native resolved-FSI design/reproduction notes.
 - Use `public/docs/julia-cli-workflows.md` for general Julia command usage.
 - Use `public/docs/report-builds.md` after publishing report-consumed assets.

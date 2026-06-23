@@ -1,3 +1,5 @@
+isdefined(@__MODULE__, :read_simple_csv) || include("test_helpers.jl")
+
 struct RestStateFailingBackend <: AbstractTimeBackend end
 
 @testset "StenoticHemodynamics simulation diagnostics and forcing" begin

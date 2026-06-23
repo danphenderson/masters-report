@@ -40,6 +40,18 @@ which delegates to this CLI and records JSONL/session-summary logs:
 pipenv run ops-experiment simulate --help
 ```
 
+## Workflow Documentation
+
+- `../../public/docs/stenotic-hemodynamics/workflows.md`: public workflow hub
+  for package studies, verification, validation, comparison, benchmark, and
+  native resolved-FSI planning surfaces.
+- `../../public/docs/julia-cli-workflows.md`: command-oriented Julia CLI guide.
+- `../../public/docs/resolved3d-workflows.md`: optional resolved-3D data root,
+  skip behavior, and report-asset publication boundaries.
+- `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-design.md` and
+  `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`:
+  bounded native resolved-FSI design and Section 4.1 reproduction notes.
+
 ## Scope
 
 The package is organized around a reduced one-dimensional hemodynamics model.

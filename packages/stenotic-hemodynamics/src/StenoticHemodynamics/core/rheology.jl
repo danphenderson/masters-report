@@ -346,15 +346,18 @@ function effective_kinematic_viscosity(
     return T(eta) / T(rho_value)
 end
 
-function characteristic_shear_rate(A::Float64, Q::Float64, r0::Float64, p)
-    _ = r0
-    Apos = positive_area(A)
-    radius = max(sqrt(Apos), eps())
-    uavg = abs(Q) / Apos
-    return gamma_plus_two(p) * uavg / radius
+function characteristic_shear_rate(A::Real, Q::Real, r0::Real, p)
+    # `r0` stays in the signature for compatibility with the existing caller API.
+    gp2 = gamma_plus_two(p)
+    T = _promote_float_type(A, Q, r0, gp2)
+    Apos = max(T(A), T(AREA_FLOOR))
+    radius = max(sqrt(Apos), eps(T))
+    uavg = abs(T(Q)) / Apos
+    return T(gp2) * uavg / radius
 end
 
-function effective_kinematic_viscosity(A::Float64, Q::Float64, r0::Float64, p)
+function effective_kinematic_viscosity(A::Real, Q::Real, r0::Real, p)
     shear_rate = characteristic_shear_rate(A, Q, r0, p)
-    return effective_kinematic_viscosity(p.rheology, shear_rate, p.rho, p.nu)
+    T = typeof(shear_rate)
+    return effective_kinematic_viscosity(p.rheology, shear_rate, T(p.rho), T(p.nu))
 end

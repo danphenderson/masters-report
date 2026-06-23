@@ -19,6 +19,14 @@ terms aligned with `public/docs/policy-vocabulary.md`.
   experiments, audits, renderers, orchestration, and evidence summaries.
 - `public/docs/julia-cli-workflows.md`: Julia command families exposed through
   `packages/stenotic-hemodynamics/bin/stenotic-hemodynamics`.
+- `public/docs/stenotic-hemodynamics/workflows.md`: code-level workflow hub for
+  package studies, verification, validation, benchmarks, and native
+  resolved-FSI planning notes.
+- `public/docs/stenotic-hemodynamics/native-resolved-fsi-design.md`: bounded
+  native resolved-FSI design gate for the package-owned workflow roadmap.
+- `public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`:
+  Section 4.1 reproduction contract and package mapping for native
+  resolved-FSI lanes.
 
 ## Artifacts And Data
 

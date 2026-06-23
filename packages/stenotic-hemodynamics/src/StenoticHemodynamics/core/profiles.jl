@@ -5,7 +5,10 @@ struct FlatVelocityProfile{T<:AbstractFloat} <: AbstractVelocityProfile
     shear_rate_factor::T
 end
 
-FlatVelocityProfile(shear_rate_factor::Real) = FlatVelocityProfile{Float64}(Float64(shear_rate_factor))
+function FlatVelocityProfile(shear_rate_factor::Real)
+    T = _float_input_type(shear_rate_factor)
+    return FlatVelocityProfile{T}(T(shear_rate_factor))
+end
 FlatVelocityProfile(; shear_rate_factor::Real = 4.0) = FlatVelocityProfile(shear_rate_factor)
 
 """Poiseuille/parabolic profile normalized by the section-mean velocity."""
@@ -16,7 +19,10 @@ struct PowerVelocityProfile{T<:AbstractFloat} <: AbstractVelocityProfile
     exponent::T
 end
 
-PowerVelocityProfile(exponent::Real) = PowerVelocityProfile{Float64}(Float64(exponent))
+function PowerVelocityProfile(exponent::Real)
+    T = _float_input_type(exponent)
+    return PowerVelocityProfile{T}(T(exponent))
+end
 
 function PowerVelocityProfile(; exponent::Union{Nothing,Real} = nothing, alpha::Union{Nothing,Real} = nothing)
     if exponent !== nothing && alpha !== nothing
@@ -27,11 +33,13 @@ function PowerVelocityProfile(; exponent::Union{Nothing,Real} = nothing, alpha::
         return PowerVelocityProfile(exponent)
     end
 
-    alpha_value = alpha isa AbstractFloat ? alpha : Float64(alpha)
-    one_t = one(typeof(alpha_value))
-    1.0 < alpha_value < 2.0 ||
+    T = _float_input_type(alpha)
+    alpha_value = T(alpha)
+    one_t = one(T)
+    two_t = one_t + one_t
+    one_t < alpha_value < two_t ||
         throw(ArgumentError("power velocity profile alpha must satisfy 1 < alpha < 2"))
-    return PowerVelocityProfile(normalized_profile_parameter((typeof(alpha_value)(2) - alpha_value) / (alpha_value - one_t)))
+    return PowerVelocityProfile(normalized_profile_parameter((two_t - alpha_value) / (alpha_value - one_t)))
 end
 
 profile_name(::FlatVelocityProfile) = "flat"
@@ -81,7 +89,7 @@ function normalized_profile_parameter(value::T) where {T<:AbstractFloat}
     return round(value; digits=12)
 end
 
-normalized_profile_parameter(value::Real) = normalized_profile_parameter(Float64(value))
+normalized_profile_parameter(value::Real) = normalized_profile_parameter(_float_input_type(value)(value))
 
 function trim_trailing_decimal_zeros(text::AbstractString)
     occursin(".", text) || return text
@@ -132,9 +140,9 @@ function radial_profile_velocity(
     return ((gamma + T(2)) / gamma) * uavg_t * (one(T) - ratio^gamma)
 end
 
-function validate(profile::FlatVelocityProfile)
+function validate(profile::FlatVelocityProfile{T}) where {T<:AbstractFloat}
     isfinite(profile.shear_rate_factor) || throw(ArgumentError("flat velocity profile shear factor must be finite"))
-    profile.shear_rate_factor > 0.0 || throw(ArgumentError("flat velocity profile shear factor must be positive"))
+    profile.shear_rate_factor > zero(T) || throw(ArgumentError("flat velocity profile shear factor must be positive"))
     return profile
 end
 
@@ -142,8 +150,8 @@ function validate(profile::ParabolicVelocityProfile)
     return profile
 end
 
-function validate(profile::PowerVelocityProfile)
+function validate(profile::PowerVelocityProfile{T}) where {T<:AbstractFloat}
     isfinite(profile.exponent) || throw(ArgumentError("power velocity profile exponent must be finite"))
-    profile.exponent > 0.0 || throw(ArgumentError("power velocity profile exponent must be positive"))
+    profile.exponent > zero(T) || throw(ArgumentError("power velocity profile exponent must be positive"))
     return profile
 end

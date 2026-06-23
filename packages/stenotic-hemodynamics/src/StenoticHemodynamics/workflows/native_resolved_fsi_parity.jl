@@ -124,6 +124,8 @@ Return bundle from [`run_native_resolved_fsi_parity`](@ref). The result keeps
 the loaded native/imported bundles, the operator coordinate mode used for
 velocity observations, and separate discrepancy/status categories for schema,
 geometry, time, velocity, pressure, displacement, and observation operators.
+Velocity and pressure operator parity are tracked separately so Figure 4-style
+and Figure 5-style seams do not collapse into one status.
 """
 struct NativeResolvedFSIParityResult
     spec::NativeResolvedFSIParitySpec
@@ -137,6 +139,8 @@ struct NativeResolvedFSIParityResult
     velocity_status::NativeResolvedFSIParityStatus
     pressure_status::NativeResolvedFSIParityStatus
     displacement_status::NativeResolvedFSIParityStatus
+    velocity_operator_status::NativeResolvedFSIParityStatus
+    pressure_operator_status::NativeResolvedFSIParityStatus
     operator_status::NativeResolvedFSIParityStatus
 end
 
@@ -170,10 +174,9 @@ end
 
 Load native and imported bundles through `load_resolved3d_field_bundle(...;
 require_pressure=true, require_displacement=true)`, compare their schema,
-geometry, time, and nodewise fields, then reuse the existing velocity
-observation operators where they currently apply. Pressure/displacement
-operator parity remains explicitly deferred until the package owns those
-operators.
+geometry, time, and nodewise fields, then compare velocity and pressure
+cross-sectional observation seams separately. The current operator surface
+still stops short of claiming full Section 4.1 transient/grid parity.
 """
 function run_native_resolved_fsi_parity(spec::NativeResolvedFSIParitySpec)
     validate(spec)
@@ -190,7 +193,12 @@ function run_native_resolved_fsi_parity(spec::NativeResolvedFSIParitySpec)
         velocity_status = native_resolved_fsi_parity_issue_status("velocity", imported_issue)
         pressure_status = native_resolved_fsi_parity_issue_status("pressure", imported_issue)
         displacement_status = native_resolved_fsi_parity_issue_status("displacement", imported_issue)
-        operator_status = native_resolved_fsi_parity_issue_status("operator", imported_issue)
+        velocity_operator_status = native_resolved_fsi_parity_issue_status("velocity operator", imported_issue)
+        pressure_operator_status = native_resolved_fsi_parity_issue_status("pressure operator", imported_issue)
+        operator_status = native_resolved_fsi_parity_combined_operator_status(
+            velocity_operator_status,
+            pressure_operator_status,
+        )
         return NativeResolvedFSIParityResult(
             spec,
             native_bundle,
@@ -203,6 +211,8 @@ function run_native_resolved_fsi_parity(spec::NativeResolvedFSIParitySpec)
             velocity_status,
             pressure_status,
             displacement_status,
+            velocity_operator_status,
+            pressure_operator_status,
             operator_status,
         )
     end
@@ -219,10 +229,21 @@ function run_native_resolved_fsi_parity(spec::NativeResolvedFSIParitySpec)
         imported_bundle,
         spec.displacement_atol_cm,
     )
-    operator_status = native_resolved_fsi_parity_operator_status(
+    velocity_operator_status = native_resolved_fsi_parity_velocity_operator_status(
         native_operator_field,
         imported_operator_field,
         spec,
+    )
+    pressure_operator_status = native_resolved_fsi_parity_pressure_operator_status(
+        native_bundle,
+        imported_bundle,
+        native_operator_field,
+        imported_operator_field,
+        spec,
+    )
+    operator_status = native_resolved_fsi_parity_combined_operator_status(
+        velocity_operator_status,
+        pressure_operator_status,
     )
 
     return NativeResolvedFSIParityResult(
@@ -237,6 +258,8 @@ function run_native_resolved_fsi_parity(spec::NativeResolvedFSIParitySpec)
         velocity_status,
         pressure_status,
         displacement_status,
+        velocity_operator_status,
+        pressure_operator_status,
         operator_status,
     )
 end
@@ -472,7 +495,7 @@ function native_resolved_fsi_parity_displacement_status(
     return native_resolved_fsi_parity_status(ready, false, discrepancy_count, max_difference, status)
 end
 
-function native_resolved_fsi_parity_operator_status(
+function native_resolved_fsi_parity_velocity_operator_status(
     native_field::Resolved3DVelocityField,
     imported_field::Resolved3DVelocityField,
     spec::NativeResolvedFSIParitySpec,
@@ -590,15 +613,219 @@ function native_resolved_fsi_parity_operator_status(
         )
     end
 
-    # The current operator seam only consumes `Resolved3DVelocityField`, so a
-    # zero-discrepancy velocity check is still only partial parity.
     return native_resolved_fsi_parity_status(
-        false,
+        true,
         false,
         0,
         max_difference,
-        "deferred: velocity section/radial/node-slab observations matched within $(spec.operator_atol), but pressure/displacement operator parity and full Section 4.1 transient/grid-sensitivity parity remain deferred",
+        "velocity section/radial/node-slab observations matched within $(spec.operator_atol)",
     )
+end
+
+function native_resolved_fsi_parity_pressure_operator_status(
+    native_bundle::Resolved3DFieldBundle,
+    imported_bundle::Resolved3DFieldBundle,
+    native_field::Resolved3DVelocityField,
+    imported_field::Resolved3DVelocityField,
+    spec::NativeResolvedFSIParitySpec,
+)
+    z_samples = isempty(spec.sample_z_cm) ?
+        native_resolved_fsi_parity_default_sample_z(native_field, imported_field) :
+        spec.sample_z_cm
+
+    isempty(z_samples) && return native_resolved_fsi_parity_status(
+        false,
+        false,
+        1,
+        NaN,
+        "pressure operator parity requires an overlapping z-range between the native and imported fields",
+    )
+
+    native_pressure = native_resolved_fsi_parity_required_pressure(native_bundle)
+    imported_pressure = native_resolved_fsi_parity_required_pressure(imported_bundle)
+    discrepancy_count = Ref(0)
+    numeric_differences = Float64[]
+
+    for z in z_samples
+        native_observation = native_resolved_fsi_parity_pressure_section_observation(native_field, native_pressure, z)
+        imported_observation = native_resolved_fsi_parity_pressure_section_observation(imported_field, imported_pressure, z)
+        native_resolved_fsi_parity_compare_bool!(discrepancy_count, native_observation.area_valid, imported_observation.area_valid)
+        native_resolved_fsi_parity_compare_exact!(discrepancy_count, native_observation.cut_status, imported_observation.cut_status)
+        native_resolved_fsi_parity_compare_exact!(discrepancy_count, native_observation.intersection_count, imported_observation.intersection_count)
+        native_resolved_fsi_parity_compare_scalar!(
+            numeric_differences,
+            discrepancy_count,
+            native_observation.area_cm2,
+            imported_observation.area_cm2,
+            spec.operator_atol,
+        )
+        native_resolved_fsi_parity_compare_scalar!(
+            numeric_differences,
+            discrepancy_count,
+            native_observation.mean_pressure_dyn_cm2,
+            imported_observation.mean_pressure_dyn_cm2,
+            spec.operator_atol,
+        )
+    end
+
+    max_difference = isempty(numeric_differences) ? 0.0 : maximum(numeric_differences)
+    ready = discrepancy_count[] == 0
+    status = ready ?
+        "pressure section-average observations matched within $(spec.operator_atol)" :
+        "pressure section-average parity found $(discrepancy_count[]) discrepancies above $(spec.operator_atol)"
+    return native_resolved_fsi_parity_status(ready, false, discrepancy_count[], max_difference, status)
+end
+
+function native_resolved_fsi_parity_combined_operator_status(
+    velocity_status::NativeResolvedFSIParityStatus,
+    pressure_status::NativeResolvedFSIParityStatus,
+)
+    skipped = velocity_status.skipped && pressure_status.skipped
+    ready = velocity_status.ready && pressure_status.ready
+    discrepancy_count = velocity_status.discrepancy_count + pressure_status.discrepancy_count
+    max_difference = if skipped
+        NaN
+    else
+        differences = Float64[
+            value for value in (velocity_status.max_abs_difference, pressure_status.max_abs_difference) if isfinite(value)
+        ]
+        isempty(differences) ? 0.0 : maximum(differences)
+    end
+    status = if skipped
+        "skipped: operator parity did not run because $(velocity_status.status)"
+    elseif ready
+        "velocity and pressure operator parity matched within configured tolerances"
+    else
+        "operator parity summary: velocity=$(velocity_status.status); pressure=$(pressure_status.status)"
+    end
+    return native_resolved_fsi_parity_status(ready, skipped, discrepancy_count, max_difference, status)
+end
+
+function native_resolved_fsi_parity_pressure_section_observation(
+    field::Resolved3DVelocityField,
+    pressure::AbstractVector{<:Real},
+    z::Float64,
+)
+    area = 0.0
+    weighted_pressure = 0.0
+    count = 0
+    observed_radius = 0.0
+    degenerate_count = 0
+
+    for tet in eachrow(field.topology)
+        polygon = native_resolved_fsi_parity_tetra_plane_scalar_polygon(field.coordinates, field.topology, pressure, tet, z)
+        if 0 < length(polygon) < 3
+            degenerate_count += 1
+            continue
+        end
+        length(polygon) >= 3 || continue
+        center = polygon_center(polygon)
+        tet_triangles = 0
+        for i in eachindex(polygon)
+            p1 = polygon[i]
+            p2 = polygon[mod1(i + 1, length(polygon))]
+            tri_area = triangle_area_xy(center, p1, p2)
+            tri_area > 1.0e-14 || continue
+            tri_pressure = (center[4] + p1[4] + p2[4]) / 3.0
+            area += tri_area
+            weighted_pressure += tri_area * tri_pressure
+            count += 1
+            tet_triangles += 1
+            observed_radius = max(observed_radius, hypot(p1[1], p1[2]), hypot(p2[1], p2[2]))
+        end
+        tet_triangles > 0 || (degenerate_count += 1)
+    end
+
+    area_valid = area > 0.0 && isfinite(area)
+    cut_status = area_valid ? "valid" : (degenerate_count > 0 ? "degenerate-cut" : "empty-plane")
+    return (
+        area_cm2=area_valid ? area : NaN,
+        mean_pressure_dyn_cm2=area_valid ? weighted_pressure / area : NaN,
+        intersection_count=count,
+        area_valid=area_valid,
+        cut_status=cut_status,
+        observed_radius_cm=area_valid ? observed_radius : NaN,
+    )
+end
+
+function native_resolved_fsi_parity_tetra_plane_scalar_polygon(
+    coordinates::Matrix{Float64},
+    topology::Matrix{Int},
+    scalar_values::AbstractVector{<:Real},
+    tet,
+    z::Float64,
+)
+    size(coordinates, 1) == length(scalar_values) ||
+        throw(DimensionMismatch("scalar section observation requires one scalar value per node"))
+
+    points = NTuple{4,Float64}[]
+    for local_index in 1:4
+        node = tet[local_index]
+        dz = coordinates[node, 3] - z
+        if abs(dz) <= PLANE_INTERSECTION_TOL
+            native_resolved_fsi_parity_push_unique_scalar_intersection!(points, coordinates, scalar_values, node)
+        end
+    end
+
+    for (a, b) in TETRA_EDGES
+        ia = tet[a]
+        ib = tet[b]
+        za = coordinates[ia, 3]
+        zb = coordinates[ib, 3]
+        da = za - z
+        db = zb - z
+        if (da < -PLANE_INTERSECTION_TOL && db > PLANE_INTERSECTION_TOL) ||
+           (da > PLANE_INTERSECTION_TOL && db < -PLANE_INTERSECTION_TOL)
+            weight = (z - za) / (zb - za)
+            native_resolved_fsi_parity_push_unique_scalar_intersection!(
+                points,
+                coordinates,
+                scalar_values,
+                ia,
+                ib,
+                weight,
+                z,
+            )
+        end
+    end
+
+    length(points) >= 3 || return points
+    center = polygon_center(points)
+    sort!(points; by=point -> atan(point[2] - center[2], point[1] - center[1]))
+    return points
+end
+
+function native_resolved_fsi_parity_push_unique_scalar_intersection!(
+    points::Vector{NTuple{4,Float64}},
+    coordinates::Matrix{Float64},
+    scalar_values::AbstractVector{<:Real},
+    node::Int,
+)
+    point = (
+        coordinates[node, 1],
+        coordinates[node, 2],
+        coordinates[node, 3],
+        Float64(scalar_values[node]),
+    )
+    return push_unique_intersection!(points, point)
+end
+
+function native_resolved_fsi_parity_push_unique_scalar_intersection!(
+    points::Vector{NTuple{4,Float64}},
+    coordinates::Matrix{Float64},
+    scalar_values::AbstractVector{<:Real},
+    left::Int,
+    right::Int,
+    weight::Float64,
+    z::Float64,
+)
+    point = (
+        (1.0 - weight) * coordinates[left, 1] + weight * coordinates[right, 1],
+        (1.0 - weight) * coordinates[left, 2] + weight * coordinates[right, 2],
+        z,
+        (1.0 - weight) * Float64(scalar_values[left]) + weight * Float64(scalar_values[right]),
+    )
+    return push_unique_intersection!(points, point)
 end
 
 function native_resolved_fsi_parity_default_sample_z(
@@ -757,3 +984,5 @@ function native_resolved_fsi_parity_required_deformed_coordinates(bundle::Resolv
         error("deformed coordinates should exist after requiring the displacement field")
     return bundle.deformed_coordinates
 end
+
+include("native_resolved_fsi_parity_production.jl")

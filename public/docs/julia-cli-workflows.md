@@ -14,6 +14,9 @@ development, the lower-level Julia launcher remains:
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics <command> [options]
 ```
 
+For the code-level map of the package workflow modules behind these commands,
+use `public/docs/stenotic-hemodynamics/workflows.md`.
+
 Keep generated outputs under ignored scratch paths such as
 `tmp/simulations/output/**` unless a task explicitly publishes report-consumed
 assets.
@@ -147,5 +150,7 @@ pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-p
 - Use `public/docs/policy-vocabulary.md` for shared artifact terms.
 - Use `public/docs/report-assets-and-provenance.md` before staging generated
   assets.
+- Use `public/docs/stenotic-hemodynamics/workflows.md` for the package workflow
+  map and focused validation surfaces.
 - Use `public/docs/resolved3d-workflows.md` for optional resolved-3D data.
 - Use `public/docs/benchmark-pipeline.md` for package benchmark outputs.
