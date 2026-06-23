@@ -424,6 +424,7 @@
     @test default_status.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke"
     @test occursin("native_resolved_fsi_status,dry_run", default_text)
     @test occursin("boundary_mode,pressure_drop_weak_inlet_outlet_gauge_smoke", default_text)
+    @test occursin("wall_stability_status,explicit_membrane_oscillator_dt_guard", default_text)
 
     mktempdir() do dir
         output_path = joinpath(dir, "native-status-stdout.txt")
@@ -462,6 +463,8 @@
         @test occursin("section41_boundary_status,implemented_smoke_validated", text)
         @test occursin("section41_boundary_status=implemented_smoke_validated", text)
         @test occursin("boundary_equivalence_status,exact_section41_boundary_mode_selected_smoke_validated", text)
+        @test occursin("wall_stability_status,explicit_membrane_oscillator_dt_guard", text)
+        @test occursin("known_wall_stability_blocker", text)
         @test occursin("snapshot_manifest_csv,", text)
         @test occursin("snapshot_diagnostics_csv,", text)
         @test occursin("restart_metadata_json,", text)

@@ -372,6 +372,7 @@ struct NativeResolvedFSIProductionDryRunPlan
     section41_boundary_status::String
     boundary_status::String
     boundary_equivalence_status::String
+    wall_stability_status::String
     imported_case
     imported_available::Bool
     status::String
@@ -394,6 +395,33 @@ function native_resolved_fsi_partitioned_production_default_guard_report(
         estimated_output_payload_within_default_guard=estimated_output_payload_within_default_guard,
         required_override_flags=required_override_flags,
     )
+end
+
+function native_resolved_fsi_partitioned_wall_stability_status(spec::NativeResolvedFSIPartitionedProductionSpec)
+    params = Params(
+        severity=spec.case_spec.severity_percent,
+        tfinal=spec.tfinal_s,
+        initial_condition=GeometryRestIC(),
+    )
+    wall_stiffness_c0_dyn_cm3 = canic_membrane_c0(params; reference_radius=params.rmax)
+    wall_mass_g_cm2 = spec.wall_density_g_cm3 * params.wall_h
+    explicit_dt_limit_s = wall_mass_g_cm2 > 0.0 && wall_stiffness_c0_dyn_cm3 > 0.0 ?
+                          1.9 * sqrt(wall_mass_g_cm2 / wall_stiffness_c0_dyn_cm3) : NaN
+    oscillator_guard = isfinite(explicit_dt_limit_s) && spec.dt_s <= explicit_dt_limit_s ?
+                       "explicit_membrane_oscillator_dt_guard_pass" :
+                       "explicit_membrane_oscillator_dt_guard_fail"
+    common_status =
+        "$(oscillator_guard); dt_s=$(spec.dt_s); explicit_stability_dt_limit_s=$(explicit_dt_limit_s); " *
+        "wall_mass_g_cm2=$(wall_mass_g_cm2); wall_stiffness_c0_dyn_cm3=$(wall_stiffness_c0_dyn_cm3)"
+    if spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
+        known_probe_status =
+            spec.case_spec.case_id === :sev23 &&
+            isapprox(spec.dt_s, 1.0e-4; atol=0.0, rtol=1.0e-12) ?
+            "known_wall_stability_blocker: sev23 development exact-boundary execution at dt_s=1e-4 failed before writing solver artifacts" :
+            "pressure_load_stability_requires_execution_gate"
+        return "$(common_status); $(known_probe_status); dry-run does not certify wall-pressure/load stability"
+    end
+    return "$(common_status); local pressure-drop smoke loading, not exact Section 4.1 wall-stability evidence"
 end
 
 function NativeResolvedFSIProductionWorkflowPlan(
@@ -539,6 +567,7 @@ function native_resolved_fsi_partitioned_production_dry_run(
         inlet_umax_cm_s=spec.inlet_umax_cm_s,
     )
     boundary_equivalence_status = native_resolved_fsi_boundary_equivalence_status(boundary_status)
+    wall_stability_status = native_resolved_fsi_partitioned_wall_stability_status(spec)
     override_status = isempty(guard_report.required_override_flags) ?
         "default guards satisfied; required override flags: none" :
         "default guards would block production without required override flags: $(join(guard_report.required_override_flags, ", "))"
@@ -547,7 +576,7 @@ function native_resolved_fsi_partitioned_production_dry_run(
         spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41 ?
         "production execution is available only through explicit production specs and remains smoke-scale/operator-readiness evidence, not paper-grade reproduction" :
         "production execution remains opt-in through explicit production specs and output-volume overrides"
-    status = "dry-run ready: no production solver executed and no files written; $(override_status); $(imported_status); boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); $(execution_status)"
+    status = "dry-run ready: no production solver executed and no files written; $(override_status); $(imported_status); boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); wall_stability_status=$(wall_stability_status); $(execution_status)"
     return NativeResolvedFSIProductionDryRunPlan(
         plan,
         spec.case_spec.case_id,
@@ -574,6 +603,7 @@ function native_resolved_fsi_partitioned_production_dry_run(
         boundary_status.section41_boundary_status,
         boundary_status.boundary_status,
         boundary_equivalence_status,
+        wall_stability_status,
         parity_plan.imported_case,
         parity_plan.imported_available,
         status,

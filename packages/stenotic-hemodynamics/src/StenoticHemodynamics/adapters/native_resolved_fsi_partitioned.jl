@@ -207,7 +207,10 @@ function native_resolved_fsi_partitioned_smoke_validate_deformed_mesh(
             deformed_coordinates,
         )
         signed_volume6 > 1.0e-14 || throw(ArgumentError(
-            "native resolved-FSI partitioned smoke produced an inverted or degenerate tetrahedron at cell $row",
+            "native resolved-FSI partitioned smoke produced an inverted or degenerate tetrahedron at cell $(row); " *
+            "signed_volume6=$(signed_volume6), minimum_current_radius_cm=$(minimum(current_radii_cm)), " *
+            "maximum_wall_displacement_cm=$(maximum(current_radii_cm .- mesh.geometry.reference_radii_cm)), " *
+            "minimum_wall_displacement_cm=$(minimum(current_radii_cm .- mesh.geometry.reference_radii_cm))",
         ))
         minimum_signed_volume6 = min(minimum_signed_volume6, signed_volume6)
     end

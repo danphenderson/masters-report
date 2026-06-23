@@ -91,6 +91,13 @@ Implemented and committed:
   `coupling_under_relaxation=0.1` reaches two development-mesh steps but still
   fails at step 3. Do not treat warm start or relaxation alone as the full
   remediation.
+- Wall-stability observability now propagates through production dry-run plans
+  and `fsi native-status`: dry-run reports the explicit membrane oscillator
+  `dt_s` guard, the mass/stiffness scale, and the known `sev23` exact-boundary
+  `dt_s=1e-4` blocker. A short scratch probe at `dt_s=1e-5` reached the
+  deformed-mesh guard and failed on an inverted/degenerate tetrahedron, while a
+  longer `dt_s=1e-5` probe was runtime-inconclusive. Smaller `dt_s` alone is
+  not yet a validated remediation.
 - Lane 10D records the persisted restart/resume design in
   `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`.
   The design keeps current `state_payload` as audit metadata and keeps resume
@@ -136,9 +143,11 @@ Recommended dispatch order:
    development/preproduction. Candidate remediations must be scientific, not
    clipping: compatible exact-boundary initialization or inflow ramping,
    semi-implicit/implicit membrane update, coupling under-relaxation feasibility
-   that preserves positive relaxed radii, or a justified smaller `dt_s`.
-   Diagnostics must report the failing station, pressure load, radius,
-   mass/stiffness/damping, and stability scale.
+   that preserves positive relaxed radii and mesh orientation, a justified
+   smaller `dt_s`, or a pressure/load stabilization path. Diagnostics must
+   report the failing station, pressure load, radius, mass/stiffness/damping,
+   stability scale, and deformed-mesh cell/volume details when mesh orientation
+   fails.
 3. Re-run the exact-boundary `sev23` development and preproduction gates,
    validating finite fields, wall displacement, pressure normalization,
    importer round-trip, sidecars, and observation rows.

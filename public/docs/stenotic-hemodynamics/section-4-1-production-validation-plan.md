@@ -316,16 +316,26 @@ Operational policy for non-smoke runs:
 
 ## Follow-Up Implementation Lanes
 
-1. **10C-impl1: production-scale dry-run matrix.** Generate status-only rows for
-   the mesh/time schedule above and confirm guard flags and output paths.
-2. **10C-impl2: development/preproduction execution.** Run exact-boundary
+1. **10C-impl1: production-scale dry-run matrix.** Completed as status-only
+   planning evidence. The dry-run matrix confirmed guard flags and output paths
+   without running production or writing solver artifacts.
+2. **10C-impl2a: wall-stability remediation.** Current `sev23` development
+   execution reaches the exact-boundary partitioned production path, then fails
+   closed before output artifacts. The known blocker is wall-state
+   stability/pressure-load scaling, with additional short-probe evidence that
+   smaller `dt_s` alone has not cleared the gate because a `dt_s=1e-5`
+   scratch run reached a deformed-mesh orientation failure. Remediation must
+   preserve positive relaxed radii and positive tetrahedron orientation without
+   clipping and must keep `wall_stability_status` visible in dry-run/status
+   surfaces.
+3. **10C-impl2b: development/preproduction execution.** After remediation,
+   run exact-boundary
    `sev23` at development then preproduction scale, exercising finite fields,
    pressure normalization, importer round-trip, and sidecars.
-3. **10C-impl3: full case-set production generation.** Run `sev23`, `sev40`,
+4. **10C-impl3: full case-set production generation.** Run `sev23`, `sev40`,
    and `sev50` at `(120, 5, 32)`, `dt_s=1e-4`, `T=1.0`, final snapshot only.
-4. **10C-impl4: imported-data parity.** Pair generated native outputs with
+5. **10C-impl4: imported-data parity.** Pair generated native outputs with
    optional imported bundles; keep `sev50` and missing pressure/displacement
    data skip-safe.
-5. **10C-editorial: manuscript claim review.** Update manuscript/report claims
+6. **10C-editorial: manuscript claim review.** Update manuscript/report claims
    only after gates 1-8 are reviewed and accepted by the editorial owner.
-

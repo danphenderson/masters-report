@@ -334,6 +334,8 @@ end
         @test dry_run.section41_boundary_status == "deferred_or_not_selected"
         @test occursin("local smoke boundary evidence", dry_run.boundary_status)
         @test occursin("not_exact_section41_boundary_equivalence", dry_run.boundary_equivalence_status)
+        @test occursin("explicit_membrane_oscillator_dt_guard", dry_run.wall_stability_status)
+        @test occursin("local pressure-drop smoke loading", dry_run.wall_stability_status)
         @test dry_run.imported_case.case_label == "77"
         @test !dry_run.imported_available
         @test occursin("dry-run ready", dry_run.status)
@@ -341,6 +343,7 @@ end
         @test occursin("no files written", dry_run.status)
         @test occursin("boundary_mode=pressure_drop_weak_inlet_outlet_gauge_smoke", dry_run.status)
         @test occursin("section41_boundary_status=deferred_or_not_selected", dry_run.status)
+        @test occursin("wall_stability_status=", dry_run.status)
         @test occursin("required override flags: none", dry_run.status)
         @test !ispath(dry_run.output_dir)
         @test !ispath(dirname(dry_run.parity_observations_csv))
@@ -397,10 +400,13 @@ end
         @test exact_dry_run.section41_boundary_status == "implemented_smoke_validated"
         @test occursin("partitioned production smoke-scale threading evidence", exact_dry_run.boundary_status)
         @test occursin("exact_section41_boundary_mode_selected_smoke_validated", exact_dry_run.boundary_equivalence_status)
+        @test occursin("known_wall_stability_blocker", exact_dry_run.wall_stability_status)
+        @test occursin("dry-run does not certify wall-pressure/load stability", exact_dry_run.wall_stability_status)
         @test occursin("production runner support advances the exact inlet/outlet boundary mode", exact_plan.status)
         @test occursin("section41_boundary_status=implemented_smoke_validated", exact_plan.status)
         @test occursin("boundary_mode=poiseuille_inlet_zero_outlet_stress_section41", exact_dry_run.status)
         @test occursin("section41_boundary_status=implemented_smoke_validated", exact_dry_run.status)
+        @test occursin("known_wall_stability_blocker", exact_dry_run.status)
         @test occursin("production execution is available only through explicit production specs", exact_dry_run.status)
     end
 end
