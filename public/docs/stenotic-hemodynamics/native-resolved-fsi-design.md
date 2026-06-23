@@ -32,7 +32,7 @@ The implemented native resolved-FSI surface is split into these tiers:
 | Partitioned smoke | `run_native_resolved_fsi_partitioned_smoke(...)` updates a reduced radial membrane state and prescribes radial wall-velocity Dirichlet data on the fluid wall. | Coarse staggered smoke with prescribed wall velocity; not monolithic ALE. |
 | Production dry-run | `native_resolved_fsi_partitioned_production_dry_run(...)` resolves output, sidecar, restart, and imported-parity paths without running a solver or writing files. | Side-effect-free planning only. |
 | Production sidecars | `run_native_resolved_fsi_partitioned_production(...)` advances one state-carrying partitioned snapshot series within a run and writes importer-compatible snapshot bundles, `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, and `restart_metadata.json`. | Production-control and diagnostics harness with in-run state carry; persisted resume, monolithic ALE coupling, and paper-grade reproduction remain deferred. |
-| Restart metadata | `native_resolved_fsi_read_restart_metadata(...)` validates current and legacy package-written restart metadata. | Persisted process resume is deferred; `native_resolved_fsi_resume_partitioned_production(...)` fails closed. |
+| Restart metadata | `native_resolved_fsi_read_restart_metadata(...)` validates current and legacy package-written restart metadata, including versioned `state_payload` audit data when present. | Persisted process resume is deferred; `native_resolved_fsi_resume_partitioned_production(...)` fails closed. |
 | Observation artifacts | Production parity writes `section41_observations.csv` and `section41_observation_summary.csv`. | Local velocity/pressure observation evidence and optional imported-bundle comparison, not a paper-grade reproduction claim. |
 
 External importer support is retained. Legacy or explicitly supplied
@@ -54,8 +54,9 @@ Interpretation:
 - The schema workflow, fixed-wall smoke, partitioned smoke, production dry-run,
   restart reader/stub, and observation summary CSV surfaces are implemented as
   qualified Julia-internal workflows.
-- Public CLI exposure remains deferred; no native resolved-FSI production
-  command is wired through `cli/dispatch.jl`.
+- Public CLI exposure remains deferred in this round; no native resolved-FSI
+  production, dry-run, restart, or parity command is wired through
+  `cli/dispatch.jl`.
 - The production tier carries partitioned state through one requested snapshot
   schedule within a run, but saved restart metadata is not a future-process
   resume surface.
@@ -150,9 +151,9 @@ state-carrying partitioned snapshot series:
   velocity/pressure/displacement bundles, `snapshot_manifest.csv`,
   `snapshot_diagnostics.csv`, and `restart_metadata.json`.
 - `native_resolved_fsi_read_restart_metadata(...)` validates current and legacy
-  restart metadata; `native_resolved_fsi_resume_partitioned_production(...)`
-  validates metadata and then fails closed because persisted process resume is
-  deferred.
+  restart metadata, including versioned `state_payload` audit metadata when
+  present; `native_resolved_fsi_resume_partitioned_production(...)` validates
+  metadata and then fails closed because persisted process resume is deferred.
 - Production parity writes `section41_observations.csv` and
   `section41_observation_summary.csv` using the local cross-section velocity
   and pressure observation operators.
@@ -442,7 +443,7 @@ The current public-by-qualification contract centers on these structs:
   deformed-geometry output.
 - `NativeResolvedFSIPartitionedProductionSpec` /
   `NativeResolvedFSIPartitionedProductionResult`: production-oriented snapshot
-  policy, sidecars, and smoke-backed execution result.
+  policy, sidecars, and state-carrying partitioned execution result.
 - `NativeResolvedFSIProductionWorkflowPlan` and
   `NativeResolvedFSIProductionDryRunPlan`: deterministic Section 4.1 workflow
   plans and side-effect-free dry-run records.
@@ -466,7 +467,7 @@ commands:
 - `native_resolved_fsi_production_workflow_plans(...)`,
   `native_resolved_fsi_partitioned_production_dry_run(...)`, and
   `run_native_resolved_fsi_partitioned_production(...)` for production planning
-  and smoke-backed snapshot sidecars.
+  and state-carrying partitioned snapshot sidecars.
 - `native_resolved_fsi_read_restart_metadata(...)` and
   `native_resolved_fsi_resume_partitioned_production(...)` for
   restart-identification metadata validation and fail-closed resume.
@@ -474,7 +475,10 @@ commands:
   parity artifacts.
 
 Public CLI exposure is intentionally deferred for the native resolved-FSI
-production, dry-run, restart, and observation-artifact surfaces.
+production, dry-run, restart, parity, and observation-artifact surfaces in this
+round. The next scoped follow-up is expected to evaluate dry-run or status
+exposure before any CLI path that could trigger expensive production execution
+by default.
 
 ## Tests and acceptance tolerances
 

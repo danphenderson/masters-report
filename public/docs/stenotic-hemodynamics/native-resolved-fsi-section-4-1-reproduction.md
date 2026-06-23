@@ -51,7 +51,8 @@ local operator evidence in separate tiers:
   `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, and
   `restart_metadata.json`.
 - Restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
-  identification-only metadata; `native_resolved_fsi_resume_partitioned_production(...)`
+  current and legacy metadata, including versioned `state_payload` audit
+  metadata when present; `native_resolved_fsi_resume_partitioned_production(...)`
   intentionally fails closed because persisted resume is deferred.
 - Observation artifacts: native/imported/parity rows are written to
   `section41_observations.csv` and summarized in
@@ -279,6 +280,8 @@ Current generated artifacts may support these bounded statements:
   summarized locally;
 - production sidecars document state-carrying behavior within a production run,
   not persisted process resume or a paper-grade transient reproduction;
+- restart metadata may carry versioned `state_payload` audit state for the last
+  in-run snapshot without turning persisted resume into a supported workflow;
 - local velocity and pressure observation artifacts can be generated and
   summarized in `section41_observation_summary.csv`.
 - smoke results now carry executable boundary-condition status showing
@@ -288,8 +291,10 @@ Current generated artifacts may support these bounded statements:
 Deferred claims:
 
 - public CLI exposure for native resolved-FSI production, dry-run, restart, and
-  observation-artifact workflows;
-- persisted restart and resume beyond the identification-only metadata reader;
+  observation-artifact workflows, although a dry-run or status-first CLI
+  follow-up is now in scope for a later round;
+- persisted restart and resume beyond the current audit-oriented metadata
+  reader;
 - exact Section 4.1 inlet/outlet boundary reproduction with Poiseuille inlet and
   zero outlet stress;
 - monolithic ALE FSI;

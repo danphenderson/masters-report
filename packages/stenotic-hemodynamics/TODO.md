@@ -35,11 +35,23 @@ Recent commits established:
   - Smoke results report local pressure-drop weak inlet/outlet boundary
     evidence and fail closed for the deferred exact Section 4.1
     Poiseuille-inlet/zero-outlet-stress mode.
+- `e4c1486 Document native resolved FSI CLI boundary`
+  - Native production, dry-run, restart, and parity remain qualified Julia
+    internals.
+  - No public CLI command triggers native resolved-FSI production in the
+    current round.
+- `2cbf835 Add native resolved FSI restart state payload`
+  - Restart metadata now carries a versioned `state_payload` audit block for
+    current state-carrying runs.
+  - Persisted resume remains unsupported and fail-closed despite the richer
+    metadata.
 
 Current bounded interpretation:
 
 - State is now carried within one production run, but restart from saved
   metadata is still unsupported.
+- Restart metadata may include versioned `state_payload` audit data, but that
+  metadata does not make persisted resume available.
 - The fluid solve explicitly reports pressure-drop-driven local smoke boundary
   evidence. Exact Section 4.1 Poiseuille inlet and zero-outlet-stress parity
   remain deferred and unclaimed.
@@ -73,93 +85,62 @@ Current bounded interpretation:
 - Leave report, reproducibility, scratch, and optional external-data files
   untouched unless explicitly assigned.
 
-## Remaining Lanes
+## Next-Round Lanes
 
-### Lane 8F: CLI Exposure Reassessment
+### Lane 9A: Dry-Run Or Status CLI First
 
-Objective: decide whether to keep native resolved-FSI production qualified
-internal or expose only a dry-run CLI command.
+Objective: scope the first native resolved-FSI CLI exposure without making the
+production runner a default command path.
 
 Owned write scope:
 
+- `src/StenoticHemodynamics/cli/**` only if a narrow CLI surface is approved.
 - `test/test_public_api.jl`
-- CLI files only if exposing dry-run CLI is explicitly chosen.
 - `packages/stenotic-hemodynamics/README.md`
 - `public/docs/julia-cli-workflows.md`
 - `public/docs/stenotic-hemodynamics/workflows.md`
 
 Implementation:
 
-1. Default posture remains no production CLI command.
-2. If adding CLI, expose dry-run only; no solver execution from CLI defaults.
-3. Keep public exports unchanged unless deliberately widened and tested.
-4. Document the final posture.
+1. Prefer a dry-run or status-oriented CLI command first.
+2. Do not make `run_native_resolved_fsi_partitioned_production(...)` reachable
+   from CLI defaults.
+3. Preserve public exports unless a later lane explicitly widens that boundary.
+4. Keep guard-report and required-override-flag semantics visible if a CLI
+   surface is added.
 
 Validation:
 
 ```bash
 packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_public_api.jl")'
-git diff --check -- packages/stenotic-hemodynamics/README.md public/docs/julia-cli-workflows.md public/docs/stenotic-hemodynamics/workflows.md
+git diff --check -- packages/stenotic-hemodynamics/README.md public/docs/julia-cli-workflows.md public/docs/stenotic-hemodynamics/workflows.md packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli
 ```
 
 Acceptance:
 
-- No expensive production run is reachable from CLI defaults.
-- Public API and CLI command lists match the documented posture.
+- No expensive production execution is reachable from CLI defaults.
+- Public API, CLI command lists, and reader-facing docs stay synchronized.
 
-### Lane 8G: Documentation Refresh
+### Lane 9B: Restart Audit Metadata And Reader Stewardship
 
-Objective: update public docs after the state-carrying, boundary, guard, and
-CLI-posture lanes land.
-
-Owned write scope:
-
-- `public/docs/stenotic-hemodynamics/workflows.md`
-- `public/docs/stenotic-hemodynamics/native-resolved-fsi-design.md`
-- `public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`
-- `packages/stenotic-hemodynamics/README.md`
-
-Implementation:
-
-1. Document state-carrying production as implemented in-run, not persisted
-   restart/resume.
-2. Preserve claim boundaries around ALE, exact Section 4.1 boundary
-   reproduction, and paper-grade parity.
-3. Keep external importer support explicit.
-4. Keep CLI exposure status synchronized with Lane 8F.
-
-Validation:
-
-```bash
-pipenv run ops-orchestrate docs-contract
-git diff --check -- packages/stenotic-hemodynamics/README.md public/docs/stenotic-hemodynamics public/docs/julia-cli-workflows.md
-```
-
-Acceptance:
-
-- Docs describe the actual implemented state after the round.
-- No paper-grade reproduction claim is introduced without evidence.
-
-### Lane 8H: Restart State-Payload Schema
-
-Objective: add a versioned restart `state_payload` schema without claiming
-actual persisted resume.
+Objective: keep the restart-reader contract and `state_payload` audit metadata
+clear while persisted resume remains unsupported.
 
 Owned write scope:
 
 - `src/StenoticHemodynamics/workflows/native_resolved_fsi_restart.jl`
 - `src/StenoticHemodynamics/workflows/native_resolved_fsi_workflow_production.jl`
 - `test/test_native_resolved_fsi_workflow.jl`
-- `test/test_public_api.jl` only if new qualified internals are added.
+- `test/test_public_api.jl` only if a qualified internal name changes.
 
 Implementation:
 
-1. Add a nested `state_payload` metadata block with schema version, saved time,
-   last snapshot index, final wall displacement, wall velocity, current radii,
-   wall pressure, solver provenance, and resume status.
-2. Keep existing top-level metadata keys backward-compatible.
-3. Update the reader to report or validate whether a state payload is present.
-4. Keep `native_resolved_fsi_resume_partitioned_production(...)` fail-closed
+1. Preserve backward-compatible reading for both legacy
+   `independent_smoke_backed_snapshots` metadata and current
+   `state_carrying_partitioned` metadata.
+2. Keep `state_payload` explicitly documented and validated as audit metadata,
+   not a persisted-resume contract.
+3. Keep `native_resolved_fsi_resume_partitioned_production(...)` fail-closed
    until an actual resumed run is implemented and tested.
 
 Validation:
@@ -170,19 +151,42 @@ packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hem
 
 Acceptance:
 
-- New metadata includes a versioned `state_payload`.
+- `state_payload` remains versioned audit metadata.
 - Old metadata remains readable.
-- Resume claims remain fail-closed.
+- Persisted resume claims remain fail-closed.
+
+### Lane 9C: Exact Section 4.1 Boundary Mode
+
+Objective: implement and validate the deferred exact Section 4.1
+Poiseuille-inlet/zero-outlet-stress mode without weakening the current
+pressure-drop smoke evidence path.
+
+Owned write scope:
+
+- `src/StenoticHemodynamics/adapters/native_resolved_fsi_gridap.jl`
+- `src/StenoticHemodynamics/adapters/native_resolved_fsi_types.jl`
+- `src/StenoticHemodynamics/adapters/native_resolved_fsi_roundtrip.jl`
+- `test/test_native_resolved_fsi_smoke.jl`
+- Reader-facing docs only after the code/test lane lands.
+
+Implementation:
+
+1. Keep the current `pressure_drop_weak_inlet_outlet_gauge_smoke` mode intact.
+2. Add the exact Section 4.1 inlet/outlet mode as a separate, explicit surface.
+3. Fail closed on unsupported combinations rather than silently remapping modes.
+
+Acceptance:
+
+- Smoke status distinguishes local pressure-drop evidence from exact Section 4.1
+  boundary reproduction.
+- Existing smoke coverage remains stable.
 
 ## Dispatch Order
 
-1. Dispatch 8F and 8H concurrently only while file locks remain disjoint:
-   - 8F owns public API/CLI posture and reader-facing CLI docs.
-   - 8H owns restart metadata/workflow internals and workflow tests. It must
-     stop before editing `test/test_public_api.jl` unless 8F has returned or
-     the orchestrator explicitly grants that expansion.
-2. Review and commit 8F and 8H separately if their diffs remain independent.
-3. Dispatch 8G last so docs reflect the final state.
+1. Dispatch Lane 9A first if CLI exposure is in scope.
+2. Lane 9B may run independently while file locks remain disjoint from 9A.
+3. Lane 9C should land after 9A/9B unless a code owner explicitly narrows it to
+   smoke-only implementation work.
 
 Round-boundary gates:
 

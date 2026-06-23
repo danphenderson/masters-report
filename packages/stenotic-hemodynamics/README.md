@@ -108,11 +108,13 @@ Study, benchmark, adapter, native resolved-FSI, and report-asset helpers are
 intentionally qualified module internals, for example
 `StenoticHemodynamics.run_study(...)`. The CLI uses the same core protocol and
 owns ordinary CSV/SVG output writing. Native resolved-FSI production, dry-run,
-restart-identification, resume-stub, and observation-artifact helpers are also
-Julia-qualified internal workflows for now; there is no production CLI command.
-There is also no dry-run CLI command in this round. High-output generation
-remains guarded by explicit spec objects, workflow plans, and qualified Julia
-dry-run guard reporting.
+restart-reader, resume-stub, parity-matrix, and observation-artifact helpers are
+also Julia-qualified internal workflows in this round; there is no production,
+dry-run, restart, or parity CLI command yet. High-output generation remains
+guarded by explicit spec objects, workflow plans, and qualified Julia dry-run
+guard reporting. The next scoped expansion is expected to evaluate a dry-run or
+status-oriented CLI surface first, without making expensive production
+execution a default CLI path.
 
 ## CLI Examples
 
@@ -241,7 +243,8 @@ The native resolved-FSI surface is intentionally tiered:
   `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, and
   `restart_metadata.json`;
 - restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
-  package-written `state_carrying_partitioned` metadata, while
+  package-written legacy and current metadata, including versioned
+  `state_payload` audit data when present, while
   `native_resolved_fsi_resume_partitioned_production(...)` fails closed because
   persisted state-carrying resume is deferred;
 - observation artifacts: production parity can write `section41_observations.csv`
@@ -304,8 +307,8 @@ means are emitted only as supplemental sensitivity rows.
   resume-stub, and observation-artifact surfaces are qualified Julia internals,
   not public CLI commands.
 - Native resolved-FSI production metadata records state-carrying partitioned
-  snapshots, but persisted resume and exact Section 4.1 boundary-mode matching
-  remain deferred.
+  snapshots and a versioned `state_payload` audit block, but persisted resume
+  and exact Section 4.1 boundary-mode matching remain deferred.
 - Stationary Stokes initialization is a projection contract for the 1D state,
   not a transient FSI solve or direct finite-element field projection.
 - The model is a finite-volume reproduction for local experimentation, not a

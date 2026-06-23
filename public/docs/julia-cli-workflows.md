@@ -36,16 +36,19 @@ assets.
 | `benchmark` | Run package benchmark profiles. | Follow `public/docs/benchmark-pipeline.md`. |
 | `export-assets` | Export stenosis geometry/report CSV assets. | Follow report asset publication rules before rendering or staging outputs. |
 
-There is intentionally no native resolved-FSI production, dry-run, or restart
-CLI command. State-carrying production, dry-run guard reporting, parity matrix
-rows, and restart metadata remain qualified Julia internals such as
+There is intentionally no native resolved-FSI production, dry-run, restart, or
+parity CLI command in this round. State-carrying production, dry-run guard
+reporting, parity matrix rows, and restart metadata remain qualified Julia
+internals such as
 `StenoticHemodynamics.native_resolved_fsi_partitioned_production_dry_run(...)`
 and
 `StenoticHemodynamics.native_resolved_fsi_partitioned_production_default_guard_report(...)`.
 High-output generation is still guarded by spec objects, workflow plans, and
 dry-run checks, and no CLI default reaches the expensive production runner.
-Persisted restart remains fail-closed; exact Section 4.1 boundary-mode matching
-is still deferred.
+Restart metadata may include a versioned `state_payload` audit block, but
+persisted restart/resume remains fail-closed. Exact Section 4.1 boundary-mode
+matching is still deferred. The next planned CLI expansion is a dry-run or
+status-first surface; production execution should stay opt-in and non-default.
 
 ## Simulation
 

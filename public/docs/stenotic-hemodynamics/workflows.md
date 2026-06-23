@@ -182,8 +182,9 @@ contract, skip behavior, and report publication boundaries.
     `native_resolved_fsi_resume_partitioned_production(...)`,
     `run_native_resolved_fsi_partitioned_production(...)`
   - No public CLI command is wired in `cli/dispatch.jl`; production, dry-run
-    guard reporting, and restart-identification access remain qualified
-    Julia-internal for now
+    guard reporting, restart reading, and parity helpers remain qualified
+    Julia-internal for now. The next scoped expansion is expected to consider a
+    dry-run or status CLI first, not default production execution
 - Surface: `qualified-internal`
 - Expected outputs and artifact class:
   - Ignored scratch schema-workflow outputs under `tmp/simulations/output/native-resolved-fsi/**`
@@ -222,7 +223,8 @@ Current tiers are intentionally separate:
   runs one state-carrying partitioned snapshot series and writes manifest,
   diagnostics, and restart metadata.
 - Restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
-  package-written `state_carrying_partitioned` metadata, while
+  legacy and current package-written metadata, including versioned
+  `state_payload` audit metadata when present, while
   `native_resolved_fsi_resume_partitioned_production(...)` fails closed because
   persisted state-carrying resume is deferred.
 - Observation artifacts: production parity writes native/imported/parity
@@ -235,7 +237,8 @@ Current tiers are intentionally separate:
 The current family documents generated artifacts, local operator evidence, and
 production-control sidecars. Public CLI exposure, persisted restart, exact
 Section 4.1 boundary-mode matching, and paper-grade Section 4.1 reproduction
-claims remain deferred.
+claims remain deferred, although a dry-run or status-first CLI follow-up is now
+in scope for the next round.
 
 ## Native Resolved-FSI Notes
 
