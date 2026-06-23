@@ -2,9 +2,11 @@
     native_resolved_fsi_read_restart_metadata(path)
 
 Read and validate package-written restart-identification metadata for the
-native resolved-FSI partitioned production snapshot harness. The current
-metadata is JSON written by the package's minimal writer, and is parsed through
-the existing lazy YAML loader because JSON is valid YAML.
+native resolved-FSI partitioned production snapshot harness. The metadata is
+JSON written by the package's minimal writer, and is parsed through the existing
+lazy YAML loader because JSON is valid YAML. Both legacy independent
+smoke-backed metadata and current state-carrying-in-run partitioned metadata
+are readable; persisted resume remains unsupported for both forms.
 """
 function native_resolved_fsi_read_restart_metadata(path::AbstractString)
     path_string = String(path)
@@ -15,13 +17,16 @@ function native_resolved_fsi_read_restart_metadata(path::AbstractString)
     metadata = native_resolved_fsi_normalize_restart_metadata(loaded)
     metadata_dir = dirname(path_string)
 
-    native_resolved_fsi_require_restart_metadata_value(
-        metadata,
-        "restart_provenance",
-        "independent_smoke_backed_snapshots",
-    )
+    provenance = native_resolved_fsi_require_restart_metadata_string(metadata, "restart_provenance")
+    provenance in ("independent_smoke_backed_snapshots", "state_carrying_partitioned") || throw(ArgumentError(
+        "native resolved-FSI restart metadata restart_provenance must be " *
+        "\"independent_smoke_backed_snapshots\" or \"state_carrying_partitioned\"; got $(repr(provenance))",
+    ))
     native_resolved_fsi_require_restart_metadata_value(metadata, "resume_supported", false)
     native_resolved_fsi_require_restart_metadata_value(metadata, "resume_status", "deferred")
+    if provenance == "state_carrying_partitioned"
+        native_resolved_fsi_require_restart_metadata_value(metadata, "state_carrying_restart", true)
+    end
 
     manifest_csv = native_resolved_fsi_require_restart_metadata_string(metadata, "snapshot_manifest_csv")
     diagnostics_csv = native_resolved_fsi_require_restart_metadata_string(metadata, "diagnostics_csv")
@@ -57,6 +62,19 @@ function native_resolved_fsi_read_restart_metadata(path::AbstractString)
                 "snapshot_outputs[$(index)].$(key)",
             )
         end
+        if provenance == "state_carrying_partitioned"
+            native_resolved_fsi_require_restart_metadata_value(
+                snapshot_output,
+                "provenance",
+                "state_carrying_partitioned";
+                context="native resolved-FSI restart metadata snapshot_outputs[$(index)]",
+            )
+            native_resolved_fsi_require_restart_metadata_positive_integer(
+                snapshot_output,
+                "time_step_count";
+                context="native resolved-FSI restart metadata snapshot_outputs[$(index)]",
+            )
+        end
     end
 
     return metadata
@@ -65,15 +83,18 @@ end
 """
     native_resolved_fsi_resume_partitioned_production(path; kwargs...)
 
-Validate restart-identification metadata, then fail closed because the current
-snapshot harness writes independent smoke-backed snapshots rather than
-state-carrying restart data.
+Validate restart-identification metadata, then fail closed because persisted
+resume from restart metadata is not implemented. Current production metadata
+may be state-carrying within a single run, but it is still identification-only
+for future process resume.
 """
 function native_resolved_fsi_resume_partitioned_production(path::AbstractString; kwargs...)
-    native_resolved_fsi_read_restart_metadata(path)
+    metadata = native_resolved_fsi_read_restart_metadata(path)
+    provenance = String(metadata["restart_provenance"])
     throw(ArgumentError(
-        "native resolved-FSI state-carrying resume is unsupported for independent smoke-backed snapshots; " *
-        "restart metadata is identification-only and resume_status is deferred",
+        "native resolved-FSI persisted resume from restart metadata is unsupported for provenance " *
+        "$(repr(provenance)); state may be carried within a production run, but resume_supported is false " *
+        "and resume_status is deferred",
     ))
 end
 
@@ -97,13 +118,30 @@ function native_resolved_fsi_normalize_restart_metadata_value(value)
     end
 end
 
-function native_resolved_fsi_require_restart_metadata_value(metadata::Dict{String,Any}, key::String, expected)
+function native_resolved_fsi_require_restart_metadata_value(
+    metadata::Dict{String,Any},
+    key::String,
+    expected;
+    context::String = "native resolved-FSI restart metadata",
+)
     haskey(metadata, key) ||
-        throw(ArgumentError("native resolved-FSI restart metadata requires '$(key)'"))
+        throw(ArgumentError("$(context) requires '$(key)'"))
     value = metadata[key]
     value == expected || throw(ArgumentError(
-        "native resolved-FSI restart metadata requires $(key) == $(repr(expected)); got $(repr(value))",
+        "$(context) requires $(key) == $(repr(expected)); got $(repr(value))",
     ))
+    return value
+end
+
+function native_resolved_fsi_require_restart_metadata_positive_integer(
+    metadata::Dict{String,Any},
+    key::String;
+    context::String = "native resolved-FSI restart metadata",
+)
+    haskey(metadata, key) || throw(ArgumentError("$(context) requires '$(key)'"))
+    value = metadata[key]
+    value isa Integer || throw(ArgumentError("$(context) '$(key)' must be an integer"))
+    value > 0 || throw(ArgumentError("$(context) '$(key)' must be positive"))
     return value
 end
 

@@ -228,7 +228,7 @@ end
         @test plans[2].workflow_spec.output_dir == joinpath(dir, "production", "sev40")
         @test plans[3].workflow_spec.output_dir == joinpath(dir, "production", "sev50")
         @test all(occursin("schema-only", plan.status) for plan in plans)
-        @test all(occursin("coarse partitioned native FSI", plan.status) for plan in plans)
+        @test all(occursin("state-carrying partitioned native FSI", plan.status) for plan in plans)
         @test all(occursin("not a paper-grade reproduction", plan.status) for plan in plans)
         @test occursin("23% stenosis", plans[1].status)
         @test occursin("50% stenosis", plans[3].status)
@@ -344,25 +344,27 @@ end
         @test result.smoke_result.post_update_fluid_refresh
         @test result.smoke_result.field_status.ready
         @test occursin("production snapshot harness", result.method_status.status)
-        @test occursin("independent smoke-backed", result.method_status.status)
+        @test occursin("state-carrying partitioned solve", result.method_status.status)
         @test occursin("prescribed radial wall-velocity Dirichlet", result.method_status.status)
         @test occursin("monolithic ALE", result.method_status.status)
-        @test occursin("per-snapshot smoke summaries", result.method_status.status)
+        @test occursin("cumulative per-snapshot summaries", result.method_status.status)
         @test occursin("snapshot manifest", result.output_status.status)
         @test occursin("diagnostics CSV", result.output_status.status)
         @test result.diagnostics_status.ready
         @test result.restart_status.ready
-        @test occursin("resume is explicitly deferred", result.restart_status.status)
+        @test occursin("persisted resume remains explicitly deferred", result.restart_status.status)
         manifest_lines = readlines(result.manifest_csv)
         @test length(manifest_lines) == 2
         @test startswith(
             manifest_lines[1],
-            "case_id,snapshot_time_s,output_dir,velocity_xdmf,pressure_xdmf,displacement_xdmf,node_count,tetrahedron_count,estimated_field_payload_bytes,status",
+            "case_id,snapshot_time_s,output_dir,velocity_xdmf,pressure_xdmf,displacement_xdmf,provenance,node_count,tetrahedron_count,estimated_field_payload_bytes,status",
         )
         @test occursin("sev23,0.0001", manifest_lines[2])
+        @test occursin(",state_carrying_partitioned,", manifest_lines[2])
         @test occursin(",ready", manifest_lines[2])
         diagnostic_row = only(result.diagnostic_rows)
         @test diagnostic_row.output_dir == result.output_dir
+        @test diagnostic_row.provenance == "state_carrying_partitioned"
         @test diagnostic_row.solver_convergence_ready
         @test diagnostic_row.wall_update_ready
         @test diagnostic_row.output_ready
@@ -380,10 +382,12 @@ end
         @test occursin("max_coupling_iterations_used", diagnostic_lines[1])
         @test occursin("fluid_wall_boundary_mode", diagnostic_lines[1])
         @test occursin("wall_update_ready", diagnostic_lines[1])
+        @test occursin("provenance", diagnostic_lines[1])
         @test occursin(",ready", diagnostic_lines[2])
         @test result.restart_metadata["snapshot_manifest_csv"] == result.manifest_csv
         @test result.restart_metadata["diagnostics_csv"] == result.diagnostics_csv
-        @test result.restart_metadata["restart_provenance"] == "independent_smoke_backed_snapshots"
+        @test result.restart_metadata["restart_provenance"] == "state_carrying_partitioned"
+        @test result.restart_metadata["state_carrying_restart"] == true
         @test result.restart_metadata["max_coupling_iterations_used"] == result.smoke_result.max_coupling_iterations_used
         @test result.restart_metadata["fluid_wall_boundary_mode"] == "prescribed_radial_wall_velocity"
         @test result.restart_metadata["wall_velocity_fluid_bc_status"] ==
@@ -397,14 +401,17 @@ end
               length(result.smoke_result.wall_displacement_cm)
         restart_metadata_text = read(result.restart_metadata_json, String)
         @test occursin("\"resume_supported\": false", restart_metadata_text)
-        @test occursin("\"restart_provenance\": \"independent_smoke_backed_snapshots\"", restart_metadata_text)
+        @test occursin("\"restart_provenance\": \"state_carrying_partitioned\"", restart_metadata_text)
+        @test occursin("\"state_carrying_restart\": true", restart_metadata_text)
         @test occursin("\"fluid_wall_boundary_mode\": \"prescribed_radial_wall_velocity\"", restart_metadata_text)
+        @test only(result.restart_metadata["snapshot_outputs"])["provenance"] == "state_carrying_partitioned"
 
         parsed_restart_metadata = native_resolved_fsi_read_restart_metadata(result.restart_metadata_json)
         @test parsed_restart_metadata isa Dict{String,Any}
         @test parsed_restart_metadata["snapshot_manifest_csv"] == result.manifest_csv
         @test parsed_restart_metadata["diagnostics_csv"] == result.diagnostics_csv
-        @test parsed_restart_metadata["restart_provenance"] == "independent_smoke_backed_snapshots"
+        @test parsed_restart_metadata["restart_provenance"] == "state_carrying_partitioned"
+        @test parsed_restart_metadata["state_carrying_restart"] == true
         @test parsed_restart_metadata["resume_supported"] == false
         @test parsed_restart_metadata["resume_status"] == "deferred"
         parsed_snapshot_output = only(parsed_restart_metadata["snapshot_outputs"])
@@ -412,6 +419,8 @@ end
         @test parsed_snapshot_output["velocity_xdmf"] == result.smoke_result.velocity_xdmf
         @test parsed_snapshot_output["pressure_xdmf"] == result.smoke_result.pressure_xdmf
         @test parsed_snapshot_output["displacement_xdmf"] == result.smoke_result.displacement_xdmf
+        @test parsed_snapshot_output["provenance"] == "state_carrying_partitioned"
+        @test parsed_snapshot_output["time_step_count"] == result.smoke_result.time_step_count
 
         resume_error = try
             native_resolved_fsi_resume_partitioned_production(result.restart_metadata_json)
@@ -420,12 +429,13 @@ end
             err
         end
         @test resume_error isa ArgumentError
-        @test occursin("state-carrying resume is unsupported", sprint(showerror, resume_error))
-        @test occursin("independent smoke-backed snapshots", sprint(showerror, resume_error))
+        @test occursin("persisted resume from restart metadata is unsupported", sprint(showerror, resume_error))
+        @test occursin("state_carrying_partitioned", sprint(showerror, resume_error))
+        @test occursin("resume_supported is false", sprint(showerror, resume_error))
 
-        invalid_metadata = copy(result.restart_metadata)
-        invalid_metadata["resume_supported"] = true
-        invalid_metadata_path = joinpath(dir, "invalid-restart-metadata.json")
+        invalid_metadata = deepcopy(result.restart_metadata)
+        delete!(only(invalid_metadata["snapshot_outputs"]), "time_step_count")
+        invalid_metadata_path = joinpath(dir, "invalid-state-carrying-restart-metadata.json")
         StenoticHemodynamics.write_json(invalid_metadata_path, invalid_metadata; overwrite=true)
         invalid_error = try
             native_resolved_fsi_read_restart_metadata(invalid_metadata_path)
@@ -434,7 +444,8 @@ end
             err
         end
         @test invalid_error isa ArgumentError
-        @test occursin("resume_supported == false", sprint(showerror, invalid_error))
+        @test occursin("snapshot_outputs[1]", sprint(showerror, invalid_error))
+        @test occursin("requires 'time_step_count'", sprint(showerror, invalid_error))
     end
 
     mktempdir() do dir
@@ -466,13 +477,16 @@ end
         @test length(manifest_lines) == 3
         @test occursin("snapshot-t0p0001", manifest_lines[2])
         @test occursin("snapshot-t0p0002", manifest_lines[3])
+        @test all(occursin(",state_carrying_partitioned,", line) for line in manifest_lines[2:end])
         @test all(endswith(line, ",ready") for line in manifest_lines[2:end])
-        @test occursin("restart/state carry", multi_result.method_status.status)
+        @test occursin("state-carrying partitioned solve", multi_result.method_status.status)
         @test multi_result.diagnostics_status.ready
         @test multi_result.restart_status.ready
         @test all(row -> dirname(row.output_dir) == multi_result.output_dir, multi_result.diagnostic_rows)
         @test [row.snapshot_index for row in multi_result.diagnostic_rows] == [1, 2]
         @test [row.snapshot_time_s for row in multi_result.diagnostic_rows] == [1.0e-4, 2.0e-4]
+        @test [row.time_step_count for row in multi_result.diagnostic_rows] == [1, 2]
+        @test all(row -> row.provenance == "state_carrying_partitioned", multi_result.diagnostic_rows)
         diagnostic_lines = readlines(multi_result.diagnostics_csv)
         @test length(diagnostic_lines) == 3
         @test occursin("snapshot-t0p0001", diagnostic_lines[2])
@@ -480,17 +494,60 @@ end
         @test multi_result.restart_metadata["current_snapshot_index"] == 2
         @test multi_result.restart_metadata["snapshot_times_s"] == [1.0e-4, 2.0e-4]
         @test length(multi_result.restart_metadata["snapshot_outputs"]) == 2
+        @test multi_result.restart_metadata["restart_provenance"] == "state_carrying_partitioned"
+        @test multi_result.restart_metadata["state_carrying_restart"] == true
         @test multi_result.restart_metadata["resume_supported"] == false
-        parsed_multi_restart_metadata = native_resolved_fsi_read_restart_metadata(multi_result.restart_metadata_json)
-        @test length(parsed_multi_restart_metadata["snapshot_outputs"]) == 2
+        @test [snapshot["time_step_count"] for snapshot in multi_result.restart_metadata["snapshot_outputs"]] == [1, 2]
         @test all(
             snapshot ->
-                isdir(snapshot["output_dir"]) &&
+                snapshot["provenance"] == "state_carrying_partitioned" &&
+                    isdir(snapshot["output_dir"]) &&
                     isfile(snapshot["velocity_xdmf"]) &&
                     isfile(snapshot["pressure_xdmf"]) &&
                     isfile(snapshot["displacement_xdmf"]),
-            parsed_multi_restart_metadata["snapshot_outputs"],
+            multi_result.restart_metadata["snapshot_outputs"],
         )
+
+        parsed_multi_restart_metadata = native_resolved_fsi_read_restart_metadata(multi_result.restart_metadata_json)
+        @test parsed_multi_restart_metadata["restart_provenance"] == "state_carrying_partitioned"
+        @test parsed_multi_restart_metadata["state_carrying_restart"] == true
+        @test [snapshot["time_step_count"] for snapshot in parsed_multi_restart_metadata["snapshot_outputs"]] == [1, 2]
+    end
+
+    mktempdir() do dir
+        legacy_output_dir = joinpath(dir, "legacy-snapshot")
+        mkpath(legacy_output_dir)
+        manifest_csv = joinpath(dir, "snapshot_manifest.csv")
+        diagnostics_csv = joinpath(dir, "snapshot_diagnostics.csv")
+        velocity_xdmf = joinpath(legacy_output_dir, "velocity.xdmf")
+        pressure_xdmf = joinpath(legacy_output_dir, "pressure.xdmf")
+        displacement_xdmf = joinpath(legacy_output_dir, "displace.xdmf")
+        for path in (manifest_csv, diagnostics_csv, velocity_xdmf, pressure_xdmf, displacement_xdmf)
+            write(path, "")
+        end
+        legacy_metadata_path = joinpath(dir, "legacy-restart-metadata.json")
+        StenoticHemodynamics.write_json(
+            legacy_metadata_path,
+            Dict{String,Any}(
+                "restart_provenance" => "independent_smoke_backed_snapshots",
+                "resume_supported" => false,
+                "resume_status" => "deferred",
+                "snapshot_manifest_csv" => manifest_csv,
+                "diagnostics_csv" => diagnostics_csv,
+                "snapshot_outputs" => Any[
+                    Dict{String,Any}(
+                        "output_dir" => legacy_output_dir,
+                        "velocity_xdmf" => velocity_xdmf,
+                        "pressure_xdmf" => pressure_xdmf,
+                        "displacement_xdmf" => displacement_xdmf,
+                    ),
+                ],
+            );
+            overwrite=true,
+        )
+        legacy_metadata = native_resolved_fsi_read_restart_metadata(legacy_metadata_path)
+        @test legacy_metadata["restart_provenance"] == "independent_smoke_backed_snapshots"
+        @test !haskey(only(legacy_metadata["snapshot_outputs"]), "time_step_count")
     end
 
     mktempdir() do dir

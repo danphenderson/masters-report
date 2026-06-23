@@ -202,10 +202,10 @@ end
     NativeResolvedFSIPartitionedProductionResult
 
 Wrapper returned by [`run_native_resolved_fsi_partitioned_production`](@ref).
-It keeps the production control spec separate from the current smoke-backed
+It keeps the production control spec separate from the final carried
 partitioned solver result and records bounded method/output/diagnostic/restart
-statuses. The diagnostics and restart sidecars describe the current
-smoke-backed snapshot harness; they do not imply state-carrying restart,
+statuses. The diagnostics and restart sidecars describe a state-carrying
+partitioned snapshot series; they do not imply persisted restart/resume support,
 validated Section 4.1 reproduction, or monolithic ALE FSI coupling.
 """
 struct NativeResolvedFSIPartitionedProductionResult
@@ -362,7 +362,7 @@ function native_resolved_fsi_production_workflow_plans(;
             displacement_mode=mode,
             synthetic_lift_amplitude_cm=synthetic_lift_amplitude_cm,
         )
-        status = "Section 4.1 native production plan for $(case_spec.paper_label) through T=$(last(production_spec.snapshot_times_s)) s; production runner support uses independent coarse partitioned native FSI smoke-backed solves for the requested snapshot schedule, while the legacy workflow_spec remains schema-only; this is not a paper-grade reproduction or monolithic ALE solve"
+        status = "Section 4.1 native production plan for $(case_spec.paper_label) through T=$(last(production_spec.snapshot_times_s)) s; production runner support advances one coarse state-carrying partitioned native FSI snapshot series for the requested schedule, while the legacy workflow_spec remains schema-only; this is not a paper-grade reproduction or monolithic ALE solve"
         push!(plans, NativeResolvedFSIProductionWorkflowPlan(case_spec, workflow_spec, status, production_spec))
     end
     return plans
@@ -420,12 +420,13 @@ end
 """
     run_native_resolved_fsi_partitioned_production(spec)
 
-Run the production-depth partitioned native snapshot harness by reusing the
-current coarse partitioned smoke solver independently at each requested
-snapshot time. This writes one normal resolved-3D bundle per snapshot plus a
-compact CSV manifest, per-snapshot diagnostics CSV, and restart-identification
-metadata. It does not carry solver state between snapshots, and resume remains
-explicitly deferred.
+Run the production-depth partitioned native snapshot harness by advancing one
+coarse partitioned state through each requested positive snapshot time. The
+driver carries reduced wall displacement, wall velocity, current radii, wall
+pressure, coupling residual history, and fluid free-DOF state between steps.
+It writes one normal resolved-3D bundle per snapshot plus a compact CSV
+manifest, per-snapshot diagnostics CSV, and restart-identification metadata.
+Persisted external resume remains explicitly deferred.
 """
 function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIPartitionedProductionSpec)
     function validate_runner_scope(local_spec::NativeResolvedFSIPartitionedProductionSpec)
@@ -477,12 +478,11 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
         return bytes2hex(sha256(join(parts, "|")))[1:16]
     end
 
-    function run_snapshot(
+    function snapshot_production_spec(
         local_spec::NativeResolvedFSIPartitionedProductionSpec,
         snapshot_time_s::Float64,
-        output_dir::String,
     )
-        snapshot_spec = NativeResolvedFSIPartitionedProductionSpec(
+        return NativeResolvedFSIPartitionedProductionSpec(
             case_id=local_spec.case_spec.case_id,
             resolution=local_spec.resolution,
             output_root=local_spec.output_root,
@@ -503,7 +503,14 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             coupling_under_relaxation=local_spec.coupling_under_relaxation,
             allow_large_output=local_spec.allow_large_output,
         )
-        smoke_spec = NativeResolvedFSIPartitionedSmokeSpec(
+    end
+
+    function snapshot_smoke_spec(
+        local_spec::NativeResolvedFSIPartitionedProductionSpec,
+        snapshot_time_s::Float64,
+        output_dir::String,
+    )
+        return NativeResolvedFSIPartitionedSmokeSpec(
             case_id=local_spec.case_spec.case_id,
             resolution=local_spec.resolution,
             output_dir=output_dir,
@@ -520,22 +527,82 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             coupling_tolerance=local_spec.coupling_tolerance,
             coupling_under_relaxation=local_spec.coupling_under_relaxation,
         )
-        smoke_result = run_native_resolved_fsi_partitioned_smoke(smoke_spec)
+    end
+
+    function snapshot_status(
+        local_spec::NativeResolvedFSIPartitionedProductionSpec,
+        snapshot_time_s::Float64,
+        smoke_result,
+    )
         ready = smoke_result.schema_status.ready &&
                 smoke_result.geometry_status.ready &&
                 smoke_result.time_status.ready &&
                 smoke_result.field_status.ready &&
                 smoke_result.post_update_fluid_refresh &&
                 isapprox(smoke_result.saved_time_s, snapshot_time_s; atol=local_spec.time_atol)
-        status = ready ? "ready" : "failed"
+        return NativeResolvedFSIWorkflowStatus(ready, ready ? "ready" : "failed")
+    end
+
+    function run_independent_snapshot(
+        local_spec::NativeResolvedFSIPartitionedProductionSpec,
+        snapshot_time_s::Float64,
+        output_dir::String,
+    )
+        snapshot_spec = snapshot_production_spec(local_spec, snapshot_time_s)
+        smoke_spec = snapshot_smoke_spec(local_spec, snapshot_time_s, output_dir)
+        smoke_result = run_native_resolved_fsi_partitioned_smoke(smoke_spec)
         return (
             snapshot_time_s=snapshot_time_s,
             output_dir=output_dir,
             spec=snapshot_spec,
             smoke_spec=smoke_spec,
             smoke_result=smoke_result,
-            status=NativeResolvedFSIWorkflowStatus(ready, status),
+            provenance="independent_smoke_backed_snapshot",
+            status=snapshot_status(local_spec, snapshot_time_s, smoke_result),
         )
+    end
+
+    function run_state_carrying_snapshots(local_spec::NativeResolvedFSIPartitionedProductionSpec)
+        mesh = native_resolved_fsi_mesh(local_spec.case_spec, local_spec.resolution)
+        native_resolved_fsi_smoke_validate_mesh(mesh)
+        estimated_field_payload_bytes = native_resolved_fsi_smoke_estimated_field_payload_bytes(mesh)
+        estimated_field_payload_bytes <= NATIVE_RESOLVED_FSI_SMOKE_MAX_OUTPUT_BYTES || throw(ArgumentError(
+            "native resolved-FSI partitioned production estimated single-snapshot raw field payload $(estimated_field_payload_bytes) bytes exceeds the $(NATIVE_RESOLVED_FSI_SMOKE_MAX_OUTPUT_BYTES)-byte smoke cap",
+        ))
+        series_spec = snapshot_smoke_spec(
+            local_spec,
+            local_spec.tfinal_s,
+            default_native_resolved_fsi_partitioned_production_output_dir(local_spec),
+        )
+        solve_results = native_resolved_fsi_solve_partitioned_snapshot_series(
+            mesh,
+            series_spec,
+            local_spec.snapshot_times_s,
+        )
+        snapshot_results = NamedTuple[]
+        for (index, snapshot_time_s) in enumerate(local_spec.snapshot_times_s)
+            snapshot_dir = snapshot_output_dir(local_spec, snapshot_time_s)
+            snapshot_spec = snapshot_production_spec(local_spec, snapshot_time_s)
+            smoke_spec = snapshot_smoke_spec(local_spec, snapshot_time_s, snapshot_dir)
+            smoke_result = native_resolved_fsi_partitioned_smoke_result(
+                mesh,
+                smoke_spec,
+                solve_results[index];
+                output_dir=snapshot_dir,
+                saved_time_s=snapshot_time_s,
+                estimated_field_payload_bytes=estimated_field_payload_bytes,
+            )
+            push!(snapshot_results, (
+                snapshot_time_s=snapshot_time_s,
+                output_dir=snapshot_dir,
+                spec=snapshot_spec,
+                smoke_spec=smoke_spec,
+                smoke_result=smoke_result,
+                provenance="state_carrying_partitioned",
+                status=snapshot_status(local_spec, snapshot_time_s, smoke_result),
+            ))
+        end
+        return snapshot_results
     end
 
     function manifest_row(local_spec::NativeResolvedFSIPartitionedProductionSpec, snapshot_result::NamedTuple)
@@ -547,6 +614,7 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             smoke_result.velocity_xdmf,
             smoke_result.pressure_xdmf,
             smoke_result.displacement_xdmf,
+            snapshot_result.provenance,
             size(smoke_result.mesh.coordinates, 1),
             size(smoke_result.mesh.topology, 1),
             smoke_result.estimated_field_payload_bytes,
@@ -566,6 +634,7 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "velocity_xdmf",
             "pressure_xdmf",
             "displacement_xdmf",
+            "provenance",
             "node_count",
             "tetrahedron_count",
             "estimated_field_payload_bytes",
@@ -611,6 +680,7 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             snapshot_time_s=snapshot_result.snapshot_time_s,
             saved_time_s=smoke_result.saved_time_s,
             output_dir=snapshot_result.output_dir,
+            provenance=snapshot_result.provenance,
             time_step_count=smoke_result.time_step_count,
             picard_iteration_count=local_spec.picard_iteration_count,
             picard_tolerance=local_spec.picard_tolerance,
@@ -679,7 +749,7 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
                     rows,
                 )
         status = ready ?
-            "production diagnostics CSV captured per-snapshot smoke-backed solver convergence, wall-update, output, and importer health" :
+            "production diagnostics CSV captured state-carrying per-snapshot solver convergence, wall-update, output, and importer health" :
             "production diagnostics are missing or one or more snapshot health checks failed"
         return NativeResolvedFSIWorkflowStatus(ready, status)
     end
@@ -703,6 +773,8 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
                 "velocity_xdmf" => snapshot.smoke_result.velocity_xdmf,
                 "pressure_xdmf" => snapshot.smoke_result.pressure_xdmf,
                 "displacement_xdmf" => snapshot.smoke_result.displacement_xdmf,
+                "provenance" => snapshot.provenance,
+                "time_step_count" => snapshot.smoke_result.time_step_count,
                 "max_coupling_iterations_used" => snapshot.smoke_result.max_coupling_iterations_used,
                 "final_coupling_displacement_residual_cm" =>
                     snapshot.smoke_result.final_coupling_displacement_residual_cm,
@@ -763,11 +835,11 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
             "diagnostics_csv" => diagnostics_csv,
             "snapshot_outputs" => snapshot_outputs,
             "production_spec_digest" => production_spec_digest(local_spec),
-            "restart_provenance" => "independent_smoke_backed_snapshots",
-            "state_carrying_restart" => false,
+            "restart_provenance" => "state_carrying_partitioned",
+            "state_carrying_restart" => true,
             "resume_supported" => false,
             "resume_status" => "deferred",
-            "resume_note" => "Lane 4D writes restart-identification metadata only; state-carrying resume is deferred.",
+            "resume_note" => "Production snapshots carry partitioned state within the run; persisted resume from restart metadata remains deferred.",
         )
     end
 
@@ -776,12 +848,13 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
 
     function restart_status(metadata::Dict{String,Any}, restart_metadata_json::String)
         ready = isfile(restart_metadata_json) &&
-                get(metadata, "restart_provenance", "") == "independent_smoke_backed_snapshots" &&
+                get(metadata, "restart_provenance", "") == "state_carrying_partitioned" &&
+                get(metadata, "state_carrying_restart", false) == true &&
                 get(metadata, "resume_supported", true) == false &&
                 get(metadata, "resume_status", "") == "deferred"
         status = ready ?
-            "restart metadata was written with independent smoke-backed snapshot provenance; state-carrying resume is explicitly deferred" :
-            "restart metadata is missing or does not mark the current non-resumable provenance"
+            "restart metadata was written with state-carrying partitioned snapshot provenance; persisted resume remains explicitly deferred" :
+            "restart metadata is missing or does not mark the current state-carrying non-resumable provenance"
         return NativeResolvedFSIWorkflowStatus(ready, status)
     end
 
@@ -809,29 +882,26 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
 
     function method_status(snapshot_results::Vector{NamedTuple})
         ready = !isempty(snapshot_results) && all(
-            snapshot ->
-                snapshot.smoke_result.field_status.ready &&
-                snapshot.smoke_result.post_update_fluid_refresh &&
-                snapshot.smoke_result.fluid_model === NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_STAGE &&
-                snapshot.smoke_result.fluid_wall_boundary_mode ===
-                    NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_FLUID_WALL_BOUNDARY_MODE,
+                snapshot ->
+                    snapshot.smoke_result.field_status.ready &&
+                    snapshot.smoke_result.post_update_fluid_refresh &&
+                    snapshot.provenance == "state_carrying_partitioned" &&
+                    snapshot.smoke_result.fluid_model === NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_STAGE &&
+                    snapshot.smoke_result.fluid_wall_boundary_mode ===
+                        NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_FLUID_WALL_BOUNDARY_MODE,
             snapshot_results,
         )
         status = ready ?
-            "production snapshot harness reused independent smoke-backed staggered partitioned solves for each requested time with prescribed radial wall-velocity Dirichlet data on deformed geometry; diagnostics are per-snapshot smoke summaries with coupling residuals, while restart/state carry, validated Section 4.1 parity, and monolithic ALE coupling remain out of scope" :
-            "production-depth partitioned native driver did not complete the bounded smoke-backed method contract"
+            "production snapshot harness advanced one state-carrying partitioned solve through each requested time with prescribed radial wall-velocity Dirichlet data on deformed geometry; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, validated Section 4.1 parity, and monolithic ALE coupling remain out of scope" :
+            "production-depth partitioned native driver did not complete the bounded state-carrying method contract"
         return NativeResolvedFSIWorkflowStatus(ready, status)
     end
 
     validate(spec)
     validate_runner_scope(spec)
 
-    output_dir = default_native_resolved_fsi_partitioned_production_output_dir(spec)
-    snapshot_results = NamedTuple[]
-    for snapshot_time_s in spec.snapshot_times_s
-        snapshot_result = run_snapshot(spec, snapshot_time_s, snapshot_output_dir(spec, snapshot_time_s))
-        push!(snapshot_results, snapshot_result)
-    end
+    production_output_dir = default_native_resolved_fsi_partitioned_production_output_dir(spec)
+    snapshot_results = run_state_carrying_snapshots(spec)
     manifest_csv = manifest_path(spec)
     write_manifest(manifest_csv, spec, snapshot_results)
     diagnostics_csv = diagnostics_path(spec)
@@ -846,7 +916,7 @@ function run_native_resolved_fsi_partitioned_production(spec::NativeResolvedFSIP
         spec,
         final_snapshot.smoke_spec,
         final_snapshot.smoke_result,
-        output_dir,
+        production_output_dir,
         manifest_csv,
         diagnostics_csv,
         restart_metadata_json,

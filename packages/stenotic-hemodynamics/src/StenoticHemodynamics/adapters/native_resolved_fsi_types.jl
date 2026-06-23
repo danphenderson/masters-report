@@ -669,6 +669,25 @@ function run_native_resolved_fsi_partitioned_smoke(
     ))
 
     solve_result = native_resolved_fsi_solve_partitioned_smoke(mesh, spec)
+    output_dir = isempty(spec.output_dir) ? default_native_resolved_fsi_partitioned_smoke_output_dir(spec) : spec.output_dir
+    return native_resolved_fsi_partitioned_smoke_result(
+        mesh,
+        spec,
+        solve_result;
+        output_dir=output_dir,
+        saved_time_s=spec.tfinal_s,
+        estimated_field_payload_bytes=estimated_field_payload_bytes,
+    )
+end
+
+function native_resolved_fsi_partitioned_smoke_result(
+    mesh::NativeResolvedFSIMesh,
+    spec::NativeResolvedFSIPartitionedSmokeSpec,
+    solve_result::NativeResolvedFSIPartitionedSmokeSolve;
+    output_dir::AbstractString,
+    saved_time_s::Real,
+    estimated_field_payload_bytes::Integer,
+)
     displacement = native_resolved_fsi_lifted_displacement(mesh, solve_result.wall_displacement_cm)
     deformed_coordinates = mesh.coordinates .+ displacement
     wall_radius_at_z = native_resolved_fsi_partitioned_radius_profile(
@@ -686,7 +705,6 @@ function run_native_resolved_fsi_partitioned_smoke(
     pressure, pressure_gauge_offset_dyn_cm2 = native_resolved_fsi_outlet_gauge_pressure(pressure, mesh.tags.outlet_nodes)
     native_resolved_fsi_smoke_validate_finite_fields("partitioned native resolved-FSI smoke", velocity, pressure, displacement)
 
-    output_dir = isempty(spec.output_dir) ? default_native_resolved_fsi_partitioned_smoke_output_dir(spec) : spec.output_dir
     roundtrip = native_resolved_fsi_smoke_roundtrip_bundle(
         mesh,
         output_dir,
@@ -694,7 +712,7 @@ function run_native_resolved_fsi_partitioned_smoke(
         velocity,
         pressure,
         displacement;
-        saved_time_s=spec.tfinal_s,
+        saved_time_s=Float64(saved_time_s),
         time_atol=spec.time_atol,
         overwrite=spec.overwrite,
     )
@@ -740,7 +758,7 @@ function run_native_resolved_fsi_partitioned_smoke(
         solve_result.pressure_projection_fallback_count,
         sampling_fallback_count,
         pressure_gauge_offset_dyn_cm2,
-        estimated_field_payload_bytes,
+        Int(estimated_field_payload_bytes),
         roundtrip.loaded_coordinates,
         roundtrip.loaded_topology,
         roundtrip.loaded_velocity,

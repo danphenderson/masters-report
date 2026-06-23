@@ -151,6 +151,32 @@ function native_resolved_fsi_solve_partitioned_smoke(
     mesh::NativeResolvedFSIMesh,
     spec::NativeResolvedFSIPartitionedSmokeSpec,
 )
+    return only(native_resolved_fsi_solve_partitioned_snapshot_series(mesh, spec, [spec.tfinal_s]))
+end
+
+function native_resolved_fsi_solve_partitioned_snapshot_series(
+    mesh::NativeResolvedFSIMesh,
+    spec::NativeResolvedFSIPartitionedSmokeSpec,
+    snapshot_times_s,
+)
+    requested_snapshot_times_s = Float64[Float64(time_s) for time_s in snapshot_times_s]
+    isempty(requested_snapshot_times_s) &&
+        throw(ArgumentError("native resolved-FSI partitioned snapshot series requires at least one snapshot time"))
+    all(isfinite, requested_snapshot_times_s) ||
+        throw(ArgumentError("native resolved-FSI partitioned snapshot times must be finite"))
+    for snapshot_time_s in requested_snapshot_times_s
+        snapshot_time_s > 0.0 ||
+            throw(ArgumentError("native resolved-FSI partitioned snapshot times must be positive"))
+        snapshot_time_s <= spec.tfinal_s || throw(ArgumentError(
+            "native resolved-FSI partitioned snapshot time $(snapshot_time_s) exceeds tfinal_s=$(spec.tfinal_s)",
+        ))
+    end
+    for index in 2:length(requested_snapshot_times_s)
+        requested_snapshot_times_s[index] > requested_snapshot_times_s[index - 1] || throw(ArgumentError(
+            "native resolved-FSI partitioned snapshot times must be strictly increasing",
+        ))
+    end
+
     controls = native_resolved_fsi_navier_stokes_controls(spec)
     params = Params(severity=mesh.case_spec.severity_percent, tfinal=spec.tfinal_s, initial_condition=GeometryRestIC())
     wall_stiffness_c0_dyn_cm3 = canic_membrane_c0(params; reference_radius=params.rmax)
@@ -182,192 +208,199 @@ function native_resolved_fsi_solve_partitioned_smoke(
     coupling_converged = true
     coupling_residual_history = NamedTuple[]
     fluid_wall_boundary_mode = NATIVE_RESOLVED_FSI_PARTITIONED_SMOKE_FLUID_WALL_BOUNDARY_MODE
+    snapshots = NativeResolvedFSIPartitionedSmokeSolve[]
 
-    while time_s < spec.tfinal_s
-        dt_step = min(spec.dt_s, spec.tfinal_s - time_s)
-        step_index = time_step_count + 1
-        step_start_displacement_cm = copy(wall_displacement_cm)
-        step_start_velocity_cm_s = copy(wall_velocity_cm_s)
-        iteration_displacement_cm = copy(wall_displacement_cm)
-        iteration_velocity_cm_s = copy(wall_velocity_cm_s)
-        iteration_radii_cm = copy(current_radii_cm)
-        coupling_velocity_dofs = velocity_dofs_previous
-        step_coupling_converged = false
-        step_coupling_residual_cm = Inf
+    for snapshot_time_s in requested_snapshot_times_s
+        while time_s < snapshot_time_s
+            dt_step = min(spec.dt_s, snapshot_time_s - time_s)
+            step_index = time_step_count + 1
+            step_start_displacement_cm = copy(wall_displacement_cm)
+            step_start_velocity_cm_s = copy(wall_velocity_cm_s)
+            iteration_displacement_cm = copy(wall_displacement_cm)
+            iteration_velocity_cm_s = copy(wall_velocity_cm_s)
+            iteration_radii_cm = copy(current_radii_cm)
+            coupling_velocity_dofs = velocity_dofs_previous
+            step_coupling_converged = false
+            step_coupling_residual_cm = Inf
 
-        for coupling_iteration in 1:spec.coupling_iteration_count
-            displacement = native_resolved_fsi_lifted_displacement(mesh, iteration_displacement_cm)
-            deformed_coordinates = mesh.coordinates .+ displacement
-            try
-                minimum_signed_tetra_volume6 = native_resolved_fsi_partitioned_smoke_validate_deformed_mesh(
-                    mesh,
-                    deformed_coordinates,
+            for coupling_iteration in 1:spec.coupling_iteration_count
+                displacement = native_resolved_fsi_lifted_displacement(mesh, iteration_displacement_cm)
+                deformed_coordinates = mesh.coordinates .+ displacement
+                try
+                    minimum_signed_tetra_volume6 = native_resolved_fsi_partitioned_smoke_validate_deformed_mesh(
+                        mesh,
+                        deformed_coordinates,
+                        iteration_radii_cm,
+                    )
+                catch error
+                    throw(ArgumentError(
+                        "native resolved-FSI partitioned smoke deformed-mesh guard failed at time step $(step_index), coupling iteration $(coupling_iteration): $(sprint(showerror, error))",
+                    ))
+                end
+                wall_radius_at_z = native_resolved_fsi_partitioned_radius_profile(
+                    wall_axial_coordinates_cm,
                     iteration_radii_cm,
                 )
-            catch error
-                throw(ArgumentError(
-                    "native resolved-FSI partitioned smoke deformed-mesh guard failed at time step $(step_index), coupling iteration $(coupling_iteration): $(sprint(showerror, error))",
-                ))
-            end
-            wall_radius_at_z = native_resolved_fsi_partitioned_radius_profile(
-                wall_axial_coordinates_cm,
-                iteration_radii_cm,
-            )
-            wall_velocity_at_z =
-                z -> native_resolved_fsi_interpolate_wall_lift(wall_axial_coordinates_cm, iteration_velocity_cm_s, z)
-            fluid_state = native_resolved_fsi_solve_navier_stokes(
-                mesh;
-                coordinates=deformed_coordinates,
-                wall_radius_at_z=wall_radius_at_z,
-                wall_velocity_at=wall_velocity_at_z,
-                dt_s=dt_step,
-                tfinal_s=dt_step,
-                pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
-                picard_iteration_count=controls.picard_iteration_count,
-                picard_tolerance=controls.picard_tolerance,
-                initial_velocity_dofs=coupling_velocity_dofs,
-            )
-            coupling_velocity_dofs = native_resolved_fsi_copy_free_dof_values(fluid_state.velocity)
-            wall_pressure_dyn_cm2, step_pressure_fallback_count = native_resolved_fsi_partitioned_wall_pressure_profile(
-                mesh,
-                fluid_state.pressure,
-                iteration_radii_cm;
-                pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
-            )
-            pressure_projection_fallback_count += step_pressure_fallback_count
-
-            candidate_displacement_cm = copy(step_start_displacement_cm)
-            candidate_velocity_cm_s = copy(step_start_velocity_cm_s)
-            candidate_radii_cm = copy(reference_radii_cm)
-            try
-                native_resolved_fsi_partitioned_wall_state!(
-                    candidate_displacement_cm,
-                    candidate_velocity_cm_s,
-                    candidate_radii_cm,
-                    reference_radii_cm,
-                    wall_pressure_dyn_cm2,
-                    wall_mass_g_cm2,
-                    wall_stiffness_c0_dyn_cm3,
-                    spec.wall_damping_g_cm2_s,
-                    dt_step,
+                wall_velocity_at_z =
+                    z -> native_resolved_fsi_interpolate_wall_lift(wall_axial_coordinates_cm, iteration_velocity_cm_s, z)
+                fluid_state = native_resolved_fsi_solve_navier_stokes(
+                    mesh;
+                    coordinates=deformed_coordinates,
+                    wall_radius_at_z=wall_radius_at_z,
+                    wall_velocity_at=wall_velocity_at_z,
+                    dt_s=dt_step,
+                    tfinal_s=dt_step,
+                    pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
+                    picard_iteration_count=controls.picard_iteration_count,
+                    picard_tolerance=controls.picard_tolerance,
+                    initial_velocity_dofs=coupling_velocity_dofs,
                 )
-            catch error
-                throw(ArgumentError(
-                    "native resolved-FSI partitioned smoke wall-update guard failed at time step $(step_index), coupling iteration $(coupling_iteration): $(sprint(showerror, error))",
+                coupling_velocity_dofs = native_resolved_fsi_copy_free_dof_values(fluid_state.velocity)
+                wall_pressure_dyn_cm2, step_pressure_fallback_count = native_resolved_fsi_partitioned_wall_pressure_profile(
+                    mesh,
+                    fluid_state.pressure,
+                    iteration_radii_cm;
+                    pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
+                )
+                pressure_projection_fallback_count += step_pressure_fallback_count
+
+                candidate_displacement_cm = copy(step_start_displacement_cm)
+                candidate_velocity_cm_s = copy(step_start_velocity_cm_s)
+                candidate_radii_cm = copy(reference_radii_cm)
+                try
+                    native_resolved_fsi_partitioned_wall_state!(
+                        candidate_displacement_cm,
+                        candidate_velocity_cm_s,
+                        candidate_radii_cm,
+                        reference_radii_cm,
+                        wall_pressure_dyn_cm2,
+                        wall_mass_g_cm2,
+                        wall_stiffness_c0_dyn_cm3,
+                        spec.wall_damping_g_cm2_s,
+                        dt_step,
+                    )
+                catch error
+                    throw(ArgumentError(
+                        "native resolved-FSI partitioned smoke wall-update guard failed at time step $(step_index), coupling iteration $(coupling_iteration): $(sprint(showerror, error))",
+                    ))
+                end
+
+                relaxed_displacement_cm =
+                    iteration_displacement_cm .+
+                    spec.coupling_under_relaxation .* (candidate_displacement_cm .- iteration_displacement_cm)
+                relaxed_velocity_cm_s =
+                    iteration_velocity_cm_s .+
+                    spec.coupling_under_relaxation .* (candidate_velocity_cm_s .- iteration_velocity_cm_s)
+                clamp_membrane_endpoints!(relaxed_displacement_cm)
+                clamp_membrane_endpoints!(relaxed_velocity_cm_s)
+                relaxed_radii_cm = reference_radii_cm .+ relaxed_displacement_cm
+                all(isfinite, relaxed_displacement_cm) || throw(ArgumentError(
+                    "native resolved-FSI partitioned smoke produced non-finite relaxed displacement at time step $(step_index), coupling iteration $(coupling_iteration)",
                 ))
+                all(isfinite, relaxed_velocity_cm_s) || throw(ArgumentError(
+                    "native resolved-FSI partitioned smoke produced non-finite relaxed wall velocity at time step $(step_index), coupling iteration $(coupling_iteration)",
+                ))
+                minimum(relaxed_radii_cm) > 0.0 || throw(ArgumentError(
+                    "native resolved-FSI partitioned smoke produced a non-positive relaxed radius at time step $(step_index), coupling iteration $(coupling_iteration)",
+                ))
+
+                step_coupling_residual_cm = maximum(abs, relaxed_displacement_cm .- iteration_displacement_cm)
+                iteration_displacement_cm .= relaxed_displacement_cm
+                iteration_velocity_cm_s .= relaxed_velocity_cm_s
+                iteration_radii_cm .= relaxed_radii_cm
+                step_coupling_converged = step_coupling_residual_cm <= spec.coupling_tolerance
+                push!(coupling_residual_history, (
+                    time_step_index=step_index,
+                    coupling_iteration=coupling_iteration,
+                    time_start_s=time_s,
+                    time_end_s=time_s + dt_step,
+                    displacement_residual_cm=step_coupling_residual_cm,
+                    coupling_tolerance_cm=spec.coupling_tolerance,
+                    under_relaxation=spec.coupling_under_relaxation,
+                    converged=step_coupling_converged,
+                    fluid_wall_boundary_mode=string(fluid_wall_boundary_mode),
+                ))
+                max_coupling_iterations_used = max(max_coupling_iterations_used, coupling_iteration)
+                final_coupling_displacement_residual_cm = step_coupling_residual_cm
+                step_coupling_converged && break
             end
 
-            relaxed_displacement_cm =
-                iteration_displacement_cm .+
-                spec.coupling_under_relaxation .* (candidate_displacement_cm .- iteration_displacement_cm)
-            relaxed_velocity_cm_s =
-                iteration_velocity_cm_s .+
-                spec.coupling_under_relaxation .* (candidate_velocity_cm_s .- iteration_velocity_cm_s)
-            clamp_membrane_endpoints!(relaxed_displacement_cm)
-            clamp_membrane_endpoints!(relaxed_velocity_cm_s)
-            relaxed_radii_cm = reference_radii_cm .+ relaxed_displacement_cm
-            all(isfinite, relaxed_displacement_cm) || throw(ArgumentError(
-                "native resolved-FSI partitioned smoke produced non-finite relaxed displacement at time step $(step_index), coupling iteration $(coupling_iteration)",
-            ))
-            all(isfinite, relaxed_velocity_cm_s) || throw(ArgumentError(
-                "native resolved-FSI partitioned smoke produced non-finite relaxed wall velocity at time step $(step_index), coupling iteration $(coupling_iteration)",
-            ))
-            minimum(relaxed_radii_cm) > 0.0 || throw(ArgumentError(
-                "native resolved-FSI partitioned smoke produced a non-positive relaxed radius at time step $(step_index), coupling iteration $(coupling_iteration)",
-            ))
-
-            step_coupling_residual_cm = maximum(abs, relaxed_displacement_cm .- iteration_displacement_cm)
-            iteration_displacement_cm .= relaxed_displacement_cm
-            iteration_velocity_cm_s .= relaxed_velocity_cm_s
-            iteration_radii_cm .= relaxed_radii_cm
-            step_coupling_converged = step_coupling_residual_cm <= spec.coupling_tolerance
-            push!(coupling_residual_history, (
-                time_step_index=step_index,
-                coupling_iteration=coupling_iteration,
-                time_start_s=time_s,
-                time_end_s=time_s + dt_step,
-                displacement_residual_cm=step_coupling_residual_cm,
-                coupling_tolerance_cm=spec.coupling_tolerance,
-                under_relaxation=spec.coupling_under_relaxation,
-                converged=step_coupling_converged,
-                fluid_wall_boundary_mode=string(fluid_wall_boundary_mode),
-            ))
-            max_coupling_iterations_used = max(max_coupling_iterations_used, coupling_iteration)
-            final_coupling_displacement_residual_cm = step_coupling_residual_cm
-            step_coupling_converged && break
+            wall_displacement_cm .= iteration_displacement_cm
+            wall_velocity_cm_s .= iteration_velocity_cm_s
+            current_radii_cm .= iteration_radii_cm
+            velocity_dofs_previous = coupling_velocity_dofs
+            coupling_converged &= step_coupling_converged
+            time_s += dt_step
+            time_step_count += 1
+            max_picard_iterations_used = max(max_picard_iterations_used, fluid_state.max_picard_iterations_used)
+            final_picard_update_norm = fluid_state.final_picard_update_norm
+            picard_converged &= fluid_state.picard_converged
         end
 
-        wall_displacement_cm .= iteration_displacement_cm
-        wall_velocity_cm_s .= iteration_velocity_cm_s
-        current_radii_cm .= iteration_radii_cm
-        velocity_dofs_previous = coupling_velocity_dofs
-        coupling_converged &= step_coupling_converged
-        time_s += dt_step
-        time_step_count += 1
+        time_step_count > 0 || throw(ArgumentError("native resolved-FSI partitioned smoke produced zero coupling steps"))
+
+        final_displacement = native_resolved_fsi_lifted_displacement(mesh, wall_displacement_cm)
+        final_deformed_coordinates = mesh.coordinates .+ final_displacement
+        minimum_signed_tetra_volume6 = native_resolved_fsi_partitioned_smoke_validate_deformed_mesh(
+            mesh,
+            final_deformed_coordinates,
+            current_radii_cm,
+        )
+        wall_radius_at_z = native_resolved_fsi_partitioned_radius_profile(wall_axial_coordinates_cm, current_radii_cm)
+        wall_velocity_at_z =
+            z -> native_resolved_fsi_interpolate_wall_lift(wall_axial_coordinates_cm, wall_velocity_cm_s, z)
+        refresh_dt = min(spec.dt_s, snapshot_time_s)
+        fluid_state = native_resolved_fsi_solve_navier_stokes(
+            mesh;
+            coordinates=final_deformed_coordinates,
+            wall_radius_at_z=wall_radius_at_z,
+            wall_velocity_at=wall_velocity_at_z,
+            dt_s=refresh_dt,
+            tfinal_s=refresh_dt,
+            pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
+            picard_iteration_count=controls.picard_iteration_count,
+            picard_tolerance=controls.picard_tolerance,
+            initial_velocity_dofs=velocity_dofs_previous,
+        )
+        velocity_dofs_previous = native_resolved_fsi_copy_free_dof_values(fluid_state.velocity)
         max_picard_iterations_used = max(max_picard_iterations_used, fluid_state.max_picard_iterations_used)
         final_picard_update_norm = fluid_state.final_picard_update_norm
         picard_converged &= fluid_state.picard_converged
+        wall_pressure_dyn_cm2, refresh_pressure_fallback_count = native_resolved_fsi_partitioned_wall_pressure_profile(
+            mesh,
+            fluid_state.pressure,
+            current_radii_cm;
+            pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
+        )
+        pressure_projection_fallback_count += refresh_pressure_fallback_count
+
+        push!(snapshots, NativeResolvedFSIPartitionedSmokeSolve(
+            fluid_state.velocity,
+            fluid_state.pressure,
+            fluid_state.velocity_dofs,
+            fluid_state.pressure_dofs,
+            time_step_count,
+            max_picard_iterations_used,
+            final_picard_update_norm,
+            picard_converged,
+            max_coupling_iterations_used,
+            final_coupling_displacement_residual_cm,
+            coupling_converged,
+            fluid_wall_boundary_mode,
+            copy(coupling_residual_history),
+            true,
+            copy(wall_axial_coordinates_cm),
+            copy(wall_displacement_cm),
+            copy(wall_velocity_cm_s),
+            copy(wall_pressure_dyn_cm2),
+            copy(current_radii_cm),
+            wall_mass_g_cm2,
+            wall_stiffness_c0_dyn_cm3,
+            stability_dt_limit_s,
+            minimum_signed_tetra_volume6,
+            pressure_projection_fallback_count,
+        ))
     end
 
-    time_step_count > 0 || throw(ArgumentError("native resolved-FSI partitioned smoke produced zero coupling steps"))
-
-    final_displacement = native_resolved_fsi_lifted_displacement(mesh, wall_displacement_cm)
-    final_deformed_coordinates = mesh.coordinates .+ final_displacement
-    minimum_signed_tetra_volume6 = native_resolved_fsi_partitioned_smoke_validate_deformed_mesh(
-        mesh,
-        final_deformed_coordinates,
-        current_radii_cm,
-    )
-    wall_radius_at_z = native_resolved_fsi_partitioned_radius_profile(wall_axial_coordinates_cm, current_radii_cm)
-    wall_velocity_at_z = z -> native_resolved_fsi_interpolate_wall_lift(wall_axial_coordinates_cm, wall_velocity_cm_s, z)
-    refresh_dt = min(spec.dt_s, spec.tfinal_s)
-    fluid_state = native_resolved_fsi_solve_navier_stokes(
-        mesh;
-        coordinates=final_deformed_coordinates,
-        wall_radius_at_z=wall_radius_at_z,
-        wall_velocity_at=wall_velocity_at_z,
-        dt_s=refresh_dt,
-        tfinal_s=refresh_dt,
-        pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
-        picard_iteration_count=controls.picard_iteration_count,
-        picard_tolerance=controls.picard_tolerance,
-        initial_velocity_dofs=velocity_dofs_previous,
-    )
-    max_picard_iterations_used = max(max_picard_iterations_used, fluid_state.max_picard_iterations_used)
-    final_picard_update_norm = fluid_state.final_picard_update_norm
-    picard_converged &= fluid_state.picard_converged
-    wall_pressure_dyn_cm2, refresh_pressure_fallback_count = native_resolved_fsi_partitioned_wall_pressure_profile(
-        mesh,
-        fluid_state.pressure,
-        current_radii_cm;
-        pressure_drop_dyn_cm2=controls.pressure_drop_dyn_cm2,
-    )
-    pressure_projection_fallback_count += refresh_pressure_fallback_count
-
-    return NativeResolvedFSIPartitionedSmokeSolve(
-        fluid_state.velocity,
-        fluid_state.pressure,
-        fluid_state.velocity_dofs,
-        fluid_state.pressure_dofs,
-        time_step_count,
-        max_picard_iterations_used,
-        final_picard_update_norm,
-        picard_converged,
-        max_coupling_iterations_used,
-        final_coupling_displacement_residual_cm,
-        coupling_converged,
-        fluid_wall_boundary_mode,
-        coupling_residual_history,
-        true,
-        wall_axial_coordinates_cm,
-        wall_displacement_cm,
-        wall_velocity_cm_s,
-        wall_pressure_dyn_cm2,
-        current_radii_cm,
-        wall_mass_g_cm2,
-        wall_stiffness_c0_dyn_cm3,
-        stability_dt_limit_s,
-        minimum_signed_tetra_volume6,
-        pressure_projection_fallback_count,
-    )
+    return snapshots
 end
