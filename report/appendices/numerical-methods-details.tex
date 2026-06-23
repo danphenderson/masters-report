@@ -381,23 +381,37 @@ report-owned assets.
 
 The native resolved-FSI exact-boundary path is separate package-development
 diagnostic work, not a promoted report-evidence surface. Its current support
-establishes low-level smoke-scale and operator-readiness behavior, including
-status reporting for wall stability, FE pressure-nullspace hygiene, the
-explicit membrane-oscillator time-step guard, and wall mass and stiffness
-scales. Exact inlet/outlet mode now uses stationary no-slip wall data on the
+establishes low-level smoke-scale and development artifact-readiness behavior,
+including status reporting for wall stability, FE pressure-nullspace hygiene,
+the explicit membrane-oscillator time-step guard, and wall mass and stiffness
+scales. Exact inlet/outlet mode uses stationary no-slip wall data on the
 deformed geometry; the separate pressure-drop smoke mode retains prescribed
 radial wall-velocity data. The reduced membrane update is semi-implicit and is
 guarded by pressure-load plausibility checks before wall-state mutation. For the
-23\% exact-boundary case, a five-step development-mesh gate with
-$dt_s=10^{-4}$ and $t_{\mathrm{final}}=5\times10^{-4}$ wrote solver artifacts
-and reported positive current radii and tetrahedron orientation. This is
-short-development implementation evidence only: the full
-$t_{\mathrm{final}}=10^{-2}$ development run, preproduction and larger case-set
-generation, imported-data parity, and validated moving-boundary FSI claims
-remain deferred. The associated \texttt{state\_payload} is diagnostic metadata
-only and does not enable persisted restart or resume; FE pressure-nullspace
-status remains distinct from the outlet normalization applied after pressure
-sampling.
+23\% exact-boundary case, the $(40,3,16)$ development gate with
+$dt_s=10^{-4}$ and $t_{\mathrm{final}}=10^{-2}$ completed with final-snapshot
+output, wrote native velocity, pressure, and displacement bundles with
+sidecars, and reported finite fields, positive current radius
+($0.13957282830806$~cm), positive tetrahedron orientation
+\texttt{minimum\_signed\_tetra\_volume6} $=0.00012424821794278102$, direct
+finite wall-pressure sampling with zero projection fallbacks, and
+\texttt{fluid\_wall\_boundary\_mode=stationary\_wall\_on\_deformed\_geometry}.
+The run used one coupling iteration per step and recorded bounded but
+non-converged coupling history, so this is development artifact-readiness
+evidence only, not a Section~4.1 reproduction or validation claim. A
+development-output parity artifact loaded the imported observations and wrote
+native observation and summary CSVs, but nonzero discrepancies remained:
+$2.317$~cm/s in maximum mean velocity difference and $813.906$~dyn/cm$^2$ in
+maximum mean pressure difference. That artifact is therefore
+operator-readiness and discrepancy-classification evidence, not imported-data
+parity. Preproduction, larger case-set generation, and validated
+moving-boundary FSI claims remain deferred. Production metadata writes explicit
+schema-v1 diagnostic fields and the restart reader validates the schema-v2
+checkpoint-manifest shape, but durable FE-state serialization and
+reconstruction are not implemented; the associated \texttt{state\_payload}
+remains diagnostic metadata and does not enable persisted restart or resume. FE
+pressure-nullspace status remains distinct from the outlet normalization applied
+after pressure sampling.
 
 The corresponding report-generation entry point is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
