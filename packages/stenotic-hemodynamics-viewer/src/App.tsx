@@ -47,25 +47,29 @@ const modeDefaults: Record<
   ViewMode,
   {
     label: string;
+    buttonLabel: string;
     field: FieldName;
     deformationScale: number;
     glyphs: boolean;
   }
 > = {
   flow: {
-    label: "Velocity",
+    label: "Velocity magnitude",
+    buttonLabel: "Speed",
     field: "speed",
     deformationScale: 5,
     glyphs: true,
   },
   pressure: {
     label: "Pressure",
+    buttonLabel: "Pressure",
     field: "pressure",
     deformationScale: 4,
     glyphs: false,
   },
   wall: {
-    label: "Displacement",
+    label: "Displacement magnitude",
+    buttonLabel: "Wall disp.",
     field: "displacement",
     deformationScale: 14,
     glyphs: false,
@@ -123,6 +127,12 @@ function modeDisabledReason(data: LoadedVizData | null, mode: ViewMode, frame: L
   return `${data.fieldCatalog[field].label} is not present in this frame`;
 }
 
+function modeToggleLabel(data: LoadedVizData | null, mode: ViewMode, frame: LoadedSnapshotFrame | null): string {
+  const reason = modeDisabledReason(data, mode, frame);
+  const label = data?.fieldCatalog[modeDefaults[mode].field].label ?? modeDefaults[mode].label;
+  return reason ? `${label} unavailable: ${reason}` : `Show ${label}`;
+}
+
 function rangeLabel(range: NumericRange | null): string {
   if (!range) {
     return "n/a";
@@ -130,7 +140,10 @@ function rangeLabel(range: NumericRange | null): string {
   return `${formatNumber(range.min)} - ${formatNumber(range.max)}`;
 }
 
-function fieldStatusLabel(data: LoadedVizData, field: FieldName, frame: LoadedSnapshotFrame | null): string {
+function fieldStatusLabel(data: LoadedVizData | null, field: FieldName, frame: LoadedSnapshotFrame | null): string {
+  if (!data) {
+    return "loading";
+  }
   if (fieldAvailable(data, field, frame)) {
     return "available";
   }
@@ -591,11 +604,11 @@ export default function App() {
               applyMode(value);
             }
           }}
-          aria-label="view mode"
+          aria-label="scalar field"
           sx={{
             "& .MuiToggleButton-root": {
-              px: { xs: 1, sm: 1.6 },
-              minWidth: { xs: 86, sm: 112 },
+              px: { xs: 0.85, sm: 1.6 },
+              minWidth: { xs: 78, sm: 112 },
               textTransform: "none",
               letterSpacing: 0,
               whiteSpace: "nowrap",
@@ -606,10 +619,13 @@ export default function App() {
             <ToggleButton
               key={option}
               value={option}
+              data-field-toggle={modeDefaults[option].field}
+              data-field-status={fieldStatusLabel(data, modeDefaults[option].field, frame)}
               disabled={!modeAvailable(data, option, frame)}
-              aria-label={modeDisabledReason(data, option, frame) || modeDefaults[option].label}
+              aria-label={modeToggleLabel(data, option, frame)}
+              title={modeDisabledReason(data, option, frame) || modeDefaults[option].label}
             >
-              {modeDefaults[option].label}
+              {modeDefaults[option].buttonLabel}
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
@@ -639,7 +655,7 @@ export default function App() {
           {data ? (
             <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
               {evidenceBadgeList.map((badge) => (
-                <Chip key={badge.key} size="small" color={badge.color} label={badge.label} />
+                <Chip key={badge.key} data-evidence-badge={badge.key} size="small" color={badge.color} label={badge.label} />
               ))}
             </Stack>
           ) : null}
@@ -652,7 +668,15 @@ export default function App() {
               {(["speed", "pressure", "displacement"] as FieldName[]).map((field) => {
                 const status = fieldStatusLabel(data, field, frame);
                 return (
-                  <Stack key={field} direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                  <Stack
+                    key={field}
+                    data-field-diagnostic={field}
+                    data-field-status={status}
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    spacing={1}
+                  >
                     <Box sx={{ minWidth: 0 }}>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {data.fieldCatalog[field].label}

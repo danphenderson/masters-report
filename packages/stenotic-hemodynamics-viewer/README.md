@@ -55,18 +55,20 @@ http://localhost:4173/
 ## Viewer Surface
 
 The first screen is the result viewer: a full-bleed 3D scene, a slim case/time
-header, a compact mode rail, timeline controls for temporal manifests, and a
-small field legend. Advanced controls and provenance live in a temporary MUI
-drawer. The drawer also reports viewer-derived surface slice diagnostics:
-radius bars, sample counts, peak mean speed, and pressure span computed from
-the loaded surface nodes in the current displayed geometry state. These
-diagnostics are inspection aids only.
+header, a compact scalar-field rail, timeline controls for temporal manifests,
+and a small field legend. The rail is backed by the loaded manifest and toggles
+velocity magnitude, pressure, and displacement magnitude; missing pressure or
+displacement assets are disabled with explicit reasons. Advanced controls and
+provenance live in a temporary MUI drawer. The drawer also reports
+viewer-derived surface slice diagnostics: radius bars, sample counts, peak mean
+speed, and pressure span computed from the loaded surface nodes in the current
+displayed geometry state. These diagnostics are inspection aids only.
 
-Mode presets:
+Field presets:
 
-- `Flow`: velocity magnitude with velocity glyphs.
+- `Speed`: velocity magnitude with velocity glyphs.
 - `Pressure`: pressure field without glyphs.
-- `Wall motion`: displacement magnitude with amplified deformation and a
+- `Wall disp.`: displacement magnitude with amplified deformation and a
   reference-shape overlay.
 
 Manifest `coordinate_mode=reference` means geometry stores reference

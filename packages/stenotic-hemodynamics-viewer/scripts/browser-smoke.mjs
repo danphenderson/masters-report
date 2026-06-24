@@ -1,10 +1,16 @@
 import { spawn } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { PNG } from "pngjs";
 import { chromium } from "@playwright/test";
 
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const distDir = join(root, "dist");
 const port = Number.parseInt(process.env.VIZ_BROWSER_SMOKE_PORT ?? "4173", 10);
 const host = "127.0.0.1";
 const url = `http://${host}:${port}/`;
+const missingFieldsUrl = `${url}?manifest=/data/missing-fields/manifest.json`;
 const viewports = [
   { name: "desktop", width: 1280, height: 820 },
   { name: "mobile", width: 390, height: 844 },
@@ -16,6 +22,73 @@ function fail(message) {
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function demoAssetPath(path) {
+  return `../demo/${path}`;
+}
+
+function rewriteAssetForDemo(asset) {
+  return asset ? { ...asset, path: demoAssetPath(asset.path) } : asset;
+}
+
+function createMissingFieldsManifest() {
+  const demoManifestPath = join(distDir, "data", "demo", "manifest.json");
+  const demoManifest = JSON.parse(readFileSync(demoManifestPath, "utf8"));
+  const firstSnapshot = demoManifest.snapshots[0];
+  const velocityField = {
+    ...firstSnapshot.fields.velocity,
+    asset: rewriteAssetForDemo(firstSnapshot.fields.velocity.asset),
+  };
+  const speedRange = demoManifest.global_ranges?.speed_cm_s ?? firstSnapshot.ranges.speed_cm_s;
+  const manifest = {
+    ...demoManifest,
+    case_id: "missing-field-smoke",
+    case_label: "Missing field smoke fixture",
+    result_class: "native_resolved_fsi_missing_field_smoke",
+    snapshot_count: 1,
+    estimated_playback_fps: 0,
+    time_axis: [{ frame_id: firstSnapshot.id, time_s: firstSnapshot.time_s, delta_t_s: null }],
+    available_fields: demoManifest.available_fields.filter((field) => field.name === "velocity" || field.name === "speed"),
+    global_ranges: { speed_cm_s: speedRange },
+    source: {
+      fixture: true,
+      purpose: "browser smoke missing-field coverage",
+    },
+    geometry: {
+      ...demoManifest.geometry,
+      reference_positions: rewriteAssetForDemo(demoManifest.geometry.reference_positions),
+      surface_indices: rewriteAssetForDemo(demoManifest.geometry.surface_indices),
+      tetra_indices_debug: null,
+    },
+    snapshots: [
+      {
+        ...firstSnapshot,
+        fields: { velocity: velocityField },
+        derived: null,
+        ranges: { speed_cm_s: firstSnapshot.ranges.speed_cm_s },
+      },
+    ],
+    skipped_snapshots: ["snapshot-t0p0400"],
+    sidecars: {
+      restart_metadata: {
+        label: "restart metadata",
+        status: "metadata",
+        source_path: "restart_metadata.json",
+      },
+    },
+    observations: {
+      section41_observations: {
+        label: "section41 observations",
+        status: "missing",
+        source_path: "section41_observations.csv",
+      },
+    },
+  };
+
+  const targetDir = join(distDir, "data", "missing-fields");
+  mkdirSync(targetDir, { recursive: true });
+  writeFileSync(join(targetDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
 async function waitForServer() {
@@ -112,7 +185,75 @@ async function assertDiagnosticsDrawer(page, viewportName) {
   await diagnostics.waitFor({ state: "hidden", timeout: 5_000 });
 }
 
+async function assertFieldToggles(page, viewportName) {
+  const legend = page.locator("[data-viz-panel='legend']");
+  await legend.waitFor({ state: "visible", timeout: 5_000 });
+  for (const field of ["speed", "pressure", "displacement"]) {
+    const toggle = page.locator(`[data-field-toggle='${field}']`);
+    await toggle.waitFor({ state: "visible", timeout: 5_000 });
+    if (!(await toggle.isEnabled())) {
+      fail(`${viewportName} ${field} field toggle was disabled for the full demo manifest`);
+    }
+  }
+  await page.locator("[data-field-toggle='pressure']").click();
+  if (!(await legend.innerText()).toLowerCase().includes("pressure")) {
+    fail(`${viewportName} pressure toggle did not update the colorbar label`);
+  }
+  await page.locator("[data-field-toggle='displacement']").click();
+  if (!(await legend.innerText()).toLowerCase().includes("displacement")) {
+    fail(`${viewportName} displacement toggle did not update the colorbar label`);
+  }
+  await page.locator("[data-field-toggle='speed']").click();
+  const legendText = (await legend.innerText()).toLowerCase();
+  if (!legendText.includes("velocity magnitude") || !legendText.includes("current") || !legendText.includes("global")) {
+    fail(`${viewportName} velocity magnitude colorbar did not report field and range labels`);
+  }
+}
+
+async function assertMissingFieldManifest(page) {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  await page.goto(missingFieldsUrl, { waitUntil: "networkidle" });
+  await page.locator("canvas").first().waitFor({ state: "visible", timeout: 15_000 });
+  const pressureToggle = page.locator("[data-field-toggle='pressure']");
+  const displacementToggle = page.locator("[data-field-toggle='displacement']");
+  if (await pressureToggle.isEnabled()) {
+    fail("missing-field manifest left pressure toggle enabled");
+  }
+  if (await displacementToggle.isEnabled()) {
+    fail("missing-field manifest left displacement toggle enabled");
+  }
+  const pressureLabel = await pressureToggle.getAttribute("aria-label");
+  const displacementLabel = await displacementToggle.getAttribute("aria-label");
+  if (!pressureLabel?.includes("not present in this manifest")) {
+    fail("missing-field manifest did not expose the pressure disabled reason");
+  }
+  if (!displacementLabel?.includes("not present in this manifest")) {
+    fail("missing-field manifest did not expose the displacement disabled reason");
+  }
+
+  await page.getByLabel("open diagnostics").click();
+  const drawerText = (await page.locator(".MuiDrawer-paper").innerText()).toLowerCase();
+  for (const expected of [
+    "artifact/operator aid",
+    "coordinates: reference",
+    "1 skipped snapshot",
+    "1 sidecar",
+    "1 observation artifact",
+    "missing from manifest",
+    "Skipped snapshots: snapshot-t0p0400",
+    "restart metadata",
+    "section41 observations",
+    "missing source section41_observations.csv",
+  ]) {
+    if (!drawerText.includes(expected.toLowerCase())) {
+      fail(`missing-field diagnostics drawer did not include "${expected}"`);
+    }
+  }
+  await page.keyboard.press("Escape");
+}
+
 async function run() {
+  createMissingFieldsManifest();
   const preview = spawn(
     "npx",
     ["vite", "preview", "--host", host, "--port", String(port), "--strictPort"],
@@ -139,8 +280,10 @@ async function run() {
         }
         assertVariedImage(await canvas.screenshot({ animations: "disabled" }), `${viewport.name} canvas`);
         await assertPanels(page, viewport.name);
+        await assertFieldToggles(page, viewport.name);
         await assertDiagnosticsDrawer(page, viewport.name);
       }
+      await assertMissingFieldManifest(page);
     } finally {
       await browser.close();
     }

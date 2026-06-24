@@ -46,6 +46,19 @@ The viewer normalizes v1 manifests into a one-frame timeline. Temporal controls
 are shown only when `snapshot_count > 1` or more than one snapshot record is
 present.
 
+The field rail is backed by the loaded manifest and active snapshot. It toggles
+the scalar visualization between velocity magnitude, pressure, and displacement
+magnitude. Pressure and displacement are disabled when the manifest or current
+snapshot does not provide the corresponding field assets. The colorbar reports
+the active field label, units, min/max ticks, and both current-frame and global
+ranges when those ranges are present.
+
+The diagnostics drawer surfaces manifest evidence badges for the claim
+boundary, coordinate mode, result class, skipped snapshots, sidecars, and
+observations when those records are present. Sidecars and observation artifacts
+are displayed as provenance/operator evidence only. Loaded discrepancy or
+observation summaries are not validation or parity claims by themselves.
+
 The diagnostics drawer includes a viewer-derived surface slice panel. It
 samples nodes referenced by the surface triangles, chooses the longest displayed
 geometry axis, bins those samples into slices, and reports radius bars plus

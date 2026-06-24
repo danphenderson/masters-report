@@ -1,6 +1,6 @@
 # StenoticHemodynamics Authoritative Fleet TODO
 
-Date: 2026-06-23
+Date: 2026-06-24
 
 This is the current implementation plan for `packages/stenotic-hemodynamics`.
 Treat the live checkout as authority before dispatch.
@@ -217,19 +217,25 @@ Implemented and committed:
   `dt_s=1e-4`, `T=0.1` stopped without completion artifacts after reaching
   step 40/1000. Treat its sidecars as incomplete runtime diagnostics only.
 - Current-HEAD timing pilot
-  `native-fsi-timing-pilot-current-head-e304d40-tiny-2step` completed a tiny
-  two-step `sev23` run through `ops-experiment`. The first step took about
-  46.1 s, while the second completed about 0.24 s later with `step_total_s`
-  about 0.056 s. The sidecars show the first step dominated by Gridap lifecycle
-  setup and affine-operator construction (`gridap_space_setup_s` about
-  10.2 s, `gridap_measure_setup_s` about 3.9 s,
-  `gridap_affine_operator_s` about 25.1 s), while numeric factorization and
-  backsolve were small (`linear_numeric_factorization_s` about 0.09 s,
-  `linear_backsolve_s` about 0.026 s). The sparse structure digest stayed
-  stable across the two steps, but matrix/RHS value digests changed. This pilot
-  does not justify a factorization-reuse patch by itself; it points first to
-  representative-scale timing review and possible Gridap context/lifecycle
-  reuse if invariants can be proven.
+  `native-fsi-timing-pilot-current-head-20260624-103257` on `5b73e64`
+  completed a tiny two-step `sev23` run through the internal Julia production
+  runner. Sidecars live under
+  `tmp/simulations/output/native-fsi-timing-pilot-current-head-20260624-103257/.../batch_status.jsonl`,
+  `batch_status.csv`, and `batch_benchmark.json`. The per-step
+  `time_step_completed` rows classify the run as first-use/setup dominated:
+  step 1 reported `step_total_s` about 43.205 s and `fluid_solve_total_s`
+  about 42.353 s, dominated by Gridap model/space/measure setup
+  (`3.052`, `6.318`, and `6.330` s) plus affine-operator construction
+  (`24.475` s). Numeric factorization and backsolve were small
+  (`0.085` s and `0.024` s). Step 2 then reported `step_total_s` about
+  0.098 s, with warmed model/space/measure setup below 0.006 s combined,
+  affine-operator construction about 0.089 s, numeric factorization about
+  0.0013 s, and backsolve about 0.00004 s. The sparse structure digest stayed
+  stable (`46fc7ac62087e904`), while matrix/RHS value digests changed. This
+  completes Lane 10C-P1 for the current wave. Wave 2 is authorized after the
+  current Wave 1 commit, but it must start with representative warmed/
+  development-scale timing evidence; do not implement factorization or
+  Gridap-context reuse from this tiny timing evidence alone.
 
 ## Orchestration Rules
 
@@ -257,35 +263,34 @@ Implemented and committed:
 - Do not touch unrelated dirty state, including `public/reproducibility` or
   `report/**`, unless explicitly assigned.
 
-## Remaining Dispatch Priority
+## Current Dispatch Priority
 
-## Next-Round Concurrency Plan
+Wave 1 closeout status:
 
-Wave 1 can run concurrently if write locks stay disjoint:
+- Lane 10C-P1 timing-sidecar review is complete for the current wave. The tiny
+  current-HEAD sidecars classify the observed cost as first-use/setup
+  dominated and do not justify immediate reuse work.
+- Lane 12C focused test hardening was re-audited and requires no patch. The
+  owned tests already assert nonzero membrane wall-velocity agreement,
+  nonempty rendered artifacts, and numeric/stage-count fields.
+- Lane 12D viewer evidence enhancements are implemented in the current
+  checkout: manifest-backed scalar toggles, missing-field disabled states,
+  colorbar range labeling, evidence badge coverage, and browser-smoke fixtures
+  for skipped snapshots, sidecars, and observations. Viewer diagnostics remain
+  inspection/operator aids only.
 
-- Lane 10C-P1 timing-sidecar review: run or inspect a tiny/development native
-  FSI pilot on `d52dcb1` or newer, then classify whether wall time is dominated
-  by Gridap lifecycle setup, matrix/RHS extraction, symbolic factorization,
-  numeric factorization, backsolve, wall sampling/update, diagnostics, or
-  output. This is read-only unless an instrumentation bug is found.
-- Lane 12C focused test hardening follow-up if any remaining test-quality
-  audit items reopen outside the already-landed membrane/Python benchmark
-  hardening.
-- Lane 12D viewer visual diagnostics follow-up:
-  `packages/stenotic-hemodynamics-viewer/**`, visualization docs, and
-  visualization tests only. The serve-command docs are already landed; future
-  work should expand displayed scientific/operator diagnostics.
-
-Wave 2 starts after Wave 1 handbacks:
+Wave 2 is authorized after the Wave 1 commit, but remains evidence-gated:
 
 - Lane 10C-P2 native-FSI measured optimization only if timing sidecars prove
   repeated Gridap lifecycle, assembly, matrix/RHS extraction, or
   factorization cost and explicit invariants can gate reuse. Start with a
-  Gridap-context/factorization-invariant design; do not change solver physics.
+  representative warmed/development-scale timing review, then a
+  Gridap-context/factorization-invariant design if the sidecars justify it; do
+  not change solver physics.
 - Lane 11 P1 mathematical-contract stewardship if it touches disjoint
   observation/model/API files from any optimization lane.
 
-Wave 3 starts only after timing/optimization evidence is accepted:
+Wave 3 starts only after Wave 2 timing/optimization evidence is accepted:
 
 - `sev23` preproduction batch execution and imported parity staging. Do not
   relaunch long runs before the instrumentation review and any accepted
@@ -476,21 +481,22 @@ Acceptance criteria:
 
 ### Lane 12C: Focused Test Hardening Follow-Up
 
-Status: largely implemented in `a8aa77b`. Keep this lane open only for newly
-identified non-vacuity issues from future audits.
+Status: closed for the current wave. Re-audited on 2026-06-24 with no patch
+required; keep this lane dormant unless future tests regress.
 
-Priority: P2 unless a test failure reopens it.
+Priority: closed unless a future test failure or audit reopens it.
 
 Objective: address the remaining non-vacuity improvements identified by the
 read-only test-quality audit without broadening into speculative test churn.
 
-Remaining targets, only if reopened:
+Covered targets:
 
-- Strengthen `test_membrane_fsi.jl` dynamic membrane validation so
-  wall-velocity maxima are asserted nonzero and agree with written history or
-  profile rows.
-- Strengthen `packages/ops/tests/test_python_package_benchmark.py` with
-  nonempty rendered artifact and key numeric/stage-count assertions.
+- `test_membrane_fsi.jl` already asserts nonzero dynamic wall-velocity maxima
+  and agreement between in-memory solution rows, validation rows, profile CSV,
+  and history CSV outputs.
+- `packages/ops/tests/test_python_package_benchmark.py` already asserts
+  fixture stage counts, finite required numeric fields, nonempty rendered
+  figures/tables, and rendered stage counts.
 
 Validation:
 
@@ -504,35 +510,38 @@ git diff --check -- packages/stenotic-hemodynamics/test/test_membrane_fsi.jl pac
 
 ### Lane 12D: Viewer Evidence Enhancements
 
-Status: baseline viewer evidence controls landed in `a8aa77b`; serve-command
-docs landed in `cf2d78c`. The current viewer diagnostics slice adds a
-surface-node slice panel that bins displayed geometry along the longest axis
-and reports radius bars, narrowest displayed radius, highest slice mean speed,
-and pressure span as inspection aids only. Remaining work is optional visual
-diagnostic expansion, not a claim gate.
+Status: implemented in the current Wave 1 viewer lane. Baseline viewer
+evidence controls landed in `a8aa77b`; serve-command docs landed in
+`cf2d78c`; the current checkout adds manifest-backed scalar toggles,
+missing-field disabled states, current/global colorbar range labeling, evidence
+badge coverage, and browser-smoke fixtures for skipped snapshots, sidecars,
+observations, and missing pressure/displacement fields. The surface-node slice
+panel remains an inspection aid only.
 
-Priority: P2 nonblocking visualization lane. Do not let this collide with
-native-FSI numerics, report PDF, or package validation-automation work.
+Priority: complete for this wave. Future visualization work is P2 and must not
+collide with native-FSI numerics, report PDF, or package validation-automation
+work.
 
 Objective: expand displayed visual diagnostics after the coordinate-mode and
 browser-smoke fixes are accepted, while preserving the evidence boundary that
 viewer artifacts are inspection/operator aids.
 
-Targets:
+Implemented targets:
 
-- Keep `coordinate_mode` semantics explicit so reference/deformed geometry is
+- Kept `coordinate_mode` semantics explicit so reference/deformed geometry is
   never double-applied.
-- Add or polish manifest-backed toggles for velocity magnitude, pressure, and
+- Added/polished manifest-backed toggles for velocity magnitude, pressure, and
   displacement magnitude, with missing fields disabled cleanly.
-- Add a colorbar with min/max ticks, units, and current/global range labeling.
-- Surface claim-boundary/evidence badges from manifest metadata, skipped
+- Added a colorbar with min/max ticks, units, and current/global range
+  labeling.
+- Surfaced claim-boundary/evidence badges from manifest metadata, skipped
   snapshots, sidecars, and observations when present.
 - If parity or observation artifacts are loaded, show discrepancy summaries as
   artifact/operator evidence only, not production validation.
-- Preserve the new surface slice diagnostics as viewer-derived surface-node
+- Preserved the surface slice diagnostics as viewer-derived surface-node
   summaries, not cross-section integration, imported parity, or physical
   validation evidence.
-- Maintain desktop/mobile browser-smoke evidence for nonblank canvas rendering
+- Maintained desktop/mobile browser-smoke evidence for nonblank canvas rendering
   and non-overlapping controls. Re-run browser smoke for any visual layout,
   scene, control, or manifest-loading change.
 
@@ -552,11 +561,11 @@ git diff --check -- packages/stenotic-hemodynamics-viewer packages/stenotic-hemo
 
 ### Lane 10C-P: Native FSI Phase Timing Before Numerics Optimization
 
-Status: implemented as instrumentation-only package code in `d52dcb1`. The
-preproduction
-attempt was naturally classified as incomplete at step 40/1000, so subsequent
-long `sev23` launches are blocked on reviewing phase sidecars and deciding
-whether a measured optimization lane is justified.
+Status: instrumentation implemented as package code in `d52dcb1`; current
+Wave 1 timing review complete. The preproduction attempt was naturally
+classified as incomplete at step 40/1000. Subsequent long `sev23` launches
+remain blocked until Wave 2 either declines optimization after representative
+timing or lands a measured optimization with validation.
 
 Objective: instrument before changing numerics so future preproduction and
 production launches report where wall time and memory are spent. The current
@@ -583,26 +592,26 @@ Implemented first patch:
 - Validate on tiny smoke/development runs before any new long preproduction
   launch.
 
-Next timing review dispatch:
+Completed timing review:
 
-1. Run a cheap current-HEAD pilot through `ops-experiment` on the tiny
-   production path and preserve the generated summary JSON and sidecar paths
-   in the handback.
-2. Parse `batch_status.jsonl`, `batch_status.csv`, and
-   `batch_benchmark.json` for the new Gridap lifecycle/fingerprint fields.
-3. Classify the dominant measured phase and whether repeated matrix
-   structure/value digests prove a reuse opportunity.
-4. If the dominant cost is first-call/precompile/setup overhead only, do not
-   implement a cache under the preproduction banner; document the launch
-   planning implication instead.
-5. Treat the current tiny two-step pilot as evidence that first-use Gridap
-   lifecycle/setup cost dominates at small scale and that numeric
-   factorization is not the first optimization target for tiny runs.
-6. If repeated per-step lifecycle/assembly or factorization is dominant at a
-   representative warmed/development scale,
-   proceed to the measured optimization dispatch below.
+1. A cheap current-HEAD pilot was run through the internal Julia production
+   runner on the tiny production path, and the generated sidecar paths are
+   preserved in the current planning artifact above.
+2. `batch_status.jsonl`, `batch_status.csv`, and `batch_benchmark.json` were
+   parsed for Gridap lifecycle and fingerprint fields.
+3. The dominant measured phase was first-use Gridap lifecycle/setup and
+   affine-operator construction. The warmed second step did not show repeated
+   factorization or backsolve cost at a scale that justifies reuse work.
+4. Matrix sparse structure stayed stable across the two steps, but matrix and
+   RHS values changed. This is useful invariant evidence for a future
+   representative review, not enough to ship reuse now.
+5. Do not implement a cache or solver optimization under the preproduction
+   banner from this tiny timing evidence. Wave 2 may now proceed only by first
+   collecting representative warmed/development-scale timing sidecars; measured
+   optimization remains conditional on those sidecars showing repeated
+   lifecycle/assembly, extraction, or factorization cost.
 
-Measured optimization dispatch after timing evidence:
+Measured optimization dispatch after representative timing evidence:
 
 1. Reuse the linear solve/factorization object when the matrix, coefficients,
    boundary-condition sparsity pattern, pressure policy, mesh topology, and
