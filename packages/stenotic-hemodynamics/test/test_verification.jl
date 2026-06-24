@@ -122,6 +122,64 @@ end
         @test isfile(cli_mms.summary_csv)
         @test isfile(cli_mms.summary_tex)
 
+        dg_projection_params = Params(
+            nx=16,
+            tfinal=0.0,
+            dt=1.0e-5,
+            severity=0.0,
+            initial_condition=ManufacturedSolutionIC(),
+            forcing=ManufacturedForcing(),
+            space=DGMethod(2),
+            time_stepper=SSPRK3Stepper(),
+        )
+        dg_method = DGMethod(2)
+        default_dg_coefficients = StenoticHemodynamics.simulate_dg_coefficients(dg_projection_params, dg_method)
+        explicit_limited_dg_coefficients =
+            StenoticHemodynamics.simulate_dg_coefficients(dg_projection_params, dg_method; apply_limiter=true)
+        @test explicit_limited_dg_coefficients.area_coefficients ≈ default_dg_coefficients.area_coefficients
+        @test explicit_limited_dg_coefficients.flow_coefficients ≈ default_dg_coefficients.flow_coefficients
+
+        limited_p2_projection =
+            StenoticHemodynamics.simulate_dg_coefficients(dg_projection_params, DGMethod(2); apply_limiter=true)
+        unlimited_p2_projection =
+            StenoticHemodynamics.simulate_dg_coefficients(dg_projection_params, DGMethod(2); apply_limiter=false)
+        unlimited_p4_projection =
+            StenoticHemodynamics.simulate_dg_coefficients(dg_projection_params, DGMethod(4); apply_limiter=false)
+        limited_p2_metrics =
+            StenoticHemodynamics.dg_manufactured_error_metrics(limited_p2_projection, dg_projection_params, 2)
+        unlimited_p2_metrics =
+            StenoticHemodynamics.dg_manufactured_error_metrics(unlimited_p2_projection, dg_projection_params, 2)
+        unlimited_p4_metrics =
+            StenoticHemodynamics.dg_manufactured_error_metrics(unlimited_p4_projection, dg_projection_params, 4)
+        @test unlimited_p2_metrics.area_l2_error < limited_p2_metrics.area_l2_error / 100
+        @test unlimited_p4_metrics.area_l2_error < unlimited_p2_metrics.area_l2_error / 100
+
+        dg_evolution_params = StenoticHemodynamics.params_with(
+            dg_projection_params;
+            nx=8,
+            space=DGMethod(2),
+            tfinal=2.0e-4,
+        )
+        unlimited_ph_demo = StenoticHemodynamics.run_ph_refinement_demo(StenoticHemodynamics.PHRefinementDemoSpec(;
+            output_dir=joinpath(dir, "ph-demo-unlimited"),
+            h_nxs=[6, 8],
+            h_degree=2,
+            degrees=[1, 2, 4],
+            p_nx=8,
+            base_params=dg_evolution_params,
+            apply_limiter=false,
+            overwrite=true,
+        ))
+        unlimited_p_rows = [row for row in unlimited_ph_demo.rows if row.sweep == "p_refinement"]
+        @test all(row.dg_limiter_policy == "disabled" for row in unlimited_ph_demo.rows)
+        @test unlimited_p_rows[2].area_l2_error < unlimited_p_rows[1].area_l2_error
+        @test unlimited_p_rows[3].area_l2_error < unlimited_p_rows[2].area_l2_error
+        @test unlimited_p_rows[2].flow_l2_error < unlimited_p_rows[1].flow_l2_error
+        @test unlimited_p_rows[3].flow_l2_error < unlimited_p_rows[2].flow_l2_error
+        unlimited_ph_csv_text = read(unlimited_ph_demo.summary_csv, String)
+        @test occursin("dg_limiter_policy", unlimited_ph_csv_text)
+        @test occursin("disabled", unlimited_ph_csv_text)
+
         ph_demo = StenoticHemodynamics.run_ph_refinement_demo(StenoticHemodynamics.PHRefinementDemoSpec(;
             output_dir=joinpath(dir, "ph-demo"),
             h_nxs=[6, 8],
@@ -161,6 +219,8 @@ end
         @test occursin("area_p_sweep_status", ph_csv_text)
         @test occursin("flow_p_sweep_status", ph_csv_text)
         @test occursin("p_sweep_status", ph_csv_text)
+        @test occursin("dg_limiter_policy", ph_csv_text)
+        @test occursin("modal_limiter", ph_csv_text)
         @test occursin("baseline", ph_csv_text)
         ph_tex_text = read(ph_demo.summary_tex, String)
         @test occursin("p- and h-refinement diagnostic", ph_tex_text)

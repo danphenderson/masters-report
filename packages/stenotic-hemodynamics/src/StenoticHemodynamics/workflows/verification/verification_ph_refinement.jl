@@ -18,6 +18,7 @@ Base.@kwdef struct PHRefinementDemoSpec <: AbstractStudySpec
     summary_tex::String = ""
     overwrite::Bool = false
     progress_every::Int = 0
+    apply_limiter::Bool = true
 end
 
 Base.@kwdef struct PHRefinementDemoRow
@@ -45,6 +46,7 @@ Base.@kwdef struct PHRefinementDemoRow
     flow_l2_reduction::Float64
     flow_p_sweep_status::String = "not_evaluated"
     p_sweep_status::String = "not_evaluated"
+    dg_limiter_policy::String = "modal_limiter"
     status::String
     error_message::String
 end
@@ -150,8 +152,14 @@ end
 
 function ph_refinement_demo_case(sweep::String, spec::PHRefinementDemoSpec, nx::Int, degree::Int)
     params = params_with(spec.base_params; nx=nx, space=DGMethod(degree))
+    limiter_policy = dg_limiter_policy_label(spec.apply_limiter)
     try
-        coefficients = simulate_dg_coefficients(params, DGMethod(degree); progress_every=spec.progress_every)
+        coefficients = simulate_dg_coefficients(
+            params,
+            DGMethod(degree);
+            progress_every=spec.progress_every,
+            apply_limiter=spec.apply_limiter,
+        )
         metrics = dg_manufactured_error_metrics(coefficients, params, degree)
         return PHRefinementDemoRow(
             sweep=sweep,
@@ -178,15 +186,22 @@ function ph_refinement_demo_case(sweep::String, spec::PHRefinementDemoSpec, nx::
             flow_l2_reduction=NaN,
             flow_p_sweep_status="not_evaluated",
             p_sweep_status="not_evaluated",
+            dg_limiter_policy=limiter_policy,
             status="ok",
             error_message="",
         )
     catch err
-        return failed_ph_refinement_demo_row(sweep, params, degree, sprint(showerror, err))
+        return failed_ph_refinement_demo_row(sweep, params, degree, limiter_policy, sprint(showerror, err))
     end
 end
 
-function failed_ph_refinement_demo_row(sweep::String, params::Params, degree::Int, message::String)
+function failed_ph_refinement_demo_row(
+    sweep::String,
+    params::Params,
+    degree::Int,
+    dg_limiter_policy::String,
+    message::String,
+)
     return PHRefinementDemoRow(
         sweep=sweep,
         degree=degree,
@@ -212,10 +227,13 @@ function failed_ph_refinement_demo_row(sweep::String, params::Params, degree::In
         flow_l2_reduction=NaN,
         flow_p_sweep_status="not_evaluated",
         p_sweep_status="not_evaluated",
+        dg_limiter_policy=dg_limiter_policy,
         status="error",
         error_message=message,
     )
 end
+
+dg_limiter_policy_label(apply_limiter::Bool) = apply_limiter ? "modal_limiter" : "disabled"
 
 function dg_manufactured_error_metrics(coefficients::DGSimulationCoefficients, params::Params, degree::Int)
     xis, weights = dg_quadrature(MAX_DG_DEGREE)
@@ -343,6 +361,7 @@ function ph_row_with_diagnostics(
         flow_l2_reduction=flow_reduction,
         flow_p_sweep_status=flow_p_sweep_status,
         p_sweep_status=p_sweep_status,
+        dg_limiter_policy=row.dg_limiter_policy,
         status=row.status,
         error_message=row.error_message,
     )
@@ -406,6 +425,7 @@ ph_refinement_demo_header() = [
     "flow_l2_reduction",
     "flow_p_sweep_status",
     "p_sweep_status",
+    "dg_limiter_policy",
     "status",
     "error_message",
 ]
@@ -436,6 +456,7 @@ function ph_refinement_demo_values(row::PHRefinementDemoRow)
         row.flow_l2_reduction,
         row.flow_p_sweep_status,
         row.p_sweep_status,
+        row.dg_limiter_policy,
         row.status,
         row.error_message,
     ]

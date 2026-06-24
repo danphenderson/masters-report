@@ -272,6 +272,16 @@ function limit_dg_coefficients!(Acoef::Matrix{Float64}, Qcoef::Matrix{Float64}, 
     return Acoef, Qcoef
 end
 
+function maybe_limit_dg_coefficients!(
+    Acoef::Matrix{Float64},
+    Qcoef::Matrix{Float64},
+    method::DGMethod,
+    apply_limiter::Bool,
+)
+    apply_limiter || return Acoef, Qcoef
+    return limit_dg_coefficients!(Acoef, Qcoef, method)
+end
+
 function dg_step(
     Acoef::Matrix{Float64},
     Qcoef::Matrix{Float64},
@@ -311,7 +321,7 @@ function dg_step(
     Anew = copy(Acoef)
     Qnew = copy(Qcoef)
     cache = DGStepCache(size(Acoef, 1), method.degree)
-    return dg_step!(Anew, Qnew, z, dx, dt, t, ForwardEulerStepper(), p, method, cache)
+    return dg_step!(Anew, Qnew, z, dx, dt, t, ForwardEulerStepper(), p, method, cache, true)
 end
 
 function dg_step(
@@ -328,7 +338,7 @@ function dg_step(
     Anew = copy(Acoef)
     Qnew = copy(Qcoef)
     cache = DGStepCache(size(Acoef, 1), method.degree)
-    return dg_step!(Anew, Qnew, z, dx, dt, t, SSPRK2Stepper(), p, method, cache)
+    return dg_step!(Anew, Qnew, z, dx, dt, t, SSPRK2Stepper(), p, method, cache, true)
 end
 
 function dg_step(
@@ -345,7 +355,7 @@ function dg_step(
     Anew = copy(Acoef)
     Qnew = copy(Qcoef)
     cache = DGStepCache(size(Acoef, 1), method.degree)
-    return dg_step!(Anew, Qnew, z, dx, dt, t, SSPRK3Stepper(), p, method, cache)
+    return dg_step!(Anew, Qnew, z, dx, dt, t, SSPRK3Stepper(), p, method, cache, true)
 end
 
 function dg_step(
@@ -362,7 +372,7 @@ function dg_step(
     Anew = copy(Acoef)
     Qnew = copy(Qcoef)
     cache = DGStepCache(size(Acoef, 1), method.degree)
-    return dg_step!(Anew, Qnew, z, dx, dt, t, SSPRK54Stepper(), p, method, cache)
+    return dg_step!(Anew, Qnew, z, dx, dt, t, SSPRK54Stepper(), p, method, cache, true)
 end
 
 function dg_step!(
@@ -376,7 +386,37 @@ function dg_step!(
     method::DGMethod,
     cache::DGStepCache,
 )
-    return dg_step!(Acoef, Qcoef, z, dx, dt, t, p.time_stepper, p, method, cache)
+    return dg_step!(Acoef, Qcoef, z, dx, dt, t, p, method, cache, true)
+end
+
+function dg_step!(
+    Acoef::Matrix{Float64},
+    Qcoef::Matrix{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    time_stepper::AbstractNativeTimeStepper,
+    p::Params,
+    method::DGMethod,
+    cache::DGStepCache,
+)
+    return dg_step!(Acoef, Qcoef, z, dx, dt, t, time_stepper, p, method, cache, true)
+end
+
+function dg_step!(
+    Acoef::Matrix{Float64},
+    Qcoef::Matrix{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
+    p::Params,
+    method::DGMethod,
+    cache::DGStepCache,
+    apply_limiter::Bool,
+)
+    return dg_step!(Acoef, Qcoef, z, dx, dt, t, p.time_stepper, p, method, cache, apply_limiter)
 end
 
 function dg_step!(
@@ -390,13 +430,14 @@ function dg_step!(
     p::Params,
     method::DGMethod,
     cache::DGStepCache,
+    apply_limiter::Bool,
 )
     fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, Acoef, Qcoef, z, dx, p, method, t, cache.rhs)
     @inbounds for i in eachindex(Acoef)
         Acoef[i] += dt * cache.rhs.dA[i]
         Qcoef[i] += dt * cache.rhs.dQ[i]
     end
-    return limit_dg_coefficients!(Acoef, Qcoef, method)
+    return maybe_limit_dg_coefficients!(Acoef, Qcoef, method, apply_limiter)
 end
 
 function dg_step!(
@@ -410,20 +451,21 @@ function dg_step!(
     p::Params,
     method::DGMethod,
     cache::DGStepCache,
+    apply_limiter::Bool,
 )
     fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, Acoef, Qcoef, z, dx, p, method, t, cache.rhs)
     @inbounds for i in eachindex(Acoef)
         cache.A1[i] = Acoef[i] + dt * cache.rhs.dA[i]
         cache.Q1[i] = Qcoef[i] + dt * cache.rhs.dQ[i]
     end
-    limit_dg_coefficients!(cache.A1, cache.Q1, method)
+    maybe_limit_dg_coefficients!(cache.A1, cache.Q1, method, apply_limiter)
 
     fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A1, cache.Q1, z, dx, p, method, t + dt, cache.rhs)
     @inbounds for i in eachindex(Acoef)
         Acoef[i] = 0.5 * Acoef[i] + 0.5 * (cache.A1[i] + dt * cache.rhs.dA[i])
         Qcoef[i] = 0.5 * Qcoef[i] + 0.5 * (cache.Q1[i] + dt * cache.rhs.dQ[i])
     end
-    return limit_dg_coefficients!(Acoef, Qcoef, method)
+    return maybe_limit_dg_coefficients!(Acoef, Qcoef, method, apply_limiter)
 end
 
 function dg_step!(
@@ -437,27 +479,28 @@ function dg_step!(
     p::Params,
     method::DGMethod,
     cache::DGStepCache,
+    apply_limiter::Bool,
 )
     fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, Acoef, Qcoef, z, dx, p, method, t, cache.rhs)
     @inbounds for i in eachindex(Acoef)
         cache.A1[i] = Acoef[i] + dt * cache.rhs.dA[i]
         cache.Q1[i] = Qcoef[i] + dt * cache.rhs.dQ[i]
     end
-    limit_dg_coefficients!(cache.A1, cache.Q1, method)
+    maybe_limit_dg_coefficients!(cache.A1, cache.Q1, method, apply_limiter)
 
     fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A1, cache.Q1, z, dx, p, method, t + dt, cache.rhs)
     @inbounds for i in eachindex(Acoef)
         cache.A2[i] = 0.75 * Acoef[i] + 0.25 * (cache.A1[i] + dt * cache.rhs.dA[i])
         cache.Q2[i] = 0.75 * Qcoef[i] + 0.25 * (cache.Q1[i] + dt * cache.rhs.dQ[i])
     end
-    limit_dg_coefficients!(cache.A2, cache.Q2, method)
+    maybe_limit_dg_coefficients!(cache.A2, cache.Q2, method, apply_limiter)
 
     fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A2, cache.Q2, z, dx, p, method, t + 0.5 * dt, cache.rhs)
     @inbounds for i in eachindex(Acoef)
         Acoef[i] = (Acoef[i] + 2.0 * (cache.A2[i] + dt * cache.rhs.dA[i])) / 3.0
         Qcoef[i] = (Qcoef[i] + 2.0 * (cache.Q2[i] + dt * cache.rhs.dQ[i])) / 3.0
     end
-    return limit_dg_coefficients!(Acoef, Qcoef, method)
+    return maybe_limit_dg_coefficients!(Acoef, Qcoef, method, apply_limiter)
 end
 
 function dg_step!(
@@ -471,13 +514,14 @@ function dg_step!(
     p::Params,
     method::DGMethod,
     cache::DGStepCache,
+    apply_limiter::Bool,
 )
     fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, Acoef, Qcoef, z, dx, p, method, t, cache.rhs)
     @inbounds for i in eachindex(Acoef)
         cache.A1[i] = Acoef[i] + 0.391752226571890 * dt * cache.rhs.dA[i]
         cache.Q1[i] = Qcoef[i] + 0.391752226571890 * dt * cache.rhs.dQ[i]
     end
-    limit_dg_coefficients!(cache.A1, cache.Q1, method)
+    maybe_limit_dg_coefficients!(cache.A1, cache.Q1, method, apply_limiter)
 
     fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A1, cache.Q1, z, dx, p, method, t + 0.391752226571890 * dt, cache.rhs)
     @inbounds for i in eachindex(Acoef)
@@ -490,7 +534,7 @@ function dg_step!(
             0.555629506348765 * cache.Q1[i] +
             0.368410593050371 * dt * cache.rhs.dQ[i]
     end
-    limit_dg_coefficients!(cache.A1, cache.Q1, method)
+    maybe_limit_dg_coefficients!(cache.A1, cache.Q1, method, apply_limiter)
 
     fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A1, cache.Q1, z, dx, p, method, t + 0.586079688967798 * dt, cache.rhs)
     @inbounds for i in eachindex(Acoef)
@@ -503,7 +547,7 @@ function dg_step!(
             0.379898148511597 * cache.Q1[i] +
             0.251891774271694 * dt * cache.rhs.dQ[i]
     end
-    limit_dg_coefficients!(cache.A2, cache.Q2, method)
+    maybe_limit_dg_coefficients!(cache.A2, cache.Q2, method, apply_limiter)
 
     fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A2, cache.Q2, z, dx, p, method, t + 0.474542363026872 * dt, cache.rhs)
     @inbounds for i in eachindex(Acoef)
@@ -516,7 +560,7 @@ function dg_step!(
             0.821920045606868 * cache.Q2[i] +
             0.544974750228521 * dt * cache.rhs.dQ[i]
     end
-    limit_dg_coefficients!(cache.A3, cache.Q3, method)
+    maybe_limit_dg_coefficients!(cache.A3, cache.Q3, method, apply_limiter)
 
     fill_dg_rhs!(cache.rhs.dA, cache.rhs.dQ, cache.A3, cache.Q3, z, dx, p, method, t + 0.935010630967653 * dt, cache.rhs)
     @inbounds for i in eachindex(Acoef)
@@ -531,7 +575,7 @@ function dg_step!(
             0.386708617503269 * cache.Q3[i] +
             0.063692468666290 * dt * cache.rhs.dQ[i]
     end
-    return limit_dg_coefficients!(Acoef, Qcoef, method)
+    return maybe_limit_dg_coefficients!(Acoef, Qcoef, method, apply_limiter)
 end
 
 function choose_dt_dg(Acoef::Matrix{Float64}, Qcoef::Matrix{Float64}, z::Vector{Float64}, dx::Float64, p::Params, method::DGMethod)
@@ -542,12 +586,12 @@ function choose_dt_dg(Acoef::Matrix{Float64}, Qcoef::Matrix{Float64}, z::Vector{
     return min(p.dt, p.cfl * dx / max((2 * method.degree + 1) * smax, eps()))
 end
 
-function simulate_dg_coefficients(p::Params, method::DGMethod; progress_every::Int = 0)
+function simulate_dg_coefficients(p::Params, method::DGMethod; progress_every::Int = 0, apply_limiter::Bool = true)
     method.degree == 0 && return simulate_dg0_coefficients(p; progress_every=progress_every)
 
     validate(p)
     z, Acoef, Qcoef, dx, initial_summary = dg_initial_coefficients_with_summary(p, method)
-    limit_dg_coefficients!(Acoef, Qcoef, method)
+    maybe_limit_dg_coefficients!(Acoef, Qcoef, method, apply_limiter)
     step_cache = DGStepCache(size(Acoef, 1), method.degree)
     diagnostics = DiagnosticsAccumulator(vec(Acoef[:, 1]), dx)
     t = 0.0
@@ -556,7 +600,7 @@ function simulate_dg_coefficients(p::Params, method::DGMethod; progress_every::I
     while t < p.tfinal - 1.0e-14
         dt = min(choose_dt_dg(Acoef, Qcoef, z, dx, p, method), p.tfinal - t)
         record_timestep_diagnostics!(diagnostics, vec(Acoef[:, 1]), vec(Qcoef[:, 1]), z, dx, dt, p)
-        dg_step!(Acoef, Qcoef, z, dx, dt, t, p, method, step_cache)
+        dg_step!(Acoef, Qcoef, z, dx, dt, t, p, method, step_cache, apply_limiter)
         t += dt
         step += 1
         record_mass_diagnostics!(diagnostics, max.(vec(Acoef[:, 1]), AREA_LIMITER_FLOOR), dx)
