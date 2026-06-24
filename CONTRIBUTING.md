@@ -8,10 +8,10 @@ reviewable, and tied to a reproducible validation path.
 - Use `pipenv run ops-julia-check` for Julia package validation.
 - Use `pipenv run ops-python-check` for Python support-tooling changes.
 - Install the explicit local pre-commit hook with
-  `pipenv run pre-commit install --install-hooks` when commit-time validation
-  should run automatically.
-- Use `pipenv run pre-commit run --all-files` to run the hook stack manually.
-  The full-gate hook runs `ops-release-check --mode patch` and can be slow.
+  `pipenv run pre-commit install --install-hooks` when fast commit-time hygiene
+  checks should run automatically.
+- Use `pipenv run pre-commit run --all-files` to run the fast hook stack
+  manually.
 - Use `pipenv run ops-experiment ...` for foreground simulation, study,
   verification, comparison, and benchmark runs that need terminal streaming and
   JSON logs.
@@ -24,7 +24,8 @@ reviewable, and tied to a reproducible validation path.
 - Use the full report build without `--no-sync-final-pdf` only when a release PDF
   refresh is explicitly in scope.
 - Use `pipenv run ops-release-check --mode patch` for dirty-tree aggregate
-  validation. Use `--mode release` only for clean publication readiness.
+  validation before major handbacks, pushes, or release-readiness decisions.
+  Use `--mode release` only for clean publication readiness.
 
 ## Artifact Discipline
 

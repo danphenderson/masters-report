@@ -41,23 +41,25 @@ Install the ops command surface:
 PIPENV_VENV_IN_PROJECT=1 pipenv install --dev
 ```
 
-Install the explicit local pre-commit hook when commit-time validation should
-run automatically:
+Install the explicit local pre-commit hook when fast commit-time hygiene checks
+should run automatically:
 
 ```bash
 pipenv run pre-commit install --install-hooks
 ```
 
-Run the same hook stack manually with:
+Run the same fast hook stack manually with:
 
 ```bash
 pipenv run pre-commit run --all-files
 ```
 
-The local full-gate hook runs
-`pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-build`
-and can take several minutes because it includes Julia, Python, reference, and
-report validation.
+The hook intentionally stays lightweight. Run the aggregate patch gate
+explicitly before major handbacks, pushes, or release-readiness decisions:
+
+```bash
+pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-build
+```
 
 Run Julia package validation through the agent-facing ops wrapper:
 

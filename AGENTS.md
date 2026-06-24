@@ -23,15 +23,16 @@ The nested
   and install Python report/support tooling.
 - `pipenv run pre-commit install --install-hooks`: install the explicit local
   Git hook from the tracked pre-commit configuration.
-- `pipenv run pre-commit run --all-files`: run pre-commit manually. The local
-  full-gate hook runs `ops-release-check --mode patch` and can be slow.
+- `pipenv run pre-commit run --all-files`: run the fast pre-commit hygiene
+  hooks manually.
 - `pipenv run ops-julia-check`: run the Julia test suite through the
   agent-facing Python ops validation surface. The wrapper uses the required
   Julia 1.12+ project launcher underneath.
 - `pipenv run ops-python-check`: run Python audit/render tests, Ruff, and Black.
 - `pipenv run ops-release-check --mode patch`: run the aggregate validation
-  gates on a dirty development tree. Use `--mode release` only for clean
-  publication readiness.
+  gates on a dirty development tree before major handbacks, pushes, or
+  release-readiness decisions. Use `--mode release` only for clean publication
+  readiness.
 - `pipenv run ops-experiment <julia-command> [options]`: run Julia simulation,
   study, verification, comparison, or benchmark workflows through the Python
   experiment runner with live terminal streaming and JSON/JSONL logs under

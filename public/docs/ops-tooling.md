@@ -21,16 +21,18 @@ explicit developer action:
 pipenv run pre-commit install --install-hooks
 ```
 
-Run the same hook stack manually with:
+Run the same fast hook stack manually with:
 
 ```sh
 pipenv run pre-commit run --all-files
 ```
 
-The local full-gate hook runs
-`pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-build`.
-It can take several minutes because it includes Julia, Python, reference, and
-report validation.
+The hook intentionally stays lightweight. Run the aggregate patch gate
+explicitly before major handbacks, pushes, or release-readiness decisions:
+
+```sh
+pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-build
+```
 
 ## Audit And Build Commands
 
@@ -43,7 +45,8 @@ report validation.
 - `pipenv run ops-python-check`: run Python tests, Ruff, and Black checks for
   support tooling.
 - `pipenv run ops-release-check --mode patch`: run the aggregate validation
-  gates on a dirty development tree.
+  gates on a dirty development tree before major handbacks, pushes, or
+  release-readiness decisions.
 - `pipenv run ops-release-check --mode release`: run the aggregate validation
   gates with clean-status enforcement and release hygiene scans. Add
   `--sync-final-pdf` only when release-PDF refresh is explicitly in scope.
