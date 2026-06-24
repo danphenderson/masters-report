@@ -57,7 +57,10 @@ http://localhost:4173/
 The first screen is the result viewer: a full-bleed 3D scene, a slim case/time
 header, a compact mode rail, timeline controls for temporal manifests, and a
 small field legend. Advanced controls and provenance live in a temporary MUI
-drawer.
+drawer. The drawer also reports viewer-derived surface slice diagnostics:
+radius bars, sample counts, peak mean speed, and pressure span computed from
+the loaded surface nodes in the current displayed geometry state. These
+diagnostics are inspection aids only.
 
 Mode presets:
 

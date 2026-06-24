@@ -91,6 +91,27 @@ async function assertPanels(page, viewportName) {
   }
 }
 
+async function assertDiagnosticsDrawer(page, viewportName) {
+  await page.getByLabel("open diagnostics").click();
+  const diagnostics = page.locator("[data-slice-diagnostics='surface']");
+  await diagnostics.waitFor({ state: "visible", timeout: 5_000 });
+  const text = await diagnostics.innerText();
+  if (!text.includes("Surface Slice Diagnostics")) {
+    fail(`${viewportName} diagnostics drawer did not show the slice diagnostics title`);
+  }
+  if (!text.includes("inspection aid only")) {
+    fail(`${viewportName} diagnostics drawer did not show the inspection-only boundary`);
+  }
+  if (!/\baxis\s+[xyz]\b/.test(text)) {
+    fail(`${viewportName} diagnostics drawer did not report the sampled axis`);
+  }
+  if (!/\bsamples\b/.test(text)) {
+    fail(`${viewportName} diagnostics drawer did not report surface sample count`);
+  }
+  await page.keyboard.press("Escape");
+  await diagnostics.waitFor({ state: "hidden", timeout: 5_000 });
+}
+
 async function run() {
   const preview = spawn(
     "npx",
@@ -118,6 +139,7 @@ async function run() {
         }
         assertVariedImage(await canvas.screenshot({ animations: "disabled" }), `${viewport.name} canvas`);
         await assertPanels(page, viewport.name);
+        await assertDiagnosticsDrawer(page, viewport.name);
       }
     } finally {
       await browser.close();

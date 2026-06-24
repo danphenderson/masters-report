@@ -39,6 +39,7 @@ import {
   summarizeEvidenceContent,
 } from "./evidence";
 import { formatNumber } from "./fieldMath";
+import { computeSliceDiagnostics } from "./sliceDiagnostics";
 import type { FieldName, GeometryView, LoadedEvidenceArtifact, LoadedSnapshotFrame, LoadedVizData, NumericRange, ViewMode } from "./types";
 import ViewerScene from "./ViewerScene";
 
@@ -152,6 +153,17 @@ function coordinateModeMessage(data: LoadedVizData | null, canApplyDisplacement:
   return "Reference positions loaded; no displacement field is available for deformed display.";
 }
 
+function metricLabel(value: number | null | undefined, unit: string): string {
+  return `${formatNumber(value)}${value === null || value === undefined ? "" : ` ${unit}`}`;
+}
+
+function barWidth(value: number | null, maximum: number): string {
+  if (value === null || maximum <= 0) {
+    return "6%";
+  }
+  return `${Math.max(6, Math.min(100, (value / maximum) * 100))}%`;
+}
+
 export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [mode, setMode] = useState<ViewMode>("flow");
@@ -192,6 +204,21 @@ export default function App() {
   const effectiveDeformationScale = canApplyDisplacement && effectiveGeometryView === "deformed" ? deformationScale : 0;
   const evidenceBadgeList = useMemo(() => (data ? evidenceBadges(data.manifest, evidenceArtifacts) : []), [data, evidenceArtifacts]);
   const discrepancyArtifacts = useMemo(() => evidenceArtifacts.filter(isDiscrepancyEvidence), [evidenceArtifacts]);
+  const sliceDiagnostics = useMemo(
+    () =>
+      data && frame
+        ? computeSliceDiagnostics({
+            positions: data.positions,
+            surfaceIndices: data.indices,
+            frame,
+            coordinateMode: data.manifest.coordinate_mode,
+            geometryView: effectiveGeometryView,
+            deformationScale: effectiveDeformationScale,
+            units: data.manifest.units,
+          })
+        : null,
+    [data, effectiveDeformationScale, effectiveGeometryView, frame],
+  );
   const coordinateMessage = coordinateModeMessage(data, Boolean(canApplyDisplacement), effectiveDeformationScale);
 
   useEffect(() => {
@@ -639,6 +666,82 @@ export default function App() {
                 );
               })}
             </Stack>
+          ) : null}
+          {sliceDiagnostics ? (
+            <>
+              <Divider />
+              <Stack spacing={1} data-slice-diagnostics="surface">
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Surface Slice Diagnostics
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.25 }}>
+                    Viewer-derived from displayed surface nodes; inspection aid only.
+                  </Typography>
+                </Box>
+                <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+                  <Chip size="small" label={`axis ${sliceDiagnostics.axis}`} />
+                  <Chip size="small" label={`${sliceDiagnostics.sampleCount.toLocaleString()} samples`} />
+                </Stack>
+                {sliceDiagnostics.narrowestSlice ? (
+                  <Typography variant="caption" color="text.secondary">
+                    Narrowest displayed radius {metricLabel(sliceDiagnostics.narrowestSlice.meanRadius, sliceDiagnostics.axisUnit)} at{" "}
+                    {sliceDiagnostics.narrowestSlice.label}
+                  </Typography>
+                ) : null}
+                {sliceDiagnostics.fastestSlice ? (
+                  <Typography variant="caption" color="text.secondary">
+                    Highest slice mean speed {metricLabel(sliceDiagnostics.fastestSlice.meanSpeed, sliceDiagnostics.speedUnit)} at{" "}
+                    {sliceDiagnostics.fastestSlice.label}
+                  </Typography>
+                ) : null}
+                {sliceDiagnostics.pressureSpan !== null ? (
+                  <Typography variant="caption" color="text.secondary">
+                    Slice mean pressure span {metricLabel(sliceDiagnostics.pressureSpan, sliceDiagnostics.pressureUnit)}
+                  </Typography>
+                ) : null}
+                <Stack spacing={0.8} sx={{ pt: 0.25 }}>
+                  {(() => {
+                    const maxRadius = Math.max(...sliceDiagnostics.slices.map((slice) => slice.meanRadius ?? 0), 1e-9);
+                    return sliceDiagnostics.slices.map((slice) => {
+                      const isNarrowest = sliceDiagnostics.narrowestSlice?.index === slice.index;
+                      return (
+                        <Box key={slice.index}>
+                          <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 54 }}>
+                              {slice.label}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ textAlign: "right" }}>
+                              r {metricLabel(slice.meanRadius, sliceDiagnostics.axisUnit)} · u{" "}
+                              {metricLabel(slice.meanSpeed, sliceDiagnostics.speedUnit)}
+                            </Typography>
+                          </Stack>
+                          <Box
+                            sx={{
+                              height: 7,
+                              borderRadius: 0.75,
+                              bgcolor: "rgba(20, 31, 43, 0.08)",
+                              overflow: "hidden",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: barWidth(slice.meanRadius, maxRadius),
+                                height: "100%",
+                                bgcolor: isNarrowest ? "#b0742c" : "#315d83",
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                      );
+                    });
+                  })()}
+                </Stack>
+                <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.25 }}>
+                  Radius bars use the current displayed geometry state; field values are sampled at the same surface nodes.
+                </Typography>
+              </Stack>
+            </>
           ) : null}
           <Divider />
           <Stack spacing={1.2}>

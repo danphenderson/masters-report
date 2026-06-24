@@ -46,6 +46,16 @@ The viewer normalizes v1 manifests into a one-frame timeline. Temporal controls
 are shown only when `snapshot_count > 1` or more than one snapshot record is
 present.
 
+The diagnostics drawer includes a viewer-derived surface slice panel. It
+samples nodes referenced by the surface triangles, chooses the longest displayed
+geometry axis, bins those samples into slices, and reports radius bars plus
+slice-level mean speed and pressure summaries. For
+`coordinate_mode=reference`, the panel uses the same single displacement
+application as the scene when deformed display is active. For
+`coordinate_mode=deformed`, it uses the loaded positions without adding
+displacement again. The panel is an inspection/operator aid; it is not
+production validation or paper-grade reproduction evidence.
+
 ## Single-Frame Smoke Export
 
 Use direct XDMF/HDF5 inputs for a v1 smoke export:

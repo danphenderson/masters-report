@@ -131,6 +131,10 @@ aligned to the current accepted package evidence boundary:
   lifecycle and affine-operator setup dominate that small run, while numeric
   factorization is not the first observed bottleneck. This does not change any
   manuscript claim boundary.
+- Web-viewer surface slice diagnostics are viewer-derived inspection aids
+  only. They do not constitute cross-section integration, production
+  validation, imported parity, or manuscript-grade Section 4.1 reproduction
+  evidence.
 
 If a future package handoff changes those boundaries, refresh this TODO before
 changing manuscript claims.

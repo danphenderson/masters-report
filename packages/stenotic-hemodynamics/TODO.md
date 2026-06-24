@@ -503,7 +503,11 @@ git diff --check -- packages/stenotic-hemodynamics/test/test_membrane_fsi.jl pac
 ### Lane 12D: Viewer Evidence Enhancements
 
 Status: baseline viewer evidence controls landed in `a8aa77b`; serve-command
-docs landed in `cf2d78c`. Remaining work is visual diagnostic expansion only.
+docs landed in `cf2d78c`. The current viewer diagnostics slice adds a
+surface-node slice panel that bins displayed geometry along the longest axis
+and reports radius bars, narrowest displayed radius, highest slice mean speed,
+and pressure span as inspection aids only. Remaining work is optional visual
+diagnostic expansion, not a claim gate.
 
 Priority: P2 nonblocking visualization lane. Do not let this collide with
 native-FSI numerics, report PDF, or package validation-automation work.
@@ -523,6 +527,9 @@ Targets:
   snapshots, sidecars, and observations when present.
 - If parity or observation artifacts are loaded, show discrepancy summaries as
   artifact/operator evidence only, not production validation.
+- Preserve the new surface slice diagnostics as viewer-derived surface-node
+  summaries, not cross-section integration, imported parity, or physical
+  validation evidence.
 - Maintain desktop/mobile browser-smoke evidence for nonblank canvas rendering
   and non-overlapping controls. Re-run browser smoke for any visual layout,
   scene, control, or manifest-loading change.
