@@ -28,7 +28,7 @@ const NATIVE_RESOLVED_FSI_PRODUCTION_CHECKPOINT_ROLES = (
 )
 const NATIVE_RESOLVED_FSI_PRODUCTION_BATCH_CLAIM_BOUNDARY =
     "batch row records native resolved-FSI execution observability only; not production parity, " *
-    "imported parity, moving-wall/ALE fidelity, restart/resume support, or paper-grade Section 4.1 reproduction"
+    "imported parity, moving-wall/ALE fidelity, restart/resume support, or paper-grade native resolved-FSI Section 4.1 reproduction"
 
 function native_resolved_fsi_production_boundary_mode(value::Union{Symbol,AbstractString})
     if isdefined(@__MODULE__, :native_resolved_fsi_inlet_outlet_boundary_mode)
@@ -461,7 +461,7 @@ It keeps the production control spec separate from the final carried
 partitioned solver result and records bounded method/output/diagnostic/restart
 statuses. The diagnostics and restart sidecars describe a state-carrying
 partitioned snapshot series; they do not imply persisted restart/resume support,
-validated Section 4.1 reproduction, or monolithic ALE FSI coupling.
+validated native resolved-FSI Section 4.1 reproduction, or monolithic ALE FSI coupling.
 """
 struct NativeResolvedFSIPartitionedProductionResult
     spec::NativeResolvedFSIPartitionedProductionSpec

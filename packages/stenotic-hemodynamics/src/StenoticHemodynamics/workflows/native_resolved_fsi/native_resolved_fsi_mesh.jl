@@ -5,6 +5,7 @@ const SECTION41_RMAX_CM = 0.18
 const SECTION41_IMPORTED_CASE_TO_NATIVE_CASE = Dict(
     "77" => :sev23,
     "60" => :sev40,
+    "50" => :sev50,
 )
 
 """

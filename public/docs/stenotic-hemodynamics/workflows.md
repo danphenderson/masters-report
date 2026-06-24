@@ -125,6 +125,36 @@ fluid solve.
 Use [Resolved-3D Workflows](../resolved3d-workflows.md) for the data-root
 contract, skip behavior, and report publication boundaries.
 
+## Canic 2024 Section 4.1 Replication
+
+- Representative files:
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/canic_replication/canic_replication.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/canic_replication/canic_replication.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli/canic_replication_cli.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli/canic_replication_cli.jl)
+- Entrypoints:
+  - CLI: `canic-replication section41`
+  - Julia: `run_canic_section41_replication(...)`,
+    `CanicSection41ReplicationSpec(...)`
+- Surface: `CLI-facing source-artifact replication`
+- Expected outputs and artifact class:
+  - Ignored scratch outputs under
+    `tmp/simulations/output/canic-replication/**`
+  - Optional published CSV/JSON assets under
+    `report/assets/data/canic-replication/**`
+  - Optional published TeX fragments under
+    `report/assets/tables/canic-replication/**`
+- Optional-data behavior:
+  - Depends on ignored local upstream XDMF/HDF5 bundles for cases `77`, `60`,
+    and `50`
+  - Missing raw inputs print `canic_replication_status,skipped_missing_data`
+  - Upstream MATLAB code is provenance/comparator material only and is not
+    copied into the package implementation
+- Focused validation command:
+  - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_helpers.jl"); include("packages/stenotic-hemodynamics/test/test_canic_replication.jl")'`
+
+Use [Canic 2024 Section 4.1 Replication](canic-2024-replication.md) for
+raw-data restoration commands, output inventory, provenance policy, and
+parameter-audit caveats.
+
 ## Operator Validation
 
 - Representative files:
@@ -236,12 +266,14 @@ Current tiers are intentionally separate:
   package-owned boundary modes. The low-level Gridap
   `poiseuille_inlet_zero_outlet_stress_section41` mode is also threaded through
   the tiny partitioned production harness, but remains
-  smoke-scale/operator-readiness evidence only, not paper-grade Section 4.1
-  reproduction.
+  smoke-scale/operator-readiness evidence only, not paper-grade native
+  resolved-FSI Section 4.1 reproduction.
 
 The current family documents generated artifacts, local operator evidence, and
 production-control sidecars. Persisted restart, production execution from CLI,
-and paper-grade Section 4.1 reproduction claims remain deferred.
+and paper-grade native resolved-FSI Section 4.1 reproduction claims remain
+deferred. The separate `canic-replication section41` workflow owns the
+source-artifact Section 4.1 comparison against restored upstream bundles.
 
 ## Native Resolved-FSI Web Visualization Export
 

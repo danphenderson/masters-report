@@ -1217,7 +1217,7 @@ end
         @test occursin("observability only", batch_row.claim_boundary)
         @test occursin("not production parity", batch_row.claim_boundary)
         @test occursin("restart/resume support", batch_row.claim_boundary)
-        @test occursin("paper-grade Section 4.1 reproduction", batch_row.claim_boundary)
+        @test occursin("paper-grade native resolved-FSI Section 4.1 reproduction", batch_row.claim_boundary)
         @test occursin("persisted resume", batch_row.method_status)
         @test isempty(batch_row.failure_message)
         @test batch_row.saved_time_s ≈ 1.0e-4

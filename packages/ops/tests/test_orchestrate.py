@@ -683,7 +683,20 @@ def test_cli_json_subcommands_smoke(tmp_path: Path, capsys) -> None:
     assert orchestrate.main(["--repo", str(root), "docs-contract", "--json"]) == 0
     assert json.loads(capsys.readouterr().out)["status"] == "passed"
 
-    assert orchestrate.main(["--repo", str(root), "ready-to-commit", "--dry-run", "--json"]) == 0
+    assert (
+        orchestrate.main(
+            [
+                "--repo",
+                str(root),
+                "ready-to-commit",
+                "--dry-run",
+                "--allow-protected-artifacts",
+                "--allow-unclassified",
+                "--json",
+            ]
+        )
+        == 0
+    )
     ready_payload = json.loads(capsys.readouterr().out)
     assert ready_payload["status"] == "passed"
     assert "gates" in ready_payload

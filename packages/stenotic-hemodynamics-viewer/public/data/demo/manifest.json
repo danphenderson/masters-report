@@ -4,7 +4,7 @@
   "case_label": "Demo sev23 temporal native resolved-FSI",
   "severity_percent": 23,
   "result_class": "native_resolved_fsi_temporal_web_export_fixture",
-  "claim_boundary": "native resolved-FSI artifact/operator evidence only; not paper-grade Section 4.1 reproduction",
+  "claim_boundary": "native resolved-FSI artifact/operator evidence only; not paper-grade native resolved-FSI Section 4.1 reproduction",
   "coordinate_mode": "reference",
   "geometry_mode": "surface",
   "units": {

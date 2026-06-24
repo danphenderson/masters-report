@@ -86,7 +86,7 @@ function print_native_resolved_fsi_status(dry_run::NativeResolvedFSIProductionDr
     println("imported_case,$(dry_run.imported_case.case_label)")
     println(
         "native_resolved_fsi_claim_boundary," *
-        "exact mode is smoke-scale/operator-readiness evidence only; not paper-grade Section 4.1 reproduction",
+        "exact mode is smoke-scale/operator-readiness evidence only; not paper-grade native resolved-FSI Section 4.1 reproduction",
     )
     println("status,$(dry_run.status)")
 end

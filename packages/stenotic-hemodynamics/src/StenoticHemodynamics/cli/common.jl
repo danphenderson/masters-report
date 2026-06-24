@@ -177,6 +177,21 @@ const VISUALIZATION_FLAG_OPTIONS = Set([
     "allow-velocity-only",
 ])
 
+const CANIC_REPLICATION_VALUE_OPTIONS = Set([
+    "data-root",
+    "output-dir",
+    "coordinate-mode",
+    "nx",
+    "dt",
+    "tfinal",
+    "section-count",
+    "radial-sample-count",
+    "time-atol",
+    "models",
+    "report-assets-dir",
+])
+const CANIC_REPLICATION_FLAG_OPTIONS = Set(["help", "overwrite", "publish-report-assets"])
+
 function require_value(args::Vector{String}, i::Int, key::String)
     i < length(args) || error("missing value for --$key")
     return args[i + 1]

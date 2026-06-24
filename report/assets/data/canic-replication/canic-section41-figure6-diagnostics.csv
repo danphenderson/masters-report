@@ -1,0 +1,4 @@
+case_id,paper_severity_percent,imported_case,coordinate_mode,snapshot_time_s,max_speed_cm_s,max_axial_velocity_cm_s,max_radial_speed_cm_s,min_axial_velocity_cm_s,status
+sev23,23.0,77,deformed,0.9994999999999453,61.583418235648374,61.58341781101137,3.135393210130314,-1.0281654971585132,qualitative_3d_velocity_field_diagnostic
+sev40,40.0,60,deformed,0.9994999999999453,91.584943217898,91.58492200862617,8.47756475047503,-1.5762680177886592,qualitative_3d_velocity_field_diagnostic
+sev50,50.0,50,deformed,1.4994999999998904,125.90211899351343,125.90143191089128,13.964919669106097,-8.526638919903457,qualitative_3d_velocity_field_diagnostic

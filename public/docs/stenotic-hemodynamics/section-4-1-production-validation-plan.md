@@ -22,7 +22,7 @@ The current implementation does not yet have:
   paper-grade FSI fidelity;
 - validated imported-data parity for the exact-boundary generated outputs;
 - persisted restart/resume;
-- paper-grade Section 4.1 numerical reproduction.
+- paper-grade native resolved-FSI Section 4.1 numerical reproduction.
 
 ## Claim Tiers
 

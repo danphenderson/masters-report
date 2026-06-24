@@ -61,11 +61,13 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             physical flow $Q_{1D}=\pi q$ and mean velocity
             $\bar u_{1D}=q/a$ on 200 axial sections. A second retained
             comparison applies the resolved displacement field before forming
-            the same plane cuts.
+            the same plane cuts. Both retained coordinate modes use
+            $T=0.9995$ s for the 23\% and 40\% stenosis cases.
             & The comparison supports a claim only for these common section
-            observables. Radial-profile outputs are not promoted because the
-            regenerated same-cut radial-profile evidence has not yet been
-            accepted for the report. \\
+            observables. Radial-profile audit rows are supplemental
+            reproducibility artifacts, not promoted localization evidence. A
+            separate Section~4.1 source-artifact reproduction is tracked in
+            Appendix~\ref{app:code-and-ai-use}. \\
         Numerical evidence
             & The main text reports manufactured-solution behavior,
             output-operator verification, geometry-rest drift, subcritical
@@ -485,7 +487,13 @@ companions for a velocity field. When the comparison is explicitly run in
 deformed-coordinate mode, the observation operator applies the node-centered
 displacement before forming the plane cuts. Both the reference-coordinate and
 deformed-coordinate section comparisons are retained in
-Section~\ref{subsec:deformed-coordinate-comparison}.
+Section~\ref{subsec:deformed-coordinate-comparison}. The raw-input policy,
+target-time command contract, and table-fragment regeneration command are
+recorded in Appendix~\ref{app:code-and-ai-use}. The broader Canic
+Section~4.1 source-artifact workflow uses the same pressure and displacement
+loader surfaces for the restored 23\%, 40\%, and 50\% upstream bundles, but it
+is reported as a separate reproduced-asset table rather than as the primary
+two-case localization claim.
 
 For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
 cross-section quadrature operator intersects every tetrahedron with $S_j$,

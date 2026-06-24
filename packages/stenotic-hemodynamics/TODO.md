@@ -110,8 +110,10 @@ Implemented and committed:
 
 - Exact Section 4.1 boundary-mode support exists in the low-level Gridap path
   and in the tiny partitioned production smoke-scale harness.
-- This is not paper-grade Section 4.1 numerical reproduction, not validated
-  parity against imported external data, and not monolithic ALE FSI.
+- Paper-grade native resolved-FSI reproduction, imported parity for the Gridap
+  production path, and monolithic ALE FSI remain unestablished. The separate
+  `canic-replication section41` source-artifact workflow now owns the promoted
+  manuscript Section 4.1 comparison against restored upstream bundles.
 - `:pressure_drop_weak_inlet_outlet_gauge_smoke` remains local smoke/loading
   evidence.
 - `:poiseuille_inlet_zero_outlet_stress_section41` remains smoke-scale
@@ -131,14 +133,14 @@ Implemented and committed:
   remain implementation/status labels. After `2a54a06`, they are backed by the
   focused mathematical-contract tests, but they still do not imply
   production-scale execution, imported parity, moving-wall/ALE fidelity, or
-  manuscript-grade Section 4.1 reproduction.
+  native resolved-FSI Section 4.1 reproduction.
 - Native resolved-FSI production arrays and Gridap adapter surfaces remain
   `Float64`-oriented unless a future lane explicitly generalizes them. Local
   scalar helpers should avoid unnecessary downcasts when they can preserve
   `AbstractFloat` values safely.
 - Manufactured-solution MMS observed orders are discrete metric-specific
   verification evidence only. They do not establish physical validation,
-  resolved-FSI parity, or manuscript-grade Section 4.1 reproduction.
+  resolved-FSI parity, or native resolved-FSI Section 4.1 reproduction.
 - Fixed-mesh DG p-sweep rows are diagnostic unless the row metadata identifies
   the smooth-verification limiter policy that produced accepted p-improvement.
   The tracked Lane 12B report assets and final PDF now reflect the accepted
@@ -626,8 +628,9 @@ Acceptance criteria:
   inlet/outlet mode, `dt_s`, and Picard-form invariants.
 - Optimized tiny/development outputs compare against the current direct-solve
   baseline before another long `sev23` preproduction launch.
-- Faster execution never upgrades production parity, moving-wall/ALE fidelity,
-  or manuscript-grade Section 4.1 reproduction claims.
+- Faster execution never upgrades production parity or moving-wall/ALE fidelity
+  claims. The promoted Section 4.1 comparison claim belongs to the separate
+  source-artifact `canic-replication section41` workflow.
 
 ### Lane 11 Follow-Up: Mathematical Contract Stewardship
 
@@ -677,7 +680,7 @@ Acceptance criteria:
 
 - Status strings and dry-run/CLI/parity rows continue to distinguish
   mathematical-contract support from production execution, imported parity, and
-  manuscript-grade reproduction.
+  native resolved-FSI reproduction.
 - The integrated mathematical-contract suite covers density scaling, traction
   form, pressure-space policy, wall-load convention, global mass balance, exact
   case geometry, and radial area/flow closure classification.

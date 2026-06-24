@@ -98,12 +98,12 @@ function source_point(
     a0 = r0_safe^2
     nu_eff = effective_kinematic_viscosity(Ai, Q, r0_safe, p)
 
-    partial_p2 = nu_eff * gp2 * (
+    partial_p2 = variable_radius_terms_enabled(p) ? nu_eff * gp2 * (
         Q / Ai / r0_safe * r0zz -
         Q / Ai / a0 * r0z^2 +
         dQ_dz / Ai / r0_safe * r0z -
         Q * dA_dz / Ai^2 / r0_safe * r0z
-    )
+    ) : 0.0
 
     return -2.0 * nu_eff * gp2 * (Q / Ai) +
            wall_geometry_source(Ai, z, r0, r0z, p) -
@@ -124,8 +124,10 @@ function pressure(A::AbstractVector{Float64}, Q::AbstractVector{Float64}, z::Abs
         r0, r0z, _ = stenosis(z[i], p)
         r0_safe = max(r0, sqrt(AREA_LIMITER_FLOOR))
         nu_eff = effective_kinematic_viscosity(Ai, Q[i], r0_safe, p)
-        out[i] = wall_elastic_pressure(Ai, z[i], p) +
-                 variable_radius_pressure_correction(Ai, Q[i], r0, r0z, nu_eff, gp2, p)
+        correction = variable_radius_terms_enabled(p) ?
+                     variable_radius_pressure_correction(Ai, Q[i], r0, r0z, nu_eff, gp2, p) :
+                     0.0
+        out[i] = wall_elastic_pressure(Ai, z[i], p) + correction
     end
 
     return out

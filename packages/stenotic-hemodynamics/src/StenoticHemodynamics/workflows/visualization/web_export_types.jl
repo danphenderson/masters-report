@@ -4,7 +4,7 @@ const NATIVE_RESOLVED_FSI_WEB_EXPORT_SCHEMA_VERSION = NATIVE_RESOLVED_FSI_WEB_EX
 const NATIVE_RESOLVED_FSI_WEB_EXPORT_DEFAULT_OUTPUT_ROOT =
     joinpath(DEFAULT_SIMULATION_OUTPUT_ROOT, "visualization")
 const NATIVE_RESOLVED_FSI_WEB_EXPORT_CLAIM_BOUNDARY =
-    "native resolved-FSI artifact/operator evidence only; not paper-grade Section 4.1 reproduction"
+    "native resolved-FSI artifact/operator evidence only; not paper-grade native resolved-FSI Section 4.1 reproduction"
 
 """
     NativeResolvedFSIWebExportSpec(; kwargs...)

@@ -4,6 +4,11 @@ Resolved-3D workflows are optional because the XDMF/HDF5 inputs are not tracked
 in public Git releases. Missing inputs must produce skipped evidence or skipped
 commands, not false failures.
 
+A clean public clone can rebuild the manuscript from tracked derived report
+assets and can run the missing-input skip check below. It cannot regenerate the
+raw-data-dependent comparison assets until the ignored XDMF/HDF5 files are
+restored locally.
+
 For the broader `StenoticHemodynamics` workflow map, including native
 resolved-FSI planning notes that stay inside package-owned schema/parity lanes,
 use `public/docs/stenotic-hemodynamics/workflows.md`.
@@ -55,6 +60,15 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
 
 The command prints `compare_3d_status,skipped_missing_data` when required local
 inputs are absent. Treat that as an expected skip for public-clone validation.
+The explicit clean-clone skip check is:
+
+```sh
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
+  --data-root /tmp/missing-resolved3d \
+  --target-time 0.9995 \
+  --time-atol 1e-6
+```
+
 Use `--coordinate-mode deformed` only when displacement companions are present.
 The retained report assets now include both reference-coordinate and
 deformed-coordinate plane cuts for the two principal cases.
@@ -64,6 +78,9 @@ into `report/assets/data/stenosis-comparison/**`:
 
 ```sh
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
+  --data-root public/var/data/simulations/canic_case3 \
+  --output-dir tmp/simulations/output/3d_comparison/reference_wall_evidence_nx400 \
+  --nx 400 \
   --coordinate-mode reference \
   --target-time 0.9995 \
   --time-atol 1e-6 \
@@ -72,14 +89,57 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --radial-bin-counts 20 \
   --radial-radius-modes current,reference \
   --overwrite \
-  --publish-report-assets
+  --publish-report-assets \
+  --report-assets-dir report/assets/data/stenosis-comparison
 ```
 
 Run a second publish command with `--coordinate-mode deformed` and a distinct
 scratch `--output-dir` to refresh the displacement-aware assets without
 clobbering the reference-coordinate files.
 
-After publishing report assets, run a validation-only report build.
+After publishing report assets, regenerate the compact tracked table fragments
+from the tracked data assets:
+
+```sh
+pipenv run ops-render-resolved3d-comparison-tables
+```
+
+Then run a validation-only report build.
+
+## Command Matrix
+
+| Block | Command | Raw 3D inputs? | Published outputs |
+| --- | --- | --- | --- |
+| Reference-coordinate comparison | `compare-3d --coordinate-mode reference --publish-report-assets --report-assets-dir report/assets/data/stenosis-comparison` with `--target-time 0.9995`, `--time-atol 1e-6`, `--nx 400`, `--section-count 200`, `--profile-slices 1.951,2.451,2.951`, `--radial-bin-counts 20`, and `--radial-radius-modes current,reference` | Yes | Reference suffixed data assets plus legacy unsuffixed compatibility copies. |
+| Deformed-coordinate comparison | Same command with `--coordinate-mode deformed` and a distinct scratch `--output-dir` | Yes, including displacement companions | Deformed suffixed data assets. |
+| Table fragments | `pipenv run ops-render-resolved3d-comparison-tables` | No | `coordinate_mode_comparison.tex` and `radial_profile_audit.tex` from tracked data assets. |
+| Operator validation | `operator-validation` with explicit `--summary-csv` and `--summary-tex` paths | No | Synthetic operator CSV and TeX table. |
+| Grid sensitivity | `compare-3d --nxs 200,400,800` with explicit grid summary CSV/TeX paths | Yes | Grid-sensitivity CSV and TeX table. |
+
+## Published Comparison Assets
+
+`compare-3d --publish-report-assets` writes these tracked data files under
+`report/assets/data/stenosis-comparison/`:
+
+| Artifact | Source | Role |
+| --- | --- | --- |
+| `section-quadrature-reference.dat`, `section-quadrature-deformed.dat`, `section-quadrature.dat` | Reference/deformed comparison runs; unsuffixed file is the reference compatibility copy. | Section-wise 1D/3D velocity and physical-flow curves consumed by TikZ and table rendering. |
+| `area-audit-reference.dat`, `area-audit-deformed.dat`, `area-audit.dat` | Reference/deformed comparison runs; unsuffixed file is the reference compatibility copy. | Static section-area closure checks. |
+| `production-diagnostics-reference.dat`, `production-diagnostics-deformed.dat`, `production-diagnostics.dat` | Reference/deformed comparison runs; unsuffixed file is the reference compatibility copy. | Production-grid run diagnostics consumed by the case-study verification text. |
+| `node-slab-sensitivity-reference.csv`, `node-slab-sensitivity-deformed.csv`, `node-slab-sensitivity.csv` | Reference/deformed comparison runs; unsuffixed file is the reference compatibility copy. | Supplemental node-slab sensitivity rows. |
+| `radial-profile-audit-reference.csv`, `radial-profile-audit-deformed.csv` | Reference/deformed comparison runs. | Supplemental radial-profile audit inputs; not main comparison evidence. |
+| `cross-section-operator-validation.csv` | `operator-validation`. | Synthetic quadrature validation data. |
+| `grid-sensitivity-summary.csv` | Grid-sensitivity comparison. | Output-sensitivity rows for the retained comparison protocol. |
+
+The tracked TeX fragments under `report/assets/tables/stenosis-comparison/`
+are:
+
+| Artifact | Regeneration command | Role |
+| --- | --- | --- |
+| `coordinate_mode_comparison.tex` | `pipenv run ops-render-resolved3d-comparison-tables` | Compact reference/deformed discrepancy table. |
+| `radial_profile_audit.tex` | `pipenv run ops-render-resolved3d-comparison-tables` | Supplemental radial-profile audit summary. |
+| `cross_section_operator_validation.tex` | `operator-validation --summary-tex ...` | Synthetic operator-validation table. |
+| `grid_sensitivity_summary.tex` | `compare-3d --grid-summary-tex ...` | Grid-sensitivity appendix table. |
 
 ## Grid Sensitivity
 
@@ -87,10 +147,17 @@ Run grid sensitivity with explicit grid sizes:
 
 ```sh
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
+  --data-root public/var/data/simulations/canic_case3 \
+  --output-dir tmp/simulations/output/3d_comparison/grid_sensitivity_severity23_severity40 \
   --nxs 200,400,800 \
   --target-time 0.9995 \
-  --time-atol 1e-6 \
-  --overwrite
+  --time-atol 1e-3 \
+  --section-count 200 \
+  --radial-bins 20 \
+  --no-svg \
+  --overwrite \
+  --grid-summary-csv report/assets/data/stenosis-comparison/grid-sensitivity-summary.csv \
+  --grid-summary-tex report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex
 ```
 
 Use `--reuse-grid-summary` when the task needs to reformat or republish an
@@ -174,6 +241,8 @@ absent.
 
 - Do not track raw XDMF/HDF5 inputs.
 - Do not publish report assets unless the current TeX source consumes them.
+- Treat radial-profile audit rows as supplemental reproducibility artifacts,
+  not promoted localization evidence.
 - Do not refresh `public/final-report.pdf` unless release publication is
   explicitly in scope.
 - Record skipped optional inputs in handbacks and PR summaries.

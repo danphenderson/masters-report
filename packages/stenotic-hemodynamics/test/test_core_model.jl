@@ -104,6 +104,9 @@ end
     @test StenoticHemodynamics.pressure([A], [Q], [z], params)[1] ≈
           StenoticHemodynamics.wall_elastic_pressure(A, z, params) +
           StenoticHemodynamics.variable_radius_pressure_correction(A, Q, r0, r0z, nu_eff, gamma_plus_two, params)
+    classical_params = Params(initial_condition=GeometryRestIC(), severity=30.0, model="classical-1d-no-slip")
+    @test StenoticHemodynamics.pressure([A], [Q], [z], classical_params)[1] ≈
+          StenoticHemodynamics.wall_elastic_pressure(A, z, classical_params)
     @test StenoticHemodynamics.wall_elastic_potential(A, z, params) ≈ K / (3.0 * params.rho * params.rmax^2) * A^1.5
     @test StenoticHemodynamics.wall_wave_speed_squared(A, z, params) ≈ K / (2.0 * params.rho * params.rmax^2) * sqrt(A)
     @test StenoticHemodynamics.wall_geometry_source(A, z, r0, r0z, params) ≈ K / (params.rho * params.rmax^2) * A * r0z

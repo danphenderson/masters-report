@@ -1,0 +1,86 @@
+{
+  "coordinate_mode": "deformed",
+  "data_root": "public/var/data/simulations/canic_case3",
+  "models": ["canic-extended-1d", "classical-1d-no-slip"],
+  "paper_time_s": 1.0,
+  "raw_files": {
+    "public/var/data/simulations/canic_case3/50/displace.h5": {
+      "bytes": 2711072,
+      "sha256": "db4fec5ebcbc18c3c16bf371594abf70a500b3a466acdce4448bbb69511f7983"
+    },
+    "public/var/data/simulations/canic_case3/50/displace.xdmf": {
+      "bytes": 927,
+      "sha256": "54506ce5c476d3acdef11d9ff0a0834c91a872b78e5935c555c7e6a05da1eca4"
+    },
+    "public/var/data/simulations/canic_case3/50/pressure.h5": {
+      "bytes": 2366144,
+      "sha256": "e725536569e71033f82d52d304c951c148b0354ee0efce01a6f023ee418601d4"
+    },
+    "public/var/data/simulations/canic_case3/50/pressure.xdmf": {
+      "bytes": 931,
+      "sha256": "9118d7d1392f783e61fd9a85c6c8cb2c5152cc0b7765bfc8003ad4dccdd640d2"
+    },
+    "public/var/data/simulations/canic_case3/50/velocity.h5": {
+      "bytes": 2711072,
+      "sha256": "f3f1ff6df6f3cfb5c7e3c34b1fb9cd4c2a0b3f45c3f5bc83a364e65ff7a7a699"
+    },
+    "public/var/data/simulations/canic_case3/50/velocity.xdmf": {
+      "bytes": 931,
+      "sha256": "84011350df17064fb5a914a8b9977c8ba86ad6a9189b8eb452b0a68eb74deb2d"
+    },
+    "public/var/data/simulations/canic_case3/60/displace.h5": {
+      "bytes": 2766096,
+      "sha256": "922d711d65236a9b1ef2d8b03a443073743a1e27e4f11e78b3239f0037882b60"
+    },
+    "public/var/data/simulations/canic_case3/60/displace.xdmf": {
+      "bytes": 928,
+      "sha256": "09e720781fc3aafc221786966404e0d6844aa51bbba44cfcdff7ce4fcaa41a6e"
+    },
+    "public/var/data/simulations/canic_case3/60/pressure.h5": {
+      "bytes": 2414496,
+      "sha256": "253de8d93c7e8d08af9089e6fd0c5375c8f3c0101a1478b42b9ac6acc935d92e"
+    },
+    "public/var/data/simulations/canic_case3/60/pressure.xdmf": {
+      "bytes": 932,
+      "sha256": "c2b58d310b323436c00433c2cffe120bcee7c3568ec23d26cd26f40ffedf27c7"
+    },
+    "public/var/data/simulations/canic_case3/60/velocity.h5": {
+      "bytes": 2766096,
+      "sha256": "1dee423991e35ced10a051e20b0598ee0cbea3d59521b0fc3cb490b49bb4fe41"
+    },
+    "public/var/data/simulations/canic_case3/60/velocity.xdmf": {
+      "bytes": 932,
+      "sha256": "765adb3f603b2306144dfb9be6ffec557323686867172ea9cc7b6e3f246284e0"
+    },
+    "public/var/data/simulations/canic_case3/77/displace.h5": {
+      "bytes": 2862432,
+      "sha256": "321765d5778d19332ea50c6d7de82287d9aa8a194698cdc41a26041071aa1daa"
+    },
+    "public/var/data/simulations/canic_case3/77/displace.xdmf": {
+      "bytes": 928,
+      "sha256": "c153f6a3127f7de554c0d084b378a7befc453d1fd5a80ba1555737dd17c89891"
+    },
+    "public/var/data/simulations/canic_case3/77/pressure.h5": {
+      "bytes": 2499376,
+      "sha256": "b21b83fb21b7e8d775e83564cc3b1a8b4facc5fe4406e5475eaf126973537c6c"
+    },
+    "public/var/data/simulations/canic_case3/77/pressure.xdmf": {
+      "bytes": 932,
+      "sha256": "2825e1b3c10bff80ce8822c5f3a5acdb6e563ff188d7e912a4f9f4e76ec60225"
+    },
+    "public/var/data/simulations/canic_case3/77/velocity.h5": {
+      "bytes": 2862432,
+      "sha256": "315157b3c9a9a92d1e99b26c3e9c393f22303a676b3b24f52287d0b8cd22d168"
+    },
+    "public/var/data/simulations/canic_case3/77/velocity.xdmf": {
+      "bytes": 932,
+      "sha256": "8cbb61e8d6a8b9fbfe9662bea7544eb89ef58390cdcc93a5d0f68fbb19c110b7"
+    }
+  },
+  "status": "source-artifact replication",
+  "upstream_code_policy": "optional external comparator/provenance only; no GPL source copied into package implementation",
+  "upstream_commit": "056a9da2b36b480691f18025d242d2c00f6e7180",
+  "upstream_license": "GPL-3.0",
+  "upstream_url": "https://github.com/qcutexu/Extended-1D-AQ-system.git",
+  "workflow": "canic-2024-section-4-1-replication"
+}

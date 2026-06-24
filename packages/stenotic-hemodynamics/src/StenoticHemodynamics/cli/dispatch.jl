@@ -17,6 +17,7 @@ function print_usage(io::IO = stdout)
           benchmark     Run package benchmark profiles
           export-assets Export stenosis geometry/report CSV assets
           visualization Export browser-ready native resolved-FSI visualization assets
+          canic-replication Reproduce Canic et al. 2024 Section 4.1 numerical comparisons
 
         Run 'packages/stenotic-hemodynamics/bin/stenotic-hemodynamics <command> --help' for command help.
         """,
@@ -35,6 +36,7 @@ const CLI_COMMAND_HANDLERS = Dict{String,Function}(
     "benchmark" => run_benchmark_cli,
     "export-assets" => run_export_assets_cli,
     "visualization" => run_visualization_cli,
+    "canic-replication" => run_canic_replication_cli,
 )
 
 const CLI_COMMAND_NAMES = join(sort!(collect(keys(CLI_COMMAND_HANDLERS))), ", ")

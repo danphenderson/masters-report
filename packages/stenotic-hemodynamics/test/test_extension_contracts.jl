@@ -414,9 +414,11 @@ end
             "benchmark",
             "export-assets",
             "visualization",
+            "canic-replication",
         ])
         @test handlers["simulate"] === StenoticHemodynamics.run_simulate_cli
         @test handlers["fsi"] === StenoticHemodynamics.run_fsi_cli
+        @test handlers["canic-replication"] === StenoticHemodynamics.run_canic_replication_cli
         @test_throws ArgumentError StenoticHemodynamics.run_cli(["--tfinal", "1e-5"])
         @test_throws ArgumentError StenoticHemodynamics.run_cli(["not-a-command"])
     end

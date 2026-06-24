@@ -37,6 +37,7 @@ assets.
 | `benchmark` | Run package benchmark profiles. | Follow `public/docs/benchmark-pipeline.md`. |
 | `export-assets` | Export stenosis geometry/report CSV assets. | Follow report asset publication rules before rendering or staging outputs. |
 | `visualization export-web` | Convert resolved-FSI/resolved-3D XDMF/HDF5 bundles into static browser assets. | Keep exports in `tmp/simulations/output/visualization/**` unless curating a reviewed viewer demo. |
+| `canic-replication section41` | Reproduce Canic et al. 2024 Section 4.1 velocity, pressure, radial-postprocessing, and 3D diagnostic findings from optional upstream benchmark bundles. | Skip when local raw data is absent; publish assets only in an explicit manuscript lane. |
 
 There is intentionally no native resolved-FSI production, restart, resume, or
 parity execution CLI command in this round. `fsi native-status` is a status-only
@@ -53,7 +54,9 @@ persisted restart/resume remains fail-closed. The internal exact Section 4.1
 boundary mode (`poiseuille_inlet_zero_outlet_stress_section41`) is wired
 through the low-level Gridap/native production harness and surfaced here only
 as status output; it remains smoke-scale/operator-readiness evidence, not
-paper-grade Section 4.1 reproduction.
+paper-grade native resolved-FSI Section 4.1 reproduction. Use
+`canic-replication section41` for the separate source-artifact Section 4.1
+comparison workflow.
 
 ## Simulation
 
@@ -176,6 +179,39 @@ The command prints `manifest_json`, `asset_count`, `frame_count`,
 `skipped_snapshots`, and `estimated_playback_fps`. See
 `public/docs/stenotic-hemodynamics/web-visualization.md` for the schema and
 viewer contract.
+
+## Canic 2024 Section 4.1 Replication
+
+Use `canic-replication section41` for the article-level Section 4.1
+replication workflow. It runs the local `canic-extended-1d` and
+`classical-1d-no-slip` models, compares them with optional upstream 3D
+velocity/pressure/displacement bundles for cases `77`, `60`, and `50`, writes a
+parameter audit, and records raw-input provenance.
+
+Clean-clone skip check:
+
+```sh
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
+  --data-root /tmp/missing-canic-section41
+```
+
+Full source-artifact replication after restoring raw inputs:
+
+```sh
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
+  --data-root public/var/data/simulations/canic_case3 \
+  --output-dir tmp/simulations/output/canic-replication/section41 \
+  --coordinate-mode deformed \
+  --nx 100 \
+  --dt 1e-5 \
+  --tfinal 1.0 \
+  --section-count 200 \
+  --radial-sample-count 41 \
+  --overwrite
+```
+
+See `public/docs/stenotic-hemodynamics/canic-2024-replication.md` for raw-data
+restoration, outputs, provenance, and manuscript claim boundaries.
 
 ## Verification
 

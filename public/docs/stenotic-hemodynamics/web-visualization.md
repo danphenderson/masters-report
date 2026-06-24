@@ -33,7 +33,7 @@ once under `geometry/`, writes per-frame fields under `snapshots/t0000/`,
 Both schemas preserve the same claim boundary:
 
 ```text
-native resolved-FSI artifact/operator evidence only; not paper-grade Section 4.1 reproduction
+native resolved-FSI artifact/operator evidence only; not paper-grade native resolved-FSI Section 4.1 reproduction
 ```
 
 Both schemas also record coordinate semantics. The default

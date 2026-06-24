@@ -57,6 +57,9 @@ pipenv run ops-experiment simulate --help
   deferred surfaces.
 - `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`:
   bounded Section 4.1 generated-artifact and local observation-operator note.
+- `../../public/docs/stenotic-hemodynamics/canic-2024-replication.md`:
+  source-artifact replication workflow for the Canic et al. 2024 Section 4.1
+  numerical findings.
 
 ## Scope
 
@@ -194,10 +197,30 @@ pipenv run ops-experiment visualization export-web \
 The web exporter consumes resolved-3D XDMF/HDF5 bundles through the retained
 importer path, writes a static manifest plus binary mesh/field assets, and
 keeps the same claim boundary as the native resolved-FSI artifact surface:
-operator/artifact evidence only, not paper-grade Section 4.1 reproduction.
+operator/artifact evidence only, not paper-grade native resolved-FSI
+Section 4.1 reproduction.
 Direct XDMF/HDF5 mode defaults to schema v1; production-directory mode defaults
 to temporal schema v2. The companion browser app lives in
 `../stenotic-hemodynamics-viewer`.
+
+Canic et al. 2024 Section 4.1 source-artifact replication after restoring the
+optional upstream bundles:
+
+```bash
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
+  --data-root public/var/data/simulations/canic_case3 \
+  --output-dir tmp/simulations/output/canic-replication/section41 \
+  --coordinate-mode deformed \
+  --nx 100 \
+  --dt 1e-5 \
+  --tfinal 1.0 \
+  --section-count 200 \
+  --radial-sample-count 41 \
+  --overwrite
+```
+
+Without restored raw inputs, the same command family reports an expected
+`canic_replication_status,skipped_missing_data` skip instead of failing.
 
 ## Methods and Closures
 
@@ -293,8 +316,8 @@ The native resolved-FSI surface is intentionally tiered:
 
 These surfaces are generated-artifact and local-operator evidence. The exact
 boundary mode is smoke-scale/operator-readiness evidence only. They do not
-claim paper-grade Section 4.1 reproduction, persisted restart, or monolithic ALE
-FSI.
+claim paper-grade native resolved-FSI Section 4.1 reproduction, persisted
+restart, or monolithic ALE FSI.
 
 ## Resolved-3D Comparison Data
 
@@ -349,8 +372,8 @@ means are emitted only as supplemental sensitivity rows.
   only `fsi native-status` for dry-run/status reporting.
 - Native resolved-FSI production metadata records state-carrying partitioned
   snapshots and a versioned `state_payload` audit block. Persisted resume and
-  paper-grade Section 4.1 reproduction remain deferred; exact boundary-mode
-  support is smoke-scale/operator-readiness evidence only.
+  paper-grade native resolved-FSI Section 4.1 reproduction remain deferred;
+  exact boundary-mode support is smoke-scale/operator-readiness evidence only.
 - Stationary Stokes initialization is a projection contract for the 1D state,
   not a transient FSI solve or direct finite-element field projection.
 - The model is a finite-volume reproduction for local experimentation, not a

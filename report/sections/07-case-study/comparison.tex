@@ -4,17 +4,26 @@
 \subsubsection{Available Resolved Data and Matching Limits}
 \label{subsec:preliminary-cross-model-velocity-comparison}
 
-This section reports final-time comparisons between the selected 1D
-area--flow solution and two resolved stenotic-vessel datasets. Under the
-reference-coordinate section observation operator, the 23\% case has mean absolute
-section-velocity discrepancy $0.505\,\mathrm{cm}/\mathrm{s}$ and relative RMS
-discrepancy $2.77\%$; the 40\% case has $0.966\,\mathrm{cm}/\mathrm{s}$ and
-$6.88\%$. The larger discrepancies occur near the throat, and the available
-matching data do not isolate one closure, wall, boundary, or geometry cause.
-Both cases are sampled at $T=0.9995\,\mathrm{s}$; the measured 1D--3D
-final-time offset is $5.47\times10^{-14}\,\mathrm{s}$ in each case. This
-timestamp agreement is a final-time alignment check, not a complete
-transient-history match.
+This section reports the publication-scope resolved-3D comparison: the retained
+23\% and 40\% stenosis final-time section comparisons at
+$T=0.9995\,\mathrm{s}$ under the reference-coordinate and deformed-coordinate
+observation operators. Under the reference-coordinate section observation
+operator, the 23\% case has mean absolute section-velocity discrepancy
+$0.505\,\mathrm{cm}/\mathrm{s}$ and relative RMS discrepancy $2.77\%$; the
+40\% case has $0.966\,\mathrm{cm}/\mathrm{s}$ and $6.88\%$. The larger
+discrepancies occur near the throat, and the available matching data do not
+isolate one closure, wall, boundary, or geometry cause. Both cases are sampled
+at $T=0.9995\,\mathrm{s}$; the measured 1D--3D final-time offset is
+$5.47\times10^{-14}\,\mathrm{s}$ in each case. This timestamp agreement is a
+final-time alignment check, not a complete transient-history match.
+Appendix~\ref{app:code-and-ai-use} records the raw-input policy, regeneration
+commands, and tracked table-fragment renderer for this comparison.
+The same appendix also reports the broader source-artifact replication of
+Canic et al.\ Section~4.1 after restoring the optional upstream 3D bundles; that
+run is supplemental to this chapter's retained two-case comparator because it
+uses the upstream article bundle set and records its own parameter and snapshot
+audit in Tables~\ref{tab:canic-section41-summary} and
+\ref{tab:canic-section41-parameter-audit}.
 The numerical results in this section are interpreted through the numerical
 template in Section~\ref{subsec:numerical-contract-stack}, the
 well-balanced preservation checklist in Definition~\ref{def:well-balanced-checklist},
@@ -347,10 +356,11 @@ numerical-sensitivity reading without changing the main comparison claim.
 
 The deformed-coordinate comparison repeats the same section operator after
 moving each resolved node by its displacement value. Table~\ref{tab:t1-coordinate-mode-comparison}
-shows that applying displacement changes the final-time discrepancy measures
-only modestly for these two datasets. This is still not a full wall-motion
-match: the available comparison data contain the final displacement field, not the
-resolved wall history or boundary histories.
+is regenerated from the tracked reference-coordinate and deformed-coordinate
+section-quadrature assets. It shows that applying displacement changes the
+final-time discrepancy measures only modestly for these two datasets. This is
+still not a full wall-motion match: the available comparison data contain the
+final displacement field, not the resolved wall history or boundary histories.
 
 \begin{table}[!htb]
     \centering
@@ -434,11 +444,12 @@ validation.
 \subsubsection{Radial-Profile Limitation}
 \label{subsec:reconstructed-radial-profile-results}
 
-Radial distributions of axial velocity are not promoted because the retained
-report evidence has not yet accepted regenerated same-cut radial-profile rows.
-The package audit now classifies section and radial-bin closure on identical
-cuts, but the manuscript retains only the section-mean axial-velocity comparison
-until those regenerated report assets are reviewed and accepted.
+Radial distributions of axial velocity are not promoted into the main
+comparison claim. The package audit now classifies section and radial-bin
+closure on identical cuts, and the tracked radial-profile audit CSVs and
+compact \TeX{} table are retained as supplemental reproducibility artifacts.
+The manuscript retains only the section-mean axial-velocity comparison for
+localization and discrepancy interpretation.
 
 \subsubsection{Interpretation Limits}
 \label{subsec:spatial-localization-discrepancies}
@@ -448,9 +459,16 @@ declared resolved comparators: a reference-coordinate velocity comparison, a
 displacement-aware observation comparison, and a quasi-static membrane-wall
 comparator. The evidence supports the implemented observation and comparison
 workflow and localizes final-time velocity discrepancies under the stated
-operators. This interpretation remains conditional on the declared equation,
-retained state, discretization, observation rule, and metric summarized in
+operators. The clean public source tree can rebuild the manuscript from the
+tracked derived assets and can verify missing raw resolved-3D inputs as an
+expected skip; raw-data-dependent asset regeneration requires restoring the
+ignored XDMF/HDF5 inputs described in Appendix~\ref{app:code-and-ai-use}. After
+those inputs are restored, the promoted Canic Section~4.1 source-artifact
+workflow reproduces the Section~4.1 numerical comparison surfaces as derived
+velocity, pressure, radial-postprocessing, and 3D-diagnostic assets, but it
+still does not regenerate the article's raw transient 3D FSI solution. This
+interpretation remains conditional on the declared equation, retained state,
+discretization, observation rule, and metric summarized in
 Section~\ref{subsec:numerical-contract-stack}. It does not provide externally
-validated clinical prediction
-evidence, pressure-ratio evidence, or equivalence to a full transient FSI
-computation with matched boundary and wall-history data.
+validated clinical prediction evidence, pressure-ratio evidence, or equivalence
+to a full transient FSI computation with matched boundary and wall-history data.

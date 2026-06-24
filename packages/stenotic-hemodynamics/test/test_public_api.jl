@@ -507,7 +507,7 @@ using StenoticHemodynamics
         @test occursin("parity_summary_csv,", text)
         @test occursin("imported_bundle_status,expected-skip", text)
         @test occursin("smoke-scale/operator-readiness evidence only", text)
-        @test occursin("not paper-grade Section 4.1 reproduction", text)
+        @test occursin("not paper-grade native resolved-FSI Section 4.1 reproduction", text)
         @test occursin("no production solver executed", result.status)
     end
 

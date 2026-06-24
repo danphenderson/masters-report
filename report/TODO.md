@@ -13,8 +13,10 @@ The active manuscript now has the following report-side narrative state:
   result-first worked-example frame, without reopening the underlying
   derivations or boundary design.
 - Section 7 now uses one consistent boundary for deferred radial-profile
-  evidence: same-cut radial-profile outputs remain unpromoted until regenerated
-  report assets are reviewed and accepted.
+  evidence in the main comparator: same-cut radial-profile outputs remain
+  supplemental reproducibility artifacts rather than localization evidence.
+- Appendix H now includes the promoted Canic Section 4.1 source-artifact
+  replication tables and the parameter audit for restored upstream 3D bundles.
 - Section 8 states the contribution and limitations through the direct
   interpretive chain rather than through a more schematic template description.
 - The mathematical-notation appendix remains reference-style, and Appendix G
@@ -82,10 +84,10 @@ same report-owned boundaries:
 - no package/runtime implementation;
 - no bibliography entries or source-inventory work;
 - no new figures/tables or regenerated evidence unless a separate accepted lane
-  supplies them;
+  supplies them; the accepted Canic source-artifact lane now supplies the
+  Appendix H Section 4.1 tables;
 - no claim promotion for native resolved-FSI production, imported parity,
-  moving-wall/ALE fidelity, persisted restart/resume, or manuscript-grade
-  Section 4.1 reproduction.
+  moving-wall/ALE fidelity, or persisted restart/resume.
 
 ## Post-Sweep Verification Shape
 
@@ -119,8 +121,9 @@ The report lane still does not own package implementation. Keep report wording
 aligned to the current accepted package evidence boundary:
 
 - focused mathematical-contract package evidence is accepted;
-- exact Section 4.1 boundary support is not yet a manuscript-grade reproduction
-  claim;
+- manuscript-grade Canic Section 4.1 source-artifact reproduction is now
+  tracked through `canic-replication section41`, not through the native
+  Gridap resolved-FSI production path;
 - imported parity, preproduction/production execution, moving-wall/ALE
   fidelity, and persisted restart/resume remain unpromoted from the report
   side;
@@ -133,8 +136,7 @@ aligned to the current accepted package evidence boundary:
   manuscript claim boundary.
 - Web-viewer surface slice diagnostics are viewer-derived inspection aids
   only. They do not constitute cross-section integration, production
-  validation, imported parity, or manuscript-grade Section 4.1 reproduction
-  evidence.
+  validation, imported parity, or native moving-wall/ALE evidence.
 
 If a future package handoff changes those boundaries, refresh this TODO before
 changing manuscript claims.

@@ -43,7 +43,7 @@ local operator evidence in separate tiers:
   low-level internal `poiseuille_inlet_zero_outlet_stress_section41` mode is
   now implemented and threaded through the tiny partitioned production harness,
   but remains smoke-scale/operator-readiness evidence only. Neither path is a
-  validated Section 4.1 reproduction claim.
+  validated native resolved-FSI Section 4.1 reproduction claim.
 - Production dry-run: `native_resolved_fsi_partitioned_production_dry_run(...)`
   resolves snapshot, sidecar, restart, and imported-parity paths without
   running a solver or writing files.
@@ -302,7 +302,8 @@ Deferred claims:
   dry-run/status command;
 - persisted restart and resume beyond the current audit-oriented metadata
   reader;
-- validated Section 4.1 boundary parity and paper-grade numerical reproduction
-  of the Poiseuille-inlet / zero-outlet-stress case;
+- validated native resolved-FSI Section 4.1 boundary parity and paper-grade
+  numerical reproduction of the Poiseuille-inlet / zero-outlet-stress case;
 - monolithic ALE FSI;
-- paper-grade Section 4.1 numerical reproduction or validation.
+- paper-grade native resolved-FSI Section 4.1 numerical reproduction or
+  validation.
