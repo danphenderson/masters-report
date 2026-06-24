@@ -72,6 +72,14 @@ Implemented and committed:
   imported cases `77`/`60`, and radial-profile audits classify same-cut area
   and flow closure with `passed`, `not_evaluated`, `failed_area_closure`, or
   `failed_flow_closure`.
+- `bbf485e` / `d73afa9`: manufactured-solution verification now reports
+  metric-specific observed orders for the discrete `L1`, `L2`, and `Linf`
+  area/flow errors, and the report-prose audit catches stale L2-only MMS-order
+  wording.
+- `56e68e1`: the p/h verification demo now labels fixed-mesh DG p-sweep rows
+  with conservative diagnostic status (`baseline`, `regressed`, `plateau`,
+  `not_evaluated`) instead of allowing plateaued or regressed rows to read as
+  accepted p-convergence evidence.
 
 ## Non-Negotiable Claim Boundary
 
@@ -103,6 +111,12 @@ Implemented and committed:
   `Float64`-oriented unless a future lane explicitly generalizes them. Local
   scalar helpers should avoid unnecessary downcasts when they can preserve
   `AbstractFloat` values safely.
+- Manufactured-solution MMS observed orders are discrete metric-specific
+  verification evidence only. They do not establish physical validation,
+  resolved-FSI parity, or manuscript-grade Section 4.1 reproduction.
+- Fixed-mesh DG p-sweep rows are diagnostic until a dedicated numerical-method
+  repair supplies accepted p-convergence evidence. Current `plateau` or
+  `regressed` p rows must not be described as successful p-refinement.
 
 ## Current Planning Artifact
 
@@ -197,6 +211,83 @@ Implemented and committed:
   `report/**`, unless explicitly assigned.
 
 ## Remaining Dispatch Priority
+
+### Lane 12A: Smooth-DG p-Convergence Repair
+
+Priority: P0 for numerical-method/report completeness before any accepted
+DG p-convergence claim. This lane does not alter native resolved-FSI production
+claims, and it must not change manuscript wording beyond diagnostic safeguards
+until new evidence exists.
+
+Objective: determine whether the fixed-mesh DG p-sweep failure is caused by
+the limiter/boundary-cell mode policy or by deeper flux/source/timestep
+inconsistency, then implement the smallest repair that preserves production
+defaults.
+
+Current read-only triage:
+
+- The raw manufactured initial projection improves rapidly with polynomial
+  degree, but `limit_dg_coefficients!` collapses smooth modal accuracy before
+  the solve starts and zeroes boundary-cell nonconstant modes.
+- The limiter is invoked after projection and after RK stages in
+  `numerics/dg.jl`. This is likely the primary p-sweep error floor.
+- Flow p rows are more sensitive than area because flow is dynamically
+  generated from forcing/flux/source terms from an initially zero profile.
+- Rusanov dissipation, finite-difference manufactured forcing, nonlinear
+  source quadrature, and timestep sensitivity are secondary suspects to test
+  only after the limiter policy is isolated.
+
+Owned files for the first repair slice:
+
+- `src/StenoticHemodynamics/numerics/dg.jl`
+- `src/StenoticHemodynamics/workflows/verification/verification_ph_refinement.jl`
+- `test/test_verification.jl`
+
+Conditional files only after improved numerical evidence exists:
+
+- `report/assets/data/verification/p_h_refinement_demo.csv`
+- `report/assets/tables/verification/p_h_refinement_demo.tex`
+- `packages/ops/src/ops/render_ph_refinement_demo.py`
+- `packages/ops/tests/test_python_ph_refinement_demo.py`
+- `report/appendices/numerical-methods-details.tex`
+
+Implementation plan:
+
+1. Add a verification-controllable limiter policy to the DG solve path, such as
+   `apply_limiter::Bool = true`, while keeping current default behavior
+   unchanged.
+2. Guard the initial modal-projection limiter and all RK-stage limiter calls
+   behind that policy.
+3. Run scratch fixed-mesh p-sweeps with limiter disabled before regenerating
+   tracked report assets.
+4. If the no-limiter smooth MMS p-sweep improves credibly, extend
+   `PHRefinementDemoSpec` with explicit limiter-policy metadata and decide
+   whether the report demo should use the smooth-verification policy.
+5. If the no-limiter p-sweep still fails, defer report-asset changes and open a
+   narrower numerical audit of Rusanov dissipation, manufactured forcing,
+   source quadrature, and timestep sensitivity.
+
+Validation commands:
+
+```bash
+packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_verification.jl")'
+pipenv run ops-render-ph-refinement-demo --csv report/assets/data/verification/p_h_refinement_demo.csv --output-dir report/assets/rendered --table-dir report/assets/tables/verification
+pipenv run ops-audit-report-prose --json
+pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
+git diff --check -- packages/stenotic-hemodynamics packages/ops report
+```
+
+Acceptance criteria:
+
+- Default DG production/simulation behavior remains unchanged unless a
+  separate scientific review explicitly approves a default limiter-policy
+  change.
+- Scratch and focused tests show whether disabling the limiter restores smooth
+  MMS p-sweep improvement.
+- Report assets and prose are regenerated only after new numerical evidence
+  exists.
+- Any accepted p-convergence claim is bounded to the specific smooth MMS
+  verification configuration that produced it.
 
 ### Lane 10C-P: Native FSI Phase Timing Before Numerics Optimization
 
