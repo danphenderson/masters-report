@@ -15,6 +15,21 @@ npm run generate-demo
 npm run validate-demo
 npm run typecheck
 npm run build
+```
+
+Build and serve the production bundle locally:
+
+```bash
+npm run serve
+# or from the repository root
+pipenv run ops-serve-stenotic-hemodynamics-viewer
+```
+
+The `serve` command rebuilds before starting Vite's preview server.
+
+For interactive development:
+
+```bash
 npm run test:browser
 npm run dev
 ```
@@ -29,6 +44,12 @@ Load another exported case by passing a served manifest path or URL:
 
 ```text
 http://localhost:5173/?manifest=/data/my-case/manifest.json
+```
+
+The built-app preview uses Vite's preview server, which defaults to:
+
+```text
+http://localhost:4173/
 ```
 
 ## Viewer Surface

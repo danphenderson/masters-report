@@ -128,6 +128,24 @@ Load another static export with a manifest query parameter:
 http://localhost:5173/?manifest=/data/my-case/manifest.json
 ```
 
+To build and serve the production viewer instead of the dev server:
+
+```bash
+cd packages/stenotic-hemodynamics-viewer
+npm run serve
+
+# or from the repository root
+pipenv run ops-serve-stenotic-hemodynamics-viewer
+```
+
+The `serve` command rebuilds before starting Vite's preview server.
+
+The built preview uses Vite's preview server, which defaults to:
+
+```text
+http://localhost:4173/
+```
+
 For URL paths with spaces or special characters, URL-encode the `manifest`
 value. The app resolves relative manifest values against the current page URL,
 so static site hosting can serve the viewer and exported data from the same
