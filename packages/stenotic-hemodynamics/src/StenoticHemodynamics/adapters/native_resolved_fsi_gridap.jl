@@ -253,13 +253,110 @@ function native_resolved_fsi_navier_stokes_controls(spec::NativeResolvedFSIParti
     )
 end
 
-function native_resolved_fsi_timed_affine_solve(a, l, X, Y, phase_timing::AbstractDict{Symbol,Float64})
-    start_ns = time_ns()
-    operator = AffineFEOperator(a, l, X, Y)
-    native_resolved_fsi_record_phase_elapsed!(:gridap_operator_assembly_s, start_ns, phase_timing)
+function native_resolved_fsi_short_digest(value)
+    return bytes2hex(sha256(string(value)))[1:16]
+end
 
+function native_resolved_fsi_vector_digest(values)
+    byte_digest = try
+        bytes2hex(sha256(reinterpret(UInt8, values)))
+    catch
+        bytes2hex(sha256(string(collect(values))))
+    end
+    return native_resolved_fsi_short_digest((
+        length=length(values),
+        eltype=string(eltype(values)),
+        byte_digest=byte_digest,
+    ))
+end
+
+function native_resolved_fsi_sparse_structure_digest(matrix)
+    if matrix isa SparseMatrixCSC
+        return native_resolved_fsi_short_digest((
+            size=size(matrix),
+            nnz=nnz(matrix),
+            colptr_digest=native_resolved_fsi_vector_digest(matrix.colptr),
+            rowval_digest=native_resolved_fsi_vector_digest(rowvals(matrix)),
+        ))
+    end
+    return native_resolved_fsi_short_digest((size=size(matrix), type=string(typeof(matrix))))
+end
+
+native_resolved_fsi_matrix_nnz(matrix) =
+    matrix isa SparseMatrixCSC ? nnz(matrix) : count(!iszero, matrix)
+
+function native_resolved_fsi_matrix_value_digest(matrix)
+    if matrix isa SparseMatrixCSC
+        return native_resolved_fsi_short_digest((
+            size=size(matrix),
+            nnz=nnz(matrix),
+            value_digest=native_resolved_fsi_vector_digest(nonzeros(matrix)),
+        ))
+    end
+    return native_resolved_fsi_short_digest((size=size(matrix), values=native_resolved_fsi_vector_digest(vec(Matrix(matrix)))))
+end
+
+function native_resolved_fsi_solver_diagnostics(
+    matrix,
+    rhs;
+    context::NamedTuple = NamedTuple(),
+)
+    pressure_constraint = string(get(context, :pressure_constraint, "unknown"))
+    pressure_reference = string(get(context, :pressure_reference, "unknown"))
+    boundary_mode = string(get(context, :boundary_mode, "unknown"))
+    wall_boundary_mode = string(get(context, :wall_boundary_mode, "unknown"))
+    return (
+        gridap_rebuild_status="rebuild_unconditionally_current_path",
+        gridap_reuse_status="reuse_not_attempted_instrumentation_only",
+        gridap_reuse_miss_reason=
+            "gridap_operator_context_cache_not_implemented; invariants must pass before factorization reuse",
+        gridap_matrix_rows=size(matrix, 1),
+        gridap_matrix_cols=size(matrix, 2),
+        gridap_matrix_nnz=native_resolved_fsi_matrix_nnz(matrix),
+        gridap_matrix_structure_digest=native_resolved_fsi_sparse_structure_digest(matrix),
+        gridap_matrix_value_digest=native_resolved_fsi_matrix_value_digest(matrix),
+        gridap_rhs_digest=native_resolved_fsi_vector_digest(rhs),
+        gridap_boundary_mode=boundary_mode,
+        gridap_pressure_constraint=pressure_constraint,
+        gridap_pressure_reference=pressure_reference,
+        gridap_wall_boundary_mode=wall_boundary_mode,
+        gridap_dt_s=Float64(get(context, :dt_s, NaN)),
+        gridap_time_step_index=Int(get(context, :time_step_index, 0)),
+        gridap_picard_iteration=Int(get(context, :picard_iteration, 0)),
+        gridap_linear_solve_count=Int(get(context, :linear_solve_count, 0)),
+        gridap_rebuild_count=Int(get(context, :gridap_rebuild_count, 0)),
+    )
+end
+
+function native_resolved_fsi_timed_affine_solve(
+    a,
+    l,
+    X,
+    Y,
+    phase_timing::AbstractDict{Symbol,Float64};
+    context::NamedTuple = NamedTuple(),
+)
+    operator_start_ns = time_ns()
+    operator = AffineFEOperator(a, l, X, Y)
+    affine_operator_elapsed_s =
+        native_resolved_fsi_record_phase_elapsed!(:gridap_affine_operator_s, operator_start_ns, phase_timing)
+
+    start_ns = time_ns()
     matrix = get_matrix(operator)
+    matrix_extraction_elapsed_s =
+        native_resolved_fsi_record_phase_elapsed!(:gridap_matrix_extraction_s, start_ns, phase_timing)
+
+    start_ns = time_ns()
     rhs = get_vector(operator)
+    rhs_extraction_elapsed_s =
+        native_resolved_fsi_record_phase_elapsed!(:gridap_rhs_extraction_s, start_ns, phase_timing)
+    native_resolved_fsi_add_phase_timing!(
+        phase_timing,
+        :gridap_operator_assembly_s,
+        affine_operator_elapsed_s + matrix_extraction_elapsed_s + rhs_extraction_elapsed_s,
+    )
+    solver_diagnostics = native_resolved_fsi_solver_diagnostics(matrix, rhs; context=context)
+
     solver = LUSolver()
 
     start_ns = time_ns()
@@ -275,7 +372,9 @@ function native_resolved_fsi_timed_affine_solve(a, l, X, Y, phase_timing::Abstra
     solve!(solution_dofs, numeric, rhs)
     native_resolved_fsi_record_phase_elapsed!(:linear_backsolve_s, start_ns, phase_timing)
 
-    return FEFunction(X, solution_dofs)
+    solution = FEFunction(X, solution_dofs)
+    velocity_h, pressure_h = solution
+    return velocity_h, pressure_h, solver_diagnostics
 end
 
 function native_resolved_fsi_solve_navier_stokes(
@@ -321,8 +420,12 @@ function native_resolved_fsi_solve_navier_stokes(
     rho > 0.0 || throw(ArgumentError("native resolved-FSI Navier-Stokes smoke requires positive density"))
     mu > 0.0 || throw(ArgumentError("native resolved-FSI Navier-Stokes smoke requires positive dynamic viscosity rho*nu"))
 
+    phase_timing = native_resolved_fsi_phase_timing_accumulator()
+    setup_start_ns = time_ns()
     model, labels = native_resolved_fsi_gridap_model(mesh; coordinates=coordinates, wall_radius_at_z=wall_radius_at_z)
+    native_resolved_fsi_record_phase_elapsed!(:gridap_model_setup_s, setup_start_ns, phase_timing)
     order = 2
+    setup_start_ns = time_ns()
     reffe_u = ReferenceFE(lagrangian, VectorValue{3,Float64}, order)
     reffe_p = ReferenceFE(lagrangian, Float64, order - 1)
     zero_velocity(x) = VectorValue(0.0, 0.0, 0.0)
@@ -361,7 +464,9 @@ function native_resolved_fsi_solve_navier_stokes(
     P = TrialFESpace(Q)
     X = MultiFieldFESpace([U, P])
     Y = MultiFieldFESpace([V, Q])
+    native_resolved_fsi_record_phase_elapsed!(:gridap_space_setup_s, setup_start_ns, phase_timing)
 
+    setup_start_ns = time_ns()
     Ω = Triangulation(model)
     Γin = BoundaryTriangulation(model, labels, tags="inlet")
     Γout = BoundaryTriangulation(model, labels, tags="outlet")
@@ -371,6 +476,7 @@ function native_resolved_fsi_solve_navier_stokes(
     dΩ = Measure(Ω, degree)
     dΓin = Measure(Γin, degree)
     dΓout = Measure(Γout, degree)
+    native_resolved_fsi_record_phase_elapsed!(:gridap_measure_setup_s, setup_start_ns, phase_timing)
 
     velocity_state = native_resolved_fsi_navier_stokes_initial_velocity_state(U, initial_velocity_function, initial_velocity_dofs)
     pressure_state = interpolate_everywhere(zero_pressure, P)
@@ -379,8 +485,9 @@ function native_resolved_fsi_solve_navier_stokes(
     max_picard_iterations_used = 0
     final_picard_update_norm = 0.0
     picard_converged = true
-    phase_timing = native_resolved_fsi_phase_timing_accumulator()
     fluid_solve_start_ns = time_ns()
+    solver_diagnostics = native_resolved_fsi_empty_solver_diagnostics()
+    linear_solve_count = 0
 
     while time_s < tfinal_value
         dt_step = min(dt_value, tfinal_value - time_s)
@@ -414,7 +521,29 @@ function native_resolved_fsi_solve_navier_stokes(
                     ∫(0.0 * (v ⋅ n_out)) * dΓout
                 end
 
-            velocity_next, pressure_next = native_resolved_fsi_timed_affine_solve(a, l, X, Y, phase_timing)
+            linear_solve_count += 1
+            pressure_policy = native_resolved_fsi_pressure_space_policy(inlet_outlet_boundary_mode_value)
+            wall_boundary_mode = wall_velocity_at === nothing ? :stationary_wall : :prescribed_radial_wall_velocity
+            velocity_next, pressure_next, solver_diagnostics = native_resolved_fsi_timed_affine_solve(
+                a,
+                l,
+                X,
+                Y,
+                phase_timing;
+                context=(
+                    boundary_mode=string(inlet_outlet_boundary_mode_value),
+                    pressure_constraint=pressure_policy.gridap_constraint === nothing ?
+                                        "none" :
+                                        string(pressure_policy.gridap_constraint),
+                    pressure_reference=string(pressure_policy.pressure_reference),
+                    wall_boundary_mode=string(wall_boundary_mode),
+                    dt_s=dt_step,
+                    time_step_index=time_step_count + 1,
+                    picard_iteration=iteration,
+                    linear_solve_count=linear_solve_count,
+                    gridap_rebuild_count=linear_solve_count,
+                ),
+            )
             step_update_norm = native_resolved_fsi_smoke_velocity_update_norm(velocity_next, velocity_iterate)
             velocity_scale = max(native_resolved_fsi_smoke_velocity_dof_norm(velocity_next), 1.0)
             velocity_state = velocity_next
@@ -456,6 +585,7 @@ function native_resolved_fsi_solve_navier_stokes(
             inlet_outlet_boundary_mode_value;
             inlet_umax_cm_s=inlet_umax_value,
         ),
+        solver_diagnostics,
         native_resolved_fsi_phase_timing_named_tuple(phase_timing),
     )
 end

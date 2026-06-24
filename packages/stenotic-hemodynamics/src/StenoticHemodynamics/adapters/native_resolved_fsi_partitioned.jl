@@ -710,6 +710,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     pressure_projection_fallback_count=pressure_projection_fallback_count,
                     fluid_wall_boundary_mode=string(fluid_wall_boundary_mode),
                     inlet_outlet_boundary_mode=string(controls.inlet_outlet_boundary_mode),
+                    solver_diagnostics=fluid_state.solver_diagnostics,
                     phase_timing_s=native_resolved_fsi_phase_timing_named_tuple(step_phase_timing),
                 ))
             end
@@ -798,6 +799,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             stability_dt_limit_s,
             minimum_signed_tetra_volume6,
             pressure_projection_fallback_count,
+            fluid_state.solver_diagnostics,
             native_resolved_fsi_phase_timing_named_tuple(phase_timing),
         ))
         if progress_callback !== nothing
@@ -825,6 +827,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                 pressure_projection_fallback_count=pressure_projection_fallback_count,
                 fluid_wall_boundary_mode=string(fluid_wall_boundary_mode),
                 inlet_outlet_boundary_mode=string(controls.inlet_outlet_boundary_mode),
+                solver_diagnostics=fluid_state.solver_diagnostics,
                 phase_timing_s=native_resolved_fsi_phase_timing_named_tuple(phase_timing),
             ))
         end

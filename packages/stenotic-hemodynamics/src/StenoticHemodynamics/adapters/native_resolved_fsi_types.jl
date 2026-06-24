@@ -22,7 +22,13 @@ const NATIVE_RESOLVED_FSI_INLET_OUTLET_BOUNDARY_MODES = (
 const NATIVE_RESOLVED_FSI_DEFAULT_INLET_OUTLET_BOUNDARY_MODE =
     :pressure_drop_weak_inlet_outlet_gauge_smoke
 const NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS = (
+    :gridap_model_setup_s,
+    :gridap_space_setup_s,
+    :gridap_measure_setup_s,
     :gridap_operator_assembly_s,
+    :gridap_affine_operator_s,
+    :gridap_matrix_extraction_s,
+    :gridap_rhs_extraction_s,
     :linear_symbolic_factorization_s,
     :linear_numeric_factorization_s,
     :linear_backsolve_s,
@@ -34,6 +40,52 @@ const NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS = (
     :output_write_s,
     :step_total_s,
 )
+const NATIVE_RESOLVED_FSI_PHASE_TIMING_DERIVED_KEYS = (
+    :gridap_operator_assembly_s,
+)
+const NATIVE_RESOLVED_FSI_SOLVER_DIAGNOSTIC_KEYS = (
+    :gridap_rebuild_status,
+    :gridap_reuse_status,
+    :gridap_reuse_miss_reason,
+    :gridap_matrix_rows,
+    :gridap_matrix_cols,
+    :gridap_matrix_nnz,
+    :gridap_matrix_structure_digest,
+    :gridap_matrix_value_digest,
+    :gridap_rhs_digest,
+    :gridap_boundary_mode,
+    :gridap_pressure_constraint,
+    :gridap_pressure_reference,
+    :gridap_wall_boundary_mode,
+    :gridap_dt_s,
+    :gridap_time_step_index,
+    :gridap_picard_iteration,
+    :gridap_linear_solve_count,
+    :gridap_rebuild_count,
+)
+
+function native_resolved_fsi_empty_solver_diagnostics()
+    return (
+        gridap_rebuild_status="not_evaluated",
+        gridap_reuse_status="not_evaluated",
+        gridap_reuse_miss_reason="not_evaluated",
+        gridap_matrix_rows=0,
+        gridap_matrix_cols=0,
+        gridap_matrix_nnz=0,
+        gridap_matrix_structure_digest="",
+        gridap_matrix_value_digest="",
+        gridap_rhs_digest="",
+        gridap_boundary_mode="",
+        gridap_pressure_constraint="",
+        gridap_pressure_reference="",
+        gridap_wall_boundary_mode="",
+        gridap_dt_s=NaN,
+        gridap_time_step_index=0,
+        gridap_picard_iteration=0,
+        gridap_linear_solve_count=0,
+        gridap_rebuild_count=0,
+    )
+end
 
 function native_resolved_fsi_empty_phase_timing()
     return NamedTuple{NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS}(
@@ -103,6 +155,7 @@ end
 function native_resolved_fsi_phase_timing_total_s(phase_timing::NamedTuple)
     total = 0.0
     for key in NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS
+        key in NATIVE_RESOLVED_FSI_PHASE_TIMING_DERIVED_KEYS && continue
         total += Float64(get(phase_timing, key, 0.0))
     end
     return total
@@ -376,6 +429,7 @@ struct NativeResolvedFSINavierStokesSmokeSolve
     inlet_outlet_boundary_mode::Symbol
     inlet_umax_cm_s::Float64
     inlet_outlet_boundary_status::String
+    solver_diagnostics::NamedTuple
     phase_timing_s::NamedTuple
 end
 
@@ -430,6 +484,7 @@ struct NativeResolvedFSIPartitionedSmokeResult
     pressure_projection_fallback_count::Int
     sampling_fallback_count::Int
     pressure_gauge_offset_dyn_cm2::Float64
+    solver_diagnostics::NamedTuple
     phase_timing_s::NamedTuple
     estimated_field_payload_bytes::Int
     loaded_coordinates::Matrix{Float64}
@@ -472,6 +527,7 @@ struct NativeResolvedFSIPartitionedSmokeSolve
     stability_dt_limit_s::Float64
     minimum_signed_tetra_volume6::Float64
     pressure_projection_fallback_count::Int
+    solver_diagnostics::NamedTuple
     phase_timing_s::NamedTuple
 end
 
@@ -925,6 +981,7 @@ function native_resolved_fsi_partitioned_smoke_result(
         solve_result.pressure_projection_fallback_count,
         sampling_fallback_count,
         pressure_gauge_offset_dyn_cm2,
+        solve_result.solver_diagnostics,
         native_resolved_fsi_phase_timing_named_tuple(phase_timing),
         Int(estimated_field_payload_bytes),
         roundtrip.loaded_coordinates,

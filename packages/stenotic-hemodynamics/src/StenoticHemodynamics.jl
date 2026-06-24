@@ -29,6 +29,7 @@ can remain small, testable, and extension-friendly.
 module StenoticHemodynamics
 
 using SHA
+using SparseArrays
 using Statistics
 
 export AbstractTimeBackend,

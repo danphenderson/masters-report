@@ -134,7 +134,10 @@ end
     @test Set(keys(timing_tuple)) == Set(phase_keys)
     @test timing_tuple.linear_backsolve_s ≈ 2.0
     @test timing_tuple.wall_update_s ≈ 0.0
-    expected_total = sum(Float64(getfield(timing_tuple, key)) for key in phase_keys)
+    expected_total = sum(
+        Float64(getfield(timing_tuple, key)) for key in phase_keys
+        if !(key in StenoticHemodynamics.NATIVE_RESOLVED_FSI_PHASE_TIMING_DERIVED_KEYS)
+    )
     @test StenoticHemodynamics.native_resolved_fsi_phase_timing_total_s(timing_tuple) ≈ expected_total
 end
 
@@ -607,10 +610,36 @@ end
             @test getfield(phase_timing, key) >= 0.0
         end
         @test phase_timing.gridap_operator_assembly_s > 0.0
+        @test phase_timing.gridap_model_setup_s > 0.0
+        @test phase_timing.gridap_space_setup_s > 0.0
+        @test phase_timing.gridap_measure_setup_s > 0.0
+        @test phase_timing.gridap_affine_operator_s > 0.0
+        @test phase_timing.gridap_matrix_extraction_s >= 0.0
+        @test phase_timing.gridap_rhs_extraction_s >= 0.0
+        @test phase_timing.gridap_operator_assembly_s ≈
+              phase_timing.gridap_affine_operator_s +
+              phase_timing.gridap_matrix_extraction_s +
+              phase_timing.gridap_rhs_extraction_s
         @test phase_timing.linear_numeric_factorization_s > 0.0
         @test phase_timing.linear_backsolve_s > 0.0
         @test phase_timing.fluid_solve_total_s > 0.0
         @test phase_timing.step_total_s > 0.0
+        solver_diagnostics = result.smoke_result.solver_diagnostics
+        @test solver_diagnostics.gridap_rebuild_status == "rebuild_unconditionally_current_path"
+        @test solver_diagnostics.gridap_reuse_status == "reuse_not_attempted_instrumentation_only"
+        @test occursin("invariants must pass", solver_diagnostics.gridap_reuse_miss_reason)
+        @test solver_diagnostics.gridap_matrix_rows > 0
+        @test solver_diagnostics.gridap_matrix_cols > 0
+        @test solver_diagnostics.gridap_matrix_nnz > 0
+        @test length(solver_diagnostics.gridap_matrix_structure_digest) == 16
+        @test length(solver_diagnostics.gridap_matrix_value_digest) == 16
+        @test length(solver_diagnostics.gridap_rhs_digest) == 16
+        @test solver_diagnostics.gridap_boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke"
+        @test solver_diagnostics.gridap_pressure_constraint == "zeromean"
+        @test solver_diagnostics.gridap_pressure_reference == "additive_nullspace"
+        @test solver_diagnostics.gridap_wall_boundary_mode == "prescribed_radial_wall_velocity"
+        @test solver_diagnostics.gridap_linear_solve_count >= 1
+        @test solver_diagnostics.gridap_rebuild_count == solver_diagnostics.gridap_linear_solve_count
         @test occursin("production snapshot harness", result.method_status.status)
         @test occursin("state-carrying partitioned solve", result.method_status.status)
         @test occursin("prescribed radial wall-velocity Dirichlet", result.method_status.status)
@@ -683,7 +712,28 @@ end
         @test any(occursin("\"minimum_signed_tetra_volume6\":", line) for line in batch_status_lines)
         @test any(occursin("\"field_finite_status\":\"ready\"", line) for line in batch_status_lines)
         @test any(occursin("\"production_spec_digest\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_rebuild_status\":\"rebuild_unconditionally_current_path\"", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_reuse_status\":\"reuse_not_attempted_instrumentation_only\"", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_reuse_miss_reason\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_rows\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_cols\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_nnz\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_structure_digest\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_value_digest\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_rhs_digest\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_boundary_mode\":\"pressure_drop_weak_inlet_outlet_gauge_smoke\"", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_pressure_constraint\":\"zeromean\"", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_pressure_reference\":\"additive_nullspace\"", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_wall_boundary_mode\":\"prescribed_radial_wall_velocity\"", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_linear_solve_count\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_rebuild_count\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_model_setup_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_space_setup_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_measure_setup_s\":", line) for line in batch_status_lines)
         @test any(occursin("\"gridap_operator_assembly_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_affine_operator_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_extraction_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_rhs_extraction_s\":", line) for line in batch_status_lines)
         @test any(occursin("\"linear_symbolic_factorization_s\":", line) for line in batch_status_lines)
         @test any(occursin("\"linear_numeric_factorization_s\":", line) for line in batch_status_lines)
         @test any(occursin("\"linear_backsolve_s\":", line) for line in batch_status_lines)
@@ -704,7 +754,16 @@ end
         @test occursin("force_process", first(batch_status_csv_lines))
         @test occursin("fluid_wall_boundary_mode", first(batch_status_csv_lines))
         @test occursin("production_spec_digest", first(batch_status_csv_lines))
+        @test occursin("gridap_rebuild_status", first(batch_status_csv_lines))
+        @test occursin("gridap_reuse_status", first(batch_status_csv_lines))
+        @test occursin("gridap_matrix_structure_digest", first(batch_status_csv_lines))
+        @test occursin("gridap_model_setup_s", first(batch_status_csv_lines))
+        @test occursin("gridap_space_setup_s", first(batch_status_csv_lines))
+        @test occursin("gridap_measure_setup_s", first(batch_status_csv_lines))
         @test occursin("gridap_operator_assembly_s", first(batch_status_csv_lines))
+        @test occursin("gridap_affine_operator_s", first(batch_status_csv_lines))
+        @test occursin("gridap_matrix_extraction_s", first(batch_status_csv_lines))
+        @test occursin("gridap_rhs_extraction_s", first(batch_status_csv_lines))
         @test occursin("linear_symbolic_factorization_s", first(batch_status_csv_lines))
         @test occursin("linear_numeric_factorization_s", first(batch_status_csv_lines))
         @test occursin("linear_backsolve_s", first(batch_status_csv_lines))
@@ -721,7 +780,20 @@ end
         @test occursin("\"tetrahedron_steps_per_second\":", batch_benchmark_text)
         @test occursin("\"phase_timing_s\":", batch_benchmark_text)
         @test occursin("\"phase_timing_total_s\":", batch_benchmark_text)
+        @test occursin("\"solver_diagnostics\":", batch_benchmark_text)
+        @test occursin("\"gridap_rebuild_status\": \"rebuild_unconditionally_current_path\"", batch_benchmark_text)
+        @test occursin("\"gridap_reuse_status\": \"reuse_not_attempted_instrumentation_only\"", batch_benchmark_text)
+        @test occursin("\"gridap_reuse_miss_reason\":", batch_benchmark_text)
+        @test occursin("\"gridap_matrix_structure_digest\":", batch_benchmark_text)
+        @test occursin("\"gridap_matrix_value_digest\":", batch_benchmark_text)
+        @test occursin("\"gridap_rhs_digest\":", batch_benchmark_text)
+        @test occursin("\"gridap_model_setup_s\":", batch_benchmark_text)
+        @test occursin("\"gridap_space_setup_s\":", batch_benchmark_text)
+        @test occursin("\"gridap_measure_setup_s\":", batch_benchmark_text)
         @test occursin("\"gridap_operator_assembly_s\":", batch_benchmark_text)
+        @test occursin("\"gridap_affine_operator_s\":", batch_benchmark_text)
+        @test occursin("\"gridap_matrix_extraction_s\":", batch_benchmark_text)
+        @test occursin("\"gridap_rhs_extraction_s\":", batch_benchmark_text)
         @test occursin("\"linear_symbolic_factorization_s\":", batch_benchmark_text)
         @test occursin("\"linear_numeric_factorization_s\":", batch_benchmark_text)
         @test occursin("\"linear_backsolve_s\":", batch_benchmark_text)
