@@ -4,7 +4,7 @@
 \subsubsection{Available Resolved Data and Matching Limits}
 \label{subsec:preliminary-cross-model-velocity-comparison}
 
-This section reports the publication-scope resolved-3D comparison: the retained
+This section reports the publication-scope resolved-3D comparison: the
 23\% and 40\% stenosis final-time section comparisons at
 $T=0.9995\,\mathrm{s}$ under the reference-coordinate and deformed-coordinate
 observation operators. Under the reference-coordinate section observation
@@ -17,12 +17,12 @@ at $T=0.9995\,\mathrm{s}$; the measured 1D--3D final-time offset is
 $5.47\times10^{-14}\,\mathrm{s}$ in each case. This timestamp agreement is a
 final-time alignment check, not a complete transient-history match.
 Appendix~\ref{app:code-and-ai-use} records the raw-input policy, reconstruction
-commands, and tracked table-fragment renderer for this comparison.
+commands, and table-fragment renderer for this comparison.
 The same appendix also reports the broader source-artifact reconstruction and
 diagnostic comparison for Canic et al.\ Section~4.1 after restoring the optional
-upstream 3D bundles; that run is supplemental to this chapter's retained
-two-case comparator because it uses the upstream article bundle set and records
-its own parameter and snapshot audit in Tables~\ref{tab:canic-section41-summary} and
+upstream 3D bundles; that run is supplemental to this chapter's two-case
+comparator because it uses the upstream article bundle set and lists its own
+parameter and snapshot checks in Tables~\ref{tab:canic-section41-summary} and
 \ref{tab:canic-section41-parameter-audit}.
 The numerical results in this section are interpreted through the numerical
 template in Section~\ref{subsec:numerical-contract-stack}, the
@@ -30,7 +30,7 @@ well-balanced preservation checklist in Definition~\ref{def:well-balanced-checkl
 and the interpretive-limits table in
 Table~\ref{tab:t1-metric-interpretive-limits}.
 
-The evidence below separates three resolved-comparator questions. First, the
+The comparison below separates three resolved-comparator questions. First, the
 reference-coordinate velocity comparison maps the 1D and 3D fields to common
 section-mean observables. Second, the deformed-coordinate comparison applies the
 available node-centered displacement field before forming plane cuts. Third,
@@ -43,7 +43,7 @@ resolved files used for these three questions; the scientific comparison is
 reported by stenosis severity.
 
 Resolved incompressible pressure is gauge-dependent unless a common pressure
-gauge is applied. No such common gauge is established for the retained 1D--3D
+gauge is applied. No such common gauge is established for the reported 1D--3D
 comparison, so absolute pressure discrepancies are not interpreted here as
 cross-model pressure errors. Pressure values carried by imported fields or
 supplemental Canic tables are diagnostics unless the workflow records a shared
@@ -135,7 +135,7 @@ deformed-coordinate 40\% case). No tolerance or sensitivity result in this
 report proves that this area mismatch is negligible. Because
 $\bar u=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$, area-denominator discrepancies can
 directly affect mean-velocity interpretation, so the comparison remains a
-section-observation diagnostic conditioned on the reported area audit.
+section-observation diagnostic conditioned on the reported area check.
 
 \begin{table}[!htb]
     \centering
@@ -350,7 +350,7 @@ numerical-sensitivity reading without changing the main comparison claim.
 
 The deformed-coordinate comparison repeats the same section operator after
 moving each resolved node by its displacement value. Table~\ref{tab:t1-coordinate-mode-comparison}
-is regenerated from the tracked reference-coordinate and deformed-coordinate
+is regenerated from the stored reference-coordinate and deformed-coordinate
 section-quadrature assets. It shows that applying displacement changes the
 final-time discrepancy measures only modestly for these two datasets. This is
 still not a full wall-motion match: the available comparison data contain the
@@ -447,12 +447,12 @@ localization and discrepancy interpretation.
 \label{subsec:spatial-localization-discrepancies}
 
 This chapter reports a controlled diagnostic cross-model comparison against
-declared resolved comparators: a reference-coordinate velocity comparison, a
+specified resolved comparators: a reference-coordinate velocity comparison, a
 displacement-aware observation comparison, and a quasi-static membrane-wall
-comparator. The evidence supports the implemented observation and comparison
-workflow and localizes final-time velocity discrepancies under the stated
-operators. A checkout containing the tracked derived assets can rebuild the
-manuscript and can verify missing raw resolved-3D inputs as an expected skip;
+comparator. The results support the section-observation and comparison
+operators and localize final-time velocity discrepancies under the stated
+operators. The derived assets in the source tree can rebuild the manuscript and
+verify missing raw resolved-3D inputs as an expected skip;
 raw-data-dependent asset regeneration requires restoring the ignored XDMF/HDF5
 inputs described in Appendix~\ref{app:code-and-ai-use}. After those inputs are
 restored, the Canic Section~4.1 source-artifact comparison workflow reconstructs
@@ -461,7 +461,7 @@ and 3D-diagnostic assets using the imported final time for each restored case,
 but it still does not regenerate the article's raw transient 3D FSI solution.
 Absolute cross-model pressure error is withheld unless a common pressure gauge
 is implemented. This
-interpretation remains conditional on the declared equation, retained state,
+interpretation remains conditional on the specified equation, state variables,
 discretization, observation rule, and metric summarized in
 Section~\ref{subsec:numerical-contract-stack}. It does not provide externally
 validated clinical prediction evidence, pressure-ratio evidence, or equivalence

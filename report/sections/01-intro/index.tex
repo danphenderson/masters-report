@@ -30,8 +30,8 @@ does not delimit the scope of the literature.
 \subsection{Literature Review Scope}
 \label{subsec:narrative-review-scope}
 
-The review is narrative and scoping in style rather than systematic. Sources
-were retained for the role they play in interpreting mathematical hemodynamics:
+The review is narrative and scoping, not systematic. Sources are used for the
+role they play in interpreting mathematical hemodynamics:
 derivation, taxonomy, numerical evidence, clinical or experimental observables,
 software traceability, or learned-model scope. Appendix~\ref{app:code-and-ai-use}
 lists the source-inventory metadata; the main text uses those entries only to
@@ -78,13 +78,13 @@ support bounded claims.
 The inclusion criterion is relevance to the mathematical reading of blood-flow
 simulation: what equations are solved, which physics are retained or closed,
 what data are required, what observables are produced, and what evidence can
-support a comparison. Sources were retained only when they supported at least
+support a comparison. A source is included when it supports at least
 one of those questions for the model hierarchy, closures, numerical evidence
 standard, or 1D--3D observation operator. Derivation papers establish equations
 and assumptions; benchmark papers establish comparative numerical behavior;
 clinical and experimental studies address external relevance for specified
-observables; and software or repository materials support source-artifact
-traceability rather than scientific truth of a model claim. The review does not claim exhaustive
+observables; and software or repository materials support source traceability,
+not scientific truth of a model claim. The review does not claim exhaustive
 coverage of all clinical or computational hemodynamics.
 
 \subsection{Research Problem and Questions}
@@ -101,9 +101,9 @@ review-oriented questions:
     \item How do rheology, wall mechanics, geometry, inlet and outlet data,
     numerical discretization, evidence standards, and observation operators
     affect the interpretation of reported hemodynamic quantities?
-    \item What limitations remain across the literature when retained state,
+    \item What limitations remain across the literature when state variables,
     resolved scales, computational cost, practical identifiability, validation
-    status, source-artifact traceability, and uncertainty sources are compared?
+    status, source traceability, and uncertainty sources are compared?
 \end{enumerate}
 
 \subsection{Literature Review and Report Roadmap}
@@ -111,12 +111,12 @@ review-oriented questions:
 \label{subsec:intro-notation-guide}
 \label{subsec:report-organization}
 
-The report's contribution is a structured review framework rather than a new
-clinical validation study. It first establishes the continuum vocabulary,
-then compares model tiers by retained state, closure burden, boundary data, and
+The report's contribution is a structured review framework, not a new clinical
+validation study. It first establishes the continuum vocabulary,
+then compares model tiers by state variables, closure burden, boundary data, and
 native observables. It next treats numerical methods through evidence
 standards: conservation, stability, positivity, well-balancing, verification,
-validation, source-artifact traceability, and cross-dimensional observation operators. The
+validation, source traceability, and cross-dimensional observation operators. The
 synthesis chapter turns those ingredients into explicit propositions about
 what can and cannot be inferred from the literature.
 

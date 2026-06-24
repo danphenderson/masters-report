@@ -7,14 +7,15 @@ claim-boundary cleanup. Treat the live checkout as authority.
 
 ## Current Status
 
-- Status starts as `NO-SEND` until the P0/P1 corrections and validation commands
-  below pass in the live checkout.
+- The P0/P1/P2 correction batch is validation-complete for `SEND` in the live
+  checkout. Future claim-affecting or numerical-output changes start again from
+  `NO-SEND`.
 - Report/package separation remains strict: report prose may describe package
   behavior, but package implementation evidence must land through the package
   tree and tests first.
-- No artifact refresh is in scope for this batch. Do not modify
-  `public/final-report.pdf`, `report/assets/rendered/**`, raw resolved-3D
-  inputs, public logs, public simulation data, or reference PDFs/HTML.
+- Final PDF sync is in scope after the explicit 2026-06-24 user request.
+  Do not modify `report/assets/rendered/**`, raw resolved-3D inputs, public
+  logs, public simulation data, or reference PDFs/HTML.
 
 ## Active Report Tasks
 
@@ -37,13 +38,30 @@ P1 report cleanup for this batch:
 8. Remove volatile branch/commit/tag/hardware/review-state assertions from
    manuscript prose in favor of release-manifest wording.
 
+P2 report cleanup for this batch:
+
+1. Compress internal process language where it does not carry a scientific
+   boundary.
+2. Preserve the source-artifact comparison terminology for Canic Section 4.1.
+3. Keep secondary DG p/h scratch exports out of the evidence path unless a
+   separate derived-asset refresh lane reviews and republishes them.
+4. Keep TeX hierarchy and display formatting conventional enough for the
+   scratch report build to remain the governing source validation.
+
 ## Package Coordination Boundary
 
 P0 package tasks for the same batch are pressure semantics, Canic time alignment,
 and pressure gauge policy. The report must not widen claims beyond what package
 tests encode. Architecture cleanup is documentary unless a separate dependency
 refactor lane is opened. Corrected numerical outputs, if needed, require a
-separate artifact-refresh lane after this source-only batch.
+separate derived-asset refresh lane. The only artifact refresh in this batch is
+the explicitly requested sync of `public/final-report.pdf` from the current
+report source.
+
+P2 package tasks are limited to maintainability changes that preserve public
+behavior: typed Canic workflow output rows and a narrow split of native
+resolved-FSI production policy helpers out of the oversized production workflow
+file. These changes must not widen native resolved-FSI evidence claims.
 
 Native resolved-FSI production execution, imported parity for the native Gridap
 path, public/default restart or resume support, viewer controls, timing
@@ -52,7 +70,7 @@ evidence unless a future report-evidence lane explicitly accepts them.
 
 ## Validation
 
-Required before a `SEND` handback:
+Required before a future `SEND` handback:
 
 ```bash
 git status --short --branch --untracked-files=all
@@ -77,6 +95,12 @@ pipenv run ops-julia-check
 pipenv run ops-audit-report-prose --json
 pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
 pipenv run ops-orchestrate ready-to-commit
+
+# If the live checkout contains pre-existing protected-artifact or scratch
+# dirt outside this source batch, the orchestrator may additionally run the
+# focused gate with explicit allowances after confirming the protected-artifact
+# diff is not part of the staged source change:
+pipenv run ops-orchestrate ready-to-commit --allow-protected-artifacts --allow-unclassified
 ```
 
 Expected results:
@@ -90,11 +114,15 @@ Expected results:
 - evolution and diagnostic pressure tests use independent formulas at
   `R0 != R_max`;
 - operator geometry tests do not compare production routines only to themselves;
-- no blocked artifacts change.
+- no blocked artifacts change except the explicitly synced
+  `public/final-report.pdf`.
+- pre-existing protected-artifact or scratch dirt is documented and left
+  unstaged when it is unrelated to the source-only batch.
 
 ## Future Artifact Lane
 
-If corrected numerical outputs are needed, open a separate artifact-refresh lane:
+If corrected numerical outputs are needed, open a separate derived-asset refresh lane:
 regenerate into ignored scratch first, review generated CSV/JSON/TeX for claim
 boundaries, then publish only accepted derived artifacts. Refresh
-`public/final-report.pdf` only in an explicitly scoped publication lane.
+`public/final-report.pdf` only in an explicitly scoped publication lane; the
+current PDF sync is such a lane.

@@ -276,17 +276,19 @@ form asks for $(\vu,p)$ in trial spaces satisfying the velocity boundary data
 such that, for velocity tests $\vv$ and pressure tests $r$,
 \begin{flalign*}
     \quad
-    \int_{\OmgB}\rho\left(\pd_t\vu+(\vu\cdot\nabla)\vu\right)\cdot\vv\,d\vx
-    +
-    \int_{\OmgB}2\eta\vct{D}(\vu):\vct{D}(\vv)\,d\vx
-    -
-    \int_{\OmgB}p\,\Div\vv\,d\vx
-    &=
-    \int_{\OmgB}\rho\vfb\cdot\vv\,d\vx
-    +
-    \int_{\Gamma_N}\vt_N\cdot\vv\,dS, &&\\
-    \quad
-    \int_{\OmgB}r\,\Div\vu\,d\vx &=0. &&
+    \begin{aligned}
+        \int_{\OmgB}\rho\left(\pd_t\vu+(\vu\cdot\nabla)\vu\right)\cdot\vv\,d\vx
+        &+
+        \int_{\OmgB}2\eta\vct{D}(\vu):\vct{D}(\vv)\,d\vx \\
+        &-
+        \int_{\OmgB}p\,\Div\vv\,d\vx
+        =
+        \int_{\OmgB}\rho\vfb\cdot\vv\,d\vx
+        +
+        \int_{\Gamma_N}\vt_N\cdot\vv\,dS, \\
+        \int_{\OmgB}r\,\Div\vu\,d\vx &=0.
+    \end{aligned}
+    &&
 \end{flalign*}
 The pressure space or boundary data must declare how the pressure gauge is
 fixed when pressure is determined only up to an additive constant. In a moving

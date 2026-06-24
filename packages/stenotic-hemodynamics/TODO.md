@@ -7,13 +7,14 @@ claim-boundary cleanup. Treat the live checkout as authority.
 
 ## Current Status
 
-- Status starts as `NO-SEND` until the P0/P1 corrections and validation commands
-  below pass in the live checkout.
+- The P0/P1/P2 correction batch is validation-complete for `SEND` in the live
+  checkout. Future claim-affecting or numerical-output changes start again from
+  `NO-SEND`.
 - Package/report separation remains strict. Package code and tests define the
   computational contract; report prose may only describe that contract.
-- No artifact refresh is in scope for this batch. Do not modify
-  `public/final-report.pdf`, `report/assets/rendered/**`, raw resolved-3D
-  inputs, public logs, public simulation data, or reference PDFs/HTML.
+- Final report PDF sync is in scope after the explicit 2026-06-24 user
+  request. Do not modify `report/assets/rendered/**`, raw resolved-3D inputs,
+  public logs, public simulation data, or reference PDFs/HTML.
 
 ## P0 Package Tasks
 
@@ -51,12 +52,25 @@ claim-boundary cleanup. Treat the live checkout as authority.
   narrowing, area-tolerance limitation, MMS dependency qualification, label
   cleanup, and provenance cleanup.
 
-Corrected numerical outputs, if needed, require a separate artifact-refresh
-lane. This source-only batch must not regenerate or publish report assets.
+Corrected numerical outputs, if needed, require a separate derived-asset refresh
+lane. This package batch must not regenerate or publish report data assets; the
+only artifact refresh in scope is the report-owned `public/final-report.pdf`
+sync from current source.
+
+## P2 Maintainability Tasks
+
+- Keep Canic source-artifact comparison outputs typed at the workflow boundary
+  so column order and row shape are testable without relying on `Any[]`
+  accumulators.
+- Split native resolved-FSI production policy helpers out of the oversized
+  production workflow implementation without changing public APIs or claim
+  strings.
+- Leave broader native-FSI refactors, dependency changes, and numerical output
+  refreshes to separate lanes.
 
 ## Validation
 
-Required before a `SEND` handback:
+Required before a future `SEND` handback:
 
 ```bash
 git status --short --branch --untracked-files=all
@@ -81,6 +95,12 @@ pipenv run ops-julia-check
 pipenv run ops-audit-report-prose --json
 pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
 pipenv run ops-orchestrate ready-to-commit
+
+# If the live checkout contains pre-existing protected-artifact or scratch
+# dirt outside this source batch, the orchestrator may additionally run the
+# focused gate with explicit allowances after confirming the protected-artifact
+# diff is not part of the staged source change:
+pipenv run ops-orchestrate ready-to-commit --allow-protected-artifacts --allow-unclassified
 ```
 
 Expected results:
@@ -94,4 +114,7 @@ Expected results:
   explicitly withheld as evidence;
 - operator geometry tests use independent closed-form synthetic references or
   claims remain narrowed;
-- no blocked artifacts change.
+- no blocked artifacts change except the explicitly synced
+  `public/final-report.pdf`.
+- pre-existing protected-artifact or scratch dirt is documented and left
+  unstaged when it is unrelated to the source-only batch.

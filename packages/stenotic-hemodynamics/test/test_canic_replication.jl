@@ -62,6 +62,15 @@
         )
         @test isempty(StenoticHemodynamics.canic_section41_missing_files(spec.data_root))
         audit_rows = StenoticHemodynamics.canic_section41_parameter_audit_rows(spec)
+        @test eltype(audit_rows) === StenoticHemodynamics.CanicSection41ParameterAuditRow
+        @test propertynames(first(audit_rows)) == (
+            :quantity,
+            :source_pair,
+            :paper_or_local_value,
+            :upstream_or_observed_value,
+            :status,
+            :note,
+        )
         @test any(row -> row[1] == "young_modulus_dyn_cm2" && row[5] == "mismatch_requires_classification", audit_rows)
         @test any(row -> row[1] == "snapshot_time_s_case50" && row[5] == "source_time_differs_from_paper_text", audit_rows)
 

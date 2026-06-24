@@ -157,17 +157,19 @@ $\Gamma_N$, the Newtonian schematic weak form is: find $(\vu,p)$ satisfying
 the essential velocity data such that
 \begin{flalign*}
     \quad
-    \int_{\OmgB}\rho\left(\pd_t\vu+(\vu\cdot\nabla)\vu\right)\cdot\vv\,d\vx
-    +
-    \int_{\OmgB}2\eta\vct{D}(\vu):\vct{D}(\vv)\,d\vx
-    -
-    \int_{\OmgB}p\,\Div\vv\,d\vx
-    &=
-    \int_{\OmgB}\rho\vfb\cdot\vv\,d\vx
-    +
-    \int_{\Gamma_N}\vt_N\cdot\vv\,dS, &&\\
-    \quad
-    \int_{\OmgB}r\,\Div\vu\,d\vx &=0, &&
+    \begin{aligned}
+        \int_{\OmgB}\rho\left(\pd_t\vu+(\vu\cdot\nabla)\vu\right)\cdot\vv\,d\vx
+        &+
+        \int_{\OmgB}2\eta\vct{D}(\vu):\vct{D}(\vv)\,d\vx \\
+        &-
+        \int_{\OmgB}p\,\Div\vv\,d\vx
+        =
+        \int_{\OmgB}\rho\vfb\cdot\vv\,d\vx
+        +
+        \int_{\Gamma_N}\vt_N\cdot\vv\,dS, \\
+        \int_{\OmgB}r\,\Div\vu\,d\vx &=0,
+    \end{aligned}
+    &&
 \end{flalign*}
 for admissible velocity tests $\vv$ and pressure tests $r$. The pressure space
 must specify a gauge or quotient convention when the boundary conditions leave

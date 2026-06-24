@@ -19,7 +19,7 @@ Thus 0D, 1D, and 2D formulations should not be described as weaker versions of
 The case study demonstrates this answer by using a distributed 1D
 area--flow state only for quantities it can natively or reconstructively
 support: area, flow, section-mean velocity, a wall-law pressure representative,
-and a declared velocity observation operator. It does not ask that state to
+and a specified velocity observation operator. It does not ask that state to
 produce native WSS, secondary flow, wall stress, or clinical pressure-ratio
 evidence.
 
@@ -54,9 +54,9 @@ not evidence for a full transient moving-boundary FSI model.
 \label{subsec:discussion-numerical-evidence-observation}
 
 The third research question asked what limitations remain when resolved scale,
-cost, identifiability, validation status, source-artifact traceability, and
-uncertainty are compared. The answer is that interpretation depends on the declared equation,
-retained state, discretization, observation operator, and metric, and each
+cost, identifiability, validation status, source traceability, and
+uncertainty are compared. The answer is that interpretation depends on the specified equation,
+state variables, discretization, observation operator, and metric, and each
 evidence type checks only part of that chain.
 ASME VVUQ terminology separates verification, validation, and uncertainty
 quantification; Boileau and coauthors provide benchmark comparison evidence;
@@ -80,7 +80,7 @@ parts of the same interpretive chain rather than to one validation grade.
 \label{subsec:discussion-contribution-limitations}
 
 The contribution is a review framework for reading mathematical hemodynamics
-across model tiers. It connects retained state, closures, boundary data,
+across model tiers. It connects state variables, closures, boundary data,
 discretization, observation operator, metric, and evidence standard in one
 interpretive chain, then applies that chain once in an idealized stenosis
 computation.
@@ -97,8 +97,8 @@ clinical prediction evidence or a fully matched transient FSI target.
 \label{sec:conclusions-limitations}
 
 This report's main conclusion is that hemodynamic simulation results are
-interpretable only when the equation, retained state, closure assumptions,
-boundary data, discretization, observation operator, and metric are declared
+interpretable only when the equation, state variables, closure assumptions,
+boundary data, discretization, observation operator, and metric are specified
 together and then evaluated with the appropriate evidence standard. Model
 dimension alone does not determine interpretation, and neither a benchmark, a
 grid study, a cross-model comparison, nor a learned surrogate result

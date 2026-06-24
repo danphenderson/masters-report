@@ -99,6 +99,119 @@ struct CanicSection41ReplicationResult
     summary_tex::String
 end
 
+const CanicSection41ParameterAuditCell = Union{Float64,String}
+const CanicSection41ParameterAuditRow = @NamedTuple begin
+    quantity::String
+    source_pair::String
+    paper_or_local_value::CanicSection41ParameterAuditCell
+    upstream_or_observed_value::CanicSection41ParameterAuditCell
+    status::String
+    note::String
+end
+
+const CanicSection41ComparisonRow = @NamedTuple begin
+    case_id::String
+    paper_severity_percent::Float64
+    imported_case::String
+    model::String
+    coordinate_mode::String
+    z_cm::Float64
+    reference_time_s::Float64
+    imported_time_s::Float64
+    paper_time_offset_s::Float64
+    local_target_time_s::Float64
+    imported_local_target_time_offset_s::Float64
+    local_completed_time_s::Float64
+    imported_local_time_offset_s::Float64
+    time_alignment_tolerance_s::Float64
+    local_time_target_policy::String
+    time_alignment_status::String
+    area_cm2::Float64
+    mean_velocity_3d_cm_s::Float64
+    mean_velocity_1d_cm_s::Float64
+    velocity_abs_error_cm_s::Float64
+    velocity_rel_error::Float64
+    mean_pressure_3d_dyn_cm2::Float64
+    pressure_1d_dyn_cm2::Float64
+    pressure_abs_error_dyn_cm2::Float64
+    pressure_comparison_status::String
+    intersection_count::Int
+    velocity_cut_status::String
+    pressure_cut_status::String
+end
+
+const CanicSection41SummaryRow = @NamedTuple begin
+    case_id::String
+    paper_severity_percent::Float64
+    imported_case::String
+    model::String
+    coordinate_mode::String
+    section_count::Int
+    reference_time_s::Float64
+    imported_time_s::Float64
+    paper_time_offset_s::Float64
+    local_target_time_s::Float64
+    imported_local_target_time_offset_s::Float64
+    local_completed_time_s::Float64
+    imported_local_time_offset_s::Float64
+    time_alignment_tolerance_s::Float64
+    local_time_target_policy::String
+    time_alignment_status::String
+    max_velocity_abs_error_cm_s::Float64
+    mean_velocity_abs_error_cm_s::Float64
+    max_velocity_rel_error::Float64
+    mean_velocity_rel_error::Float64
+    max_pressure_abs_error_dyn_cm2::Float64
+    mean_pressure_abs_error_dyn_cm2::Float64
+    pressure_comparison_status::String
+    status::String
+end
+
+const CanicSection41RadialVelocityRow = @NamedTuple begin
+    case_id::String
+    paper_severity_percent::Float64
+    model::String
+    z_cm::Float64
+    section_radius_cm::Float64
+    r_cm::Float64
+    radial_velocity_cm_s::Float64
+    status::String
+end
+
+const CanicSection41Figure6DiagnosticsRow = @NamedTuple begin
+    case_id::String
+    paper_severity_percent::Float64
+    imported_case::String
+    coordinate_mode::String
+    snapshot_time_s::Float64
+    max_speed_cm_s::Float64
+    max_axial_velocity_cm_s::Float64
+    max_radial_speed_cm_s::Float64
+    min_axial_velocity_cm_s::Float64
+    status::String
+end
+
+canic_section41_parameter_audit_cell(value::AbstractString) = String(value)
+canic_section41_parameter_audit_cell(value::Real) = Float64(value)
+
+function canic_section41_parameter_audit_row(
+    quantity::AbstractString,
+    source_pair::AbstractString,
+    paper_or_local_value,
+    upstream_or_observed_value,
+    status::AbstractString,
+    note::AbstractString,
+)::CanicSection41ParameterAuditRow
+    return (
+        quantity=String(quantity),
+        source_pair=String(source_pair),
+        paper_or_local_value=canic_section41_parameter_audit_cell(paper_or_local_value),
+        upstream_or_observed_value=canic_section41_parameter_audit_cell(upstream_or_observed_value),
+        status=String(status),
+        note=String(note),
+    )
+end
+
 function canic_section41_case_records()
     sev23 = native_resolved_fsi_case_spec(:sev23)
     sev40 = native_resolved_fsi_case_spec(:sev40)
@@ -382,8 +495,8 @@ function canic_section41_radial_velocity_profile(
 end
 
 function canic_section41_parameter_audit_rows(spec::CanicSection41ReplicationSpec)
-    rows = Any[]
-    push!(rows, (
+    rows = CanicSection41ParameterAuditRow[]
+    push!(rows, canic_section41_parameter_audit_row(
         "source_url",
         "upstream",
         CANIC_2024_SOURCE_URL,
@@ -391,7 +504,7 @@ function canic_section41_parameter_audit_rows(spec::CanicSection41ReplicationSpe
         "informational",
         "upstream repository used only as optional comparator/provenance source",
     ))
-    push!(rows, (
+    push!(rows, canic_section41_parameter_audit_row(
         "source_commit",
         "upstream",
         CANIC_2024_SOURCE_COMMIT,
@@ -399,7 +512,7 @@ function canic_section41_parameter_audit_rows(spec::CanicSection41ReplicationSpe
         "informational",
         "pinned upstream commit for raw 3D bundles and MATLAB reference scripts",
     ))
-    push!(rows, (
+    push!(rows, canic_section41_parameter_audit_row(
         "time_alignment_policy",
         "local comparison policy",
         CANIC_SECTION41_TIME_ALIGNMENT_POLICY,
@@ -407,7 +520,7 @@ function canic_section41_parameter_audit_rows(spec::CanicSection41ReplicationSpe
         "explicit_policy",
         "source-artifact reconstruction/comparison rows are not replication evidence unless imported, local target, and local completed times align within tolerance",
     ))
-    push!(rows, (
+    push!(rows, canic_section41_parameter_audit_row(
         "local_time_target_policy",
         "local comparison policy",
         canic_section41_time_target_policy(spec),
@@ -415,7 +528,7 @@ function canic_section41_parameter_audit_rows(spec::CanicSection41ReplicationSpe
         "explicit_policy",
         "default local solves use each imported XDMF time; explicit global tfinal overrides are recorded and become non-replication when mismatched",
     ))
-    push!(rows, (
+    push!(rows, canic_section41_parameter_audit_row(
         "pressure_comparison_policy",
         "local comparison policy",
         CANIC_SECTION41_PRESSURE_COMPARISON_POLICY,
@@ -423,7 +536,7 @@ function canic_section41_parameter_audit_rows(spec::CanicSection41ReplicationSpe
         "non_evidentiary_policy",
         "pressure values are recorded but pressure discrepancies are withheld because the 1D diagnostic pressure and imported pressure do not share a proven gauge",
     ))
-    push!(rows, (
+    push!(rows, canic_section41_parameter_audit_row(
         "young_modulus_dyn_cm2",
         "PDF Table 1 vs upstream MATLAB Variables.m",
         "5.02e6",
@@ -439,7 +552,7 @@ function canic_section41_parameter_audit_rows(spec::CanicSection41ReplicationSpe
                   "matches_paper_time" :
                   "source_time_differs_from_paper_text") :
                  "missing_optional_raw_input"
-        push!(rows, (
+        push!(rows, canic_section41_parameter_audit_row(
             "snapshot_time_s_case$(record.imported_label)",
             "PDF Section 4.1 vs upstream XDMF",
             CANIC_SECTION41_PAPER_TIME_S,
@@ -447,7 +560,7 @@ function canic_section41_parameter_audit_rows(spec::CanicSection41ReplicationSpe
             status,
             "comparison loader uses upstream XDMF time for this case, records the paper-time offset, and uses it as the default local target time",
         ))
-        push!(rows, (
+        push!(rows, canic_section41_parameter_audit_row(
             "rmin_cm_$(record.case_id)",
             "PDF geometry",
             record.rmin_cm,
@@ -494,10 +607,10 @@ function run_canic_section41_replication(spec::CanicSection41ReplicationSpec)
 
     paths = canic_section41_output_paths(spec.output_dir)
     section_z = collect(range(0.0, SECTION41_LENGTH_CM; length=spec.section_count))
-    comparison_rows = Any[]
-    summary_rows = Any[]
-    radial_rows = Any[]
-    figure6_rows = Any[]
+    comparison_rows = CanicSection41ComparisonRow[]
+    summary_rows = CanicSection41SummaryRow[]
+    radial_rows = CanicSection41RadialVelocityRow[]
+    figure6_rows = CanicSection41Figure6DiagnosticsRow[]
 
     for record in canic_section41_case_records()
         resolved_case = canic_section41_resolved_case(record, spec.data_root, spec.time_atol_s)
@@ -545,64 +658,64 @@ function run_canic_section41_replication(spec::CanicSection41ReplicationSpec)
                 isfinite(velocity_abs) && push!(velocity_abs_errors, velocity_abs)
                 isfinite(velocity_rel) && push!(velocity_rel_errors, velocity_rel)
                 push!(comparison_rows, (
-                    string(record.case_id),
-                    record.paper_severity_percent,
-                    record.imported_label,
-                    model_value,
-                    spec.coordinate_mode,
-                    z_cm,
-                    record.expected_upstream_time_s,
-                    imported_time_s,
-                    imported_time_s - CANIC_SECTION41_PAPER_TIME_S,
-                    local_target_time_s,
-                    time_alignment.imported_local_target_time_offset_s,
-                    local_completed_time_s,
-                    time_alignment.imported_local_time_offset_s,
-                    time_alignment.time_alignment_tolerance_s,
-                    canic_section41_time_target_policy(spec),
-                    time_alignment.status,
-                    velocity_observation.area_cm2,
-                    u_3d,
-                    u_1d,
-                    velocity_abs,
-                    velocity_rel,
-                    p_3d,
-                    p_1d,
-                    pressure_abs,
-                    CANIC_SECTION41_PRESSURE_STATUS,
-                    velocity_observation.intersection_count,
-                    velocity_observation.cut_status,
-                    pressure_observation.cut_status,
+                    case_id=string(record.case_id),
+                    paper_severity_percent=record.paper_severity_percent,
+                    imported_case=record.imported_label,
+                    model=model_value,
+                    coordinate_mode=spec.coordinate_mode,
+                    z_cm=z_cm,
+                    reference_time_s=record.expected_upstream_time_s,
+                    imported_time_s=imported_time_s,
+                    paper_time_offset_s=imported_time_s - CANIC_SECTION41_PAPER_TIME_S,
+                    local_target_time_s=local_target_time_s,
+                    imported_local_target_time_offset_s=time_alignment.imported_local_target_time_offset_s,
+                    local_completed_time_s=local_completed_time_s,
+                    imported_local_time_offset_s=time_alignment.imported_local_time_offset_s,
+                    time_alignment_tolerance_s=time_alignment.time_alignment_tolerance_s,
+                    local_time_target_policy=canic_section41_time_target_policy(spec),
+                    time_alignment_status=time_alignment.status,
+                    area_cm2=velocity_observation.area_cm2,
+                    mean_velocity_3d_cm_s=u_3d,
+                    mean_velocity_1d_cm_s=u_1d,
+                    velocity_abs_error_cm_s=velocity_abs,
+                    velocity_rel_error=velocity_rel,
+                    mean_pressure_3d_dyn_cm2=p_3d,
+                    pressure_1d_dyn_cm2=p_1d,
+                    pressure_abs_error_dyn_cm2=pressure_abs,
+                    pressure_comparison_status=CANIC_SECTION41_PRESSURE_STATUS,
+                    intersection_count=velocity_observation.intersection_count,
+                    velocity_cut_status=velocity_observation.cut_status,
+                    pressure_cut_status=pressure_observation.cut_status,
                 ))
             end
 
             max_velocity_rel = maximum_or_nan(velocity_rel_errors)
             velocity_status = canic_section41_model_status(model_value, time_alignment)
             push!(summary_rows, (
-                string(record.case_id),
-                record.paper_severity_percent,
-                record.imported_label,
-                model_value,
-                spec.coordinate_mode,
-                length(section_z),
-                record.expected_upstream_time_s,
-                imported_time_s,
-                imported_time_s - CANIC_SECTION41_PAPER_TIME_S,
-                local_target_time_s,
-                time_alignment.imported_local_target_time_offset_s,
-                local_completed_time_s,
-                time_alignment.imported_local_time_offset_s,
-                time_alignment.time_alignment_tolerance_s,
-                canic_section41_time_target_policy(spec),
-                time_alignment.status,
-                maximum_or_nan(velocity_abs_errors),
-                mean_or_nan(velocity_abs_errors),
-                max_velocity_rel,
-                mean_or_nan(velocity_rel_errors),
-                NaN,
-                NaN,
-                CANIC_SECTION41_PRESSURE_STATUS,
-                velocity_status,
+                case_id=string(record.case_id),
+                paper_severity_percent=record.paper_severity_percent,
+                imported_case=record.imported_label,
+                model=model_value,
+                coordinate_mode=spec.coordinate_mode,
+                section_count=length(section_z),
+                reference_time_s=record.expected_upstream_time_s,
+                imported_time_s=imported_time_s,
+                paper_time_offset_s=imported_time_s - CANIC_SECTION41_PAPER_TIME_S,
+                local_target_time_s=local_target_time_s,
+                imported_local_target_time_offset_s=time_alignment.imported_local_target_time_offset_s,
+                local_completed_time_s=local_completed_time_s,
+                imported_local_time_offset_s=time_alignment.imported_local_time_offset_s,
+                time_alignment_tolerance_s=time_alignment.time_alignment_tolerance_s,
+                local_time_target_policy=canic_section41_time_target_policy(spec),
+                time_alignment_status=time_alignment.status,
+                max_velocity_abs_error_cm_s=maximum_or_nan(velocity_abs_errors),
+                mean_velocity_abs_error_cm_s=mean_or_nan(velocity_abs_errors),
+                max_velocity_rel_error=max_velocity_rel,
+                mean_velocity_rel_error=mean_or_nan(velocity_rel_errors),
+                max_pressure_abs_error_dyn_cm2=NaN,
+                mean_pressure_abs_error_dyn_cm2=NaN,
+                pressure_comparison_status=CANIC_SECTION41_PRESSURE_STATUS,
+                status=velocity_status,
             ))
 
             throat_z = native_resolved_fsi_throat_z(native_resolved_fsi_case_spec(record.case_id))
@@ -622,14 +735,14 @@ function run_canic_section41_replication(spec::CanicSection41ReplicationSpec)
             )
             for sample in radial_profile
                 push!(radial_rows, (
-                    string(record.case_id),
-                    record.paper_severity_percent,
-                    model_value,
-                    throat_z,
-                    radius_at_throat,
-                    sample.r_cm,
-                    sample.radial_velocity_cm_s,
-                    "postprocessed_1d_radial_velocity",
+                    case_id=string(record.case_id),
+                    paper_severity_percent=record.paper_severity_percent,
+                    model=model_value,
+                    z_cm=throat_z,
+                    section_radius_cm=radius_at_throat,
+                    r_cm=sample.r_cm,
+                    radial_velocity_cm_s=sample.radial_velocity_cm_s,
+                    status="postprocessed_1d_radial_velocity",
                 ))
             end
         end
@@ -638,16 +751,16 @@ function run_canic_section41_replication(spec::CanicSection41ReplicationSpec)
         axial_values = field.velocity[:, 3]
         radial_values = [hypot(field.velocity[i, 1], field.velocity[i, 2]) for i in axes(field.velocity, 1)]
         push!(figure6_rows, (
-            string(record.case_id),
-            record.paper_severity_percent,
-            record.imported_label,
-            spec.coordinate_mode,
-            bundle.velocity.metadata.time,
-            maximum(speed_values),
-            maximum(axial_values),
-            maximum(radial_values),
-            minimum(axial_values),
-            "qualitative_3d_velocity_field_diagnostic",
+            case_id=string(record.case_id),
+            paper_severity_percent=record.paper_severity_percent,
+            imported_case=record.imported_label,
+            coordinate_mode=spec.coordinate_mode,
+            snapshot_time_s=bundle.velocity.metadata.time,
+            max_speed_cm_s=maximum(speed_values),
+            max_axial_velocity_cm_s=maximum(axial_values),
+            max_radial_speed_cm_s=maximum(radial_values),
+            min_axial_velocity_cm_s=minimum(axial_values),
+            status="qualitative_3d_velocity_field_diagnostic",
         ))
     end
 

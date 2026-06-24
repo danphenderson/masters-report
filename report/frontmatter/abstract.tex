@@ -2,9 +2,9 @@
 \noindent\textbf{Abstract.}\par\smallskip
 This report reviews mathematical models and numerical evidence for blood-flow
 simulation, with stenotic flow used as the organizing example. The review is
-structured around the quantities that make a hemodynamic claim interpretable:
-the retained state, constitutive and wall closures, boundary data,
-discretization, observation operator, and evidence standard. It compares
+structured around the ingredients that make a hemodynamic claim interpretable:
+state variables, constitutive and wall closures, boundary data,
+discretization, observation operators, and evidence standards. It compares
 resolved three-dimensional CFD and FSI descriptions, axisymmetric and
 two-dimensional reductions, distributed one-dimensional area--flow systems,
 lumped networks, geometrical multiscale couplings, and learned surrogate or
@@ -12,7 +12,7 @@ operator maps. The central synthesis is that model dimension is not an accuracy
 ladder. Each tier changes the state space, closure burden, native observables,
 and data requirements, so pressure, flow, velocity, WSS, and FFR-style
 quantities must be interpreted only after their mathematical and observational
-contracts are declared.
+definitions are fixed.
 
 The report then applies this framework to an idealized stenosis case study. The
 case study specifies a reduced one-dimensional model, closure choices,
@@ -20,9 +20,9 @@ finite-volume realization, manufactured-solution implementation-verification
 evidence, geometry-rest equilibrium-preservation testing, and a
 plane--tetrahedron observation operator for diagnostic comparison with available
 resolved velocity data. Its role is methodological: it shows how verification,
-equilibrium-preservation testing, source-artifact traceability, and cross-model
-observation maps constrain interpretation. It does not establish externally
-validated clinical prediction evidence, pressure-ratio evidence, or equivalence
+equilibrium-preservation testing, source traceability, and cross-model
+observation maps constrain interpretation. It does not establish external
+clinical validation, pressure-ratio validation, or equivalence
 to a fully matched transient FSI problem. The principal contribution is
 therefore a review-led framework for reading mathematical hemodynamics results
 across model tiers while keeping numerical and empirical claim levels separate.

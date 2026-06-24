@@ -2,7 +2,7 @@
 \label{sec:methodology}
 
 This section applies the review framework to one controlled stenosis example.
-The model tier, retained variables, closure choices, boundary approximation,
+The model tier, state variables, closure choices, boundary approximation,
 finite-volume operator, observation rule, and matching limits are stated before
 any result is interpreted. Dense operator formulas, secondary numerical
 surfaces, and source-artifact reconstruction commands remain in the appendices
@@ -27,8 +27,8 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Case-study specification for the retained 23\% and 40\%
-    stenosis-severity numerical evidence. The table states how the worked
+    \caption{Case-study specification for the 23\% and 40\%
+    stenosis-severity numerical comparison. The table states how the worked
     example should be read before the numerical results are interpreted.}
     \label{tab:t1-case-study-contract}
     \begin{tabularx}{\textwidth}{@{}
@@ -56,15 +56,15 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             & Other variants are secondary sensitivity
             context rather than the principal two-case comparison method. \\
         Observation operator
-            & The 3D velocity field is reduced by the declared
+            & The 3D velocity field is reduced by the specified
             cross-section quadrature operator; the 1D state is observed as
             physical flow $Q_{1D}=\pi q$ and mean velocity
-            $\bar u_{1D}=q/a$ on 200 axial sections. A second retained
+            $\bar u_{1D}=q/a$ on 200 axial sections. A second
             comparison applies the resolved displacement field before forming
-            the same plane cuts. Both retained coordinate modes use
+            the same plane cuts. Both coordinate modes use
             $T=0.9995$ s for the 23\% and 40\% stenosis cases.
             & The comparison supports a claim only for these common section
-            observables. Radial-profile audit rows are supplemental
+            observables. Radial-profile diagnostic rows are supplemental
             diagnostic artifacts, not localization evidence. A
             separate Section~4.1 source-artifact reconstruction and comparison
             workflow is documented in Appendix~\ref{app:code-and-ai-use}. \\
@@ -78,7 +78,7 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
         Matching limits
             & The analytic reference profile is shared and the static cut-area
             check is reported for both reference and deformed coordinates. A
-            quasi-static membrane-FSI comparator is also retained for the
+            quasi-static membrane-FSI comparator is also included for the
             radial wall displacement solve.
             & Velocity differences cannot be attributed uniquely to a specific
             closure, wall, boundary, or geometry mechanism because the resolved
@@ -482,24 +482,24 @@ they are not the principal two-case comparison method.
 The 1D state directly supplies a section mean,
 $\bar u_{1D}(z,t)=q(z,t)/a(z,t)$, and physical flow
 $Q_{1D}(z,t)=\pi q(z,t)$. The implementation can also emit radial-profile
-rows using the same cut triangles, and workflow diagnostics classify
+rows using the same cut triangles, and diagnostics classify
 same-cut area and flow closure. Those rows are treated as secondary output, and
-no radial-profile figure or localization claim is retained until regenerated
-report evidence is reviewed and accepted.
+no radial-profile figure or localization claim is used until same-cut
+radial-profile results are regenerated and accepted.
 
 The resolved-data loader also accepts pressure and displacement XDMF/HDF5
 companions for a velocity field. When the comparison is explicitly run in
 deformed-coordinate mode, the observation operator applies the node-centered
 displacement before forming the plane cuts. Both the reference-coordinate and
-deformed-coordinate section comparisons are retained in
+deformed-coordinate section comparisons are reported in
 Section~\ref{subsec:deformed-coordinate-comparison}. The raw-input policy,
 target-time command contract, and table-fragment regeneration command are
 recorded in Appendix~\ref{app:code-and-ai-use}. The broader Canic
-Section~4.1 source-artifact workflow uses the same pressure and displacement
+Section~4.1 source-artifact comparison uses the same pressure and displacement
 loader surfaces for the restored 23\%, 40\%, and 50\% upstream bundles, with
 the local 1D target time taken from the imported XDMF time for each case. The
-workflow is reported as a separate source-artifact diagnostic table rather than
-as the primary two-case localization claim; pressure discrepancies remain
+output appears as a separate source-artifact diagnostic table, not as the primary two-case
+localization claim; pressure discrepancies remain
 non-evidentiary unless a common gauge is implemented.
 
 For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
@@ -549,16 +549,16 @@ Radial-profile rows are not part of the retained comparison metrics.
 
 The resolved-velocity comparison evaluates the selected 1D solution against two
 available resolved 3D velocity comparison datasets at the matched final-time
-sample $T=0.9995$ s. The retained cases are described by their 23\% and 40\%
+sample $T=0.9995$ s. The reported cases are described by their 23\% and 40\%
 stenosis severities. The comparison is a diagnostic cross-model velocity
-comparison under the declared observation operator. Source identifiers, input
+comparison under the specified observation operator. Source identifiers, input
 policy, and static asset ownership are kept in
 Appendix~\ref{app:code-and-ai-use}.
 
 Velocity and flow differences are reported as sample discrepancy measures over
 valid section targets. With
 $d_{u,j}=\bar u_{1D,j}-\bar u_{3D,j}$ and
-$d_{Q,j}=Q_{1D,j}-Q_{3D,j}$, the retained section metrics are the signed mean
+$d_{Q,j}=Q_{1D,j}-Q_{3D,j}$, the section metrics are the signed mean
 bias, mean absolute discrepancy, RMS discrepancy, maximum absolute discrepancy,
 and relative RMS discrepancy,
 \begin{flalign*}

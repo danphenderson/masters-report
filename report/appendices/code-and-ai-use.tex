@@ -1,4 +1,4 @@
-\section{Software, Source Artifacts, and AI-Assisted Work Record}
+\section{Software, Source Artifacts, and AI-Assisted Work Disclosure}
 \label{app:code-and-ai-use}
 
 This report is built from the \LaTeX{} sources rooted at
@@ -10,19 +10,19 @@ report is \path{packages/stenotic-hemodynamics/bin/stenotic-hemodynamics}, which
 \path{packages/stenotic-hemodynamics/bin/stenotic-hemodynamics.jl} and the Julia project under
 \path{packages/stenotic-hemodynamics/}.
 
-\paragraph*{Source-control and archive record.}
+\paragraph*{Source-control and archive status.}
 Under the report-side commit discipline used in this repository, the exact
 source tree for a submitted PDF should be identified by the report-source commit
 immediately preceding any PDF-only refresh commit, or by a release tag that
 points to that source tree. This appendix does not assert that an arbitrary live
 checkout is clean, submission-ready, or identical to a later archived release.
-The local release manifest remains the concrete source-access record rather
-than a final public archive record:
+The local release manifest is the concrete source-access reference, not a final
+public archive:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 public/reproducibility/release-manifest.json
 \end{lstlisting}
-This appendix therefore records local source-artifact traceability rather than
-claiming a public archive. No public repository URL, immutable archive URL, or DOI is
+This appendix therefore describes local source traceability without claiming a
+public archive. No public repository URL, immutable archive URL, or DOI is
 asserted by this local thesis copy. Unless a later public release adds one of
 those records, access to \texttt{StenoticHemodynamics} is governed by the
 repository owner's source-control policy.
@@ -49,7 +49,7 @@ launcher versions, dependency versions, and hardware records belong in the
 release manifest or validation logs for the submitted source tree, not as a
 live-checkout claim inside the manuscript.
 
-\paragraph*{Review provenance.}
+\paragraph*{Review materials.}
 The source inventory, claim register, and review-depth records are maintained as
 repository artifacts outside the thesis PDF. The bounded claim register for the
 main editorial pass is stored at:
@@ -146,14 +146,14 @@ regenerate the raw-data-dependent comparison assets until the ignored XDMF/HDF5
 inputs are restored locally. The remaining timing limitation is transient-history
 matching, not the final timestamp.
 
-\paragraph*{Canic Section 4.1 source-artifact workflow.}
-The package also provides a separate source-artifact reconstruction and
-diagnostic comparison workflow for Canic et al.\ Section~4.1. This workflow is
-distinct from the retained 23\%/40\% manuscript comparator above: it reconstructs
+\paragraph*{Canic Section 4.1 source-artifact reconstruction.}
+The package also provides a separate reconstruction and diagnostic comparison
+workflow for Canic et al.\ Section~4.1. This workflow is distinct from the main
+23\%/40\% manuscript comparator above: it reconstructs
 local 1D outputs, compares section-mean velocity against restored upstream 3D
-bundles, emits gauge-dependent pressure diagnostics, writes a parameter audit,
-and records upstream provenance. The 50\% upstream bundle is included by the
-same per-case final-time rule; it remains source-artifact comparison evidence
+bundles, emits gauge-dependent pressure diagnostics, and writes parameter and
+upstream-provenance comparisons. The 50\% upstream bundle is included by the
+same per-case final-time rule; it remains source-artifact comparison output
 rather than replication evidence unless parameter, pressure-gauge, and
 observable-tolerance criteria are also satisfied. The upstream MATLAB code is treated as
 external provenance/comparator material only, not copied implementation code.
@@ -170,14 +170,14 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication secti
   --report-assets-dir report/assets \
   --overwrite
 \end{lstlisting}
-The workflow emits provenance, parameter-audit, comparison-summary,
-section-comparison, radial-velocity, and compact 3D-diagnostic files. Its audit
-intentionally records source inconsistencies, including the PDF Table~1 Young
+The workflow emits provenance, parameter-comparison, comparison-summary,
+section-comparison, radial-velocity, and compact 3D-diagnostic files. Its checks
+intentionally preserve source inconsistencies, including the PDF Table~1 Young
 modulus versus the upstream MATLAB control value and the upstream 50\% XDMF
 snapshot time.
 Table~\ref{tab:canic-section41-summary} summarizes the stored
 section-averaged velocity and pressure-diagnostic rows, and
-Table~\ref{tab:canic-section41-parameter-audit} records the non-identical source
+Table~\ref{tab:canic-section41-parameter-audit} lists the non-identical source
 conditions that bound any Section~4.1 reconstruction or comparison claim. Missing raw
 inputs are non-fatal and print:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
@@ -217,7 +217,7 @@ artifact-refresh lane.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Current Canic Section~4.1 parameter and provenance audit boundary.
+    \caption{Current Canic Section~4.1 parameter and provenance comparison boundary.
     The rows state the conditions that must accompany any later refreshed
     numerical table.}
     \label{tab:canic-section41-parameter-audit}
@@ -331,7 +331,7 @@ The release manifest is stored outside the thesis PDF:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 public/reproducibility/release-manifest.json
 \end{lstlisting}
-That manifest is retained release/provenance metadata, not a full report asset
+That manifest is release/provenance metadata, not a full report asset
 inventory. It records the build command, raw-input policy, upstream 3D input
 pointer, comparison-asset reconstruction commands, and the absence of a declared
 public repository URL or archival DOI. The report-facing artifact inventory and
