@@ -1,3 +1,5 @@
+isdefined(@__MODULE__, :read_simple_csv) || include("test_helpers.jl")
+
 const parse_args = StenoticHemodynamics.parse_args
 const study_summary_path = StenoticHemodynamics.study_summary_path
 
@@ -883,6 +885,12 @@ end
         @test all(isfile, result.tex_paths)
         @test occursin("error_A_l2", read(result.csv_paths[1], String))
         @test occursin("\\begin{table}", read(result.tex_paths[1], String))
+        @test sort(unique(row.degree for row in result.p_rows)) == [0, 1, 2]
+        @test sort(unique(row.nx for row in result.p_rows)) == [8, 16]
+        @test all(row -> isfinite(row.error_A_l2) && row.error_A_l2 >= 0.0, result.p_rows)
+        @test all(row -> isfinite(row.error_Q_l2) && row.error_Q_l2 >= 0.0, result.p_rows)
+        @test any(row -> row.error_A_l2 > 0.0, result.p_rows)
+        @test any(row -> row.error_Q_l2 > 0.0, result.p_rows)
         @test all(row.expected_order == row.degree + 1 for row in result.p_rows if row.degree >= 0)
     end
 end
