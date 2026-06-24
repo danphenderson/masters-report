@@ -3,8 +3,8 @@
 ## Current Status
 
 This TODO is refreshed after the report/package mathematical-contract alignment,
-MMS metric-order reporting, smooth-DG limiter-policy planning, and Lane 12B
-DG p/h asset-refresh rounds.
+MMS metric-order reporting, smooth-DG limiter-policy planning, Lane 12B DG p/h
+asset-refresh round, and final PDF artifact refresh.
 
 Grounding at the start of this round:
 
@@ -16,6 +16,10 @@ Grounding at the start of this round:
   `4ae524f Plan DG p-h verification asset refresh`, and Lane 12B source/asset
   work has now regenerated the p/h table and figure from the explicit
   limiter-disabled smooth MMS configuration.
+- The public report PDF was refreshed from the accepted Lane 12B source/assets
+  in `f939ef9 Refresh final report PDF`. That artifact refresh was validated
+  by a scratch build, PDF text comparison, prose audit, diff check, and the
+  configured lightweight pre-commit suite.
 - `pipenv run ops-orchestrate status --json` reported a clean tree at this
   refresh. There was no active report/PDF artifact diff at the start of
   Lane 12B.
@@ -52,7 +56,8 @@ Latest verification-reporting decision:
   `p_h_refinement_demo.tex`, and `p-h-refinement-demo.{pdf,png}` from
   `verify ph-refinement --disable-dg-limiter`. The table now visibly records
   limiter policy, polynomial degree, grid size, DOFs, timestep, steps, and
-  p-status fields.
+  p-status fields. The refreshed public PDF now reflects these accepted
+  source/asset changes.
 - Package commits `a89f6fd`, `c9a85c3`, and `49e0ba8` landed scalar-generic
   helper continuation, explicit inlet-area solve controls, and stronger
   refinement-study CLI tests. These are package correctness/maintenance
@@ -100,10 +105,11 @@ Do not reopen these lanes without a new technical finding:
 
 ## Next Round Objective
 
-Close the remaining report artifact and test-hardening follow-ups without
-changing scientific claims. Lane 12B is complete at source/asset scope, but the
-public PDF has not been refreshed in that lane. Any PDF sync should be an
-explicit artifact-owner step after source/assets are reviewed.
+Close the remaining report/test/ops follow-ups without changing scientific
+claims. The public PDF is current with Lane 12B; the next round should focus on
+centralized validation automation, focused test hardening, native-FSI
+instrumentation review before optimization, and claim-boundary-preserving
+package/report coordination.
 
 ## Immediate Execution Plan
 
@@ -124,10 +130,55 @@ Expected starting condition:
 - package code/docs are owned by the package orchestrator unless explicitly
   assigned back to the report lane.
 
-### 2. PDF Artifact Decision
+### 2. Concurrent Dispatch Shape
 
-Only after the Lane 12B source/assets are accepted, decide whether the public
-PDF is in scope. If it is, first compare the tracked and scratch-build PDFs:
+Wave 1 can run concurrently if file ownership stays disjoint:
+
+- validation automation in ops/docs surfaces;
+- focused test hardening in package/ops tests;
+- viewer evidence enhancements in the viewer package and visualization docs;
+- native-FSI timing sidecar review as read-only analysis.
+
+Wave 2 waits for Wave 1 handbacks:
+
+- measured native-FSI optimization only after timing sidecars identify a real
+  repeated-cost center;
+- mathematical-contract P1 follow-ups only when they do not collide with the
+  optimization lane.
+
+Wave 3 waits for accepted timing/optimization evidence:
+
+- `sev23` preproduction execution and imported parity staging. These remain
+  package-owned evidence lanes and do not authorize manuscript claim promotion
+  until package handback and report review both clear.
+
+### 3. Centralized Validation Automation
+
+Add a parallel ops/report coordination lane so worker agents do not run
+official validation directly. Workers should hand back:
+
+- touched file set;
+- intended validation scope;
+- known optional skips;
+- risk notes and any commands they believe should be run.
+
+The orchestrator or commit wrapper should run focused validation
+automatically immediately before commit. Keep the lightweight pre-commit hook
+from `a836353`; do not restore the slow full-gate hook as mandatory
+pre-commit behavior. A future ops command may expose this as a lane-aware
+`ops-orchestrate` validation entrypoint.
+
+Acceptance:
+
+- commit process refuses unvalidated staged changes for managed lanes;
+- validation commands/results are recorded in the handback;
+- expensive aggregate gates such as `ops-release-check --mode patch` remain
+  explicit integration/release gates, not per-commit hooks.
+
+### 4. PDF Artifact Guardrail
+
+The public PDF is current as of `f939ef9`. Reopen a PDF artifact lane only
+after a new accepted source or report-asset change. The comparison protocol is:
 
 ```sh
 git show HEAD:public/final-report.pdf > /tmp/head-final-report.pdf
@@ -141,7 +192,7 @@ If the scratch output reflects intentional Lane 12B asset/prose changes, run
 `pipenv run ops-build-report --outdir /tmp/masters-report-build` to sync the
 public PDF, visually spot-check Appendix G, and commit the PDF separately.
 
-### 3. Focused Test Hardening
+### 5. Focused Test Hardening
 
 Remaining P1 test-hardening follow-ups from the read-only audit:
 
@@ -158,7 +209,7 @@ pipenv run ruff check packages/ops/tests/test_python_package_benchmark.py
 pipenv run black --check packages/ops/tests/test_python_package_benchmark.py
 ```
 
-### 4. Evidence-Regeneration Readiness
+### 6. Evidence-Regeneration Readiness
 
 Do not regenerate report comparison assets outside Lane 12B until the package
 side hands off accepted evidence for the relevant gate. The report lane still
@@ -182,7 +233,7 @@ pipenv run ops-audit-report-prose --json
 Add package/evidence-specific commands from `packages/stenotic-hemodynamics/TODO.md`
 when that lane supplies them.
 
-### 5. Claim-Boundary Scan
+### 7. Claim-Boundary Scan
 
 Before any claim promotion or final PDF refresh, scan active manuscript prose:
 
@@ -204,7 +255,7 @@ Allowed matches should be guardrail text only. MMS spatial orders should be
 metric-specific, and DG fixed-grid p-sweep rows should remain diagnostic unless
 a future numerical-method repair supplies accepted p-convergence evidence.
 
-### 6. Final Editorial Closeout
+### 8. Final Editorial Closeout
 
 After evidence assets and source prose are stable:
 

@@ -131,8 +131,9 @@ Implemented and committed:
   resolved-FSI parity, or manuscript-grade Section 4.1 reproduction.
 - Fixed-mesh DG p-sweep rows are diagnostic unless the row metadata identifies
   the smooth-verification limiter policy that produced accepted p-improvement.
-  Existing tracked report assets remain bounded to the diagnostic limited
-  policy until regenerated and reviewed.
+  The tracked Lane 12B report assets and final PDF now reflect the accepted
+  limiter-disabled smooth MMS verification configuration; this does not change
+  the conservative limited default or promote native resolved-FSI claims.
 
 ## Current Planning Artifact
 
@@ -216,8 +217,12 @@ Implemented and committed:
 - Use one writer per disjoint file set. Workers must stop before expanding
   scope.
 - Prefer structural boundaries before new CLI/API surface area.
-- Review worker diffs and handback validation. Do not repeat worker tests
-  unless integration risk demands it or the orchestrator edits after handback.
+- Worker agents should not run official validation directly in the next round.
+  They must hand back touched files, intended validation scope, known optional
+  skips, and risk notes. The orchestrator or automated commit wrapper runs the
+  official focused validation immediately before commit.
+- Review worker diffs and validation handbacks. Do not repeat tests unless
+  integration risk demands it or the orchestrator edits after handback.
 - Preserve public exports, CLI command semantics, artifact filenames, importer
   schemas, and restart metadata compatibility unless a lane explicitly widens
   scope.
@@ -228,11 +233,86 @@ Implemented and committed:
 
 ## Remaining Dispatch Priority
 
+## Next-Round Concurrency Plan
+
+Wave 1 can run concurrently if write locks stay disjoint:
+
+- Lane 12V validation automation: `packages/ops/**`, root workflow docs, and
+  validation-policy docs only.
+- Lane 12C focused test hardening:
+  `packages/stenotic-hemodynamics/test/test_membrane_fsi.jl` and
+  `packages/ops/tests/test_python_package_benchmark.py`.
+- Lane 12D viewer enhancements:
+  `packages/stenotic-hemodynamics-viewer/**`, visualization docs, and
+  visualization tests only.
+- Lane 10C-P timing review: read-only analysis of completed timing sidecars
+  unless a follow-up instrumentation bug is found. Any package-source patch
+  must stop for a new write-lock review.
+
+Wave 2 starts after Wave 1 handbacks:
+
+- Native-FSI measured optimization only if timing sidecars prove repeated
+  assembly/factorization cost and explicit invariants can gate reuse.
+- Lane 11 P1 mathematical-contract stewardship if it touches disjoint
+  observation/model/API files from any optimization lane.
+
+Wave 3 starts only after timing/optimization evidence is accepted:
+
+- `sev23` preproduction batch execution and imported parity staging. Do not
+  relaunch long runs before the instrumentation review and any accepted
+  measured optimization lane complete.
+
+### Lane 12V: Centralized Validation Automation
+
+Priority: P0 parallel ops lane before the next multi-agent implementation
+wave. This is a process/tooling lane, not a numerical or manuscript claim
+lane.
+
+Objective: automate official validation at commit time without pushing slow
+full-gate validation back into the local pre-commit hook.
+
+Current policy baseline:
+
+- `a836353` keeps the tracked pre-commit hook lightweight: merge conflicts,
+  YAML/TOML/JSON syntax, case conflicts, private-key scan, and large-file
+  guard.
+- `ops-release-check --mode patch` remains the explicit aggregate
+  integration/release gate.
+
+Required implementation plan:
+
+1. Define a lane handback contract for workers: touched files, intended
+   validation scope, optional input skips, and risk notes.
+2. Add or plan a lane-aware `ops-orchestrate` validation entrypoint that maps
+   changed surfaces to focused validation commands before commit.
+3. Make the orchestrator/commit wrapper run those commands immediately before
+   staging or committing managed lane changes.
+4. Record validation commands/results in final handbacks.
+5. Keep expensive aggregate validation explicit; do not restore a full
+   `ops-release-check` pre-commit hook.
+
+Acceptance criteria:
+
+- Official validation is centralized and repeatable at commit time.
+- Worker agents do not spend cycles running the same official gates
+  independently.
+- Focused lane validation remains available for package Julia, ops/Python,
+  report/PDF, docs-contract, and viewer surfaces.
+- Failed validation blocks managed commits until the owner fixes or explicitly
+  defers the issue.
+
+Validation:
+
+```bash
+pipenv run ops-orchestrate docs-contract
+pipenv run pre-commit run --all-files
+git diff --check -- README.md CONTRIBUTING.md AGENTS.md public/docs packages/ops
+```
+
 ### Lane 12A: Smooth-DG p-Convergence Repair
 
-Status: implemented in `0413a97` at package-test scope. Report assets and
-manuscript prose are not yet regenerated from the limiter-disabled smooth
-verification policy.
+Status: implemented in `0413a97` at package-test scope and synchronized to
+report assets/prose through Lane 12B and final PDF commit `f939ef9`.
 
 Priority: completed code lane; keep as evidence background for Lane 12B. This
 lane does not alter native resolved-FSI production claims.
@@ -279,9 +359,8 @@ Implemented:
 4. Focused tests cover default-policy preservation and limiter-disabled smooth
    MMS p-improvement for area and flow.
 
-Remaining: regenerate tracked report assets only in Lane 12B after editorial
-coordination, because changing the table from diagnostic limited-policy rows
-to smooth-verification rows changes the manuscript evidence statement.
+Remaining: no further action unless a future verification audit reopens the
+limiter-policy or p/h evidence boundary.
 
 Validation commands:
 
@@ -308,8 +387,7 @@ Acceptance criteria:
 ### Lane 12B: Regenerate DG p/h Verification Assets
 
 Status: implemented in the current 12B source/asset lane. The public PDF was
-not refreshed in this lane; scratch report build validation passed with
-`--no-sync-final-pdf`.
+refreshed afterward in `f939ef9 Refresh final report PDF`.
 
 Priority: completed source/asset lane; keep as the DG p/h verification
 evidence baseline for the next report artifact refresh.
@@ -341,10 +419,15 @@ Implemented:
 5. Updated Appendix G wording to bound the evidence to smooth MMS
    limiter-disabled DG verification and explicitly preserve the conservative
    default limiter boundary.
+6. Refreshed `public/final-report.pdf` in a separate artifact commit after
+   scratch-build and extracted-text comparison.
 
 Validation commands:
 
 See the 12B commit handback for exact generation and validation commands.
+The PDF refresh was validated separately by scratch build, PDF text
+comparison, prose audit, diff check, and the configured lightweight pre-commit
+suite.
 
 Acceptance criteria:
 
@@ -380,6 +463,43 @@ pipenv run pytest packages/ops/tests/test_python_package_benchmark.py
 pipenv run ruff check packages/ops/tests/test_python_package_benchmark.py
 pipenv run black --check packages/ops/tests/test_python_package_benchmark.py
 git diff --check -- packages/stenotic-hemodynamics/test/test_membrane_fsi.jl packages/ops/tests/test_python_package_benchmark.py
+```
+
+### Lane 12D: Viewer Evidence Enhancements
+
+Priority: P2 nonblocking visualization lane. Do not let this collide with
+native-FSI numerics, report PDF, or package validation-automation work.
+
+Objective: expand displayed visual diagnostics after the coordinate-mode and
+browser-smoke fixes are accepted, while preserving the evidence boundary that
+viewer artifacts are inspection/operator aids.
+
+Targets:
+
+- Keep `coordinate_mode` semantics explicit so reference/deformed geometry is
+  never double-applied.
+- Add or polish manifest-backed toggles for velocity magnitude, pressure, and
+  displacement magnitude, with missing fields disabled cleanly.
+- Add a colorbar with min/max ticks, units, and current/global range labeling.
+- Surface claim-boundary/evidence badges from manifest metadata, skipped
+  snapshots, sidecars, and observations when present.
+- If parity or observation artifacts are loaded, show discrepancy summaries as
+  artifact/operator evidence only, not production validation.
+- Maintain desktop/mobile browser-smoke evidence for nonblank canvas rendering
+  and non-overlapping controls.
+
+Validation:
+
+```bash
+cd packages/stenotic-hemodynamics-viewer
+npm run validate-demo
+npm run typecheck
+npm run build
+npm run test:browser
+cd /Users/doe/hemodynamics/masters-report
+packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, SHA, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_helpers.jl"); include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_visualization.jl")'
+pipenv run ops-experiment visualization --help
+git diff --check -- packages/stenotic-hemodynamics-viewer packages/stenotic-hemodynamics public/docs
 ```
 
 ### Lane 10C-P: Native FSI Phase Timing Before Numerics Optimization
