@@ -11,13 +11,15 @@ report is \path{packages/stenotic-hemodynamics/bin/stenotic-hemodynamics}, which
 \path{packages/stenotic-hemodynamics/}.
 
 \paragraph*{Source-control and archive record.}
-This manuscript refresh was prepared from the local \texttt{master} branch.
-The exact source tree for a submitted PDF should be identified by the git
-commit or release tag that contains this appendix and the corresponding
-\path{public/final-report.pdf}. In this checkout, the local branch and retained
-release tag are:
+This manuscript refresh was prepared from the local \texttt{main} branch. Under
+the report-side commit discipline used in this repository, the exact source
+tree for a submitted PDF should be identified by the report-source commit
+immediately preceding any PDF-only refresh commit, or by a release tag that
+points to that source tree. In this checkout, the current branch, the clean
+submission-readiness base for this sweep, and the retained release tag are:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-branch: master
+branch: main
+submission_readiness_base: e304d4045bae
 local_tag_available: masters-report-final-2026-06-19 -> 1a15a52d6e986f08d745c9e40ecbcd04d4475104
 \end{lstlisting}
 The local release manifest remains the concrete source-access record rather

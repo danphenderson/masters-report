@@ -2,7 +2,7 @@
 
 ## Current Status
 
-This TODO is refreshed after the committee-polish report-boundary pass.
+This TODO is refreshed after the report-owned final submission-readiness sweep.
 
 The active manuscript now has the following report-side narrative state:
 
@@ -12,11 +12,16 @@ The active manuscript now has the following report-side narrative state:
 - Section 7 methodology and comparison now read more consistently with the
   result-first worked-example frame, without reopening the underlying
   derivations or boundary design.
+- Section 7 now uses one consistent boundary for deferred radial-profile
+  evidence: same-cut radial-profile outputs remain unpromoted until regenerated
+  report assets are reviewed and accepted.
 - Section 8 states the contribution and limitations through the direct
   interpretive chain rather than through a more schematic template description.
 - The mathematical-notation appendix remains reference-style, and Appendix G
   preserves the accepted package evidence boundary without widening into a
   runtime roadmap.
+- Appendix H now matches the live `main` branch layout and records the clean
+  submission-readiness base used for this sweep.
 
 ## Completed Report Alignment
 
@@ -61,13 +66,18 @@ would only create noise.
 
 ## Next Round Objective
 
-Run a final submission-readiness sweep rather than another broad prose lane.
-The manuscript narrative is now close to stable. The next round should focus on
-final claim-boundary inspection, page-level visual checks, Appendix H source
-record accuracy, and any last reader-facing cleanup discovered through those
-checks.
+Unless committee or advisor feedback opens a new lane, the manuscript is now in
+final-freeze territory rather than active prose development. The next report
+round should therefore be limited to one of the following:
 
-The next round should stay report-owned and source-grounded:
+- a committee-feedback correction lane with explicitly bounded file scope;
+- a final archival/release lane that records the accepted source commit or
+  release tag for the committee-submitted PDF;
+- a no-op verification handback confirming that the tracked PDF, source tree,
+  and release metadata remain aligned.
+
+Do not reopen broad editorial work without a new manuscript finding. Keep the
+same report-owned boundaries:
 
 - no package/runtime implementation;
 - no bibliography entries or source-inventory work;
@@ -77,11 +87,9 @@ The next round should stay report-owned and source-grounded:
   moving-wall/ALE fidelity, persisted restart/resume, or manuscript-grade
   Section 4.1 reproduction.
 
-## Immediate Execution Plan
+## Post-Sweep Verification Shape
 
-### 1. Re-anchor
-
-Run:
+If a later report-owned lane touches source again, start with:
 
 ```sh
 git status --short
@@ -89,90 +97,21 @@ git log -8 --oneline
 pipenv run ops-orchestrate status --json
 ```
 
-Expected starting condition:
-
-- no unexpected report-source drift outside the accepted editorial lane;
-- `public/final-report.pdf` may be dirty only if the current lane has already
-  modified reader-facing report source or assets and has not yet run the sync
-  build;
-- package code remains out of scope unless a separate package handoff changes
-  the report claim boundary.
-
-### 2. Final Claim-Boundary Scan
-
-Re-scan the active manuscript for any accidental claim promotion:
+Then rerun the standing claim-boundary and report gates:
 
 ```sh
 rg -n "Section 4\\.1 reproduction|paper-grade|preproduction|production execution|imported parity|moving-wall/ALE fidelity|persisted restart|restart/resume" \
   report/sections report/appendices report/TODO.md -g '*.tex' -g '*.md'
+pipenv run ops-audit-report-prose --json
+pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
 ```
 
-Allowed matches should be bounded negative claims or explicit planning
-guardrails only.
-
-### 3. Comparison and Methodology Read-Through
-
-Re-read the full Section 7 worked-example chain as one unit:
-
-- `report/sections/07-case-study/index.tex`
-- `report/sections/07-case-study/methodology.tex`
-- `report/sections/07-case-study/verification.tex`
-- `report/sections/07-case-study/comparison.tex`
-
-Check that the result cadence still holds:
-
-1. result summary;
-2. main discrepancy table and figure;
-3. short interpretive budget;
-4. explicit interpretation limits.
-
-Audit for:
-
-- first mention of every main table/figure before detailed interpretation;
-- no paragraph that sounds like process bookkeeping rather than numerical
-  interpretation;
-- no repeated statement of the same limitation in adjacent paragraphs.
-
-### 4. Appendix H Source Record and Final Appendix Linkage
-
-Check whether the body still repeats appendix-level mechanics that can now be
-forwarded cleanly.
-
-Primary surfaces:
-
-- `report/appendices/code-and-ai-use.tex`
-- `report/appendices/mathematical-notation.tex`
-- nearby body references in Sections 5, 7, and 8
-
-Acceptance:
-
-- appendix references should behave like one-hop support, not duplicate
-  arguments;
-- notation appendix stays compact and reference-like;
-- Appendix H should capture provenance/AI-use detail without intruding on the
-  mathematical narrative, and it should record the exact source commit used for
-  the submitted PDF.
-
-### 5. Page-Level Visual Check and Standard PDF Refresh
-
-After accepted report-side source edits, refresh the public PDF as part of the
-same handback and visually inspect the pages most likely to drift.
-
-Required commands:
+Refresh the tracked PDF whenever reader-facing source changes are accepted:
 
 ```sh
-pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
-pdftotext -layout /tmp/masters-report-build/final-report.pdf /tmp/scratch-final-report.txt
 pipenv run ops-build-report --outdir /tmp/masters-report-build
 shasum -a 256 public/final-report.pdf /tmp/masters-report-build/final-report.pdf
 ```
-
-Also visually spot-check the pages most likely to drift:
-
-- Section 7 methodology pages;
-- Section 7 comparison pages;
-- Appendix G pages with DG verification language;
-- conclusion pages.
 
 ## Package Coordination Boundary
 
@@ -187,6 +126,11 @@ aligned to the current accepted package evidence boundary:
   side;
 - DG p-improvement language remains limited to the explicit limiter-disabled
   smooth MMS verification configuration.
+- Native resolved-FSI timing/fingerprint work is execution-readiness metadata
+  only. The current tiny two-step timing pilot indicates first-use Gridap
+  lifecycle and affine-operator setup dominate that small run, while numeric
+  factorization is not the first observed bottleneck. This does not change any
+  manuscript claim boundary.
 
 If a future package handoff changes those boundaries, refresh this TODO before
 changing manuscript claims.
