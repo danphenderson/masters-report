@@ -8,7 +8,10 @@ any result is interpreted. Dense operator formulas, secondary numerical
 surfaces, and reproducibility commands remain in the appendices unless they are
 needed to understand a main-body claim. The paragraphs below therefore name
 mathematical roles first; implementation labels appear only as traceability
-tags for reproducing the selected runs.
+tags for reproducing the selected runs. The stack map in
+Section~\ref{subsec:numerical-contract-stack} is used throughout this
+methodology, with symbol roles summarized in
+Appendix~\ref{def:contract-role-symbol-map}.
 
 \begin{center}
 \fbox{\begin{minipage}{0.90\linewidth}
@@ -336,6 +339,12 @@ the geometry-rest verification test in Section~\ref{subsec:rest-state-drift}.
     source, and $\pd_t q=0$.
 \end{proof}
 
+This proposition is the model-side item in Definition~\ref{def:well-balanced-checklist}
+for the selected contract stack in Section~\ref{subsec:numerical-contract-stack}.
+Its implementation limits remain in Section~\ref{subsec:conservative-form-source-terms} and
+\ref{subsec:rest-state-drift}, where the comparison uses numerical residuals
+rather than exact algebraic cancellation.
+
 Continuous compatibility does not imply discrete preservation: the current
 MUSCL/Rusanov method exhibits the reported non-well-balanced geometry-rest
 drift.
@@ -412,9 +421,33 @@ each boundary and leaves the outgoing state determined by the interior solve.
 The finite-volume boundary treatment in
 Appendix~\ref{app:num-boundary-state-realization} uses an $\alpha=1$,
 fixed-area characteristic approximation as the boundary invariant for the
-variable-$\alpha_{\mathrm{eff}}$ solver. It is therefore an implemented boundary
-approximation, not an exact invariant derivation for the full variable-radius
-balance law.
+variable-$\alpha_{\mathrm{eff}}$ solver.
+
+\begin{definition}[Fixed-area characteristic approximation contract]
+\label{def:fixed-area-characteristic-contract}
+At each boundary call, the selected contract sets the ghost geometry to the
+reference values and closes the incoming Riemann relation using fixed-area
+characteristics.
+\begin{flalign*}
+    \quad
+    \bar a_{\mathrm{ghost}}=R_0(\cdot)^2,\qquad
+    (q_{\mathrm{ghost}},a_{\mathrm{ghost}})
+    =\mathcal B_h^{\mathrm{FA}}(q_{\mathrm{in}},\bar a_{\mathrm{in}},p_{\mathrm{out}}).
+\end{flalign*}
+This reduced invariant preserves the boundary area reference $R_0^2$,
+incoming/outgoing wave-direction logic under $\lambda_-<0<\lambda_+$, and
+time-step compatibility with the same subcritical assumption. It does not use
+terms tied to $\partial_A\alpha_{\mathrm{eff}}$ or enforce the full
+variable-radius characteristic coupling at the ghost-state solve, so boundary
+sensitivity enters the numerical discrepancy budget.
+The approximation error enters at the boundary-state operator before
+$\Psi_{\Delta t,h,\lambda_h}$, so boundary sensitivity and geometry-rest drift are
+reported as part of the declared boundary approximation rather than attributed
+to the continuous model alone.
+\end{definition}
+
+The contract is therefore an implemented boundary approximation, not an exact
+invariant derivation for the full variable-radius balance law.
 
 \subsubsection{Principal MUSCL/Rusanov/SSPRK3 Method}
 \label{subsec:muscl-ssprk3-discretization}
@@ -547,3 +580,6 @@ and relative RMS discrepancy,
     &=
     \left(\frac{1}{n}\sum_j d_{Q,j}^2\right)^{1/2}. &&
 \end{flalign*}
+
+The residual interpretation itself is reported in
+Section~\ref{subsec:metric-residual-budget-interpretation}.

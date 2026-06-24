@@ -15,6 +15,11 @@ Both cases are sampled at $T=0.9995\,\mathrm{s}$; the measured 1D--3D
 final-time offset is $5.47\times10^{-14}\,\mathrm{s}$ in each case. This
 timestamp agreement is a final-time alignment check, not a complete
 transient-history match.
+The numerical results in this section are interpreted through the contract stack
+in Section~\ref{subsec:numerical-contract-stack}, the
+well-balanced preservation checklist in Definition~\ref{def:well-balanced-checklist},
+and the residual budget table in
+Table~\ref{tab:t1-metric-residual-budget}.
 
 The evidence below separates three resolved-comparator questions. First, the
 reference-coordinate velocity comparison maps the 1D and 3D fields to common
@@ -146,6 +151,10 @@ case, and $\langle Q_{1D}\rangle=2.287\,\mathrm{cm}^3/\mathrm{s}$ and
 $\langle Q_{3D}\rangle=2.219\,\mathrm{cm}^3/\mathrm{s}$ for the 40\% stenosis
 case. The discrepancy summaries below show that the 40\% case has the larger
 section-mean velocity gap, concentrated near the stenosis throat.
+Interpretation of these summaries follows the residual budget in
+Table~\ref{tab:t1-metric-residual-budget}; the rows support only aggregate
+discrepancies under the declared model, discretization, observation, boundary,
+and metric choices, not causal attribution.
 
 \begin{figure}[!htb]
     \centering
@@ -193,6 +202,70 @@ causal attribution.
         \midrule
         23\% stenosis & 0.529 & 0.112 & 2.291 & 2.35 & Flow term \\
         40\% stenosis & 1.012 & 0.133 & 2.261 & 9.92 & Flow term \\
+        \bottomrule
+    \end{tabular}%
+    }
+\end{table}
+
+\paragraph{Residual-budget interpretation and inferential limits}
+\label{subsec:metric-residual-budget-interpretation}
+For interpretive accounting, and not as a causal decomposition, the
+section-level split is
+\begin{flalign*}
+    \quad
+    d_{u,j}
+    =
+    d_{u,j}^{\mathrm{cont}}
+    +d_{u,j}^{\mathrm{disc}}
+    +d_{u,j}^{\mathrm{obs}}
+    +d_{u,j}^{\mathrm{bnd}}
+    +d_{u,j}^{\mathrm{metric}},
+    && \\
+    \quad
+    d_{Q,j}
+    =
+    d_{Q,j}^{\mathrm{cont}}
+    +d_{Q,j}^{\mathrm{disc}}
+    +d_{Q,j}^{\mathrm{obs}}
+    +d_{Q,j}^{\mathrm{bnd}}
+    +d_{Q,j}^{\mathrm{metric}}, &&
+\end{flalign*}
+where the superscripts are contract tags only:
+$\mathrm{cont}$ captures model+closure contributions (the equation contract);
+$\mathrm{disc}$ captures discrete and evolution contributions; $\mathrm{obs}$ captures
+the observation map; $\mathrm{bnd}$ captures fixed-area boundary approximation; and
+$\mathrm{metric}$ captures metric reduction.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Interpretive limits of the retained discrepancy metrics.
+    Each family uses the same shared section index set; the third column records
+    what is not identifiable from the retained comparison metrics.
+    }
+    \label{tab:t1-metric-residual-budget}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}l>{\raggedright\arraybackslash}p{0.45\linewidth}p{0.42\linewidth}@{}}
+        \toprule
+        \textbf{Metric family}
+            & \textbf{Contract budget identity}
+            & \textbf{Not identifiable from the retained comparison metrics} \\
+        \midrule
+        mean
+            & $\overline d_u$, $\overline d_Q$
+            & Separation of contract-layer means for the two scalar means.
+            \\
+        $L_1,L_2,L_\infty$
+            & $D_{u,1},D_{u,2},D_{u,\infty},
+            D_{Q,1},D_{Q,2}$
+            & Layer-level attribution, including which layer dominates each
+            absolute/RMS quantity.
+            \\
+        relative RMS
+            & $D^{\mathrm{rel}}_{u,2}$
+            & Sensitivity to the denominator norm convention and its impact
+            on case comparability.
+            \\
         \bottomrule
     \end{tabular}%
     }
@@ -378,6 +451,8 @@ declared resolved comparators: a reference-coordinate velocity comparison, a
 displacement-aware observation comparison, and a quasi-static membrane-wall
 comparator. The evidence supports the implemented observation and comparison
 workflow and localizes final-time velocity discrepancies under the stated
-operators. It does not provide externally validated clinical prediction
+operators. This interpretation remains conditional on Section~\ref{subsec:numerical-contract-stack}
+and Definition~\ref{def:well-balanced-checklist}. It does not provide externally
+validated clinical prediction
 evidence, pressure-ratio evidence, or equivalence to a full transient FSI
 computation with matched boundary and wall-history data.

@@ -43,6 +43,45 @@ function-space definitions and compactness background are not repeated here.
         $(r,\theta,z)$, $(\vct e_r,\vct e_\theta,\vct e_z)$ & cylindrical coordinates and basis, used only when a retained continuum reference requires them \\
     \bottomrule
 \end{tabular}
+    \end{compactacronymtables}
+    \end{minipage}
+    \par
+
+\begin{definition}[Numerical contract symbol map]
+\label{def:contract-role-symbol-map}
+
+\noindent\begin{compactacronymtables}
+\begin{tabular}{@{}
+    >{\raggedright\arraybackslash}p{0.24\linewidth}
+    @{\hspace{0.7em}}
+    >{\raggedright\arraybackslash}p{0.18\linewidth}
+    @{\hspace{0.7em}}
+    >{\raggedright\arraybackslash}p{0.50\linewidth}
+@{}}
+\toprule
+\textbf{Symbol} & \textbf{Tier} & \textbf{Role in this report} \\
+\midrule
+$\mathcal L_{\mathcal P}$ & continuous model & continuous residual operator defining
+the selected closure/parameterized equation. \\
+$\mathcal P$ & parameter set & model-data contract, including geometry, closure, and
+physical parameter choices. \\
+$M_{h,\theta_h}$ & semidiscrete map & mesh/operator realization map from
+continuous model state to discrete state. \\
+$\Psi_{\Delta t,h,\lambda_h}$ & fully discrete evolution & time-stepping map used in the
+principal comparison runs. \\
+$\mathcal H_{h,\omega_h}$ & observation & extraction map from discrete state to observables. \\
+$\mathcal R_{\mathrm{metric}}$ & metric map & aggregation to the reported metric vector
+$(\overline d_u,D_{u,1},D_{u,2},D_{u,\infty},D_{u,2}^{\mathrm{rel}},\overline d_Q,D_{Q,1},D_{Q,2})$. \\
+$Y_{h,\Delta t}$ & reported output & output after discrete evolution, observation, and
+metric reduction under the declared numerical template. \\
+$\mathcal B_h^{\mathrm{FA}}$ & boundary realization & fixed-area characteristic approximation. \\
+$\omega_h$ & observation rule & quadrature, section selection, invalid-cut handling, and
+section-coordinate convention. \\
+$I_h$ & lifting operator & maps continuous initial data into the declared discrete space. \\
+$\mathcal N_h$ & operator family (contextual) & finite-volume semidiscretization family and
+stability/CFL controls used by the comparisons. \\
+$\mathcal Y$ & codomain & model residual/constraint space for $\mathcal L_{\mathcal P}$. \\
+\bottomrule
+\end{tabular}
 \end{compactacronymtables}
-\end{minipage}
-\par
+\end{definition}

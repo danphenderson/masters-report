@@ -13,27 +13,59 @@ interpret blood-flow simulations: verification, validation, stability,
 positivity, conservation, well-balancing, reproducibility, and observation
 operators.
 
-The notation below separates the mathematical model from the discrete
-realization:
+\subsubsection{Numerical contract stack}
+\label{subsec:numerical-contract-stack}
+
+The report uses the following common template for numerical claims:
 \begin{flalign*}
     \quad
-    \mathcal M(U)&=0,
-        && \text{continuous model},\\
+    \mathcal L_{\mathcal P}: \mathcal U\to\mathcal Y,\qquad
+    M_{h,\theta_h}: \mathcal U \to \mathcal U_h\subset\mathcal U,\qquad
+    \Psi_{\Delta t,h,\lambda_h}: \mathcal U_h \to \mathcal U_h,\\
     \quad
-    M_h\dot U_h&=R_h(U_h),
-        && \text{semidiscrete equations},\\
-    \quad
-    U_h^{n+1}&=\Phi_{\Delta t,h}(U_h^n),
-        && \text{fully discrete scheme}. &&
+    \mathcal H_{h,\omega_h}: \mathcal U_h\to \mathcal Z_h,\qquad
+    \mathcal R_{\mathrm{metric}}: \mathcal Z_h\to\mathbb R^k,\qquad
+    Y_{h,\Delta t}
+    =
+    \mathcal R_{\mathrm{metric}}\!\left(
+    \mathcal H_{h,\omega_h}\!\left(
+    \Psi_{\Delta t,h,\lambda_h}\!\left(
+    M_{h,\theta_h}(I_h(U_0;\theta_h))\right)\right)\right). &&
 \end{flalign*}
-A reported numerical quantity is then
-\begin{flalign*}
-    \quad
-    Y_{h,\Delta t}=\mathcal O_h(U_h^n),
-    &&
-\end{flalign*}
-with an observation map $\mathcal O_h$ that carries its own quadrature,
-coordinate, and output conventions.
+Here $\mathcal U$ is the continuous state space, $\mathcal U_h\subset\mathcal U$
+is the discretized state space, and $\mathcal Z_h$ is the declared observation
+space (section means, section flows, pressure tuples, etc.).
+The lifting $I_h:\mathcal U\to\mathcal U_h$
+maps continuous initial data into the discrete state. This is an interpretive
+template for comparing models, discretizations, observations, and metrics; it
+is not an additional discretization method.
+
+This comparison is interpretable only when all parts of the template are fixed:
+\begin{enumerate}
+    \item the model specification $\mathcal P$ and target equation
+        $\mathcal L_{\mathcal P}(U)=0$;
+    \item discretization controls $(\theta_h,\Delta t,h)$, initialization $I_h$,
+        and semidiscrete realization;
+    \item evolution controls $\lambda_h$ and corresponding admissible timestep
+        assumptions;
+    \item observation controls $\omega_h$ and shared output rule
+        $\mathcal H_{h,\omega_h}$;
+    \item metric definition $\mathcal R_{\mathrm{metric}}$, including denominator and
+        weighting conventions.
+\end{enumerate}
+
+The resulting interpretive chain is
+\[
+    \mathcal L_{\mathcal P}\to
+    M_{h,\theta_h}\to
+    \Psi_{\Delta t,h,\lambda_h}\to
+    \mathcal H_{h,\omega_h}\to
+    \mathcal R_{\mathrm{metric}}.
+\]
+
+\subsubsection{Local stencil and coupling map}
+\label{subsec:numerical-methods-stencil-contract}
+
 The same semidiscrete notation also names the local coupling pattern. For a
 residual component $R_{h,i}$, define its spatial stencil as
 \begin{flalign*}
@@ -184,6 +216,25 @@ mechanical properties, so the evidence role is the preserved stationary set, not
 a generic high-order accuracy statement. For the present report, geometry-rest
 preservation is therefore a core numerical property rather than a postprocessing
 preference or a cosmetic refinement of an otherwise verified scheme.
+
+\begin{definition}[Well-balanced preservation checklist]
+\label{def:well-balanced-checklist}
+For a target rest family $\mathcal E\subset\mathcal U$ and shared sampling
+interval $\mathcal T$, a well-balanced claim is tied to the following contract:
+\begin{enumerate}
+    \item the model contract and source balance define $\mathcal E$;
+    \item boundary realizations are constrained to the same equilibrium family;
+    \item the discrete maps $M_{h,\theta_h}$ and $\Psi_{\Delta t,h,\lambda_h}$
+        are used with the same equilibrium assumptions;
+    \item the same observation map $\mathcal H_{h,\omega_h}$ is used across
+        compared runs;
+    \item reported residuals use a fixed metric operator
+        $\mathcal R_{\mathrm{metric}}$ and shared section index set.
+\end{enumerate}
+Appendices~\ref{app:num-current-solver-operator},
+\ref{app:num-boundary-state-realization}, and
+\ref{app:num-full-rest-state-drift-grid} provide the implementation checks.
+\end{definition}
 
 \subsection{Verification, Validation, and Reference Data}
 \label{subsec:numerical-methods-verification-validation}
