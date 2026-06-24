@@ -21,6 +21,17 @@ Grounding at the start of this round:
   churn until an explicit PDF artifact lane compares, refreshes, and commits
   it or intentionally restores the tracked artifact.
 
+Latest PDF artifact decision:
+
+- A scratch report build passed with no untracked consumed inputs.
+- `pdftotext -layout` output is identical for the tracked PDF, working-tree
+  PDF, and scratch-built PDF.
+- `pdfinfo` reports the same title, metadata fields, page count, page size, and
+  file size; the differing SHA values are explained by PDF creation/modification
+  timestamps.
+- Do not commit the dirty `public/final-report.pdf` as a reader-facing report
+  update. Leave it for an explicit artifact-owner cleanup or restore decision.
+
 The Lane 11 P0 mathematical-contract blocker is retired at focused package-test
 scope only. The report may describe focused package evidence for the
 density-consistent transient/convection terms, symmetric-gradient Cauchy viscous
