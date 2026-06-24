@@ -1,21 +1,21 @@
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Manufactured-solution p- and h-refinement diagnostic. The h-refinement rows report $L_2$ observed order from adjacent grid spacings; the p-refinement rows report fixed-mesh $L_2$ error reduction and conservative diagnostic status, not accepted p-convergence evidence.}
+    \caption{Manufactured-solution p- and h-refinement diagnostic. The policy column records whether the modal DG limiter was applied; limiter-disabled rows are smooth-MMS verification evidence and do not change the conservative default DG policy.}
     \resizebox{\textwidth}{!}{%
-    \begin{tabular}{@{}lrrrrrrrrrr@{}}
+    \begin{tabular}{@{}lrrrrrrrrrrrrr@{}}
         \toprule
-        Sweep & $p$ & $N$ & DOFs & $\|e_a\|_2$ & h-order & p-reduction & $\|e_q\|_2$ & h-order & p-reduction & p-status \\
+        Sweep & policy & $p$ & $N$ & DOFs & $\Delta t$ & steps & $\|e_a\|_2$ & h-order & p-reduction & $\|e_q\|_2$ & h-order & p-reduction & p-status \\
         \midrule
-        h-refinement & 2 & 20 & 120 & 9.797e-06 & 1.457 & -- & 0.009629 & 1.052 & -- & not\_applicable \\
-        h-refinement & 2 & 40 & 240 & 3.569e-06 & 1.488 & -- & 0.004643 & 1.209 & -- & not\_applicable \\
-        h-refinement & 2 & 80 & 480 & 1.272e-06 & 1.51 & -- & 0.002009 & 1.424 & -- & not\_applicable \\
-        h-refinement & 2 & 160 & 960 & 4.467e-07 & -- & -- & 7.489e-04 & -- & -- & not\_applicable \\
-        p-refinement & 0 & 40 & 80 & 1.078e-05 & -- & -- & 0.002585 & -- & -- & baseline \\
-        p-refinement & 1 & 40 & 160 & 3.569e-06 & -- & 3.022 & 0.004645 & -- & 0.5565 & regressed \\
-        p-refinement & 2 & 40 & 240 & 3.569e-06 & -- & 1 & 0.004643 & -- & 1 & plateau \\
-        p-refinement & 3 & 40 & 320 & 3.569e-06 & -- & 0.9999 & 0.004643 & -- & 1 & plateau \\
-        p-refinement & 4 & 40 & 400 & 3.569e-06 & -- & 1 & 0.004642 & -- & 1 & plateau \\
+        h-refinement & disabled & 2 & 20 & 120 & 5.000e-07 & 400 & 5.665e-09 & 3.02 & -- & 7.143e-06 & 3.045 & -- & not\_applicable \\
+        h-refinement & disabled & 2 & 40 & 240 & 5.000e-07 & 400 & 6.983e-10 & 3 & -- & 8.653e-07 & 3.024 & -- & not\_applicable \\
+        h-refinement & disabled & 2 & 80 & 480 & 5.000e-07 & 400 & 8.727e-11 & 3 & -- & 1.064e-07 & 3 & -- & not\_applicable \\
+        h-refinement & disabled & 2 & 160 & 960 & 5.000e-07 & 400 & 1.091e-11 & -- & -- & 1.330e-08 & -- & -- & not\_applicable \\
+        p-refinement & disabled & 0 & 40 & 80 & 5.000e-07 & 400 & 1.078e-05 & -- & -- & 0.002585 & -- & -- & baseline \\
+        p-refinement & disabled & 1 & 40 & 160 & 5.000e-07 & 400 & 1.051e-07 & -- & 102.6 & 1.401e-04 & -- & 18.45 & improved \\
+        p-refinement & disabled & 2 & 40 & 240 & 5.000e-07 & 400 & 6.983e-10 & -- & 150.6 & 8.653e-07 & -- & 161.9 & improved \\
+        p-refinement & disabled & 3 & 40 & 320 & 5.000e-07 & 400 & 3.534e-12 & -- & 197.6 & 4.440e-09 & -- & 194.9 & improved \\
+        p-refinement & disabled & 4 & 40 & 400 & 5.000e-07 & 400 & 3.232e-15 & -- & 1094 & 1.775e-11 & -- & 250.2 & improved \\
         \bottomrule
     \end{tabular}%
     }

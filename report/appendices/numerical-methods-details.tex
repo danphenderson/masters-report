@@ -205,10 +205,13 @@ The manufactured-solution p/h demonstration is a secondary smooth-solution
 implementation check for the native modal-DG surface. The implementation
 supports modal Legendre DG degrees $p=0,\ldots,4$; selected closure-catalog or
 package-benchmark rows may exercise only subsets such as $p=0,1,2$, while the
-p-refinement verification workflow runs through $p=4$. The fixed-grid
-p-refinement rows include conservative $L^2$ diagnostic statuses. Plateau or
-regressed statuses are read as degree-sweep diagnostics, not as accepted
-p-convergence evidence.
+p-refinement verification workflow runs through $p=4$. The table records the
+DG limiter policy used for the generated rows. In the displayed smooth MMS
+configuration the modal limiter is disabled, so the fixed-grid p-sweep is read
+as smooth-verification evidence for the DG polynomial representation and
+operator wiring. This does not change the conservative limited DG default used
+outside this verification configuration, and it is not evidence for native
+resolved-FSI production, imported parity, or Section 4.1 reproduction.
 
 \IfFileExists{report/assets/tables/verification/p_h_refinement_demo.tex}{%
     \input{report/assets/tables/verification/p_h_refinement_demo.tex}
@@ -229,8 +232,9 @@ p-convergence evidence.
         asset not present in the local report asset set.}}
     }
     \caption{Manufactured-solution p- and h-refinement demonstration for the
-    secondary modal-DG surface. This is smooth-case implementation evidence; the
-    fixed-grid p-sweep plateau is not interpreted as a p-convergence result.}
+    secondary modal-DG surface. The displayed p-sweep uses the explicit
+    limiter-disabled smooth MMS policy recorded in the table; it is not a claim
+    that the conservative limited DG default has production p-convergence.}
     \label{fig:ph-refinement-demo}
 \end{figure}
 

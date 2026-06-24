@@ -123,6 +123,7 @@ function ph_refinement_demo_spec_from_values(
         summary_tex=get(values, "summary-tex", ""),
         overwrite=overwrite,
         progress_every=progress_every,
+        apply_limiter=!("disable-dg-limiter" in flags),
     )
 end
 
@@ -467,11 +468,11 @@ function write_ph_refinement_demo_tex(path::String, rows::Vector{PHRefinementDem
         println(io, "\\begin{table}[!htb]")
         println(io, "    \\centering")
         println(io, "    \\scriptsize")
-        println(io, "    \\caption{Manufactured-solution p- and h-refinement diagnostic. The h-refinement rows report \$L_2\$ observed order from adjacent grid spacings; the p-refinement rows report fixed-mesh \$L_2\$ error reduction and conservative diagnostic status, not accepted p-convergence evidence.}")
+        println(io, "    \\caption{Manufactured-solution p- and h-refinement diagnostic. The policy column records whether the modal DG limiter was applied; limiter-disabled rows are smooth-MMS verification evidence and do not change the conservative default DG policy.}")
         println(io, "    \\resizebox{\\textwidth}{!}{%")
-        println(io, "    \\begin{tabular}{@{}lrrrrrrrrrr@{}}")
+        println(io, "    \\begin{tabular}{@{}lrrrrrrrrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        Sweep & \$p\$ & \$N\$ & DOFs & \$\\|e_a\\|_2\$ & h-order & p-reduction & \$\\|e_q\\|_2\$ & h-order & p-reduction & p-status \\\\")
+        println(io, "        Sweep & policy & \$p\$ & \$N\$ & DOFs & \$\\Delta t\$ & steps & \$\\|e_a\\|_2\$ & h-order & p-reduction & \$\\|e_q\\|_2\$ & h-order & p-reduction & p-status \\\\")
         println(io, "        \\midrule")
         for row in rows
             row.status == "ok" || continue
@@ -489,9 +490,12 @@ function ph_refinement_demo_latex_row(row::PHRefinementDemoRow)
     sweep = row.sweep == "h_refinement" ? "h-refinement" : "p-refinement"
     return join((
         sweep,
+        latex_status(row.dg_limiter_policy),
         string(row.degree),
         string(row.nx),
         string(row.dofs),
+        latex_number(row.dt),
+        string(row.steps),
         latex_number(row.area_l2_error),
         latex_number(row.area_l2_observed_order),
         latex_number(row.area_l2_reduction),

@@ -111,7 +111,7 @@ const VERIFY_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
     "summary-csv",
     "summary-tex",
 ]))
-const VERIFY_FLAG_OPTIONS = union(FLAG_OPTIONS, Set(["overwrite"]))
+const VERIFY_FLAG_OPTIONS = union(FLAG_OPTIONS, Set(["overwrite", "disable-dg-limiter"]))
 
 const COMPARISON_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
     "data-root",

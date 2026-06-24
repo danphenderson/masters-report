@@ -224,7 +224,9 @@ end
         @test occursin("baseline", ph_csv_text)
         ph_tex_text = read(ph_demo.summary_tex, String)
         @test occursin("p- and h-refinement diagnostic", ph_tex_text)
-        @test occursin("not accepted p-convergence evidence", ph_tex_text)
+        @test occursin("policy", ph_tex_text)
+        @test occursin("modal\\_limiter", ph_tex_text)
+        @test occursin("smooth-MMS verification evidence", ph_tex_text)
         @test occursin("p-status", ph_tex_text)
 
         cli_demo = StenoticHemodynamics.run_cli([
@@ -244,10 +246,13 @@ end
             "1e-5",
             "--dt",
             "1e-5",
+            "--disable-dg-limiter",
             "--overwrite",
         ])
         @test cli_demo isa StenoticHemodynamics.PHRefinementDemoResult
         @test isfile(cli_demo.summary_csv)
+        @test all(row.dg_limiter_policy == "disabled" for row in cli_demo.rows)
+        @test occursin("disabled", read(cli_demo.summary_tex, String))
 
         drift = StenoticHemodynamics.run_rest_state_drift(StenoticHemodynamics.RestStateDriftSpec(;
             output_dir=dir,

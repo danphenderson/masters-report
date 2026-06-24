@@ -2,7 +2,7 @@ function print_verify_usage()
     println("""
     Usage:
       packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify mms [--nxs 20,40,80] [--dt-values 2e-5,1e-5,5e-6] [options]
-      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify ph-refinement [--h-nxs 20,40,80,160] [--degrees 0,1,2,3,4] [options]
+      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify ph-refinement [--h-nxs 20,40,80,160] [--degrees 0,1,2,3,4] [--disable-dg-limiter] [options]
       packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify rest [--severities 23,40] [--nxs 50,100,200] [--elapsed-times 0,0.001,0.005] [options]
 
     Rest verification defaults to --inlet-umax 0.0; simulate and compare-3d default to 45.0.

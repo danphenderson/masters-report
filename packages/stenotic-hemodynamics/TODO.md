@@ -83,8 +83,7 @@ Implemented and committed:
 - `0413a97`: DG smooth-verification runs can now disable the modal limiter
   explicitly while preserving the existing limited default. Focused
   verification tests show the limiter-disabled smooth MMS p-sweep restores
-  rapid area/flow p-improvement; tracked report assets have not yet been
-  regenerated from that policy.
+  rapid area/flow p-improvement.
 - `a89f6fd`: scalar-generic core helper continuation landed for velocity
   profiles, geometry, wall coefficients, characteristic invariants, and
   variable-radius correction terms. Native resolved-FSI production/Gridap
@@ -308,7 +307,12 @@ Acceptance criteria:
 
 ### Lane 12B: Regenerate DG p/h Verification Assets
 
-Priority: P0 for report numerical-method completeness after Lane 12A.
+Status: implemented in the current 12B source/asset lane. The public PDF was
+not refreshed in this lane; scratch report build validation passed with
+`--no-sync-final-pdf`.
+
+Priority: completed source/asset lane; keep as the DG p/h verification
+evidence baseline for the next report artifact refresh.
 
 Objective: update the generated p/h verification demonstration assets and
 manuscript wording to report the smooth MMS limiter policy honestly: the
@@ -325,30 +329,22 @@ Owned files:
 - `report/appendices/numerical-methods-details.tex`
 - `report/TODO.md`
 
-Dispatch notes:
+Implemented:
 
-1. Coordinate with the editorial orchestrator before touching report prose or
-   generated table assets.
-2. Regenerate the p/h refinement demo with explicit `dg_limiter_policy`
-   metadata. The table must not imply that the production limiter was changed.
-3. Update renderer/tests so `modal_limiter` and `disabled` policies are
-   preserved visibly and non-improvement statuses remain visible when present.
-4. Update Appendix G wording to separate conservative production limiting from
-   smooth MMS verification.
-5. Build the report in scratch and run the report prose audit before any PDF
-   refresh.
+1. Added `verify ph-refinement --disable-dg-limiter` so the limiter-disabled
+   smooth MMS report asset can be regenerated from an auditable CLI command.
+2. Regenerated `p_h_refinement_demo.csv` with `dg_limiter_policy=disabled`,
+   `dt`, `tfinal`, `steps`, `degree`, `nx`, and DOF metadata.
+3. Updated the Python renderer and generated LaTeX table so the policy and
+   solver controls are reader-visible.
+4. Regenerated the p/h refinement figure from the new CSV.
+5. Updated Appendix G wording to bound the evidence to smooth MMS
+   limiter-disabled DG verification and explicitly preserve the conservative
+   default limiter boundary.
 
 Validation commands:
 
-```bash
-pipenv run ops-render-ph-refinement-demo --csv report/assets/data/verification/p_h_refinement_demo.csv --output-dir report/assets/rendered --table-dir report/assets/tables/verification
-pipenv run pytest packages/ops/tests/test_python_ph_refinement_demo.py
-pipenv run ruff check packages/ops/tests/test_python_ph_refinement_demo.py
-pipenv run black --check packages/ops/tests/test_python_ph_refinement_demo.py
-pipenv run ops-audit-report-prose --json
-pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
-git diff --check -- packages/ops report
-```
+See the 12B commit handback for exact generation and validation commands.
 
 Acceptance criteria:
 
@@ -373,9 +369,6 @@ Targets:
 - Strengthen `test_membrane_fsi.jl` dynamic membrane validation so
   wall-velocity maxima are asserted nonzero and agree with written history or
   profile rows.
-- Strengthen `packages/ops/tests/test_python_ph_refinement_demo.py` after Lane
-  12B so plateau/regressed/improved statuses and limiter-policy fields are
-  rendered from fixture values.
 - Strengthen `packages/ops/tests/test_python_package_benchmark.py` with
   nonempty rendered artifact and key numeric/stage-count assertions.
 
@@ -383,10 +376,10 @@ Validation:
 
 ```bash
 packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_membrane_fsi.jl")'
-pipenv run pytest packages/ops/tests/test_python_ph_refinement_demo.py packages/ops/tests/test_python_package_benchmark.py
-pipenv run ruff check packages/ops/tests/test_python_ph_refinement_demo.py packages/ops/tests/test_python_package_benchmark.py
-pipenv run black --check packages/ops/tests/test_python_ph_refinement_demo.py packages/ops/tests/test_python_package_benchmark.py
-git diff --check -- packages/stenotic-hemodynamics/test/test_membrane_fsi.jl packages/ops/tests/test_python_ph_refinement_demo.py packages/ops/tests/test_python_package_benchmark.py
+pipenv run pytest packages/ops/tests/test_python_package_benchmark.py
+pipenv run ruff check packages/ops/tests/test_python_package_benchmark.py
+pipenv run black --check packages/ops/tests/test_python_package_benchmark.py
+git diff --check -- packages/stenotic-hemodynamics/test/test_membrane_fsi.jl packages/ops/tests/test_python_package_benchmark.py
 ```
 
 ### Lane 10C-P: Native FSI Phase Timing Before Numerics Optimization

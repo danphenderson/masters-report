@@ -89,6 +89,11 @@ def p_sweep_status(row: dict[str, str]) -> str:
     return "not_applicable" if row.get("sweep") == "h_refinement" else "not_evaluated"
 
 
+def limiter_policy(row: dict[str, str]) -> str:
+    value = (row.get("dg_limiter_policy") or "").strip()
+    return value or "unknown"
+
+
 def latex_text(value: str) -> str:
     return value.replace("_", r"\_")
 
@@ -166,16 +171,17 @@ def render_table(rows: list[dict[str, str]], table_dir: Path) -> Path:
         r"    \scriptsize",
         (
             r"    \caption{Manufactured-solution p- and h-refinement diagnostic. "
-            r"The h-refinement rows report $L_2$ observed order from adjacent grid spacings; "
-            r"the p-refinement rows report fixed-mesh $L_2$ error reduction and conservative "
-            r"diagnostic status, not accepted p-convergence evidence.}"
+            r"The policy column records whether the modal DG limiter was applied; "
+            r"limiter-disabled rows are smooth-MMS verification evidence and do not change "
+            r"the conservative default DG policy.}"
         ),
         r"    \resizebox{\textwidth}{!}{%",
-        r"    \begin{tabular}{@{}lrrrrrrrrrr@{}}",
+        r"    \begin{tabular}{@{}lrrrrrrrrrrrrr@{}}",
         r"        \toprule",
         (
-            r"        Sweep & $p$ & $N$ & DOFs & $\|e_a\|_2$ & h-order & p-reduction "
-            r"& $\|e_q\|_2$ & h-order & p-reduction & p-status \\"
+            r"        Sweep & policy & $p$ & $N$ & DOFs & $\Delta t$ & steps "
+            r"& $\|e_a\|_2$ & h-order & p-reduction & $\|e_q\|_2$ & h-order "
+            r"& p-reduction & p-status \\"
         ),
         r"        \midrule",
     ]
@@ -185,9 +191,12 @@ def render_table(rows: list[dict[str, str]], table_dir: Path) -> Path:
             + " & ".join(
                 [
                     sweep_label(row.get("sweep", "")),
+                    latex_text(limiter_policy(row)),
                     row.get("degree", ""),
                     row.get("nx", ""),
                     row.get("dofs", ""),
+                    latex_number(row.get("dt")),
+                    row.get("steps", ""),
                     latex_number(row.get("area_l2_error")),
                     latex_number(row.get("area_l2_observed_order")),
                     latex_number(row.get("area_l2_reduction")),

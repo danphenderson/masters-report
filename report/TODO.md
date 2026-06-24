@@ -3,7 +3,8 @@
 ## Current Status
 
 This TODO is refreshed after the report/package mathematical-contract alignment,
-MMS metric-order reporting, and smooth-DG limiter-policy planning rounds.
+MMS metric-order reporting, smooth-DG limiter-policy planning, and Lane 12B
+DG p/h asset-refresh rounds.
 
 Grounding at the start of this round:
 
@@ -11,10 +12,12 @@ Grounding at the start of this round:
   `72bb504 Sync report with focused FSI contract evidence`.
 - The tracked PDF artifact was refreshed in `d0b08da Refresh final report PDF`
   and approved in `416e686 Approve final report PDF`.
-- Package-side planning has advanced through
-  `7ca274e Refresh verification follow-up plan`.
+- Package/report planning advanced through
+  `4ae524f Plan DG p-h verification asset refresh`, and Lane 12B source/asset
+  work has now regenerated the p/h table and figure from the explicit
+  limiter-disabled smooth MMS configuration.
 - `pipenv run ops-orchestrate status --json` reported a clean tree at this
-  refresh. There is no active report/PDF artifact diff to close out before
+  refresh. There was no active report/PDF artifact diff at the start of
   Lane 12B.
 
 Resolved PDF artifact decision:
@@ -44,8 +47,12 @@ Latest verification-reporting decision:
 - Package commit `0413a97 Add DG limiter policy for smooth verification`
   implements an explicit limiter-disabled smooth MMS verification policy while
   preserving the conservative limited default. Focused package tests show
-  restored fixed-mesh DG p-improvement for smooth MMS rows, but tracked report
-  assets have not yet been regenerated from that policy.
+  restored fixed-mesh DG p-improvement for smooth MMS rows.
+- Lane 12B regenerated `p_h_refinement_demo.csv`,
+  `p_h_refinement_demo.tex`, and `p-h-refinement-demo.{pdf,png}` from
+  `verify ph-refinement --disable-dg-limiter`. The table now visibly records
+  limiter policy, polynomial degree, grid size, DOFs, timestep, steps, and
+  p-status fields.
 - Package commits `a89f6fd`, `c9a85c3`, and `49e0ba8` landed scalar-generic
   helper continuation, explicit inlet-area solve controls, and stronger
   refinement-study CLI tests. These are package correctness/maintenance
@@ -85,22 +92,18 @@ Do not reopen these lanes without a new technical finding:
 - Section 7 verification and the generated MMS table now report
   metric-specific observed orders for discrete $L_1$, $L_2$, and $L_\infty$
   manufactured-solution errors.
-- Appendix G now classifies the DG fixed-grid p-sweep as diagnostic when rows
-  plateau or regress, not as accepted p-convergence evidence.
-- Package-side smooth MMS DG p-improvement now exists at focused test scope,
-  but Appendix G and generated report assets still need a coordinated
-  regeneration/review lane before any accepted p-convergence prose changes.
+- Appendix G now states that the displayed DG fixed-grid p-sweep is
+  limiter-disabled smooth MMS verification evidence for the DG polynomial
+  representation and operator wiring. It also states that this does not change
+  the conservative limited DG default and does not support native resolved-FSI
+  validation or Section 4.1 reproduction claims.
 
 ## Next Round Objective
 
-Execute Lane 12B: regenerate and review the DG p/h verification report assets
-under the explicit smooth-verification limiter policy, then update Appendix G
-wording only as far as the regenerated evidence supports. The claim boundary is
-narrow: the default production limiter remains conservative, and any accepted
-p-improvement wording is limited to the limiter-disabled smooth MMS
-verification configuration. Do not promote native resolved-FSI Section 4.1
-production, imported parity, moving-wall/ALE fidelity, persisted resume, or
-manuscript-grade reproduction claims.
+Close the remaining report artifact and test-hardening follow-ups without
+changing scientific claims. Lane 12B is complete at source/asset scope, but the
+public PDF has not been refreshed in that lane. Any PDF sync should be an
+explicit artifact-owner step after source/assets are reviewed.
 
 ## Immediate Execution Plan
 
@@ -117,40 +120,14 @@ pipenv run ops-orchestrate status --json
 Expected starting condition:
 
 - no report TeX source diff unless another editor has landed a new prose lane;
-- no dirty `public/final-report.pdf` unless a new artifact lane has started;
+- no dirty `public/final-report.pdf` unless a PDF artifact lane has started;
 - package code/docs are owned by the package orchestrator unless explicitly
   assigned back to the report lane.
 
-### 2. Lane 12B DG p/h Asset Regeneration
+### 2. PDF Artifact Decision
 
-Coordinate with the package orchestrator before regenerating assets. The report
-lane needs a package-side handoff naming the command, output paths, and expected
-metadata fields for the limiter-disabled smooth MMS verification run.
-
-Required report-side outcomes:
-
-- regenerate `report/assets/data/verification/p_h_refinement_demo.csv`;
-- regenerate `report/assets/tables/verification/p_h_refinement_demo.tex`;
-- ensure the generated table exposes enough limiter-policy metadata, such as
-  `dg_limiter_policy`, that a reader can distinguish default limited runs from
-  limiter-disabled smooth-verification rows;
-- update Appendix G only after the generated assets are reviewed. The allowed
-  interpretation is smooth-MMS, limiter-disabled p-improvement evidence for the
-  DG implementation surface, not a production-method claim.
-
-Suggested validation after regeneration:
-
-```sh
-git diff --check -- report/assets/data/verification/p_h_refinement_demo.csv report/assets/tables/verification/p_h_refinement_demo.tex report/appendices/numerical-methods-details.tex
-pipenv run ops-audit-report-prose --json
-pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
-```
-
-### 3. PDF Artifact Decision
-
-Only after Lane 12B source/assets are accepted, decide whether the public PDF is
-in scope. If it is, first compare the tracked, working-tree, and scratch-build
-PDFs:
+Only after the Lane 12B source/assets are accepted, decide whether the public
+PDF is in scope. If it is, first compare the tracked and scratch-build PDFs:
 
 ```sh
 git show HEAD:public/final-report.pdf > /tmp/head-final-report.pdf
@@ -160,8 +137,26 @@ pdftotext -layout /tmp/masters-report-build/final-report.pdf /tmp/scratch-final-
 diff -u /tmp/head-final-report.txt /tmp/scratch-final-report.txt
 ```
 
-Do not use SHA equality alone as the acceptance criterion for PDFs; build
-metadata can change even when reader-facing text is unchanged.
+If the scratch output reflects intentional Lane 12B asset/prose changes, run
+`pipenv run ops-build-report --outdir /tmp/masters-report-build` to sync the
+public PDF, visually spot-check Appendix G, and commit the PDF separately.
+
+### 3. Focused Test Hardening
+
+Remaining P1 test-hardening follow-ups from the read-only audit:
+
+- strengthen dynamic membrane validation in `test_membrane_fsi.jl`;
+- strengthen `test_python_package_benchmark.py` with nonempty rendered-artifact
+  and key numeric/stage-count assertions.
+
+Suggested validation:
+
+```sh
+packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_membrane_fsi.jl")'
+pipenv run pytest packages/ops/tests/test_python_package_benchmark.py
+pipenv run ruff check packages/ops/tests/test_python_package_benchmark.py
+pipenv run black --check packages/ops/tests/test_python_package_benchmark.py
+```
 
 ### 4. Evidence-Regeneration Readiness
 
@@ -226,9 +221,6 @@ After evidence assets and source prose are stable:
 The report lane does not own package implementation. Current package-side
 follow-ups remain:
 
-- 12B regenerated DG p/h verification assets and Appendix G wording, coordinated
-  with the package orchestrator so limiter-policy metadata is visible and the
-  conservative production limiter is not misrepresented;
 - 12C focused test hardening for dynamic membrane output and Python renderers;
 - 10C-P native resolved-FSI phase timing before solver/numerics changes;
 - FEM-05 quadrature sensitivity and open-boundary/backflow diagnostics;
