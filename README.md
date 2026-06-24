@@ -61,6 +61,18 @@ explicitly before major handbacks, pushes, or release-readiness decisions:
 pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-build
 ```
 
+Run the official focused commit-readiness gate before staging or committing a
+managed lane:
+
+```bash
+pipenv run ops-orchestrate ready-to-commit
+```
+
+This command selects the focused validation gates from the current dirty
+surfaces and also runs the lightweight pre-commit stack. Use
+`pipenv run ops-orchestrate ready-to-commit --all` when the full aggregate
+patch gate is required.
+
 Run Julia package validation through the agent-facing ops wrapper:
 
 ```bash
@@ -102,6 +114,7 @@ pipenv run ops-julia-check
 pipenv run ops-python-check
 pipenv run ops-orchestrate status --json
 pipenv run ops-orchestrate sessions --source codex-jsonl --date YYYY-MM-DD --json
+pipenv run ops-orchestrate ready-to-commit
 pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-build
 ```
 

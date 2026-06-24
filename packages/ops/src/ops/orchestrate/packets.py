@@ -45,6 +45,7 @@ def dispatch_packet(
         "- Re-anchor with `git status --short --branch --untracked-files=all` before making claims about the tree.",
         "- Use repository files and local validation outputs as evidence; do not infer from stale summaries.",
         "- Keep edits path-scoped and preserve unrelated dirty work.",
+        "- Do not run official validation gates unless explicitly assigned; hand back the intended orchestrator validation scope.",
         "- Do not install hooks, spawn background automation, or create persistent orchestration receipts.",
     ]
     if PROFILE_GUIDANCE[profile]:
@@ -59,6 +60,8 @@ def dispatch_packet(
         [
             "",
             "## Validation",
+            "- Official gate: `pipenv run ops-orchestrate ready-to-commit`",
+            "- Worker handback should include `Orchestrator validation scope:` followed by the focused commands below.",
             *[f"- {command}" for command in commands_for(surface, mode)],
             "",
             "## Required Handback",
@@ -82,6 +85,7 @@ def dispatch_payload(
         "allowed_files": list(files),
         "blocked_artifacts": list(blocked_artifacts_for(surface, mode)),
         "profile_guidance": list(PROFILE_GUIDANCE[profile]),
+        "official_validation_gate": "pipenv run ops-orchestrate ready-to-commit",
         "validation": list(commands_for(surface, mode)),
         "required_handback": list(handback_sections_for(profile)),
         "dirty_by_surface": report.dirty_by_surface,

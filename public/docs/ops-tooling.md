@@ -34,6 +34,17 @@ explicitly before major handbacks, pushes, or release-readiness decisions:
 pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-build
 ```
 
+For ordinary managed commits, use the orchestrator-owned focused gate:
+
+```sh
+pipenv run ops-orchestrate ready-to-commit
+```
+
+`ready-to-commit` selects focused validation from the dirty surfaces and runs
+the lightweight hook as one gate. Use `--all` when the aggregate patch gate is
+required. Worker agents should hand back validation scope; the orchestrator or
+commit wrapper runs this command immediately before commit.
+
 ## Audit And Build Commands
 
 - `pipenv run ops-experiment <julia-command> [options]`: run a Julia simulation,
@@ -126,6 +137,8 @@ refresh scope.
 - `pipenv run ops-orchestrate packet-check`: validate external handoff text.
 - `pipenv run ops-orchestrate docs-contract`: check the documented
   orchestration contract.
+- `pipenv run ops-orchestrate ready-to-commit`: run the centralized
+  commit-readiness gate selected from the current dirty surfaces.
 
 Use `public/docs/agent-workflows.md` for modes, profiles, and guardrails.
 

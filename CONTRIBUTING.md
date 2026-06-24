@@ -12,6 +12,10 @@ reviewable, and tied to a reproducible validation path.
   checks should run automatically.
 - Use `pipenv run pre-commit run --all-files` to run the fast hook stack
   manually.
+- Use `pipenv run ops-orchestrate ready-to-commit` immediately before staging
+  or committing a managed lane. It selects focused validation from the dirty
+  surfaces and keeps official validation in the orchestrator/commit-wrapper
+  path.
 - Use `pipenv run ops-experiment ...` for foreground simulation, study,
   verification, comparison, and benchmark runs that need terminal streaming and
   JSON logs.

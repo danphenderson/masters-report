@@ -28,6 +28,7 @@ pipenv run ops-orchestrate review --commit 786e8f9 --lane orchestration
 pipenv run ops-orchestrate handback-check --path /tmp/handback.md --surface report --mode inspect
 pipenv run ops-orchestrate packet-check --path /tmp/handoff.md --profile editorial-readiness
 pipenv run ops-orchestrate docs-contract
+pipenv run ops-orchestrate ready-to-commit
 ```
 
 Run `status` before dispatching cleanup, editorial, artifact, or release work.
@@ -64,6 +65,13 @@ regenerate/rewrite-as-needed authority.
 Run `docs-contract` after changing this workflow or related public docs. It
 checks that the documented orchestration surface still matches the live
 lightweight contract.
+
+Run `ready-to-commit` as the official orchestrator-side validation gate before
+staging or committing managed lane changes. The command selects focused gates
+from the dirty surfaces: diff checks, docs contract, lightweight pre-commit
+hooks, and the owning Julia, Python, report, or reference gate as needed. Use
+`--all` only for the aggregate patch gate. Protected artifacts require an
+explicit artifact-refresh scope and `--allow-protected-artifacts`.
 
 ## Mode Semantics
 
@@ -114,6 +122,17 @@ artifact, or ops changes outside the task, treat those changes as user-owned
 context and leave them intact.
 
 ## Validation Defaults
+
+Official commit validation is orchestrator-owned:
+
+```sh
+pipenv run ops-orchestrate ready-to-commit
+```
+
+Worker agents hand back `Orchestrator validation scope:` plus the expected
+focused commands; they do not run the official gate unless explicitly assigned.
+The lightweight pre-commit hook remains a hygiene layer, not the full
+orchestrator validation policy.
 
 - `report`: `pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf`
 - `julia`: `pipenv run ops-julia-check`

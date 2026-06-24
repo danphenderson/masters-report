@@ -42,6 +42,10 @@ The nested
 - `pipenv run ops-orchestrate sessions --source codex-jsonl --date YYYY-MM-DD --json`:
   summarize local Codex JSONL sessions for this repository when auditing agent
   work.
+- `pipenv run ops-orchestrate ready-to-commit`: run the orchestrator-owned
+  focused commit-readiness gate selected from the current dirty surfaces.
+  Worker agents should hand back validation scope instead of running this
+  official gate themselves unless explicitly assigned.
 - `pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf`: run the
   validation-only report build gate. The wrapper runs the TeX preamble audit,
   invokes `latexmk -pdf -interaction=nonstopmode -halt-on-error` in a scratch
@@ -98,11 +102,12 @@ files to move together.
 
 Start substantial Codex work with `pipenv run ops-orchestrate status --json`.
 Run experiments through `pipenv run ops-experiment --dirty-policy warn ...` so
-the handback can cite the summary JSON under `public/var/logs/`. For ordinary
-dirty-tree validation, use `pipenv run ops-release-check --mode patch
---report-outdir /tmp/masters-report-build`. Reserve `pipenv run
-ops-release-check --mode release` for clean publication readiness or final
-artifact refresh lanes.
+the handback can cite the summary JSON under `public/var/logs/`. Before
+staging or committing a managed lane, run `pipenv run ops-orchestrate
+ready-to-commit`. For major handbacks, pushes, or release-readiness decisions,
+use `pipenv run ops-release-check --mode patch --report-outdir
+/tmp/masters-report-build`. Reserve `pipenv run ops-release-check --mode
+release` for clean publication readiness or final artifact refresh lanes.
 
 ## Commit & Pull Request Guidelines
 

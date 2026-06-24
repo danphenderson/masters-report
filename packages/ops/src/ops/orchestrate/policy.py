@@ -10,7 +10,16 @@ from .models import ReviewLaneSpec
 SURFACES = ("report", "julia", "ops", "references", "assets", "release")
 MODES = ("inspect", "bounded-edit", "hard-review", "artifact-refresh")
 PROFILES = ("generic", "editorial-readiness", "claim-boundary", "citation-evidence", "pdf-sync", "source-polish")
-COMMANDS = ("status", "sessions", "dispatch", "review", "handback-check", "packet-check", "docs-contract")
+COMMANDS = (
+    "status",
+    "sessions",
+    "dispatch",
+    "review",
+    "handback-check",
+    "packet-check",
+    "docs-contract",
+    "ready-to-commit",
+)
 REVIEW_LANES = ("layout", "artifacts", "orchestration", "docs")
 REQUIRED_HANDBACK_SECTIONS = ("Status", "Scope", "Files", "Validation", "Risks")
 PROFILE_HANDBACK_SECTIONS: dict[str, tuple[str, ...]] = {
@@ -60,6 +69,7 @@ ALL_HANDBACK_SECTIONS = tuple(
 SURFACE_PREFIXES: dict[str, tuple[str, ...]] = {
     "assets": ("report/assets/", "public/var/data/simulations/", "public/var/logs/"),
     "report": (
+        "report/TODO.md",
         "report/final-report.tex",
         "report/frontmatter/",
         "report/sections/",

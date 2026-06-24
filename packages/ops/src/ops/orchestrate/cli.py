@@ -20,6 +20,7 @@ from .models import CheckResult, StatusReport
 from .packet_check import packet_check
 from .packets import dispatch_packet, dispatch_payload, review_packet, review_payload
 from .policy import MODES, PROFILES, REVIEW_LANES, SURFACES
+from .ready_commit import DEFAULT_REPORT_OUTDIR, ready_to_commit_result, shell_command
 from .session_sources import SessionSummary, session_source
 from .status import repo_root, status_report
 
@@ -42,6 +43,10 @@ RepoOption = Annotated[
 StrictOption = Annotated[
     bool,
     typer.Option("--strict", help="Fail on protected or unclassified dirty paths."),
+]
+ReportOutdirOption = Annotated[
+    Path,
+    typer.Option("--report-outdir", help="Scratch report build directory for report validation gates."),
 ]
 
 console = Console()
@@ -337,6 +342,70 @@ def docs_contract_command(ctx: typer.Context, json_output: JsonOption = False) -
         dump_json(asdict(result))
         return 0 if result.status == "passed" else 1
     return print_check_result(result)
+
+
+@app.command("ready-to-commit", help="Run the centralized commit-readiness validation gate.")
+def ready_to_commit_command(
+    ctx: typer.Context,
+    all_gates: Annotated[
+        bool,
+        typer.Option("--all", help="Run the aggregate patch gate instead of focused dirty-surface gates."),
+    ] = False,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Print the selected gates without executing them."),
+    ] = False,
+    allow_protected_artifacts: Annotated[
+        bool,
+        typer.Option(
+            "--allow-protected-artifacts",
+            help="Permit protected artifact paths after the owning artifact-refresh validation is in scope.",
+        ),
+    ] = False,
+    allow_unclassified: Annotated[
+        bool,
+        typer.Option("--allow-unclassified", help="Permit unclassified dirty paths after ownership review."),
+    ] = False,
+    report_outdir: ReportOutdirOption = DEFAULT_REPORT_OUTDIR,
+    json_output: JsonOption = False,
+) -> int:
+    root = _root_from_context(ctx)
+    report = status_report(root)
+    result = ready_to_commit_result(
+        report,
+        repo=root,
+        report_outdir=report_outdir,
+        all_gates=all_gates,
+        dry_run=dry_run,
+        stream=not json_output,
+        allow_protected_artifacts=allow_protected_artifacts,
+        allow_unclassified=allow_unclassified,
+    )
+    payload = {
+        "status": result.status,
+        "issues": list(result.issues),
+        "dirty_surfaces": list(result.dirty_surfaces),
+        "gates": [{"name": gate.name, "surface": gate.surface, "command": list(gate.command)} for gate in result.gates],
+        "results": [
+            {"name": item.name, "command": list(item.command), "returncode": item.returncode} for item in result.results
+        ],
+    }
+    if json_output:
+        dump_json(payload)
+        return 0 if result.status == "passed" else 1
+
+    if report.entries:
+        console.print(f"[bold]Dirty surfaces:[/bold] {', '.join(result.dirty_surfaces) or '<unclassified only>'}")
+    else:
+        console.print("[bold]Dirty surfaces:[/bold] none")
+    if result.issues:
+        for issue in result.issues:
+            console.print(f"[red]- {issue}[/red]")
+        return 1
+    if dry_run:
+        for gate in result.gates:
+            console.print(f"- {gate.name}: `{shell_command(gate.command)}`")
+    return 0 if result.status == "passed" else 1
 
 
 def main(argv: Sequence[str] | None = None) -> int:

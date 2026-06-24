@@ -105,11 +105,12 @@ Do not reopen these lanes without a new technical finding:
 
 ## Next Round Objective
 
-Close the remaining report/test/ops follow-ups without changing scientific
-claims. The public PDF is current with Lane 12B; the next round should focus on
-centralized validation automation, focused test hardening, native-FSI
-instrumentation review before optimization, and claim-boundary-preserving
-package/report coordination.
+Close the remaining report/test/package follow-ups without changing scientific
+claims. The public PDF is current with Lane 12B, and centralized validation
+automation is implemented through `pipenv run ops-orchestrate
+ready-to-commit`. The next round should focus on focused test hardening,
+native-FSI instrumentation review before optimization, and
+claim-boundary-preserving package/report coordination.
 
 ## Immediate Execution Plan
 
@@ -154,19 +155,25 @@ Wave 3 waits for accepted timing/optimization evidence:
 
 ### 3. Centralized Validation Automation
 
-Add a parallel ops/report coordination lane so worker agents do not run
-official validation directly. Workers should hand back:
+Status: implemented. The official focused commit-readiness command is:
+
+```sh
+pipenv run ops-orchestrate ready-to-commit
+```
+
+Worker agents should not run official validation directly. They should hand
+back:
 
 - touched file set;
 - intended validation scope;
 - known optional skips;
 - risk notes and any commands they believe should be run.
 
-The orchestrator or commit wrapper should run focused validation
-automatically immediately before commit. Keep the lightweight pre-commit hook
-from `a836353`; do not restore the slow full-gate hook as mandatory
-pre-commit behavior. A future ops command may expose this as a lane-aware
-`ops-orchestrate` validation entrypoint.
+The orchestrator or commit wrapper runs focused validation automatically
+immediately before commit. Keep the lightweight pre-commit hook from `a836353`;
+do not restore the slow full-gate hook as mandatory pre-commit behavior. Use
+`pipenv run ops-orchestrate ready-to-commit --all` when the aggregate patch
+gate is explicitly required.
 
 Acceptance:
 

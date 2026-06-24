@@ -6,7 +6,9 @@ repository artifacts.
 Separate source moves, reference-metadata decisions, report-artifact refreshes,
 and ignore-rule changes into distinct patches. Do not combine them in one
 cleanup sweep. Use `public/docs/agent-workflows.md` for bounded agent handoffs.
-Treat `pipenv run ops-orchestrate status` as read-only classification.
+Treat `pipenv run ops-orchestrate status` as read-only classification, and use
+`pipenv run ops-orchestrate ready-to-commit` as the orchestrator-owned focused
+validation gate before managed commits.
 
 Tracked pre-commit config is allowed; local hook installation is explicit. Do
 not create background automation. Do not write persistent orchestration
@@ -91,6 +93,7 @@ changes, run:
 git status --short
 git diff --check
 pipenv run ops-orchestrate docs-contract
+pipenv run ops-orchestrate ready-to-commit
 ```
 
 For reference metadata changes, add:

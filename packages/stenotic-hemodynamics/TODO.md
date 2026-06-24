@@ -237,8 +237,6 @@ Implemented and committed:
 
 Wave 1 can run concurrently if write locks stay disjoint:
 
-- Lane 12V validation automation: `packages/ops/**`, root workflow docs, and
-  validation-policy docs only.
 - Lane 12C focused test hardening:
   `packages/stenotic-hemodynamics/test/test_membrane_fsi.jl` and
   `packages/ops/tests/test_python_package_benchmark.py`.
@@ -264,9 +262,14 @@ Wave 3 starts only after timing/optimization evidence is accepted:
 
 ### Lane 12V: Centralized Validation Automation
 
-Priority: P0 parallel ops lane before the next multi-agent implementation
-wave. This is a process/tooling lane, not a numerical or manuscript claim
-lane.
+Status: implemented. Keep this as the official commit-readiness policy for
+future lanes.
+
+Official command:
+
+```bash
+pipenv run ops-orchestrate ready-to-commit
+```
 
 Objective: automate official validation at commit time without pushing slow
 full-gate validation back into the local pre-commit hook.
@@ -279,16 +282,16 @@ Current policy baseline:
 - `ops-release-check --mode patch` remains the explicit aggregate
   integration/release gate.
 
-Required implementation plan:
+Implemented:
 
-1. Define a lane handback contract for workers: touched files, intended
+1. Defined a lane handback contract for workers: touched files, intended
    validation scope, optional input skips, and risk notes.
-2. Add or plan a lane-aware `ops-orchestrate` validation entrypoint that maps
+2. Added a lane-aware `ops-orchestrate ready-to-commit` entrypoint that maps
    changed surfaces to focused validation commands before commit.
-3. Make the orchestrator/commit wrapper run those commands immediately before
+3. The orchestrator/commit wrapper runs those commands immediately before
    staging or committing managed lane changes.
-4. Record validation commands/results in final handbacks.
-5. Keep expensive aggregate validation explicit; do not restore a full
+4. Validation commands/results are recorded in final handbacks.
+5. Expensive aggregate validation remains explicit; do not restore a full
    `ops-release-check` pre-commit hook.
 
 Acceptance criteria:
@@ -304,6 +307,7 @@ Acceptance criteria:
 Validation:
 
 ```bash
+pipenv run ops-orchestrate ready-to-commit
 pipenv run ops-orchestrate docs-contract
 pipenv run pre-commit run --all-files
 git diff --check -- README.md CONTRIBUTING.md AGENTS.md public/docs packages/ops

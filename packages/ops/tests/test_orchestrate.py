@@ -47,6 +47,12 @@ def test_parse_status_classifies_renames_from_original_path_when_needed() -> Non
     assert report.entries[0].original_path == "docs/artifact-policy.md"
 
 
+def test_parse_status_classifies_report_todo_as_report_surface() -> None:
+    report = orchestrate.parse_status(" M report/TODO.md")
+
+    assert report.entries[0].surface == "report"
+
+
 def test_dispatch_packet_includes_guardrails_and_validation(monkeypatch) -> None:
     monkeypatch.setattr(
         orchestrate,
@@ -291,6 +297,29 @@ def test_handback_check_accepts_complete_ops_handback() -> None:
     assert result.issues == ()
 
 
+def test_handback_check_accepts_orchestrator_validation_scope() -> None:
+    result = orchestrate.check_handback(
+        "\n".join(
+            [
+                "## Status",
+                "passed",
+                "## Scope",
+                "ops package only",
+                "## Files",
+                "packages/ops/src/ops/orchestrate/cli.py",
+                "## Validation",
+                "Orchestrator validation scope: pipenv run ops-python-check",
+                "## Risks",
+                "official validation remains orchestrator-owned before commit",
+            ]
+        ),
+        "ops",
+    )
+
+    assert result.status == "passed"
+    assert result.issues == ()
+
+
 def test_report_handback_requires_no_sync_final_pdf_outside_artifact_refresh() -> None:
     handback = "\n".join(
         [
@@ -417,6 +446,89 @@ def test_packet_check_accepts_profiled_dispatch_packet(monkeypatch) -> None:
     result = orchestrate.packet_check(packet, "editorial-readiness")
 
     assert result.status == "passed"
+
+
+def test_ready_to_commit_gates_select_focused_surface_validation() -> None:
+    report = orchestrate.parse_status(
+        "\n".join(
+            [
+                "## master",
+                " M packages/ops/src/ops/orchestrate/cli.py",
+                " M report/sections/01-intro/index.tex",
+            ]
+        )
+    )
+
+    gates = orchestrate.ready_to_commit_gates(report, report_outdir=Path("/tmp/build"))
+    commands = [orchestrate.shell_command(gate.command) for gate in gates]
+
+    assert "git diff --check" in commands
+    assert "git diff --cached --check" in commands
+    assert "pipenv run ops-orchestrate docs-contract" in commands
+    assert "pipenv run pre-commit run --all-files" in commands
+    assert "pipenv run ops-python-check" in commands
+    assert "pipenv run ops-audit-report-prose --json" in commands
+    assert "pipenv run ops-build-report --outdir /tmp/build --no-sync-final-pdf" in commands
+    assert all("ops-release-check" not in command for command in commands)
+
+
+def test_ready_to_commit_skips_julia_validation_for_package_markdown_only() -> None:
+    report = orchestrate.parse_status("## master\n M packages/stenotic-hemodynamics/TODO.md")
+
+    gates = orchestrate.ready_to_commit_gates(report, report_outdir=Path("/tmp/build"))
+    commands = [orchestrate.shell_command(gate.command) for gate in gates]
+
+    assert "pipenv run ops-julia-check" not in commands
+
+
+def test_ready_to_commit_skips_report_build_for_report_todo_only() -> None:
+    report = orchestrate.parse_status("## master\n M report/TODO.md")
+
+    gates = orchestrate.ready_to_commit_gates(report, report_outdir=Path("/tmp/build"))
+    commands = [orchestrate.shell_command(gate.command) for gate in gates]
+
+    assert "pipenv run ops-build-report --outdir /tmp/build --no-sync-final-pdf" not in commands
+    assert "pipenv run ops-audit-report-prose --json" not in commands
+
+
+def test_ready_to_commit_runs_report_build_for_tex_source() -> None:
+    report = orchestrate.parse_status("## master\n M report/sections/01-intro/index.tex")
+
+    gates = orchestrate.ready_to_commit_gates(report, report_outdir=Path("/tmp/build"))
+    commands = [orchestrate.shell_command(gate.command) for gate in gates]
+
+    assert "pipenv run ops-build-report --outdir /tmp/build --no-sync-final-pdf" in commands
+    assert "pipenv run ops-audit-report-prose --json" in commands
+
+
+def test_ready_to_commit_runs_julia_validation_for_package_source() -> None:
+    report = orchestrate.parse_status("## master\n M packages/stenotic-hemodynamics/src/StenoticHemodynamics.jl")
+
+    gates = orchestrate.ready_to_commit_gates(report, report_outdir=Path("/tmp/build"))
+    commands = [orchestrate.shell_command(gate.command) for gate in gates]
+
+    assert "pipenv run ops-julia-check" in commands
+
+
+def test_ready_to_commit_all_uses_aggregate_patch_gate() -> None:
+    report = orchestrate.parse_status("## master\n M packages/ops/src/ops/orchestrate/cli.py")
+
+    gates = orchestrate.ready_to_commit_gates(report, report_outdir=Path("/tmp/build"), all_gates=True)
+
+    assert [orchestrate.shell_command(gate.command) for gate in gates] == [
+        "pipenv run ops-release-check --mode patch --report-outdir /tmp/build"
+    ]
+
+
+def test_ready_to_commit_rejects_protected_artifacts_without_explicit_scope() -> None:
+    report = orchestrate.parse_status("## master\n M public/final-report.pdf")
+
+    issues = orchestrate.ready_to_commit_issues(report)
+
+    assert issues == (
+        "protected artifact paths require --allow-protected-artifacts after owning artifact validation: "
+        "public/final-report.pdf",
+    )
 
 
 def test_cli_json_subcommands_smoke(tmp_path: Path, capsys) -> None:
@@ -570,3 +682,8 @@ def test_cli_json_subcommands_smoke(tmp_path: Path, capsys) -> None:
 
     assert orchestrate.main(["--repo", str(root), "docs-contract", "--json"]) == 0
     assert json.loads(capsys.readouterr().out)["status"] == "passed"
+
+    assert orchestrate.main(["--repo", str(root), "ready-to-commit", "--dry-run", "--json"]) == 0
+    ready_payload = json.loads(capsys.readouterr().out)
+    assert ready_payload["status"] == "passed"
+    assert "gates" in ready_payload

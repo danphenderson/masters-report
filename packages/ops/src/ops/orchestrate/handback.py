@@ -71,12 +71,18 @@ def has_validation_skip_reason(text: str) -> bool:
     return re.search(r"(?is)\b(skipped|not run)\b.*\b(because|reason|unavailable|optional)\b", text) is not None
 
 
+def has_orchestrator_validation_scope(text: str) -> bool:
+    return re.search(r"(?is)\borchestrator\s+validation\s+scope\b", text) is not None
+
+
 def has_pending_validation_intent(text: str) -> bool:
     return any(pattern.search(text) for pattern in PENDING_VALIDATION_PATTERNS)
 
 
 def validation_present(text: str, surface: str, mode: str) -> bool:
     markers = VALIDATION_MARKERS[surface]
+    if has_orchestrator_validation_scope(text):
+        return all(marker in text for marker in markers)
     if surface == "report" and mode != "artifact-refresh":
         return all(marker in text for marker in markers) and "--no-sync-final-pdf" in text
     return all(marker in text for marker in markers)

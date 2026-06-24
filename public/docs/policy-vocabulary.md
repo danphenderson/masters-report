@@ -30,6 +30,9 @@ Prefer direct imperatives for procedure: `Run`, `Keep`, `Validate`, `Inspect`,
   the repository-managed Julia release launcher.
 - `patch validation gate`: `pipenv run ops-release-check --mode patch`.
   Use it for aggregate validation during ordinary dirty-tree development.
+- `focused commit-readiness gate`: `pipenv run ops-orchestrate ready-to-commit`.
+  Use it immediately before managed lane commits; it selects focused validation
+  from dirty surfaces and keeps official validation in the orchestrator path.
 - `source-release gate`: `pipenv run ops-release-check --mode release`.
   Use it for clean aggregate source-release validation and publication hygiene
   scans through the ops CLI.
