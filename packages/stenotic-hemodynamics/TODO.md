@@ -112,6 +112,16 @@ Implemented and committed:
   mode, skipped snapshots, sidecars, and observations; browser smoke covers a
   generated missing-field manifest. The package TODO was refreshed to close
   obsolete Wave 1 lanes before Wave 2 review.
+- `b394c18`: Wave 2 warmed timing decision recorded. The representative
+  `(12, 2, 12)` pilot found repeated affine-operator assembly cost, stable
+  sparse structure, and changing matrix/RHS values. No factorization-reuse or
+  Gridap-context reuse patch is accepted from that evidence; future
+  optimization must be assembly-specific and invariant-gated.
+- `5136a67`: report-side asset-promotion planning refreshed after the package
+  viewer/timing handoff. Current viewer controls, evidence badges, timing
+  sidecars, and matrix fingerprints remain package/operator metadata only; they
+  do not require report asset/PDF refresh or promote native resolved-FSI
+  claims.
 
 ## Non-Negotiable Claim Boundary
 
@@ -261,6 +271,11 @@ Implemented and committed:
   the repeated warm-step cost. Future optimization should target
   assembly-specific design only after preserving the changing-geometry,
   changing-advection, and changing-boundary-value invariants.
+- Report asset-promotion refresh `5136a67` confirms that the current
+  viewer/timing package handoff does not create manuscript assets. Keep viewer
+  bundles, browser-smoke fixtures, timing sidecars, and reuse/fingerprint
+  metadata out of `report/assets/**` and `public/final-report.pdf` unless a
+  separate accepted report-evidence lane explicitly promotes them.
 
 ## Orchestration Rules
 
@@ -315,12 +330,13 @@ Wave 2 closeout status:
 - Lane 11 P1 mathematical-contract stewardship if it touches disjoint
   observation/model/API files from any optimization lane.
 
-Wave 3 remains blocked until the no-reuse Wave 2 decision is accepted or a
-future assembly-specific optimization lands with validation:
+Wave 3 is no longer waiting on an unresolved Wave 2 decision, but it remains a
+scheduled long-running compute lane:
 
 - `sev23` preproduction batch execution and imported parity staging. Do not
-  relaunch long runs before the instrumentation review and any accepted
-  measured optimization lane complete.
+  relaunch long runs from opportunistic package-worker rounds; proceed only
+  when the orchestrator deliberately schedules the current no-reuse baseline or
+  after a future assembly-specific optimization lands with validation.
 
 ### Lane 12V: Centralized Validation Automation
 
@@ -590,8 +606,9 @@ git diff --check -- packages/stenotic-hemodynamics-viewer packages/stenotic-hemo
 Status: instrumentation implemented as package code in `d52dcb1`; current
 Wave 1 and Wave 2 timing reviews complete. The preproduction attempt was
 naturally classified as incomplete at step 40/1000. Subsequent long `sev23`
-launches remain blocked until the no-reuse Wave 2 decision is accepted or a
-future assembly-specific optimization lands with validation.
+launches are not waiting on an unresolved reuse decision, but remain scoped to
+deliberately scheduled compute under the accepted no-reuse baseline or to a
+future assembly-specific optimization lane with validation.
 
 Objective: instrument before changing numerics so future preproduction and
 production launches report where wall time and memory are spent. The current
