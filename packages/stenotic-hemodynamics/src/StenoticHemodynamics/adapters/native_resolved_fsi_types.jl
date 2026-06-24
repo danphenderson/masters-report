@@ -42,6 +42,8 @@ const NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS = (
 )
 const NATIVE_RESOLVED_FSI_PHASE_TIMING_DERIVED_KEYS = (
     :gridap_operator_assembly_s,
+    :fluid_solve_total_s,
+    :step_total_s,
 )
 const NATIVE_RESOLVED_FSI_SOLVER_DIAGNOSTIC_KEYS = (
     :gridap_rebuild_status,

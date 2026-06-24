@@ -2162,6 +2162,7 @@ function run_native_resolved_fsi_partitioned_production(
                 pressure_projection_fallback_count=result.smoke_result.pressure_projection_fallback_count,
                 fluid_wall_boundary_mode=string(result.smoke_result.fluid_wall_boundary_mode),
                 inlet_outlet_boundary_mode=string(result.smoke_result.inlet_outlet_boundary_mode),
+                solver_diagnostics=result.smoke_result.solver_diagnostics,
                 phase_timing_s=native_resolved_fsi_phase_timing_named_tuple(production_phase_timing),
                 message="native resolved-FSI production batch completed",
             ),

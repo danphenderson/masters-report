@@ -75,6 +75,10 @@ end
 
 @testset "StenoticHemodynamics native resolved-FSI phase timing helper contract" begin
     phase_keys = StenoticHemodynamics.NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS
+    derived_phase_keys = StenoticHemodynamics.NATIVE_RESOLVED_FSI_PHASE_TIMING_DERIVED_KEYS
+    @test :gridap_operator_assembly_s in derived_phase_keys
+    @test :fluid_solve_total_s in derived_phase_keys
+    @test :step_total_s in derived_phase_keys
     timings = StenoticHemodynamics.native_resolved_fsi_phase_timing_accumulator()
     @test Set(keys(timings)) == Set(phase_keys)
     @test all(iszero, values(timings))
@@ -136,7 +140,7 @@ end
     @test timing_tuple.wall_update_s ≈ 0.0
     expected_total = sum(
         Float64(getfield(timing_tuple, key)) for key in phase_keys
-        if !(key in StenoticHemodynamics.NATIVE_RESOLVED_FSI_PHASE_TIMING_DERIVED_KEYS)
+        if !(key in derived_phase_keys)
     )
     @test StenoticHemodynamics.native_resolved_fsi_phase_timing_total_s(timing_tuple) ≈ expected_total
 end
@@ -707,6 +711,12 @@ end
         @test any(occursin("\"event\":\"time_step_completed\"", line) for line in batch_status_lines)
         @test any(occursin("\"event\":\"snapshot_completed\"", line) for line in batch_status_lines)
         @test any(occursin("\"event\":\"production_completed\"", line) for line in batch_status_lines)
+        @test any(
+            occursin("\"event\":\"production_completed\"", line) &&
+            occursin("\"gridap_rebuild_status\":\"rebuild_unconditionally_current_path\"", line) &&
+            occursin("\"gridap_reuse_status\":\"reuse_not_attempted_instrumentation_only\"", line)
+            for line in batch_status_lines
+        )
         @test any(occursin("\"estimated_remaining_s\":", line) for line in batch_status_lines)
         @test any(occursin("\"minimum_current_radius_cm\":", line) for line in batch_status_lines)
         @test any(occursin("\"minimum_signed_tetra_volume6\":", line) for line in batch_status_lines)
@@ -816,6 +826,7 @@ end
             @test value >= 0.0
         end
         @test benchmark_phase_value("phase_timing_total_s") > 0.0
+        @test benchmark_phase_value("phase_timing_total_s") < benchmark_phase_value("step_total_s")
         @test occursin("\"production_spec_digest\":", batch_benchmark_text)
         @test occursin("\"process_id\": $(Distributed.myid())", batch_benchmark_text)
         @test occursin("\"thread_count\": $(Threads.nthreads())", batch_benchmark_text)

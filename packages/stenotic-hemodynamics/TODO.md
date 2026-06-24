@@ -214,6 +214,20 @@ Implemented and committed:
 - The first `sev23` preproduction evidence attempt at `(80, 4, 24)`,
   `dt_s=1e-4`, `T=0.1` stopped without completion artifacts after reaching
   step 40/1000. Treat its sidecars as incomplete runtime diagnostics only.
+- Current-HEAD timing pilot
+  `native-fsi-timing-pilot-current-head-e304d40-tiny-2step` completed a tiny
+  two-step `sev23` run through `ops-experiment`. The first step took about
+  46.1 s, while the second completed about 0.24 s later with `step_total_s`
+  about 0.056 s. The sidecars show the first step dominated by Gridap lifecycle
+  setup and affine-operator construction (`gridap_space_setup_s` about
+  10.2 s, `gridap_measure_setup_s` about 3.9 s,
+  `gridap_affine_operator_s` about 25.1 s), while numeric factorization and
+  backsolve were small (`linear_numeric_factorization_s` about 0.09 s,
+  `linear_backsolve_s` about 0.026 s). The sparse structure digest stayed
+  stable across the two steps, but matrix/RHS value digests changed. This pilot
+  does not justify a factorization-reuse patch by itself; it points first to
+  representative-scale timing review and possible Gridap context/lifecycle
+  reuse if invariants can be proven.
 
 ## Orchestration Rules
 
@@ -572,7 +586,11 @@ Next timing review dispatch:
 4. If the dominant cost is first-call/precompile/setup overhead only, do not
    implement a cache under the preproduction banner; document the launch
    planning implication instead.
-5. If repeated per-step lifecycle/assembly or factorization is dominant,
+5. Treat the current tiny two-step pilot as evidence that first-use Gridap
+   lifecycle/setup cost dominates at small scale and that numeric
+   factorization is not the first optimization target for tiny runs.
+6. If repeated per-step lifecycle/assembly or factorization is dominant at a
+   representative warmed/development scale,
    proceed to the measured optimization dispatch below.
 
 Measured optimization dispatch after timing evidence:
