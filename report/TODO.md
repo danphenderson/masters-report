@@ -1,254 +1,178 @@
-# Coordinated Mathematical-Alignment Plan
+# Report Orchestration TODO
 
 ## Current Status
 
-The prior final-submission/no-op closeout is withdrawn. Package commits
-`2a54a06 Align native FSI mathematical contract` and `f8e247d Refresh native FSI
-fleet plan` retire the Lane 11 P0 mathematical-contract blocker at focused
-package-test scope. This report TODO remains the report-owner plan for the
-manuscript, evidence assets, and final artifact refresh.
+This TODO is refreshed after the report/package mathematical-contract alignment
+round and the latest report PDF refresh.
 
-The last public PDF remains a useful pre-alignment artifact, not the final
-submission artifact after this new lane begins, and
-`public/final-report.pdf` must not be treated as final while the alignment lane
-is open:
+Grounding at the start of this round:
 
-```text
-public/final-report.pdf
-sha256: a7646013b30307a5adc33d3cecc78a743f9f38e61b4fc025dc5a6993d82d634f
-```
+- Report source synchronization is landed through
+  `72bb504 Sync report with focused FSI contract evidence`.
+- The tracked PDF artifact was refreshed in
+  `d0b08da Refresh final report PDF`.
+- Package-side planning has advanced through
+  `c503231 Plan native FSI phase timing gate`.
+- `pipenv run ops-orchestrate status --json` reported only one report source
+  edit and one protected PDF edit; the source edit was a transient Section 1
+  prose regression and has been restored to the committed text.
+- The current working tree still has a protected
+  `public/final-report.pdf` modification. Treat it as unaccepted artifact
+  churn until an explicit PDF artifact lane compares, refreshes, and commits
+  it or intentionally restores the tracked artifact.
 
-Live-tree grounding for this TODO refresh:
+The Lane 11 P0 mathematical-contract blocker is retired at focused package-test
+scope only. The report may describe focused package evidence for the
+density-consistent transient/convection terms, symmetric-gradient Cauchy viscous
+form, boundary-aware pressure-space policy, raw physical wall-pressure forcing,
+exact Canic case geometry, and same-cut radial-profile closure classification.
+The report must still withhold claims of `sev23` preproduction completion,
+production/fleet execution, imported parity, moving-wall/ALE fidelity,
+persisted restart/resume, promoted radial-profile evidence, or manuscript-grade
+Section 4.1 reproduction.
 
-- `master` is at `f8e247d Refresh native FSI fleet plan`.
-- Lane 11 now has focused contract/smoke-test evidence for density-consistent
-  transient and convection terms, symmetric-gradient Cauchy viscous form, and
-  boundary-aware pressure-space policy.
-- The exact `poiseuille_inlet_zero_outlet_stress_section41` route now records
-  no Gridap zero-mean pressure constraint. Pressure-drop smoke mode remains a
-  separate additive-nullspace zero-mean check.
-- Partitioned membrane forcing now uses raw physical wall-pressure samples;
-  outlet-gauge normalization is diagnostic/export-only, and restart metadata
-  validates that convention.
-- Exact Canic geometry is unified for imported cases `77` and `60`.
-- Radial-profile audits now evaluate section and radial-bin observations on
-  same-cut slices and classify closure as passed, not evaluated, failed by area
-  closure, or failed by flow closure.
-- These changes retire the P0 mathematical-contract blocker only at focused
-  package-test scope. They do not establish `sev23` preproduction execution,
-  production/fleet execution, imported parity, moving-wall/ALE fidelity,
-  persisted resume, regenerated report tables, radial-profile evidence
-  promotion, or manuscript-grade Section 4.1 reproduction.
-- The live dirty tree includes package, viewer, and `public/final-report.pdf`
-  changes owned by other lanes. This report lane must not revert, stage, or
-  normalize those files.
+## Completed Report-Source Alignment
 
-Grounded audit findings confirmed from the live checkout:
+Do not reopen these lanes without a new technical finding:
 
-- The focused package-test contract evidence should be reflected in the report
-  claim boundary without promoting execution or report-evidence claims.
-- The retained report evidence has not yet been regenerated from the new
-  geometry and same-cut radial-profile audit conventions.
-- Section 4.1 of Canic et al. remains a comparison target, not a manuscript-grade
-  reproduction claim.
-- Appendix G should keep stable academic numerical-method material separate
-  from mutable runtime status, checkpoint schema, restart roadmap, parity
-  discrepancy, and artifact-refresh language.
-
-## Objective
-
-Complete the remaining report-side synchronization after the focused package
-contract work. Keep the mathematical-contract blocker retired only at focused
-package-test scope; then promote report claims only after the preproduction,
-production, regenerated-evidence, same-cut radial-profile, imported-parity, and
-manuscript-review gates pass.
-
-## Report-Owned Implementation Plan
-
-### 1. Section 2 and Appendix E: Balance Forms
-
-Edit `report/sections/02-continuum/index.tex` and
-`report/appendices/continuum-derivation-details.tex`.
-
-- Add a compact Section 2 subsection titled `Integral and Variational Balance
-  Forms`.
-- State the control-volume form underlying FVM as an integral balance over a
-  cell/control volume:
-
-  ```tex
-  \frac{d}{dt}\int_K U\,dx
-  +\int_{\partial K}F(U)\cdot n\,dS
-  =
-  \int_K S(U)\,dx .
-  ```
-
-- State the fixed-domain mixed incompressible weak form with local boundary
-  partition, admissible velocity and pressure test spaces, pressure gauge
-  convention, and traction term. Keep the distinction explicit: FVM discretizes
-  a control-volume integral balance; FEM discretizes a variational weak form.
-- Add a schematic moving-domain/ALE/FSI statement in which the advective
-  velocity becomes `u-w`, and state interface kinematic and traction balance:
-
-  ```tex
-  u_f=\partial_t d_s,\qquad \sigma_f n_f+\sigma_s n_s=0.
-  ```
-
-- Expand Appendix E with:
-  - E.4 `Control-volume balance and FVM bridge`;
-  - E.5 `Fixed-domain mixed weak incompressible formulation`;
-  - E.6 `Pressure uniqueness, gauge conditions, and inf-sup stability`;
-  - E.7 `ALE and FSI interface virtual-work form`.
-- Remove or rewrite the Appendix E sentence that says no weak formulation is
-  being asserted.
-
-### 2. Section 5.1: Separate Numerical Contracts
-
-Edit `report/sections/05-numerical-methods/index.tex`.
-
-- Replace the current mixed-space paragraph with four distinct claims:
-  pressure uniqueness/gauge fixing, discrete velocity-pressure inf-sup
+- Section 2 and Appendix E now distinguish control-volume integral balance
+  forms from variational weak forms and include compact moving-domain/FSI
+  interface statements.
+- Section 5.1 now separates pressure gauge, velocity-pressure inf-sup
   stability, advective stabilization, and divergence control.
-- State that quotient pressure spaces or equivalent gauges handle additive
-  pressure constants when the continuous problem leaves pressure determined
-  only up to a constant.
-- State that Taylor-Hood and appropriate divergence-conforming pairs address
-  the mixed-space requirement directly; equal-order pairs generally require
-  PSPG, pressure-projection, local-projection, or related stabilization.
-- State that SUPG addresses advective instability and grad-div improves
-  divergence control; neither alone repairs an inf-sup-unstable pressure space.
-- Update package-specific wording so the Gridap routes are described as using a
-  continuous P2 velocity/P1 pressure pair, without implying a broad collection
-  of pressure stabilization, SUPG, and grad-div methods.
+- Section 7.3.6 now treats radial profiles as secondary output pending
+  regenerated same-cut report evidence instead of claiming a physical closure
+  failure.
+- Appendix G now keeps stable academic numerical-method material separate from
+  mutable runtime status, restart roadmap, parity discrepancy, and live
+  execution details.
+- Appendix G and Section 5 now state that focused native-FSI mathematical
+  contract evidence exists without promoting Section 4.1 reproduction or
+  production parity.
 
-### 3. Section 7.3.6: Interim Radial-Profile Limitation
+## Next Round Objective
 
-Edit `report/sections/07-case-study/comparison.tex`.
+Close the artifact/evidence-readiness gap without changing scientific claims.
+The next round should decide what to do with the dirty `public/final-report.pdf`
+and then prepare for regenerated evidence only after the package fleet gates
+produce accepted inputs.
 
-Replace the current radial-profile limitation with the bounded audit result:
+## Immediate Execution Plan
 
-```text
-Radial distributions of axial velocity are not promoted because the retained
-report evidence has not yet accepted regenerated same-cut radial-profile rows.
-The package audit now classifies section and radial-bin closure on identical
-cuts, but the manuscript retains only the section-mean axial-velocity comparison
-until the regenerated report assets are reviewed and accepted.
+### 1. Re-anchor
+
+Run:
+
+```sh
+git status --short
+git log -8 --oneline
+pipenv run ops-orchestrate status --json
 ```
 
-Do not claim a physical radial-profile closure failure or a passing radial
-profile until the regenerated report evidence is accepted.
+Expected starting condition:
 
-### 4. Appendix G: Stable Academic Restructure
+- no report TeX source diff unless another editor has landed a new prose lane;
+- `public/final-report.pdf` may be dirty and protected;
+- package code/docs are owned by the package orchestrator unless explicitly
+  assigned back to the report lane.
 
-Edit `report/appendices/numerical-methods-details.tex`.
+### 2. PDF Artifact Decision
 
-Use this stable structure:
+If the only dirty file is `public/final-report.pdf`, do not commit it blindly.
+First compare the tracked, working-tree, and scratch-build PDFs:
 
-- G.1 `Rheology closures and regularization`;
-- G.2 `Relationship to the extended 1D model of Canic et al.`;
-- G.3 `Selected specialization and source-to-implementation differences`;
-- G.4 `Finite-volume realization and equilibrium properties`;
-- G.5 `Cross-dimensional observation operators`;
-- G.6 `Resolved and membrane comparator formulations`;
-- G.7 `Reproducibility and evidence boundary`.
+```sh
+git show HEAD:public/final-report.pdf > /tmp/head-final-report.pdf
+pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
+pdftotext -layout /tmp/head-final-report.pdf /tmp/head-final-report.txt
+pdftotext -layout public/final-report.pdf /tmp/worktree-final-report.txt
+pdftotext -layout /tmp/masters-report-build/final-report.pdf /tmp/scratch-final-report.txt
+diff -u /tmp/head-final-report.txt /tmp/scratch-final-report.txt
+diff -u /tmp/worktree-final-report.txt /tmp/scratch-final-report.txt
+```
 
-Appendix G.2 must identify:
+Then choose one path:
 
-- the source `(A,Q)` equations;
-- `\alpha_c`, the viscous correction `p_2`, wall law, and profile closure;
-- the paper's `\gamma=9`, `\alpha=1.1` simulation choice;
-- the package's parabolic `\alpha=4/3`, `g=4` specialization;
-- the `R_{\max}^{-2}` wall-law normalization;
-- the locally frozen effective-viscosity treatment in the `p_2` derivative;
-- the approximate characteristic boundary rule;
-- the fact that Canic-style `u_r` reconstruction is not implemented by the
-  current axial-profile helper.
+- If source is clean and scratch text/layout matches the tracked PDF, restore
+  or leave the working-tree PDF only by explicit artifact-owner decision.
+- If scratch output reflects intentional source or asset changes, run
+  `pipenv run ops-build-report --outdir /tmp/masters-report-build` to sync the
+  public PDF, visually spot-check the changed pages, and commit the PDF alone.
+- If text/layout differs unexpectedly, inspect the affected pages before any
+  PDF commit.
 
-Use the phrase `Section 4.1 of Canic et al.` rather than an unqualified
-`Section 4.1 reproduction`.
+Do not use SHA equality alone as the acceptance criterion for PDFs; build
+metadata can change even when reader-facing text is unchanged.
 
-Move commit hashes, development mesh outcomes, checkpoint-sidecar schemas,
-restart roadmaps, parity discrepancies, and live execution status out of the
-academic numerical-method appendix. Those details belong in package
-documentation, manifests, and `packages/stenotic-hemodynamics/TODO.md`.
+### 3. Evidence-Regeneration Readiness
 
-### 5. Final Editorial Corrections
-
-After the mathematical and evidence work lands:
-
-- fix the clipped long identifier on page 78;
-- remove revision-history language from page 49;
-- record the exact source commit for the submitted PDF in Appendix H;
-- replace the tautological opening sentence of the conclusion;
-- rebuild and visually inspect pages affected by the weak-form expansion and
-  Appendix G rewrite.
-
-## Package Coordination Requirements
-
-The package TODO introduced `Lane 11: Mathematical Contract Alignment` in
-`5aafb22`. The principal Julia developer thread owns
-`packages/stenotic-hemodynamics/TODO.md` and package implementation; the report
-lane should not edit package TODO or package code unless explicitly reassigned.
-This file remains the report-owner alignment plan.
-
-Package commits `2a54a06` and `f8e247d` retire the Lane 11 P0 mathematical
-contract blocker at focused package-test scope. Remaining report gates before
-claim promotion:
+Do not regenerate report comparison assets until the package side hands off
+accepted evidence for the relevant gate. The report lane needs explicit
+package-side handoff for:
 
 - `sev23` preproduction execution;
 - production/fleet execution;
-- regenerated reduced/resolved report tables and rendered assets;
-- same-cut radial-profile evidence promotion after report-asset review;
+- regenerated section-area, flow, velocity, rest-state, radial-profile, and
+  comparison rows;
+- same-cut radial-profile evidence promotion;
 - imported parity classification;
-- manuscript-grade Section 4.1 claim review;
-- final PDF refresh after source and assets are consistent.
+- manuscript-grade Section 4.1 claim review.
 
-Retained package follow-up items:
+Once handed off, regenerate only the affected report assets:
 
-- 10C-P: add native resolved-FSI phase timing before changing numerics. The
-  next solver patch after Hypatia's active run must instrument matrix assembly,
-  symbolic factorization, numeric factorization, backsolve, wall update,
-  diagnostics, checkpoint/output, and total step time in batch status and
-  benchmark sidecars. Factorization reuse, symbolic reuse, Krylov solvers, or
-  new sparse-solver dependencies remain blocked until timing evidence and
-  baseline comparisons justify them.
-- FEM-05: increase convection quadrature and add open-boundary/backflow
-  diagnostics.
-- OBS-02: clarify radial-coordinate and excluded-area policy.
-- OBS-03: rename `radial_profile_velocity` to axial/reconstructed axial
-  velocity terminology.
-- MODEL-01: rename `ClassicalNoSlip1DModel` to
-  `ClassicalParabolicOneDModel`, keeping `classical-1d-no-slip` as a
-  deprecated CLI alias.
-- MODEL-02: split the ambiguous `pressure()` API into evolution and diagnostic
-  pressure conventions.
-- FSI-01: classify the current path as repeated deformed-domain solves with a
-  reduced membrane update, not monolithic ALE.
+```sh
+pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
+pipenv run ops-audit-report-prose --json
+```
 
-Gridap remains in place for now. The package review found no evidence
-justifying backend replacement yet; the next performance work is phase
-telemetry and wrapper-allocation fixes, not manuscript claim promotion.
+Add package/evidence-specific commands from `packages/stenotic-hemodynamics/TODO.md`
+when that lane supplies them.
 
-## Evidence Regeneration Plan
+### 4. Claim-Boundary Scan
 
-After the focused package mathematical-contract fixes have landed, remaining
-report evidence work is:
+Before any claim promotion or final PDF refresh, scan active manuscript prose:
 
-- rerun affected section-area, flow, velocity, rest-state, radial-profile, and
-  comparison table generation;
-- regenerate any changed `report/assets/data/**`, `report/assets/tables/**`,
-  and rendered figures consumed by the report build;
-- confirm native/FEM mathematical-contract tests together with the regenerated
-  report evidence before promoting any Section 4.1 status;
-- rerun the report build without syncing the PDF first;
-- only refresh `public/final-report.pdf` after code, evidence assets, and TeX
-  are all consistent.
+```sh
+rg -n "Section 4\\.1 reproduction|paper-grade|production parity|imported parity|monolithic ALE|moving-wall/ALE fidelity|persisted restart|radial area-closure gate fails|FEM-01 through FEM-04|blocks exact" report/sections report/appendices report/TODO.md -g '*.tex' -g '*.md'
+```
 
-The current PDF must not be treated as the final frozen artifact after this
-alignment lane begins.
+Allowed matches should be bounded negative claims or TODO gate descriptions.
+Any positive reproduction/parity claim must be backed by accepted package and
+report evidence.
+
+### 5. Final Editorial Closeout
+
+After evidence assets and source prose are stable:
+
+- record the exact source commit for the submitted PDF in Appendix H;
+- replace any remaining tautological conclusion opening if it reappears;
+- inspect pages affected by Appendix G, Section 7, and the final PDF refresh;
+- run the report build once without syncing, then once with PDF sync if the
+  artifact is in scope;
+- commit source and PDF artifacts separately unless the PDF depends on the same
+  source change.
+
+## Package Coordination Boundary
+
+The report lane does not own package implementation. Current package-side
+follow-ups remain:
+
+- 10C-P native resolved-FSI phase timing before solver/numerics changes;
+- FEM-05 quadrature sensitivity and open-boundary/backflow diagnostics;
+- OBS-02 radial-coordinate and excluded-area policy;
+- OBS-03 axial/reconstructed axial velocity naming;
+- MODEL-01 `ClassicalParabolicOneDModel` rename with deprecated alias;
+- MODEL-02 split evolution-pressure and diagnostic-pressure APIs;
+- FSI-01 classify the current native path as repeated deformed-domain fluid
+  solves with a reduced membrane update, not monolithic ALE.
+
+Gridap remains the current backend. The next performance claims require phase
+telemetry and baseline comparisons before factorization reuse, Krylov solvers,
+new sparse-solver dependencies, or backend replacement can be justified.
 
 ## Validation Commands
 
-For this report-side alignment patch:
+For report source edits:
 
 ```sh
 git diff --check -- report/TODO.md report/sections report/appendices
@@ -256,47 +180,16 @@ pipenv run ops-audit-report-prose --json
 pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
 ```
 
-For the later manuscript/package implementation:
+For PDF artifact lanes:
 
 ```sh
-git diff --check -- report packages/stenotic-hemodynamics
-pipenv run ops-audit-report-prose --json
-pipenv run ops-audit-references
-packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics packages/stenotic-hemodynamics/test/test_native_resolved_fsi_workflow.jl
-packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics packages/stenotic-hemodynamics/test/test_public_api.jl
-packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_resolved3d.jl")'
 pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
+pdftotext -layout /tmp/masters-report-build/final-report.pdf /tmp/scratch-final-report.txt
+pipenv run ops-build-report --outdir /tmp/masters-report-build
+shasum -a 256 public/final-report.pdf /tmp/masters-report-build/final-report.pdf
 ```
 
-Add or extend focused tests for:
-
-- manufactured transient convection with nonzero convection and density
-  scaling;
-- Cauchy traction versus vector-Laplacian natural boundary form;
-- pressure-space policy for all-Dirichlet and traction-referenced cases;
-- global discrete divergence and inlet/outlet flow balance;
-- pressure-shift invariance of transmural wall load;
-- exact Canic case geometry and geometry hash;
-- same-cut radial area and flow closure;
-- axial-profile helper naming and any future distinct radial-velocity
-  reconstruction.
-
-## Commit Discipline
-
-Do not commit this report-side synchronization lane unless explicitly asked.
-Do not stage the current dirty Julia files from the report lane. The principal
-Julia thread owns package TODO refreshes and package implementation commits.
-
-Later implementation commits should be split by surface:
-
-- package mathematical-contract fixes and tests;
-- regenerated package/report evidence assets;
-- manuscript TeX revisions;
-- final PDF refresh.
-
 ## Live Layout Guardrails
-
-Use the current layout:
 
 - manuscript entrypoint: `report/final-report.tex`;
 - Section 2: `report/sections/02-continuum/index.tex`;
