@@ -240,6 +240,17 @@ TOPIC_RULES = (
     ),
 )
 
+STALE_MMS_ORDER_PATTERNS = (
+    (
+        "observed orders computed from the discrete rows",
+        "MMS observed-order prose appears to describe a single metric instead of metric-specific L1/L2/Linf orders",
+    ),
+    (
+        "order columns use adjacent grid errors",
+        "MMS table caption appears to describe one adjacent-grid error metric instead of metric-specific orders",
+    ),
+)
+
 SEVERITY_RANK = {"high": 0, "medium": 1, "low": 2}
 
 
@@ -636,6 +647,34 @@ def topic_owner_findings(chunks: tuple[ProseChunk, ...]) -> list[Finding]:
     return findings
 
 
+def mms_metric_order_findings(chunks: tuple[ProseChunk, ...]) -> list[Finding]:
+    findings: list[Finding] = []
+    for chunk in chunks:
+        if (
+            "mms" not in chunk.normalized
+            and "manufactured solution" not in chunk.normalized
+            and chunk.path != "report/sections/07-case-study/verification.tex"
+        ):
+            continue
+        for pattern, message in STALE_MMS_ORDER_PATTERNS:
+            if pattern not in chunk.normalized:
+                continue
+            findings.append(
+                Finding(
+                    rule="mms-metric-order-coverage",
+                    severity="medium",
+                    path=chunk.path,
+                    line=chunk.line,
+                    message=message,
+                    excerpt=display_excerpt(chunk.text),
+                    suggestion="describe observed orders as metric-specific for the discrete L1, L2, and Linf MMS rows",
+                    score=None,
+                    related=(),
+                )
+            )
+    return findings
+
+
 def sort_findings(findings: Iterable[Finding]) -> tuple[Finding, ...]:
     return tuple(
         sorted(
@@ -670,7 +709,8 @@ def audit(repo: Path, include_context: bool = False) -> AuditResult:
     }
     near = near_duplicate_findings(chunks, exact_pairs)
     topics = topic_owner_findings(chunks)
-    findings = sort_findings([*exact, *near, *topics])
+    mms_metric_orders = mms_metric_order_findings(chunks)
+    findings = sort_findings([*exact, *near, *topics, *mms_metric_orders])
     skipped = tuple(relpath(path, repo) for path in context_files) if not include_context else ()
     return AuditResult(
         files_seen=len(files),

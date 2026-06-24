@@ -214,6 +214,52 @@ def test_topic_owner_comparison_limits_flags_quarantined_radial_limit_outside_ow
     assert findings[0].rule == "topic-owner-comparison-limits"
 
 
+def test_mms_metric_order_audit_flags_l2_only_order_wording() -> None:
+    text = (
+        "The verification table reports cell-center discrete errors with observed orders "
+        "computed from the discrete rows as a single adjacent-grid estimate."
+    )
+    words = audit_report_prose.normalized_words(text)
+    chunk = audit_report_prose.ProseChunk(
+        "report/sections/07-case-study/verification.tex",
+        128,
+        "Numerical Verification > Manufactured-Solution Verification",
+        "",
+        False,
+        text,
+        " ".join(words),
+        words,
+    )
+
+    findings = audit_report_prose.mms_metric_order_findings((chunk,))
+
+    assert findings
+    assert findings[0].rule == "mms-metric-order-coverage"
+
+
+def test_mms_metric_order_audit_accepts_metric_specific_order_wording() -> None:
+    text = (
+        "The MMS verification table computes observed orders separately for the discrete "
+        "L1, L2, and Linf metrics, preserving the distinction between integrated, RMS-like, "
+        "and maximum pointwise error behavior."
+    )
+    words = audit_report_prose.normalized_words(text)
+    chunk = audit_report_prose.ProseChunk(
+        "report/sections/07-case-study/verification.tex",
+        128,
+        "Numerical Verification > Manufactured-Solution Verification",
+        "",
+        False,
+        text,
+        " ".join(words),
+        words,
+    )
+
+    findings = audit_report_prose.mms_metric_order_findings((chunk,))
+
+    assert findings == []
+
+
 def test_report_prose_audit_current_tree_smoke() -> None:
     repo = Path(__file__).resolve().parents[3]
     result = subprocess.run(
