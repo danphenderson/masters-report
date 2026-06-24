@@ -14,6 +14,12 @@ discretization, grid, timestep policy, boundary-state rule, output operator, and
 diagnostic metadata recorded for that realization. Symbols such as $D_t$, $D_z$,
 numerical fluxes, residual arrays, and sampled norms denote recorded discrete
 objects unless a section explicitly switches back to a continuum identity.
+A numerical degree of freedom is therefore not automatically a physical
+pointwise observable. The distinction is independent of discretization family:
+finite differences may approximate point-grid values, finite volumes commonly
+store cell averages, and finite elements may expose nodal, modal,
+discontinuous, quadrature, trace, or postprocessed quantities depending on the
+space and output operator.
 \end{convention}
 
 \subsection{Case-study rheology closure details}

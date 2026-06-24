@@ -45,6 +45,10 @@ cross-sectional area, flow, and mean velocity obtained from these fields
 through averaging and closure assumptions. Dimensional reduction therefore
 changes the state space and closure requirements; it is not simply a cheaper
 discretization of the same unknowns.
+In this continuum setting, notation such as $p(t,\vx)$, $\vu(t,\vx)$, or a
+stress component denotes a field value only when the field itself is being
+discussed; later scalar, curve, table, and visualization outputs are declared
+through their observation maps.
 
 \begin{figure}[!htb]
     \centering
@@ -52,9 +56,9 @@ discretization of the same unknowns.
     \figtikz{compliant-vessel}
     \caption{Continuum-to-1D averaging notation for a compliant vessel. The
     physical lumen carries three-dimensional fields on $\OmgBt$; the reduced
-    description defines section averages such as area, flow, mean velocity, and
-    gauge pressure. The figure is a reference map between model tiers, not a
-    separate wall-traction or secondary-flow model.}
+    description defines section representatives such as area, flow, mean
+    velocity, and gauge pressure. The figure is a reference map between model
+    tiers, not a separate wall-traction or secondary-flow model.}
     \label{fig:compliant-vessel-reduction}
 \end{figure}
 
@@ -321,8 +325,8 @@ section. The physical area, physical flow, and section-mean axial velocity are
     \quad(A>0).
     &&
 \end{flalign*}
-When a section pressure is used later, it denotes a declared representative
-such as
+When a section pressure is used later, it denotes a declared observation or
+representative such as
 \begin{flalign*}
     \quad
     \bar p(z,t)
@@ -331,8 +335,12 @@ such as
     \int_{S(z,t)}p(z,r,\theta,t)\,dA,
     &&
 \end{flalign*}
-or a pressure reconstructed from a wall law. It is not a pointwise pressure
-unless the observation map explicitly says so.
+or a pressure representative reconstructed from a wall law. A section pressure
+is therefore an observation of the pressure field, or a pressure representative
+reconstructed from the reduced state, rather than automatically a pointwise
+value of the three-dimensional pressure field. It should be interpreted as
+$p(t,\vx)$ at a specific spatial point only when the observation operator is
+explicitly defined as a point-evaluation or point-reconstruction map.
 Applying mass conservation to a short vessel slice, with impermeable wall
 motion represented by the moving section, gives the reduced continuity law
 \begin{flalign*}

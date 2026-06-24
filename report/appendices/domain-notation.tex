@@ -49,6 +49,10 @@ observation tuple
     p_{\mathrm{ref}}), &&
 \end{flalign*}
 with a finite averaging window and a positive denominator admissibility bound.
+The scalar observations in this tuple may be section averages, reconstructed
+wall-law representatives, or other declared pressure observations; they are
+pointwise pressures only when the corresponding observation map is a
+point-evaluation or point-reconstruction map.
 For observed gauge-pressure traces $P_{\mathrm{prox}}$ and $P_{\mathrm{dist}}$,
 \begin{flalign*}
     \quad
@@ -85,6 +89,8 @@ traction outputs.
         \toprule
         \textbf{Symbol} & \textbf{Meaning} & \textbf{Units} \\
         \midrule
+        $\vu(t,\vx)$, $p(t,\vx)$ & continuum velocity and pressure field values when a continuum tier is being referenced & length/time; pressure \\
+        $\vT(t,\vx)$, $\tau_{ij}$ & continuum Cauchy stress tensor and stress components before reduction or observation & pressure \\
         $R$, $d_v=2R$ & vessel radius and diameter & length \\
         $R_0(z)$ & reference stenosed radius used by the geometry and wall source & length \\
         $R_{\max}$ & healthy reference-radius parameter used by the implemented $R_{\max}$-normalized wall law & length \\
