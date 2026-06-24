@@ -95,6 +95,16 @@ Implemented and committed:
   policies.
 - `49e0ba8`: CLI refinement-study tests are standalone-include safe and assert
   finite, nonzero p-refinement errors in addition to metadata.
+- `d52dcb1`: native resolved-FSI Gridap solve instrumentation now splits
+  model setup, FE-space setup, measure setup, affine-operator construction,
+  matrix extraction, RHS extraction, symbolic factorization, numeric
+  factorization, and backsolve timing. Production status/benchmark sidecars
+  also record instrumentation-only matrix/RHS fingerprints, pressure policy,
+  boundary mode, wall-boundary mode, and explicit
+  `reuse_not_attempted_instrumentation_only` status.
+- `cf2d78c`: the web viewer has a documented production-bundle serve command
+  (`npm run serve` / `pipenv run ops-serve-stenotic-hemodynamics-viewer`) with
+  README and public-doc coverage.
 
 ## Non-Negotiable Claim Boundary
 
@@ -237,20 +247,25 @@ Implemented and committed:
 
 Wave 1 can run concurrently if write locks stay disjoint:
 
-- Lane 12C focused test hardening:
-  `packages/stenotic-hemodynamics/test/test_membrane_fsi.jl` and
-  `packages/ops/tests/test_python_package_benchmark.py`.
-- Lane 12D viewer enhancements:
+- Lane 10C-P1 timing-sidecar review: run or inspect a tiny/development native
+  FSI pilot on `d52dcb1` or newer, then classify whether wall time is dominated
+  by Gridap lifecycle setup, matrix/RHS extraction, symbolic factorization,
+  numeric factorization, backsolve, wall sampling/update, diagnostics, or
+  output. This is read-only unless an instrumentation bug is found.
+- Lane 12C focused test hardening follow-up if any remaining test-quality
+  audit items reopen outside the already-landed membrane/Python benchmark
+  hardening.
+- Lane 12D viewer visual diagnostics follow-up:
   `packages/stenotic-hemodynamics-viewer/**`, visualization docs, and
-  visualization tests only.
-- Lane 10C-P timing review: read-only analysis of completed timing sidecars
-  unless a follow-up instrumentation bug is found. Any package-source patch
-  must stop for a new write-lock review.
+  visualization tests only. The serve-command docs are already landed; future
+  work should expand displayed scientific/operator diagnostics.
 
 Wave 2 starts after Wave 1 handbacks:
 
-- Native-FSI measured optimization only if timing sidecars prove repeated
-  assembly/factorization cost and explicit invariants can gate reuse.
+- Lane 10C-P2 native-FSI measured optimization only if timing sidecars prove
+  repeated Gridap lifecycle, assembly, matrix/RHS extraction, or
+  factorization cost and explicit invariants can gate reuse. Start with a
+  Gridap-context/factorization-invariant design; do not change solver physics.
 - Lane 11 P1 mathematical-contract stewardship if it touches disjoint
   observation/model/API files from any optimization lane.
 
@@ -445,13 +460,15 @@ Acceptance criteria:
 
 ### Lane 12C: Focused Test Hardening Follow-Up
 
-Priority: P1 after report-critical DG asset regeneration unless a test failure
-reopens it.
+Status: largely implemented in `a8aa77b`. Keep this lane open only for newly
+identified non-vacuity issues from future audits.
+
+Priority: P2 unless a test failure reopens it.
 
 Objective: address the remaining non-vacuity improvements identified by the
 read-only test-quality audit without broadening into speculative test churn.
 
-Targets:
+Remaining targets, only if reopened:
 
 - Strengthen `test_membrane_fsi.jl` dynamic membrane validation so
   wall-velocity maxima are asserted nonzero and agree with written history or
@@ -470,6 +487,9 @@ git diff --check -- packages/stenotic-hemodynamics/test/test_membrane_fsi.jl pac
 ```
 
 ### Lane 12D: Viewer Evidence Enhancements
+
+Status: baseline viewer evidence controls landed in `a8aa77b`; serve-command
+docs landed in `cf2d78c`. Remaining work is visual diagnostic expansion only.
 
 Priority: P2 nonblocking visualization lane. Do not let this collide with
 native-FSI numerics, report PDF, or package validation-automation work.
@@ -490,7 +510,8 @@ Targets:
 - If parity or observation artifacts are loaded, show discrepancy summaries as
   artifact/operator evidence only, not production validation.
 - Maintain desktop/mobile browser-smoke evidence for nonblank canvas rendering
-  and non-overlapping controls.
+  and non-overlapping controls. Re-run browser smoke for any visual layout,
+  scene, control, or manifest-loading change.
 
 Validation:
 
@@ -508,7 +529,8 @@ git diff --check -- packages/stenotic-hemodynamics-viewer packages/stenotic-hemo
 
 ### Lane 10C-P: Native FSI Phase Timing Before Numerics Optimization
 
-Status: implemented as instrumentation-only package code. The preproduction
+Status: implemented as instrumentation-only package code in `d52dcb1`. The
+preproduction
 attempt was naturally classified as incomplete at step 40/1000, so subsequent
 long `sev23` launches are blocked on reviewing phase sidecars and deciding
 whether a measured optimization lane is justified.
@@ -516,21 +538,44 @@ whether a measured optimization lane is justified.
 Objective: instrument before changing numerics so future preproduction and
 production launches report where wall time and memory are spent. The current
 process-level sampling suggested sparse direct factorization may be hot; the
-production sidecars now split matrix assembly, symbolic factorization, numeric
-factorization, backsolve, wall-pressure sampling, wall update, diagnostics,
-checkpoint, output, and total-step timing.
+production sidecars now split Gridap model setup, FE-space setup, measure
+setup, affine-operator construction, matrix extraction, RHS extraction,
+symbolic factorization, numeric factorization, backsolve, wall-pressure
+sampling, wall update, diagnostics, checkpoint, output, and total-step timing.
+They also record matrix/RHS fingerprints and explicit rebuild/reuse status.
 
 Implemented first patch:
 
 - Add phase timers only. Emit per-step and aggregate phase timing fields to
   `batch_status.jsonl`, `batch_status.csv`, and `batch_benchmark.json`.
+- Emit instrumentation-only solver diagnostics:
+  `gridap_rebuild_status="rebuild_unconditionally_current_path"`,
+  `gridap_reuse_status="reuse_not_attempted_instrumentation_only"`, matrix
+  dimensions/nnz, sparse-structure digest, matrix-value digest, RHS digest,
+  pressure policy, inlet/outlet boundary mode, wall-boundary mode, `dt_s`,
+  time-step index, Picard iteration, linear solve count, and rebuild count.
 - Preserve physics, boundary conditions, discretization, pressure gauge, wall
   model, coupling semantics, observation operators, artifact filenames, and
   restart/importer schemas.
 - Validate on tiny smoke/development runs before any new long preproduction
   launch.
 
-Next optimization dispatch after timing evidence:
+Next timing review dispatch:
+
+1. Run a cheap current-HEAD pilot through `ops-experiment` on the tiny
+   production path and preserve the generated summary JSON and sidecar paths
+   in the handback.
+2. Parse `batch_status.jsonl`, `batch_status.csv`, and
+   `batch_benchmark.json` for the new Gridap lifecycle/fingerprint fields.
+3. Classify the dominant measured phase and whether repeated matrix
+   structure/value digests prove a reuse opportunity.
+4. If the dominant cost is first-call/precompile/setup overhead only, do not
+   implement a cache under the preproduction banner; document the launch
+   planning implication instead.
+5. If repeated per-step lifecycle/assembly or factorization is dominant,
+   proceed to the measured optimization dispatch below.
+
+Measured optimization dispatch after timing evidence:
 
 1. Reuse the linear solve/factorization object when the matrix, coefficients,
    boundary-condition sparsity pattern, pressure policy, mesh topology, and
@@ -551,6 +596,9 @@ Acceptance criteria:
 - Timing sidecars prove the dominant phase before optimization lands.
 - Any factorization reuse is gated by explicit invariants and fails closed when
   those invariants change.
+- Any Gridap context reuse is gated by explicit mesh topology, coordinate
+  state, FE order, boundary tags, pressure-space policy, wall-boundary mode,
+  inlet/outlet mode, `dt_s`, and Picard-form invariants.
 - Optimized tiny/development outputs compare against the current direct-solve
   baseline before another long `sev23` preproduction launch.
 - Faster execution never upgrades production parity, moving-wall/ALE fidelity,
