@@ -38,15 +38,16 @@ end
     @test momentum_alpha(parabolic) ≈ 4.0 / 3.0
     @test shear_rate_factor(parabolic) ≈ 4.0
     @test mean_to_max_velocity_ratio(parabolic) ≈ 0.5
+    @test reconstructed_axial_velocity(3.0, 0.0, 2.0, parabolic) ≈ 6.0
+    @test reconstructed_axial_velocity(3.0, 2.0, 2.0, parabolic) ≈ 0.0
     @test radial_profile_velocity(3.0, 0.0, 2.0, parabolic) ≈ 6.0
-    @test radial_profile_velocity(3.0, 2.0, 2.0, parabolic) ≈ 0.0
 
     flat = FlatVelocityProfile(shear_rate_factor=5.0)
     @test profile_name(flat) == "flat"
     @test momentum_alpha(flat) ≈ 1.0
     @test shear_rate_factor(flat) ≈ 5.0
     @test mean_to_max_velocity_ratio(flat) ≈ 1.0
-    @test radial_profile_velocity(3.0, 1.5, 2.0, flat) ≈ 3.0
+    @test reconstructed_axial_velocity(3.0, 1.5, 2.0, flat) ≈ 3.0
 
     power = PowerVelocityProfile(exponent=2.0)
     @test momentum_alpha(power) ≈ 4.0 / 3.0
@@ -70,8 +71,9 @@ end
     @test occursin("vp_parabolic", default_output_stub(default_params))
     @test default_output_stub(default_params) != default_output_stub(Params(alpha=1.1, initial_condition=GeometryRestIC()))
     classical = Params(initial_condition=GeometryRestIC(), model="classical-1d-no-slip")
+    @test classical.model isa ClassicalParabolicOneDModel
     @test classical.model isa ClassicalNoSlip1DModel
-    @test model_name(classical) == "classical-1d-no-slip"
+    @test model_name(classical) == "classical-parabolic-1d"
     @test variable_radius_terms_enabled(classical) == false
     @test_throws ArgumentError Params(initial_condition=GeometryRestIC(), model="classical-1d-no-slip", velocity_profile=flat)
     @test_throws ArgumentError Params(initial_condition=GeometryRestIC(), model="classical-1d-no-slip", alpha=1.1)
@@ -101,11 +103,15 @@ end
     @test StenoticHemodynamics.wall_elastic_pressure(A, z, params) ≈ K / r0^2 * (sqrt(A) - r0)
     @test StenoticHemodynamics.variable_radius_pressure_correction(A, Q, r0, r0z, nu_eff, gamma_plus_two, params) ≈
           gamma_plus_two * params.rho * nu_eff * Q / A * r0z / r0
-    @test StenoticHemodynamics.pressure([A], [Q], [z], params)[1] ≈
+    @test StenoticHemodynamics.diagnostic_pressure([A], [Q], [z], params)[1] ≈
           StenoticHemodynamics.wall_elastic_pressure(A, z, params) +
           StenoticHemodynamics.variable_radius_pressure_correction(A, Q, r0, r0z, nu_eff, gamma_plus_two, params)
+    @test StenoticHemodynamics.evolution_pressure([A], [Q], [z], params)[1] ≈
+          StenoticHemodynamics.wall_elastic_pressure(A, z, params)
+    @test StenoticHemodynamics.pressure([A], [Q], [z], params) ≈
+          StenoticHemodynamics.diagnostic_pressure([A], [Q], [z], params)
     classical_params = Params(initial_condition=GeometryRestIC(), severity=30.0, model="classical-1d-no-slip")
-    @test StenoticHemodynamics.pressure([A], [Q], [z], classical_params)[1] ≈
+    @test StenoticHemodynamics.diagnostic_pressure([A], [Q], [z], classical_params)[1] ≈
           StenoticHemodynamics.wall_elastic_pressure(A, z, classical_params)
     @test StenoticHemodynamics.wall_elastic_potential(A, z, params) ≈ K / (3.0 * params.rho * params.rmax^2) * A^1.5
     @test StenoticHemodynamics.wall_wave_speed_squared(A, z, params) ≈ K / (2.0 * params.rho * params.rmax^2) * sqrt(A)

@@ -1,3 +1,6 @@
+isdefined(@__MODULE__, :write_openbf_fixture) || include("test_helpers.jl")
+using Statistics: mean
+
 const generated_stokes_mesh = StenoticHemodynamics.generated_stokes_mesh
 
 @testset "StenoticHemodynamics OpenBF protocol adapter" begin
@@ -84,7 +87,7 @@ end
     @test all(isfinite, state.flow)
     @test minimum(state.area) > 0.0
 
-    projected_pressure = pressure(state.area, state.flow, state.z, params)
+    projected_pressure = diagnostic_pressure(state.area, state.flow, state.z, params)
     @test maximum(abs.(projected_pressure .- range(maximum(projected_pressure), minimum(projected_pressure); length=length(projected_pressure)))) < ic.pressure_drop_dyn_cm2
 
     u_mean = mean(velocity(SimulationResult(state.z, state.area, state.flow, 0.0, 0)))

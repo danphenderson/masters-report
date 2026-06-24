@@ -813,6 +813,73 @@ function native_resolved_fsi_partitioned_production_dry_run(
     )
 end
 
+function native_resolved_fsi_checkpoint_digest_values(label::AbstractString, values)
+    io = IOBuffer()
+    println(io, String(label))
+    for value in values
+        println(io, value isa Real ? repr(value) : string(value))
+    end
+    return bytes2hex(sha256(take!(io)))
+end
+
+function native_resolved_fsi_checkpoint_digest_array(label::AbstractString, array)
+    io = IOBuffer()
+    println(io, String(label))
+    println(io, ndims(array))
+    println(io, join(size(array), ","))
+    for value in array
+        println(io, value isa Real ? repr(value) : string(value))
+    end
+    return bytes2hex(sha256(take!(io)))
+end
+
+function native_resolved_fsi_checkpoint_boundary_tags_digest(tags::NativeResolvedFSIMeshTags)
+    io = IOBuffer()
+    for (label, values) in (
+        ("inlet_faces", tags.inlet_faces),
+        ("outlet_faces", tags.outlet_faces),
+        ("wall_faces", tags.wall_faces),
+        ("inlet_nodes", tags.inlet_nodes),
+        ("outlet_nodes", tags.outlet_nodes),
+        ("wall_nodes", tags.wall_nodes),
+        ("interior_cells", tags.interior_cells),
+    )
+        println(io, label)
+        println(io, ndims(values))
+        println(io, join(size(values), ","))
+        for value in values
+            println(io, value)
+        end
+    end
+    return bytes2hex(sha256(take!(io)))
+end
+
+function native_resolved_fsi_checkpoint_mesh_identity(mesh::NativeResolvedFSIMesh)
+    return Dict{String,Any}(
+        "case_id" => string(mesh.case_spec.case_id),
+        "severity_percent" => mesh.case_spec.severity_percent,
+        "length_cm" => mesh.case_spec.length_cm,
+        "rmax_cm" => mesh.case_spec.rmax_cm,
+        "delta_r_cm" => mesh.case_spec.delta_r_cm,
+        "rmin_cm" => mesh.case_spec.rmin_cm,
+        "mesh_resolution" => Dict{String,Any}(
+            "axial" => mesh.geometry.resolution.axial,
+            "radial" => mesh.geometry.resolution.radial,
+            "angular" => mesh.geometry.resolution.angular,
+        ),
+        "node_count" => size(mesh.coordinates, 1),
+        "tetrahedron_count" => size(mesh.topology, 1),
+        "reference_coordinates_sha256" =>
+            native_resolved_fsi_checkpoint_digest_array("reference_coordinates_cm", mesh.coordinates),
+        "topology_sha256" => native_resolved_fsi_checkpoint_digest_array("topology", mesh.topology),
+        "boundary_tags_sha256" => native_resolved_fsi_checkpoint_boundary_tags_digest(mesh.tags),
+        "axial_coordinates_sha256" =>
+            native_resolved_fsi_checkpoint_digest_array("axial_coordinates_cm", mesh.geometry.axial_coordinates_cm),
+        "reference_radii_sha256" =>
+            native_resolved_fsi_checkpoint_digest_array("reference_radii_cm", mesh.geometry.reference_radii_cm),
+    )
+end
+
 """
     run_native_resolved_fsi_partitioned_production(spec; parallel_workers=1,
                                                    threads_per_worker=Threads.nthreads(),
@@ -825,25 +892,57 @@ pressure, coupling residual history, and fluid free-DOF state between steps.
 It writes one normal resolved-3D bundle per snapshot plus a compact CSV
 manifest, per-snapshot diagnostics CSV, and restart-identification metadata.
 The process/thread keywords are recorded in status sidecars for provenance; they
-do not schedule multiple specs. Persisted external resume remains explicitly
-deferred.
+do not schedule multiple specs. Qualified internal restart/resume callers may
+seed the state-carrying runner from durable checkpoint sidecars, but no default
+CLI path exposes resume.
 """
 function run_native_resolved_fsi_partitioned_production(
     spec::NativeResolvedFSIPartitionedProductionSpec;
     parallel_workers::Integer = 1,
     threads_per_worker::Integer = Threads.nthreads(),
     force_process::Bool = false,
+    _resume_checkpoint_path = nothing,
+    _qualified_internal_resume::Bool = false,
+    _internal_stop_after_snapshot_index = nothing,
 )
     execution_layout = native_resolved_fsi_execution_layout(
         parallel_workers=parallel_workers,
         threads_per_worker=threads_per_worker,
         force_process=force_process,
     )
+    resume_context = nothing
+    if _resume_checkpoint_path !== nothing
+        _qualified_internal_resume || throw(ArgumentError(
+            "native resolved-FSI checkpoint resume requires qualified internal resume approval",
+        ))
+        resume_context = native_resolved_fsi_restart_resume_context(String(_resume_checkpoint_path), spec)
+    end
+    internal_stop_after_snapshot_index = if _internal_stop_after_snapshot_index === nothing
+        nothing
+    else
+        _qualified_internal_resume || throw(ArgumentError(
+            "native resolved-FSI prefix checkpoint stops require qualified internal resume approval",
+        ))
+        Int(_internal_stop_after_snapshot_index)
+    end
+    resume_context !== nothing && internal_stop_after_snapshot_index !== nothing && throw(ArgumentError(
+        "native resolved-FSI production cannot combine checkpoint resume with an internal stop-after snapshot limit",
+    ))
 
     function validate_runner_scope(local_spec::NativeResolvedFSIPartitionedProductionSpec)
         if any(time_s -> time_s <= 0.0, local_spec.snapshot_times_s)
             throw(ArgumentError(
                 "native resolved-FSI partitioned production runner requires positive snapshot times; t=0 initial-condition bundle output is not implemented",
+            ))
+        end
+        if internal_stop_after_snapshot_index !== nothing
+            1 <= internal_stop_after_snapshot_index <= length(local_spec.snapshot_times_s) || throw(ArgumentError(
+                "native resolved-FSI internal stop-after snapshot index must be within the requested snapshot schedule",
+            ))
+        end
+        if resume_context !== nothing
+            resume_context.next_snapshot_index <= length(local_spec.snapshot_times_s) || throw(ArgumentError(
+                "native resolved-FSI checkpoint resume has no pending snapshots in the requested schedule",
             ))
         end
         return local_spec
@@ -1022,6 +1121,18 @@ function run_native_resolved_fsi_partitioned_production(
         "gridap_pressure_constraint",
         "gridap_pressure_reference",
         "gridap_wall_boundary_mode",
+        "gridap_quadrature_degree",
+        "gridap_quadrature_sensitivity_degree",
+        "gridap_quadrature_sensitivity_matrix_relative_change",
+        "gridap_quadrature_sensitivity_rhs_relative_change",
+        "gridap_quadrature_sensitivity_status",
+        "gridap_open_boundary_status",
+        "gridap_outlet_node_count",
+        "gridap_outlet_velocity_sampling_fallback_count",
+        "gridap_outlet_backflow_node_count",
+        "gridap_outlet_normal_velocity_min_cm_s",
+        "gridap_outlet_normal_velocity_max_cm_s",
+        "gridap_outlet_normal_velocity_mean_cm_s",
         "gridap_dt_s",
         "gridap_time_step_index",
         "gridap_picard_iteration",
@@ -1147,6 +1258,21 @@ function run_native_resolved_fsi_partitioned_production(
             gridap_pressure_constraint=solver_diagnostics.gridap_pressure_constraint,
             gridap_pressure_reference=solver_diagnostics.gridap_pressure_reference,
             gridap_wall_boundary_mode=solver_diagnostics.gridap_wall_boundary_mode,
+            gridap_quadrature_degree=solver_diagnostics.gridap_quadrature_degree,
+            gridap_quadrature_sensitivity_degree=solver_diagnostics.gridap_quadrature_sensitivity_degree,
+            gridap_quadrature_sensitivity_matrix_relative_change=
+                solver_diagnostics.gridap_quadrature_sensitivity_matrix_relative_change,
+            gridap_quadrature_sensitivity_rhs_relative_change=
+                solver_diagnostics.gridap_quadrature_sensitivity_rhs_relative_change,
+            gridap_quadrature_sensitivity_status=solver_diagnostics.gridap_quadrature_sensitivity_status,
+            gridap_open_boundary_status=solver_diagnostics.gridap_open_boundary_status,
+            gridap_outlet_node_count=solver_diagnostics.gridap_outlet_node_count,
+            gridap_outlet_velocity_sampling_fallback_count=
+                solver_diagnostics.gridap_outlet_velocity_sampling_fallback_count,
+            gridap_outlet_backflow_node_count=solver_diagnostics.gridap_outlet_backflow_node_count,
+            gridap_outlet_normal_velocity_min_cm_s=solver_diagnostics.gridap_outlet_normal_velocity_min_cm_s,
+            gridap_outlet_normal_velocity_max_cm_s=solver_diagnostics.gridap_outlet_normal_velocity_max_cm_s,
+            gridap_outlet_normal_velocity_mean_cm_s=solver_diagnostics.gridap_outlet_normal_velocity_mean_cm_s,
             gridap_dt_s=solver_diagnostics.gridap_dt_s,
             gridap_time_step_index=solver_diagnostics.gridap_time_step_index,
             gridap_picard_iteration=solver_diagnostics.gridap_picard_iteration,
@@ -1289,6 +1415,21 @@ function run_native_resolved_fsi_partitioned_production(
             "gridap_pressure_constraint" => solver_diagnostics.gridap_pressure_constraint,
             "gridap_pressure_reference" => solver_diagnostics.gridap_pressure_reference,
             "gridap_wall_boundary_mode" => solver_diagnostics.gridap_wall_boundary_mode,
+            "gridap_quadrature_degree" => solver_diagnostics.gridap_quadrature_degree,
+            "gridap_quadrature_sensitivity_degree" => solver_diagnostics.gridap_quadrature_sensitivity_degree,
+            "gridap_quadrature_sensitivity_matrix_relative_change" =>
+                solver_diagnostics.gridap_quadrature_sensitivity_matrix_relative_change,
+            "gridap_quadrature_sensitivity_rhs_relative_change" =>
+                solver_diagnostics.gridap_quadrature_sensitivity_rhs_relative_change,
+            "gridap_quadrature_sensitivity_status" => solver_diagnostics.gridap_quadrature_sensitivity_status,
+            "gridap_open_boundary_status" => solver_diagnostics.gridap_open_boundary_status,
+            "gridap_outlet_node_count" => solver_diagnostics.gridap_outlet_node_count,
+            "gridap_outlet_velocity_sampling_fallback_count" =>
+                solver_diagnostics.gridap_outlet_velocity_sampling_fallback_count,
+            "gridap_outlet_backflow_node_count" => solver_diagnostics.gridap_outlet_backflow_node_count,
+            "gridap_outlet_normal_velocity_min_cm_s" => solver_diagnostics.gridap_outlet_normal_velocity_min_cm_s,
+            "gridap_outlet_normal_velocity_max_cm_s" => solver_diagnostics.gridap_outlet_normal_velocity_max_cm_s,
+            "gridap_outlet_normal_velocity_mean_cm_s" => solver_diagnostics.gridap_outlet_normal_velocity_mean_cm_s,
             "gridap_dt_s" => solver_diagnostics.gridap_dt_s,
             "gridap_time_step_index" => solver_diagnostics.gridap_time_step_index,
             "gridap_picard_iteration" => solver_diagnostics.gridap_picard_iteration,
@@ -1454,6 +1595,16 @@ function run_native_resolved_fsi_partitioned_production(
         estimated_field_payload_bytes <= NATIVE_RESOLVED_FSI_SMOKE_MAX_OUTPUT_BYTES || throw(ArgumentError(
             "native resolved-FSI partitioned production estimated single-snapshot raw field payload $(estimated_field_payload_bytes) bytes exceeds the $(NATIVE_RESOLVED_FSI_SMOKE_MAX_OUTPUT_BYTES)-byte smoke cap",
         ))
+        requested_snapshot_times_s = if resume_context !== nothing
+            copy(local_spec.snapshot_times_s[resume_context.next_snapshot_index:end])
+        elseif internal_stop_after_snapshot_index !== nothing
+            copy(local_spec.snapshot_times_s[1:internal_stop_after_snapshot_index])
+        else
+            copy(local_spec.snapshot_times_s)
+        end
+        isempty(requested_snapshot_times_s) && throw(ArgumentError(
+            "native resolved-FSI partitioned production has no snapshots to run",
+        ))
         series_spec = snapshot_smoke_spec(
             local_spec,
             local_spec.tfinal_s,
@@ -1477,27 +1628,33 @@ function run_native_resolved_fsi_partitioned_production(
         solve_results = native_resolved_fsi_solve_partitioned_snapshot_series(
             mesh,
             series_spec,
-            local_spec.snapshot_times_s,
+            requested_snapshot_times_s,
             progress_callback=progress_callback,
+            restart_state=resume_context === nothing ? nothing : resume_context.solver_state,
         )
         snapshot_results = NamedTuple[]
-        for (index, snapshot_time_s) in enumerate(local_spec.snapshot_times_s)
+        completed_snapshot_count = resume_context === nothing ? 0 : resume_context.completed_snapshot_count
+        for (offset, snapshot_time_s) in enumerate(requested_snapshot_times_s)
+            snapshot_index = completed_snapshot_count + offset
             snapshot_dir = snapshot_output_dir(local_spec, snapshot_time_s)
             snapshot_spec = snapshot_production_spec(local_spec, snapshot_time_s)
             smoke_spec = snapshot_smoke_spec(local_spec, snapshot_time_s, snapshot_dir)
+            solve_result = solve_results[offset]
             smoke_result = native_resolved_fsi_partitioned_smoke_result(
                 mesh,
                 smoke_spec,
-                solve_results[index];
+                solve_result;
                 output_dir=snapshot_dir,
                 saved_time_s=snapshot_time_s,
                 estimated_field_payload_bytes=estimated_field_payload_bytes,
             )
             push!(snapshot_results, (
+                snapshot_index=snapshot_index,
                 snapshot_time_s=snapshot_time_s,
                 output_dir=snapshot_dir,
                 spec=snapshot_spec,
                 smoke_spec=smoke_spec,
+                solve_result=solve_result,
                 smoke_result=smoke_result,
                 provenance="state_carrying_partitioned",
                 status=snapshot_status(local_spec, snapshot_time_s, smoke_result),
@@ -1554,6 +1711,18 @@ function run_native_resolved_fsi_partitioned_production(
             "boundary_equivalence_status",
         )
         rows = (manifest_row(local_spec, snapshot_result) for snapshot_result in snapshot_results)
+        if resume_context !== nothing
+            guarded_open_write(path, local_spec.overwrite) do io
+                println(io, csv_record(header))
+                for line in resume_context.completed_manifest_data_lines
+                    println(io, line)
+                end
+                for row in rows
+                    println(io, csv_record(row))
+                end
+            end
+            return path
+        end
         return write_csv_table(path, header, rows; overwrite=local_spec.overwrite)
     end
 
@@ -1577,6 +1746,7 @@ function run_native_resolved_fsi_partitioned_production(
         snapshot_result::NamedTuple,
     )
         smoke_result = snapshot_result.smoke_result
+        solver_diagnostics = smoke_result.solver_diagnostics
         solver_convergence_ready =
             smoke_result.picard_converged &&
             smoke_result.max_picard_iterations_used > 0 &&
@@ -1642,6 +1812,21 @@ function run_native_resolved_fsi_partitioned_production(
             minimum_signed_tetra_volume6=smoke_result.minimum_signed_tetra_volume6,
             pressure_projection_fallback_count=smoke_result.pressure_projection_fallback_count,
             sampling_fallback_count=smoke_result.sampling_fallback_count,
+            gridap_quadrature_degree=solver_diagnostics.gridap_quadrature_degree,
+            gridap_quadrature_sensitivity_degree=solver_diagnostics.gridap_quadrature_sensitivity_degree,
+            gridap_quadrature_sensitivity_matrix_relative_change=
+                solver_diagnostics.gridap_quadrature_sensitivity_matrix_relative_change,
+            gridap_quadrature_sensitivity_rhs_relative_change=
+                solver_diagnostics.gridap_quadrature_sensitivity_rhs_relative_change,
+            gridap_quadrature_sensitivity_status=solver_diagnostics.gridap_quadrature_sensitivity_status,
+            gridap_open_boundary_status=solver_diagnostics.gridap_open_boundary_status,
+            gridap_outlet_node_count=solver_diagnostics.gridap_outlet_node_count,
+            gridap_outlet_velocity_sampling_fallback_count=
+                solver_diagnostics.gridap_outlet_velocity_sampling_fallback_count,
+            gridap_outlet_backflow_node_count=solver_diagnostics.gridap_outlet_backflow_node_count,
+            gridap_outlet_normal_velocity_min_cm_s=solver_diagnostics.gridap_outlet_normal_velocity_min_cm_s,
+            gridap_outlet_normal_velocity_max_cm_s=solver_diagnostics.gridap_outlet_normal_velocity_max_cm_s,
+            gridap_outlet_normal_velocity_mean_cm_s=solver_diagnostics.gridap_outlet_normal_velocity_mean_cm_s,
             schema_ready=smoke_result.schema_status.ready,
             geometry_ready=smoke_result.geometry_status.ready,
             time_ready=smoke_result.time_status.ready,
@@ -1658,7 +1843,11 @@ function run_native_resolved_fsi_partitioned_production(
         snapshot_results::Vector{NamedTuple},
     )
         return NamedTuple[
-            diagnostic_row(local_spec, snapshot_index, snapshot_result)
+            diagnostic_row(
+                local_spec,
+                haskey(snapshot_result, :snapshot_index) ? snapshot_result.snapshot_index : snapshot_index,
+                snapshot_result,
+            )
             for (snapshot_index, snapshot_result) in enumerate(snapshot_results)
         ]
     end
@@ -1666,6 +1855,18 @@ function run_native_resolved_fsi_partitioned_production(
     function write_diagnostics(path::String, rows::Vector{NamedTuple}, overwrite::Bool)
         isempty(rows) && throw(ArgumentError("native resolved-FSI production diagnostics require at least one row"))
         header = string.(propertynames(first(rows)))
+        if resume_context !== nothing
+            guarded_open_write(path, overwrite) do io
+                println(io, csv_record(header))
+                for line in resume_context.completed_diagnostics_data_lines
+                    println(io, line)
+                end
+                for row in rows
+                    println(io, csv_record(Tuple(row)))
+                end
+            end
+            return path
+        end
         return write_csv_table(path, header, (Tuple(row) for row in rows); overwrite=overwrite)
     end
 
@@ -1707,6 +1908,7 @@ function run_native_resolved_fsi_partitioned_production(
     )
         final_snapshot = snapshot_results[end]
         final_smoke = final_snapshot.smoke_result
+        final_solve = final_snapshot.solve_result
         resolution = local_spec.resolution
         metadata_dir = dirname(restart_metadata_json)
         checkpoint_dir = joinpath(metadata_dir, "checkpoint")
@@ -1715,11 +1917,17 @@ function run_native_resolved_fsi_partitioned_production(
         fluid_state_path = joinpath(checkpoint_dir, "fluid_state.json")
         coupling_state_path = joinpath(checkpoint_dir, "coupling_state.json")
         output_linkage_path = joinpath(checkpoint_dir, "output_linkage.json")
+        completed_snapshot_count = resume_context === nothing ? 0 : resume_context.completed_snapshot_count
+        current_snapshot_index = completed_snapshot_count + length(snapshot_results)
+        next_pending_snapshot_index = current_snapshot_index < length(local_spec.snapshot_times_s) ?
+            current_snapshot_index + 1 :
+            nothing
 
         write_json(wall_state_path, Dict{String,Any}(
             "schema_version" => 1,
-            "representation" => "reduced_wall_state",
+            "representation" => "durable_reduced_wall_state",
             "wall_axial_coordinates_cm" => copy(final_smoke.wall_axial_coordinates_cm),
+            "reference_radii_cm" => copy(final_smoke.mesh.geometry.reference_radii_cm),
             "wall_displacement_cm" => copy(final_smoke.wall_displacement_cm),
             "wall_velocity_cm_s" => copy(final_smoke.wall_velocity_cm_s),
             "current_radii_cm" => copy(final_smoke.current_radii_cm),
@@ -1728,34 +1936,36 @@ function run_native_resolved_fsi_partitioned_production(
             "pressure_gauge_convention" => "outlet_gauge_normalization_export_only_not_membrane_forcing",
             "wall_pressure_forcing_status" =>
                 native_resolved_fsi_wall_pressure_forcing_status(final_smoke.inlet_outlet_boundary_mode),
+            "wall_density_g_cm3" => local_spec.wall_density_g_cm3,
             "wall_mass_g_cm2" => final_smoke.wall_mass_g_cm2,
             "wall_stiffness_c0_dyn_cm3" => final_smoke.wall_stiffness_c0_dyn_cm3,
+            "wall_stiffness_c0_dyn_cm3_vector" =>
+                fill(final_smoke.wall_stiffness_c0_dyn_cm3, length(final_smoke.wall_axial_coordinates_cm)),
+            "wall_stiffness_policy" => string(local_spec.wall_stiffness_policy),
             "wall_damping_g_cm2_s" => final_smoke.wall_damping_g_cm2_s,
+            "wall_reference_radius_policy" => string(local_spec.wall_reference_radius_policy),
             "minimum_current_radius_cm" => final_smoke.minimum_current_radius_cm,
             "clamped_endpoint_status" => "inlet_and_outlet_wall_state_zeroed",
+            "clamped_endpoint_tolerance_cm" => 0.0,
         ); overwrite=local_spec.overwrite)
-        write_json(mesh_identity_path, Dict{String,Any}(
-            "schema_version" => 1,
-            "representation" => "native_mesh_identity",
-            "case_id" => string(local_spec.case_spec.case_id),
-            "severity_percent" => local_spec.case_spec.severity_percent,
-            "mesh_resolution" => Dict{String,Any}(
-                "axial" => resolution.axial,
-                "radial" => resolution.radial,
-                "angular" => resolution.angular,
-            ),
-            "node_count" => size(final_smoke.loaded_coordinates, 1),
-            "tetrahedron_count" => size(final_smoke.loaded_topology, 1),
-            "mesh_h5" => final_smoke.mesh_h5,
-            "mesh_h5_sha256" => sha256_file(final_smoke.mesh_h5),
-            "minimum_signed_tetra_volume6" => final_smoke.minimum_signed_tetra_volume6,
-        ); overwrite=local_spec.overwrite)
+        mesh_identity = native_resolved_fsi_checkpoint_mesh_identity(final_smoke.mesh)
+        mesh_identity["schema_version"] = 1
+        mesh_identity["representation"] = "native_mesh_identity"
+        mesh_identity["mesh_h5"] = final_smoke.mesh_h5
+        mesh_identity["mesh_h5_sha256"] = sha256_file(final_smoke.mesh_h5)
+        mesh_identity["minimum_signed_tetra_volume6"] = final_smoke.minimum_signed_tetra_volume6
+        write_json(mesh_identity_path, mesh_identity; overwrite=local_spec.overwrite)
         write_json(fluid_state_path, Dict{String,Any}(
             "schema_version" => 1,
-            "representation" => "sampled_output_reference_not_fe_dof_checkpoint",
-            "restartable_fe_state" => false,
+            "representation" => "gridap_free_dof_checkpoint",
+            "restartable_fe_state" => true,
             "velocity_dofs" => final_smoke.velocity_dofs,
             "pressure_dofs" => final_smoke.pressure_dofs,
+            "velocity_free_dof_values" => native_resolved_fsi_copy_free_dof_values(final_solve.velocity),
+            "pressure_free_dof_values" => native_resolved_fsi_copy_free_dof_values(final_solve.pressure),
+            "previous_velocity_free_dof_values" => native_resolved_fsi_copy_free_dof_values(final_solve.velocity),
+            "coordinate_mode" => "current_deformed_coordinates",
+            "pressure_state_role" => "pressure_initial_guess_and_audit_state",
             "velocity_xdmf" => final_smoke.velocity_xdmf,
             "velocity_h5" => final_smoke.velocity_h5,
             "velocity_h5_sha256" => sha256_file(final_smoke.velocity_h5),
@@ -1766,28 +1976,61 @@ function run_native_resolved_fsi_partitioned_production(
             "displacement_h5" => final_smoke.displacement_h5,
             "displacement_h5_sha256" => sha256_file(final_smoke.displacement_h5),
             "pressure_gauge_offset_dyn_cm2" => final_smoke.pressure_gauge_offset_dyn_cm2,
+            "pressure_gauge_convention" => "outlet_gauge_normalization_export_only_not_membrane_forcing",
+            "max_picard_iterations_used" => final_smoke.max_picard_iterations_used,
+            "final_picard_update_norm" => final_smoke.final_picard_update_norm,
+            "picard_converged" => final_smoke.picard_converged,
         ); overwrite=local_spec.overwrite)
         write_json(coupling_state_path, Dict{String,Any}(
             "schema_version" => 1,
             "representation" => "partitioned_coupling_state_and_cursor",
-            "current_snapshot_index" => length(snapshot_results),
+            "completed_snapshot_count" => current_snapshot_index,
+            "current_snapshot_index" => current_snapshot_index,
+            "next_pending_snapshot_index" => next_pending_snapshot_index,
             "current_snapshot_time_s" => final_snapshot.snapshot_time_s,
             "current_saved_time_s" => final_smoke.saved_time_s,
             "current_time_step_count" => final_smoke.time_step_count,
             "dt_s" => local_spec.dt_s,
             "tfinal_s" => local_spec.tfinal_s,
             "snapshot_times_s" => copy(local_spec.snapshot_times_s),
+            "time_atol" => local_spec.time_atol,
             "coupling_iteration_count" => local_spec.coupling_iteration_count,
             "coupling_tolerance" => local_spec.coupling_tolerance,
             "coupling_under_relaxation" => local_spec.coupling_under_relaxation,
             "max_coupling_iterations_used" => final_smoke.max_coupling_iterations_used,
             "final_coupling_displacement_residual_cm" => final_smoke.final_coupling_displacement_residual_cm,
             "coupling_converged" => final_smoke.coupling_converged,
+            "pressure_projection_fallback_count" => final_smoke.pressure_projection_fallback_count,
+            "sampling_fallback_count" => final_smoke.sampling_fallback_count,
+            "minimum_signed_tetra_volume6" => final_smoke.minimum_signed_tetra_volume6,
+            "fluid_wall_boundary_mode" => string(final_smoke.fluid_wall_boundary_mode),
             "coupling_residual_history" => Any[
                 Dict{String,Any}(string(key) => value for (key, value) in pairs(row))
                 for row in final_smoke.coupling_residual_history
             ],
         ); overwrite=local_spec.overwrite)
+        current_snapshot_outputs = Any[
+            Dict{String,Any}(
+                "snapshot_index" => snapshot.snapshot_index,
+                "snapshot_time_s" => snapshot.snapshot_time_s,
+                "saved_time_s" => snapshot.smoke_result.saved_time_s,
+                "output_dir" => snapshot.output_dir,
+                "velocity_xdmf" => snapshot.smoke_result.velocity_xdmf,
+                "velocity_h5" => snapshot.smoke_result.velocity_h5,
+                "velocity_h5_sha256" => sha256_file(snapshot.smoke_result.velocity_h5),
+                "pressure_xdmf" => snapshot.smoke_result.pressure_xdmf,
+                "pressure_h5" => snapshot.smoke_result.pressure_h5,
+                "pressure_h5_sha256" => sha256_file(snapshot.smoke_result.pressure_h5),
+                "displacement_xdmf" => snapshot.smoke_result.displacement_xdmf,
+                "displacement_h5" => snapshot.smoke_result.displacement_h5,
+                "displacement_h5_sha256" => sha256_file(snapshot.smoke_result.displacement_h5),
+                "status" => snapshot.status.status,
+                "ownership" => "current_resume_output_root",
+            ) for snapshot in snapshot_results
+        ]
+        all_snapshot_outputs = resume_context === nothing ?
+            current_snapshot_outputs :
+            vcat(deepcopy(resume_context.completed_snapshot_outputs), current_snapshot_outputs)
         write_json(output_linkage_path, Dict{String,Any}(
             "schema_version" => 1,
             "representation" => "sidecar_and_output_linkage",
@@ -1795,17 +2038,15 @@ function run_native_resolved_fsi_partitioned_production(
             "snapshot_manifest_sha256" => sha256_file(manifest_csv),
             "diagnostics_csv" => diagnostics_csv,
             "diagnostics_sha256" => sha256_file(diagnostics_csv),
-            "snapshot_outputs" => Any[
-                Dict{String,Any}(
-                    "snapshot_time_s" => snapshot.snapshot_time_s,
-                    "output_dir" => snapshot.output_dir,
-                    "velocity_xdmf" => snapshot.smoke_result.velocity_xdmf,
-                    "pressure_xdmf" => snapshot.smoke_result.pressure_xdmf,
-                    "displacement_xdmf" => snapshot.smoke_result.displacement_xdmf,
-                    "status" => snapshot.status.status,
-                ) for snapshot in snapshot_results
-            ],
-            "diagnostic_row_count" => length(rows),
+            "snapshot_outputs" => all_snapshot_outputs,
+            "diagnostic_row_count" => completed_snapshot_count + length(rows),
+            "completed_parent_snapshot_count" => completed_snapshot_count,
+            "current_run_snapshot_count" => length(snapshot_results),
+            "output_ownership_policy" => resume_context === nothing ?
+                "current_run_owns_all_listed_outputs" :
+                "forked_resume_references_parent_completed_outputs_and_owns_only_current_resume_output_root",
+            "parent_restart_metadata_json" =>
+                resume_context === nothing ? nothing : resume_context.parent_restart_metadata_json,
         ); overwrite=local_spec.overwrite)
 
         return Any[
@@ -1832,8 +2073,14 @@ function run_native_resolved_fsi_partitioned_production(
             final_smoke.inlet_outlet_boundary_mode;
             inlet_umax_cm_s=local_spec.inlet_umax_cm_s,
         )
-        snapshot_outputs = Any[]
-        for (index, snapshot) in enumerate(snapshot_results)
+        completed_snapshot_count = resume_context === nothing ? 0 : resume_context.completed_snapshot_count
+        current_snapshot_index = completed_snapshot_count + length(snapshot_results)
+        next_pending_snapshot_index = current_snapshot_index < length(local_spec.snapshot_times_s) ?
+            current_snapshot_index + 1 :
+            nothing
+        snapshot_outputs = resume_context === nothing ? Any[] : deepcopy(resume_context.completed_snapshot_outputs)
+        for snapshot in snapshot_results
+            index = snapshot.snapshot_index
             snapshot_boundary_status = native_resolved_fsi_boundary_status_fields(
                 snapshot.smoke_result.inlet_outlet_boundary_mode;
                 inlet_umax_cm_s=local_spec.inlet_umax_cm_s,
@@ -1844,8 +2091,14 @@ function run_native_resolved_fsi_partitioned_production(
                 "saved_time_s" => snapshot.smoke_result.saved_time_s,
                 "output_dir" => snapshot.output_dir,
                 "velocity_xdmf" => snapshot.smoke_result.velocity_xdmf,
+                "velocity_h5" => snapshot.smoke_result.velocity_h5,
+                "velocity_h5_sha256" => sha256_file(snapshot.smoke_result.velocity_h5),
                 "pressure_xdmf" => snapshot.smoke_result.pressure_xdmf,
+                "pressure_h5" => snapshot.smoke_result.pressure_h5,
+                "pressure_h5_sha256" => sha256_file(snapshot.smoke_result.pressure_h5),
                 "displacement_xdmf" => snapshot.smoke_result.displacement_xdmf,
+                "displacement_h5" => snapshot.smoke_result.displacement_h5,
+                "displacement_h5_sha256" => sha256_file(snapshot.smoke_result.displacement_h5),
                 "provenance" => snapshot.provenance,
                 "time_step_count" => snapshot.smoke_result.time_step_count,
                 "max_coupling_iterations_used" => snapshot.smoke_result.max_coupling_iterations_used,
@@ -1871,6 +2124,9 @@ function run_native_resolved_fsi_partitioned_production(
                 "boundary_equivalence_status" =>
                     native_resolved_fsi_boundary_equivalence_status(snapshot_boundary_status),
                 "status" => snapshot.status.status,
+                "ownership" => resume_context === nothing ?
+                    "current_run_output_root" :
+                    "current_resume_output_root",
             ))
         end
         coupling_residual_history = Any[
@@ -1889,7 +2145,7 @@ function run_native_resolved_fsi_partitioned_production(
         state_payload = Dict{String,Any}(
             "schema_version" => 1,
             "saved_time_s" => final_smoke.saved_time_s,
-            "last_snapshot_index" => length(snapshot_results),
+            "last_snapshot_index" => current_snapshot_index,
             "final_wall_displacement_cm" => copy(final_smoke.wall_displacement_cm),
             "final_wall_velocity_cm_s" => copy(final_smoke.wall_velocity_cm_s),
             "current_radii_cm" => copy(final_smoke.current_radii_cm),
@@ -1911,21 +2167,38 @@ function run_native_resolved_fsi_partitioned_production(
             ),
             "dt_s" => local_spec.dt_s,
             "tfinal_s" => local_spec.tfinal_s,
+            "time_atol" => local_spec.time_atol,
             "output_root" => local_spec.output_root,
             "production_output_dir" => default_native_resolved_fsi_partitioned_production_output_dir(local_spec),
+            "parent_restart_metadata_json" =>
+                resume_context === nothing ? nothing : resume_context.parent_restart_metadata_json,
+            "completed_parent_snapshot_count" => completed_snapshot_count,
+            "next_pending_snapshot_index" => next_pending_snapshot_index,
+            "resume_run_role" => resume_context === nothing ? "checkpoint_writer" : "forked_internal_resume",
+            "output_ownership_policy" => resume_context === nothing ?
+                "current_run_owns_all_listed_outputs" :
+                "forked_resume_references_parent_completed_outputs_and_owns_only_current_resume_output_root",
             "process_id" => execution_layout.process_id,
             "thread_count" => execution_layout.thread_count,
             "parallel_workers" => execution_layout.parallel_workers,
             "threads_per_worker" => execution_layout.threads_per_worker,
             "force_process" => execution_layout.force_process,
             "snapshot_times_s" => copy(local_spec.snapshot_times_s),
-            "current_snapshot_index" => length(snapshot_results),
+            "current_snapshot_index" => current_snapshot_index,
             "current_snapshot_time_s" => final_snapshot.snapshot_time_s,
             "current_saved_time_s" => final_smoke.saved_time_s,
             "current_smoke_time_step_count" => final_smoke.time_step_count,
+            "picard_iteration_count" => local_spec.picard_iteration_count,
+            "picard_tolerance" => local_spec.picard_tolerance,
             "coupling_iteration_count" => local_spec.coupling_iteration_count,
             "coupling_tolerance" => local_spec.coupling_tolerance,
             "coupling_under_relaxation" => local_spec.coupling_under_relaxation,
+            "wall_density_g_cm3" => local_spec.wall_density_g_cm3,
+            "wall_damping_g_cm2_s" => local_spec.wall_damping_g_cm2_s,
+            "wall_stiffness_policy" => string(local_spec.wall_stiffness_policy),
+            "wall_reference_radius_policy" => string(local_spec.wall_reference_radius_policy),
+            "allow_many_snapshots" => local_spec.allow_many_snapshots,
+            "allow_large_output" => local_spec.allow_large_output,
             "max_coupling_iterations_used" => final_smoke.max_coupling_iterations_used,
             "final_coupling_displacement_residual_cm" =>
                 final_smoke.final_coupling_displacement_residual_cm,
@@ -1934,6 +2207,8 @@ function run_native_resolved_fsi_partitioned_production(
             "fluid_wall_boundary_mode" => string(final_smoke.fluid_wall_boundary_mode),
             "wall_velocity_fluid_bc_status" => wall_velocity_fluid_bc_status(final_smoke.fluid_wall_boundary_mode),
             "inlet_umax_cm_s" => local_spec.inlet_umax_cm_s,
+            "pressure_drop_dyn_cm2" => local_spec.pressure_drop_dyn_cm2,
+            "inlet_outlet_boundary_mode" => string(local_spec.inlet_outlet_boundary_mode),
             "boundary_mode" => final_boundary_status.boundary_mode,
             "boundary_mode_class" => final_boundary_status.boundary_mode_class,
             "inlet_condition_status" => final_boundary_status.inlet_condition_status,
@@ -1967,16 +2242,16 @@ function run_native_resolved_fsi_partitioned_production(
             "snapshot_outputs" => snapshot_outputs,
             "state_payload" => state_payload,
             "production_spec_digest" => production_spec_digest(local_spec),
-            "restart_schema_version" => 2,
-            "restart_schema_status" => "schema_v2_checkpoint_manifest",
+            "restart_schema_version" => 3,
+            "restart_schema_status" => "schema_v3_durable_checkpoint",
             "checkpoint_manifest" => checkpoint_manifest,
-            "checkpoint_schema_status" => "checkpoint_manifest_present_resume_not_implemented",
+            "checkpoint_schema_status" => "durable_checkpoint_ready",
             "restart_provenance" => "state_carrying_partitioned",
             "state_carrying_restart" => true,
-            "resume_supported" => false,
-            "resume_status" => "deferred",
+            "resume_supported" => true,
+            "resume_status" => "ready",
             "resume_note" =>
-                "Production snapshots carry partitioned state within the run; schema v2 checkpoint sidecars record wall, mesh, sampled-output, coupling, and output-linkage state, but no durable FE-state reconstruction runner is implemented and persisted resume remains deferred.",
+                "Schema v3 checkpoint sidecars record reduced wall state, regenerated mesh identity digests, Gridap free-DOF fluid state, coupling history, and the snapshot cursor for qualified internal resume. Public CLI resume remains intentionally unexposed.",
         )
     end
 
@@ -1987,17 +2262,32 @@ function run_native_resolved_fsi_partitioned_production(
         ready = isfile(restart_metadata_json) &&
                 get(metadata, "restart_provenance", "") == "state_carrying_partitioned" &&
                 get(metadata, "state_carrying_restart", false) == true &&
-                get(metadata, "restart_schema_version", 1) in (1, 2) &&
-                get(metadata, "resume_supported", true) == false &&
-                get(metadata, "resume_status", "") == "deferred" &&
+                get(metadata, "restart_schema_version", 1) in (1, 2, 3) &&
+                (
+                    (
+                        get(metadata, "restart_schema_version", 1) == 3 &&
+                        get(metadata, "resume_supported", false) == true &&
+                        get(metadata, "resume_status", "") == "ready" &&
+                        get(metadata, "checkpoint_schema_status", "") == "durable_checkpoint_ready"
+                    ) ||
+                    (
+                        get(metadata, "restart_schema_version", 1) in (1, 2) &&
+                        get(metadata, "resume_supported", true) == false &&
+                        get(metadata, "resume_status", "") == "deferred"
+                    )
+                ) &&
                 get(get(metadata, "state_payload", Dict{String,Any}()), "schema_version", nothing) == 1 &&
                 (
                     get(metadata, "restart_schema_version", 1) == 1 ||
                     !isempty(get(metadata, "checkpoint_manifest", Any[]))
                 )
-        status = ready ?
-            "restart metadata was written with state-carrying partitioned snapshot provenance and non-resumable checkpoint sidecars; persisted resume remains explicitly deferred" :
+        status = if ready && get(metadata, "restart_schema_version", 1) == 3
+            "restart metadata was written with durable schema-v3 checkpoint sidecars ready for qualified internal resume"
+        elseif ready
+            "restart metadata was written with state-carrying partitioned snapshot provenance and non-resumable checkpoint sidecars; persisted resume remains explicitly deferred"
+        else
             "restart metadata is missing or does not mark the current state-carrying non-resumable provenance"
+        end
         return NativeResolvedFSIWorkflowStatus(ready, status)
     end
 
@@ -2009,17 +2299,28 @@ function run_native_resolved_fsi_partitioned_production(
         restart_metadata_json::String,
     )
         expected_output_dir = default_native_resolved_fsi_partitioned_production_output_dir(local_spec)
+        completed_snapshot_count = resume_context === nothing ? 0 : resume_context.completed_snapshot_count
+        expected_completed_count = completed_snapshot_count + length(snapshot_results)
         ready = isfile(manifest_csv) &&
                 isfile(diagnostics_csv) &&
                 isfile(restart_metadata_json) &&
-                length(snapshot_results) == length(local_spec.snapshot_times_s) &&
+                (
+                    expected_completed_count == length(local_spec.snapshot_times_s) ||
+                    internal_stop_after_snapshot_index !== nothing
+                ) &&
                 all(
                     snapshot -> snapshot.status.ready && startswith(snapshot.output_dir, expected_output_dir),
                     snapshot_results,
                 )
-        status = ready ?
-            "production snapshot manifest, diagnostics CSV, restart metadata, and $(length(snapshot_results)) importer-compatible bundle(s) were written under $(expected_output_dir)" :
+        status = if ready && resume_context !== nothing
+            "resumed production fork wrote $(length(snapshot_results)) new importer-compatible bundle(s) under $(expected_output_dir) and preserved $(completed_snapshot_count) parent snapshot row(s)"
+        elseif ready && internal_stop_after_snapshot_index !== nothing
+            "partial production checkpoint wrote $(length(snapshot_results)) importer-compatible bundle(s) under $(expected_output_dir) and preserved the full checkpoint cursor for internal resume"
+        elseif ready
+            "production snapshot manifest, diagnostics CSV, restart metadata, and $(length(snapshot_results)) importer-compatible bundle(s) were written under $(expected_output_dir)"
+        else
             "one or more production snapshot bundles or production sidecars failed output, schema, geometry, time, or field checks"
+        end
         return NativeResolvedFSIWorkflowStatus(ready, status)
     end
 
@@ -2040,9 +2341,9 @@ function run_native_resolved_fsi_partitioned_production(
                 snapshot_results,
         )
         ready_status = if exact_boundary_mode
-            "production snapshot harness advanced one state-carrying partitioned solve through each requested time with stationary no-slip wall solves on deformed geometry and exact Section 4.1 inlet/outlet boundary mode; direct finite physical wall-forcing pressure sampling was required with pressure-drop fallback disabled, and outlet-gauge pressure normalization is export-only; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, paper-grade Section 4.1 parity, and monolithic ALE coupling remain out of scope"
+            "production snapshot harness advanced one state-carrying partitioned solve series as repeated deformed-domain fluid solves through each requested time with a reduced radial membrane update and stationary no-slip wall solves for the exact Section 4.1 inlet/outlet boundary mode; direct finite physical wall-forcing pressure sampling was required with pressure-drop fallback disabled, and outlet-gauge pressure normalization is export-only; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, paper-grade Section 4.1 parity, and monolithic ALE coupling remain out of scope"
         else
-            "production snapshot harness advanced one state-carrying partitioned solve through each requested time with prescribed radial wall-velocity Dirichlet data on deformed geometry; physical wall-forcing pressure uses raw sampling or the pressure-drop resistance fallback, while outlet-gauge pressure normalization is export-only; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, validated Section 4.1 parity, and monolithic ALE coupling remain out of scope"
+            "production snapshot harness advanced one state-carrying partitioned solve series as repeated deformed-domain fluid solves through each requested time with a reduced radial membrane update and prescribed radial wall-velocity Dirichlet data on deformed geometry; physical wall-forcing pressure uses raw sampling or the pressure-drop resistance fallback, while outlet-gauge pressure normalization is export-only; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, validated Section 4.1 parity, and monolithic ALE coupling remain out of scope"
         end
         status = ready ?
             ready_status :

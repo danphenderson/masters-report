@@ -6,7 +6,8 @@ function print_simulate_usage(io::IO = stdout)
           packages/stenotic-hemodynamics/bin/stenotic-hemodynamics simulate [options]
 
         Options:
-          --model VALUE           canic-extended-1d or classical-1d-no-slip
+          --model VALUE           canic-extended-1d or classical-parabolic-1d
+                                  (legacy alias: classical-1d-no-slip)
           --severity VALUE        Stenosis severity percentage, default 50
           --nx VALUE              Number of finite-volume cells, default 400
           --tfinal VALUE          Final time in seconds, default 1.0

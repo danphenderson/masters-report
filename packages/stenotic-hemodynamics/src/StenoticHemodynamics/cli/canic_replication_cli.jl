@@ -15,7 +15,7 @@ function print_canic_replication_usage(io::IO = stdout)
           --section-count VALUE     Axial observation count, default 200
           --radial-sample-count VALUE Radial velocity sample count, default 41
           --time-atol VALUE         XDMF time tolerance, default 1e-6
-          --models LIST             Comma-separated 1D models, default canic-extended-1d,classical-1d-no-slip
+          --models LIST             Comma-separated 1D models, default canic-extended-1d,classical-parabolic-1d
           --publish-report-assets   Copy CSV/TeX outputs into report/assets/data|tables/canic-replication
           --report-assets-dir PATH  Report asset root, default report/assets
           --overwrite               Replace existing outputs

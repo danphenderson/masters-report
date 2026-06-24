@@ -105,7 +105,14 @@ velocity_profile_path_token(::ParabolicVelocityProfile) = "parabolic"
 velocity_profile_path_token(profile::FlatVelocityProfile) = "flat_sf_" * path_token(profile.shear_rate_factor)
 velocity_profile_path_token(profile::PowerVelocityProfile) = "power_g_" * path_token(profile.exponent)
 
-function radial_profile_velocity(
+"""
+    reconstructed_axial_velocity(uavg, radius, section_radius, profile)
+
+Reconstruct the axial velocity implied by a 1D section-mean velocity at a
+cylindrical radial coordinate. `radius` and `section_radius` share units, and
+the returned value has the same velocity units as `uavg`.
+"""
+function reconstructed_axial_velocity(
     uavg::Real,
     radius::Real,
     section_radius::Real,
@@ -115,7 +122,7 @@ function radial_profile_velocity(
     return T(uavg)
 end
 
-function radial_profile_velocity(
+function reconstructed_axial_velocity(
     uavg::Real,
     radius::Real,
     section_radius::Real,
@@ -129,7 +136,7 @@ function radial_profile_velocity(
     return T(2) * uavg_t * (one(T) - ratio^2)
 end
 
-function radial_profile_velocity(
+function reconstructed_axial_velocity(
     uavg::Real,
     radius::Real,
     section_radius::Real,
@@ -142,6 +149,14 @@ function radial_profile_velocity(
     gamma = T(profile.exponent)
     ratio = clamp(radius_t / max(section_radius_t, eps(T)), zero(T), one(T))
     return ((gamma + T(2)) / gamma) * uavg_t * (one(T) - ratio^gamma)
+end
+
+function radial_profile_velocity(args...)
+    Base.depwarn(
+        "radial_profile_velocity is deprecated; use reconstructed_axial_velocity for radial profiles of axial velocity",
+        :radial_profile_velocity,
+    )
+    return reconstructed_axial_velocity(args...)
 end
 
 function validate(profile::FlatVelocityProfile{T}) where {T<:AbstractFloat}

@@ -140,6 +140,21 @@ const study_summary_path = StenoticHemodynamics.study_summary_path
 
     @testset "forward model flags" begin
         classical_params, _, _ = parse_args([
+            "--model", "classical-parabolic-1d",
+            "--velocity-profile", "parabolic",
+            "--tfinal", "5e-5",
+            "--nx", "8",
+            "--progress-every", "0",
+            "--no-svg",
+            "--ic", "geometry-rest",
+        ])
+        @test classical_params.model isa ClassicalParabolicOneDModel
+        @test classical_params.model isa ClassicalNoSlip1DModel
+        @test model_name(classical_params) == "classical-parabolic-1d"
+        @test variable_radius_terms_enabled(classical_params) == false
+        @test classical_params.velocity_profile isa ParabolicVelocityProfile
+
+        legacy_classical_params, _, _ = parse_args([
             "--model", "classical-1d-no-slip",
             "--velocity-profile", "parabolic",
             "--tfinal", "5e-5",
@@ -148,10 +163,8 @@ const study_summary_path = StenoticHemodynamics.study_summary_path
             "--no-svg",
             "--ic", "geometry-rest",
         ])
-        @test classical_params.model isa ClassicalNoSlip1DModel
-        @test model_name(classical_params) == "classical-1d-no-slip"
-        @test variable_radius_terms_enabled(classical_params) == false
-        @test classical_params.velocity_profile isa ParabolicVelocityProfile
+        @test legacy_classical_params.model isa ClassicalParabolicOneDModel
+        @test model_name(legacy_classical_params) == "classical-parabolic-1d"
     end
 
     @testset "SciML flags" begin
@@ -223,7 +236,9 @@ const study_summary_path = StenoticHemodynamics.study_summary_path
         @test_throws ArgumentError parse_args(["--velocity-profile", "flat", "--profile-shear-factor", "0", "--ic", "geometry-rest"])
         @test_throws ArgumentError parse_args(["--velocity-profile", "parabolic", "--profile-shear-factor", "4", "--ic", "geometry-rest"])
         @test_throws ArgumentError parse_args(["--alpha", "1.1", "--velocity-profile", "power", "--profile-exponent", "9", "--ic", "geometry-rest"])
+        @test_throws ArgumentError parse_args(["--model", "classical-parabolic-1d", "--velocity-profile", "flat", "--ic", "geometry-rest"])
         @test_throws ArgumentError parse_args(["--model", "classical-1d-no-slip", "--velocity-profile", "flat", "--ic", "geometry-rest"])
+        @test_throws ArgumentError parse_args(["--model", "classical-parabolic-1d", "--alpha", "1.1", "--ic", "geometry-rest"])
         @test_throws ArgumentError parse_args(["--model", "classical-1d-no-slip", "--alpha", "1.1", "--ic", "geometry-rest"])
     end
 end
@@ -286,7 +301,7 @@ end
         ])
         @test result isa SimulationResult
         rows = readlines(csv_path)
-        @test occursin("classical-1d-no-slip,false,canic-koiter-thin-membrane", rows[2])
+        @test occursin("classical-parabolic-1d,false,canic-koiter-thin-membrane", rows[2])
         @test_throws ArgumentError StenoticHemodynamics.run_cli([
             "simulate",
             "--model", "classical-1d-no-slip",

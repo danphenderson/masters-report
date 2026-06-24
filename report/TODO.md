@@ -25,8 +25,10 @@ The active manuscript now has the following report-side narrative state:
   runtime roadmap.
 - Appendix H now matches the live `main` branch layout and records the clean
   submission-readiness base used for this sweep.
-- The latest package handoff adds viewer evidence controls and native
-  resolved-FSI timing-sidecar review only. These are package/operator
+- The latest package handoff adds viewer evidence controls, native
+  resolved-FSI timing-sidecar review, mathematical-contract API/terminology
+  cleanup, native diagnostic/classification updates, and schema-v3
+  package-internal restart/resume support. These are package/operator
   coordination updates, not new manuscript evidence, so no report asset or PDF
   refresh is required from that handoff alone.
 
@@ -96,11 +98,13 @@ same report-owned boundaries:
 
 ## Asset Regeneration And Promotion Plan
 
-No manuscript asset regeneration is required for the current viewer/timing
-package changes. The web viewer controls, evidence badges, missing-field
-states, timing sidecars, matrix fingerprints, and warmed timing pilot are
-inspection or execution-readiness metadata only. Do not promote them into
-figures, tables, or claims without a separate accepted report-evidence lane.
+No manuscript asset regeneration is required for the current package changes.
+The web viewer controls, evidence badges, missing-field states, timing
+sidecars, matrix fingerprints, warmed timing pilot, canonical package API names,
+native diagnostics, and schema-v3 internal restart/resume sidecars are
+inspection, compatibility, or execution-readiness metadata only. Do not promote
+them into figures, tables, or claims without a separate accepted report-evidence
+lane.
 
 If a future package handoff supplies accepted report evidence, use this
 promotion sequence instead of editing the manuscript ad hoc:
@@ -116,15 +120,24 @@ promotion sequence instead of editing the manuscript ad hoc:
    `report/sections/**` or `report/appendices/**`.
 4. Promote into manuscript source only when the asset supports an accepted
    reader-facing claim. Viewer screenshots, browser bundles, timing sidecars,
-   and reuse/fingerprint metadata remain out of the manuscript unless a new
-   figure/table objective is explicitly approved.
-5. Build source-only first:
+   reuse/fingerprint metadata, restart checkpoint sidecars, and dry-run status
+   rows remain out of the manuscript unless a new figure/table objective is
+   explicitly approved.
+5. If regeneration crosses package naming changes, update generated assets and
+   their consuming TeX/TikZ together. Current package code emits canonical
+   `classical-parabolic-1d` and axial-observation labels, while some accepted
+   tracked report assets still carry historical `classical-1d-no-slip`,
+   `u1d`, and `u3d` labels from the source-artifact lane. That mismatch does
+   not force immediate regeneration, but a future accepted regeneration lane
+   must reconcile the asset columns and manuscript consumers before refreshing
+   the PDF.
+6. Build source-only first:
 
    ```sh
    pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
    ```
 
-6. Refresh `public/final-report.pdf` only after the source/assets are accepted
+7. Refresh `public/final-report.pdf` only after the source/assets are accepted
    for reader-facing publication:
 
    ```sh
@@ -154,6 +167,16 @@ For native resolved-FSI web visualization, keep generated browser assets in
 scratch or viewer demo fixtures. The visualization export does not run
 production, does not publish `report/assets/**`, and does not provide
 paper-grade Section 4.1 reproduction evidence.
+
+For future native resolved-FSI preproduction or imported-parity evidence, use a
+separate report-evidence lane after the package lane supplies accepted
+production outputs. The package owner should first regenerate or produce the
+native artifacts under ignored scratch/output roots, run the relevant parity or
+observation workflows, and hand back exact paths plus claim-boundary language.
+Only then should the report owner decide whether any reviewed CSV/JSON/TeX
+tables, figures, or prose updates belong in `report/assets/**` and the
+manuscript. The tracked PDF should stay untouched until those source/assets are
+accepted.
 
 ## Post-Sweep Verification Shape
 
@@ -191,8 +214,8 @@ aligned to the current accepted package evidence boundary:
   tracked through `canic-replication section41`, not through the native
   Gridap resolved-FSI production path;
 - imported parity, preproduction/production execution, moving-wall/ALE
-  fidelity, and persisted restart/resume remain unpromoted from the report
-  side;
+  fidelity, public/default restart/resume, and production-scale
+  restart/resume claims remain unpromoted from the report side;
 - DG p-improvement language remains limited to the explicit limiter-disabled
   smooth MMS verification configuration.
 - Native resolved-FSI timing/fingerprint work is execution-readiness metadata
@@ -202,6 +225,10 @@ aligned to the current accepted package evidence boundary:
   sparsity but changing matrix and RHS values, so no factorization-reuse or
   Gridap-context reuse patch was accepted. This does not change any manuscript
   claim boundary.
+- Native resolved-FSI schema-v3 checkpoint sidecars and the qualified internal
+  split-run resume path are package/operator controls only. They do not change
+  manuscript claims, do not justify public/default restart wording, and do not
+  require report assets or PDF refresh.
 - Web-viewer scalar toggles, colorbar ranges, evidence badges, missing-field
   disabled states, and surface slice diagnostics are viewer-derived inspection
   aids only. They do not constitute cross-section integration, production

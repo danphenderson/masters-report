@@ -47,7 +47,7 @@ function resolved3d_run_fields(case::Resolved3DCaseSpec, params::Params, backend
 end
 
 function one_dimensional_profile_velocity(uavg::Float64, radius::Float64, section_radius::Float64, p::Params)
-    return radial_profile_velocity(uavg, radius, section_radius, p.velocity_profile)
+    return reconstructed_axial_velocity(uavg, radius, section_radius, p.velocity_profile)
 end
 
 function interpolate_linear(x::Vector{Float64}, y::Vector{Float64}, x0::Float64)

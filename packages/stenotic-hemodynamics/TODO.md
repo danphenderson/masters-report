@@ -44,13 +44,14 @@ Implemented and committed:
   execution by default.
 - Lane 9F restart stewardship audit: no patch required after 9C. Old metadata
   remains readable, exact metadata requires positive `inlet_umax_cm_s`,
-  `state_payload` remains versioned audit metadata, and persisted resume
+  `state_payload` remains versioned audit metadata, and public/default resume
   remains fail-closed.
-- Lane 10D-1 restart schema boundary: production metadata now writes explicit
-  schema-v1 audit fields, legacy metadata without `restart_schema_version`
-  remains readable, schema-v2 checkpoint-manifest metadata is shape-validated,
-  and `resume_supported=true` remains rejected until durable FE-state
-  serialization and a reconstruction runner land.
+- Lane 10D restart/resume boundary: production metadata now writes schema-v3
+  durable checkpoint sidecars for wall, mesh, fluid-state, coupling, cursor,
+  and output linkage. Legacy schema-v1 audit metadata and schema-v2
+  checkpoint-manifest metadata remain readable. A qualified internal split-run
+  resume path can continue into a forked output root at smoke/operator scope;
+  public/default resume and CLI exposure remain fail-closed.
 - Lane 10C batch-prep: the partitioned production runner now preflights output
   ownership before Gridap work, writes `batch_status.jsonl`,
   `batch_status.csv`, `batch_benchmark.json`, and fail-fast
@@ -122,6 +123,14 @@ Implemented and committed:
   sidecars, and matrix fingerprints remain package/operator metadata only; they
   do not require report asset/PDF refresh or promote native resolved-FSI
   claims.
+- Current integration round: Lane 11 P1, FEM-05, FSI-01, and Lane 10D are
+  implemented in this handoff. This adds canonical
+  parabolic-model/profile/pressure API names with deprecated compatibility
+  aliases, radial-bin policy tests/docs, quadrature/backflow diagnostics,
+  repeated deformed-domain fluid-solve classification, schema-v3 durable
+  restart checkpoints, and qualified internal split-run resume. It does not
+  promote native resolved-FSI reproduction, imported parity, monolithic ALE, or
+  manuscript evidence.
 
 ## Non-Negotiable Claim Boundary
 
@@ -141,7 +150,9 @@ Implemented and committed:
   fluid boundary claim.
 - Post-sampling outlet pressure normalization is not a Gridap pressure
   nullspace constraint.
-- Restart `state_payload` is audit metadata only; persisted restart/resume is
+- Restart `state_payload` is audit metadata only. Schema-v3 durable
+  checkpoints support qualified internal split-run resume for package/operator
+  validation, but public/default restart/resume and CLI exposure are
   unsupported and fail-closed.
 - CLI/status surfaces must continue to expose these boundaries and must not
   imply paper-grade reproduction.
@@ -209,27 +220,40 @@ Implemented and committed:
   `dt_s` scratch probes alone did not clear the gate: one `dt_s=1e-5` run
   reached the deformed-mesh guard and failed on an inverted/degenerate
   tetrahedron, while a longer `dt_s=1e-5` probe was runtime-inconclusive.
-- The partitioned Navier-Stokes pressure space now uses a Gridap zero-mean
-  pressure constraint and records `pressure_nullspace_status` through dry-run,
-  `fsi native-status`, diagnostics, and restart metadata. Scratch probing
-  showed this is pressure-gauge hygiene only: it did not reduce the exact-mode
-  wall-pressure/load scale and is not accepted as wall-stability remediation.
+- The partitioned Navier-Stokes pressure-space policy is boundary-aware:
+  pressure-drop smoke loading uses a Gridap additive-nullspace zero-mean
+  constraint, while exact Poiseuille/natural-traction mode uses no Gridap
+  zero-mean pressure constraint. `pressure_nullspace_status` is recorded
+  through dry-run, `fsi native-status`, diagnostics, and restart metadata.
+  Scratch probing showed this is pressure-gauge hygiene only: it did not
+  reduce the exact-mode wall-pressure/load scale and is not accepted as
+  wall-stability remediation.
 - The partitioned wall update now has a fail-fast pressure-load plausibility
   gate that predicts radius inversion before mutating wall state and reports
   the semi-implicit displacement increment used by the current reduced wall
   step.
 - Lane 10D records the persisted restart/resume design in
   `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`.
-  Schema-v1 audit metadata and schema-v2 checkpoint-manifest reader boundaries
-  are implemented. Current `state_payload` remains audit metadata, and resume
-  remains fail-closed until durable wall/mesh/FE-state serialization, a
-  reconstruction runner, sidecar ownership, and split-run equivalence tests
-  land.
+  Schema-v1 audit metadata, schema-v2 checkpoint-manifest validation, schema-v3
+  durable checkpoint sidecars, and a qualified internal split-run resume path
+  are implemented at smoke/operator scope. Current `state_payload` remains
+  audit metadata, and public/default resume remains fail-closed. Production-scale
+  resume validation, imported-parity resume coverage, CLI exposure, and claim
+  promotion remain future work.
 - Lane 10C batch-prep is implemented for preproduction launch readiness.
   Dry-run/status output now includes estimated time steps, a conservative fluid
   solve upper bound, status/benchmark/failure sidecar paths, checkpoint roles,
   and a production spec digest. The full `sev23` preproduction solve has not
   been launched or validated.
+- Current-source `fsi native-status` was refreshed on 2026-06-24 for the
+  exact-boundary `sev23` preproduction plan at `(80, 4, 24)`, `dt_s=1e-4`,
+  `T=0.1`, final snapshot only. It reported production spec digest
+  `9d1cfb96eb525113`, 1000 estimated time steps, expected fluid-solve upper
+  bound 1001, estimated preproduction runtime 63000 s, no required override
+  flags, passing snapshot/payload guards, Section 4.1 boundary status
+  `implemented_smoke_validated`, and imported case `77` available. This is a
+  dry-run/status result only; it wrote no solver outputs and did not launch the
+  many-hour preproduction solve.
 - The first `sev23` preproduction evidence attempt at `(80, 4, 24)`,
   `dt_s=1e-4`, `T=0.1` stopped without completion artifacts after reaching
   step 40/1000. Treat its sidecars as incomplete runtime diagnostics only.
@@ -327,8 +351,19 @@ Wave 2 closeout status:
   A future optimization lane must be assembly-specific and fail closed unless
   it preserves changing geometry, Picard/advection state, Dirichlet boundary
   values, pressure policy, mesh topology, and constrained DOF maps.
-- Lane 11 P1 mathematical-contract stewardship if it touches disjoint
-  observation/model/API files from any optimization lane.
+- Lane 11 P1 mathematical-contract stewardship is implemented in the current
+  integration round. The canonical model/profile/pressure names landed with
+  deprecated compatibility aliases, radial-bin policy tests/docs, and bounded
+  resolved3D observation terminology updates.
+- FEM-05/FSI-01 native diagnostics/classification updates are implemented in
+  the current integration round: Gridap quadrature/backflow diagnostics are
+  reported as observability fields, and the native path is classified as
+  repeated deformed-domain fluid solves with a reduced membrane update rather
+  than monolithic ALE.
+- Lane 10D restart/resume implementation is implemented at package-internal
+  smoke/operator scope with schema-v3 durable checkpoint sidecars and a
+  qualified internal split-run resume path. Public/default resume remains
+  fail-closed.
 
 Wave 3 is no longer waiting on an unresolved Wave 2 decision, but it remains a
 scheduled long-running compute lane:
@@ -337,6 +372,11 @@ scheduled long-running compute lane:
   relaunch long runs from opportunistic package-worker rounds; proceed only
   when the orchestrator deliberately schedules the current no-reuse baseline or
   after a future assembly-specific optimization lands with validation.
+- Latest current-source dry-run: production spec digest `9d1cfb96eb525113`,
+  1000 estimated steps, expected fluid-solve upper bound 1001, estimated
+  runtime 63000 s, no required override flags, and imported case `77`
+  available. The actual preproduction execution is still open because it is a
+  deliberate many-hour compute job, not stale TODO text.
 
 ### Lane 12V: Centralized Validation Automation
 
@@ -705,9 +745,12 @@ Acceptance criteria:
 
 ### Lane 11 Follow-Up: Mathematical Contract Stewardship
 
-Priority: P1 maintenance after `2a54a06`, unless a regression reopens any
-FEM-01 through FEM-04, GEOM-01, or OBS-01 contract item. This lane remains a
-claim gate for manuscript-facing reproduction language.
+Status: implemented for the current P1 maintenance wave. Reopen only if a
+regression appears in FEM-01 through FEM-05, GEOM-01, OBS-01 through OBS-03,
+MODEL-01, MODEL-02, or FSI-01.
+
+Priority: closed for this wave. This lane remains a claim gate for future
+manuscript-facing reproduction language.
 
 Objective: keep the native resolved-FSI mathematical contract, geometry,
 observation operators, model names, and status language aligned while the
@@ -730,22 +773,34 @@ Completed P0 items in `2a54a06`:
 - OBS-01: radial profile audit uses same axial cuts as section observations and
   reports explicit closure classifications.
 
-Required P1 items:
+Implemented P1 items in the current integration round:
 
-- FEM-05: add quadrature sensitivity and backflow/open-boundary diagnostics for
-  the native Navier-Stokes adapter.
-- OBS-02: document and test the radial-coordinate convention and excluded-area
-  policy used by radial-bin observations.
-- OBS-03: rename current `radial_profile_velocity` surfaces to axial or
-  reconstructed axial velocity terminology so the observation name matches the
-  quantity.
-- MODEL-01: rename `ClassicalNoSlip1DModel` to
-  `ClassicalParabolicOneDModel`, keeping the current CLI alias deprecated and
-  tested for compatibility.
-- MODEL-02: split the ambiguous `pressure()` API into evolution-pressure and
-  diagnostic-pressure conventions.
-- FSI-01: classify the current native path as repeated deformed-domain fluid
-  solves with a reduced membrane update, not monolithic ALE.
+- FEM-05: quadrature sensitivity and backflow/open-boundary diagnostics were
+  added for the native Navier-Stokes adapter.
+- OBS-02: the radial-coordinate convention and excluded-area policy used by
+  radial-bin observations are documented and tested.
+- OBS-03: canonical `reconstructed_axial_velocity(...)` terminology was added,
+  with `radial_profile_velocity(...)` retained as a deprecated compatibility
+  alias.
+- MODEL-01: `ClassicalParabolicOneDModel` was added as the canonical model
+  name, with `ClassicalNoSlip1DModel` and the current CLI alias retained as
+  deprecated compatibility surfaces.
+- MODEL-02: `diagnostic_pressure(...)` and `evolution_pressure(...)` split the
+  ambiguous pressure conventions, with `pressure(...)` retained as a deprecated
+  diagnostic-pressure alias.
+- FSI-01: the current native path is classified as repeated deformed-domain
+  fluid solves with a reduced membrane update, not monolithic ALE.
+
+Compatibility boundary:
+
+- `ClassicalNoSlip1DModel`, `classical-1d-no-slip`, `radial_profile_velocity`,
+  and `pressure(...)` remain deprecated compatibility surfaces where existing
+  callers require them.
+- Canonical new surfaces are `ClassicalParabolicOneDModel`,
+  `classical-parabolic-1d`, `reconstructed_axial_velocity(...)`,
+  `diagnostic_pressure(...)`, and `evolution_pressure(...)`.
+- Resolved3D output labels now use axial/reconstructed-axial terminology for
+  observation quantities.
 
 Acceptance criteria:
 
@@ -762,22 +817,22 @@ Acceptance criteria:
 
 Validation:
 
-- Start with `pipenv run ops-orchestrate status --json`.
-- Run focused Julia tests for every touched surface, including
-  `test_native_resolved_fsi_smoke.jl`,
-  `test_native_resolved_fsi_workflow.jl`,
-  `test_native_resolved_fsi_parity.jl`, `test_public_api.jl`, and
-  `test_extension_contracts.jl` when status/API/dependency boundaries move.
-- Add or update dedicated mathematical-contract tests for FEM-01 through
-  FEM-04, GEOM-01, and OBS-01.
-- Run `git diff --check -- packages/stenotic-hemodynamics public/docs`.
+- `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using StenoticHemodynamics; println("loaded")'`
+- `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_public_api.jl"); include("packages/stenotic-hemodynamics/test/test_scalar_generality.jl"); include("packages/stenotic-hemodynamics/test/test_cli_studies.jl")'`
+- `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics, HDF5; include("packages/stenotic-hemodynamics/test/test_resolved3d_geometry.jl")'`
+- `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics, HDF5; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_smoke.jl"); include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_parity.jl"); include("packages/stenotic-hemodynamics/test/test_extension_contracts.jl")'`
+- `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, StenoticHemodynamics, HDF5; include("packages/stenotic-hemodynamics/test/test_extension_contracts.jl")'`
 
 ### Lane 10C Follow-Up: Sev23 Preproduction Batch Execution
 
+Status: open as a scheduled long-running compute lane. Current-source
+dry-run/status evidence is refreshed; actual preproduction execution and
+imported parity remain unrun.
+
 Priority: P0 next execution gate. This lane is still P0 relative to any native
-reproduction claim; `2a54a06` clears the mathematical-contract prerequisite at
-focused test scope, but production evidence still requires actual execution and
-parity review.
+reproduction claim; current package integration clears the mathematical-
+contract and restart/resume prerequisites at focused package scope, but
+production evidence still requires actual execution and parity review.
 
 Objective: use the batch-safe runner to execute the exact-boundary `sev23`
 preproduction gate from
@@ -792,6 +847,11 @@ Recommended dispatch order:
 2. Start from the completed status-only dry-run matrix. Refresh it only if
    case parameters, guard policy, imported-data roots, or output schedules
    change.
+   The latest current-source dry-run for the `sev23` preproduction plan
+   reported production spec digest `9d1cfb96eb525113`, 1000 estimated time
+   steps, expected fluid-solve upper bound 1001, estimated runtime 63000 s, no
+   required override flags, passing snapshot/payload guards, and imported case
+   `77` available.
 3. Treat the `sev23` full development gate (`tfinal_s=1e-2`) as completed for
    artifact readiness, with the explicit caveat that one-iteration coupling
    was bounded but not converged. Diagnostics must continue to report the
@@ -805,8 +865,8 @@ Recommended dispatch order:
    stronger coupling settings or explicitly bounded coupling status. The
    development gate took about 25 minutes at 9,600 tetrahedra for `T=0.01`;
    the `(80, 4, 24)`, `T=0.1` preproduction run is expected to be many hours
-   and must be scheduled as long-running compute work, not assumed
-   interactive.
+   and the current-source dry-run estimates about 63000 s. It must be
+   scheduled as long-running compute work, not assumed interactive.
 5. Execute the full case set at the production target mesh
    `(axial=120, radial=5, angular=32)`, `dt_s=1e-4`, `T=1.0 s`, final snapshot
    only, with `u_max=45 cm/s` and
@@ -820,29 +880,47 @@ Recommended dispatch order:
 Validation is lane-specific. At minimum, start with dry-run/status output and
 run `git diff --check` on any touched docs or package files.
 
-### Lane 10D Follow-Up: Restart Resume Implementation
+### Lane 10D Follow-Up: Restart Resume Stewardship
 
-Priority: P1 after 10C planning and before any resume claim.
+Status: implemented at package-internal smoke/operator scope. Public/default
+resume, CLI exposure, production-scale resume validation, imported-parity
+resume coverage, and manuscript claim promotion remain future work.
 
-Objective: implement the staged design in
+Priority: closed for this implementation wave; reopen only for the explicitly
+remaining future-work items above.
+
+Objective: steward the implemented restart/resume boundary in
 `public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`
-while preserving the current fail-closed behavior for legacy audit metadata.
+while preserving fail-closed behavior for legacy audit metadata and public
+callers.
 
-Recommended dispatch order:
+Implemented:
 
-1. Treat schema-v1 audit metadata and schema-v2 checkpoint-manifest validation
-   as landed. Do not add public exports or CLI resume commands.
-2. Add durable wall, mesh, FE fluid, coupling, and cursor state
-   serialization. Node-centered XDMF/HDF5 output bundles are not enough for
-   exact solver resume.
-3. Implement a qualified-internal resume runner that validates the checkpoint,
-   reconstructs state, and continues from the next pending snapshot without
-   exposing production resume through default CLI paths.
-4. Add metadata, serialization, split-run/resume, sidecar ownership, exact
-   boundary status, and skip-safe imported parity tests.
-5. Update public docs and editorial handoff text only after implementation and
-   tests land. Preserve the Section 4.1 claim boundary: persisted restart does
-   not imply paper-grade reproduction or monolithic ALE FSI.
+1. Schema-v1 audit metadata and schema-v2 checkpoint-manifest validation
+   remain readable and fail-closed.
+2. Schema-v3 durable checkpoint sidecars now cover wall state, mesh identity,
+   fluid-state/restart representation, coupling state, cursor state, and
+   output linkage. Node-centered XDMF/HDF5 output bundles remain observation
+   artifacts, not the checkpoint source by themselves.
+3. The qualified internal resume runner validates the checkpoint, reconstructs
+   state, and continues from the next pending snapshot into a forked output
+   root.
+4. Tests cover metadata validation, sidecar ownership/checksum failures,
+   non-forked output-root rejection, exact-boundary status, public fail-closed
+   resume, and split-run/resume smoke-scale execution.
+5. Public docs and this TODO now record the boundary. Preserve the Section 4.1
+   claim boundary: restart support does not imply paper-grade reproduction,
+   production-scale parity, or monolithic ALE FSI.
 
-Until then, `native_resolved_fsi_resume_partitioned_production(...)` must keep
-validating metadata and failing closed.
+Remaining future work:
+
+- broaden numerical equivalence against uninterrupted runs across more cases
+  and schedules;
+- add imported-parity skip-safe resume coverage when optional upstream bundles
+  are present or absent;
+- validate production-scale resume behavior on long `sev23` runs;
+- review any public API or CLI exposure in a separate lane.
+
+`native_resolved_fsi_resume_partitioned_production(...)` must keep validating
+metadata and failing closed for public callers until such a lane explicitly
+changes that contract.

@@ -3,6 +3,24 @@ function section_half_width(z_targets::Vector{Float64})
     return max(0.5 * dz, DEFAULT_NODE_SLAB_HALF_WIDTH_CM)
 end
 
+const RADIAL_PROFILE_OUTER_TOLERANCE = 1.05
+
+"""
+    radial_profile_bin_index(x, y, radius_scale, bin_count)
+
+Return the equal-width radial-profile bin for the normalized cylindrical
+coordinate `rho = hypot(x, y) / radius_scale`. Samples with `rho <= 1` are
+assigned by normalized radius. Near-wall overshoot from cut-cell and node-slab
+sampling is retained through `rho <= 1.05` and clamped into the outer bin;
+larger radii are excluded from radial-bin area, flow, and velocity totals.
+"""
+function radial_profile_bin_index(x::Float64, y::Float64, radius_scale::Float64, bin_count::Int)
+    radius_scale > 0.0 || throw(ArgumentError("radial profile radius scale must be positive"))
+    rho = hypot(x, y) / radius_scale
+    0.0 <= rho <= RADIAL_PROFILE_OUTER_TOLERANCE || return nothing
+    return clamp(floor(Int, min(rho, 1.0) * bin_count) + 1, 1, bin_count)
+end
+
 function section_observation(field::Resolved3DVelocityField, z::Float64, ::CrossSectionQuadratureOperator)
     return quadrature_section_observation(field, z)
 end
@@ -90,9 +108,8 @@ function radial_profile_observations(
             tri_area = triangle_area_xy(center, p1, p2)
             tri_area > 1.0e-14 || continue
             for point in triangle_quadrature_points(center, p1, p2)
-                rho = hypot(point[1], point[2]) / radius_scale
-                0.0 <= rho <= 1.05 || continue
-                bin = clamp(floor(Int, min(rho, 1.0) * bin_count) + 1, 1, bin_count)
+                bin = radial_profile_bin_index(point[1], point[2], radius_scale, bin_count)
+                bin === nothing && continue
                 area_weight = tri_area / 3.0
                 velocity_value = point[4]
                 areas[bin] += area_weight
@@ -278,11 +295,9 @@ function radial_bins(coordinates::Matrix{Float64}, ids::Vector{Int}, r0::Float64
     r0 > 0.0 || throw(ArgumentError("reference radius must be positive"))
 
     for i in ids
-        rho = hypot(coordinates[i, 1], coordinates[i, 2]) / r0
-        if 0.0 <= rho <= 1.05
-            bin = clamp(floor(Int, min(rho, 1.0) * bin_count) + 1, 1, bin_count)
-            push!(bins[bin], i)
-        end
+        bin = radial_profile_bin_index(coordinates[i, 1], coordinates[i, 2], r0, bin_count)
+        bin === nothing && continue
+        push!(bins[bin], i)
     end
 
     return bins

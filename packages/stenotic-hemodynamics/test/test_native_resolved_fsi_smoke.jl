@@ -278,6 +278,40 @@ end
     @test occursin("no pressure-drop weak inlet/outlet loading", exact_solve.inlet_outlet_boundary_status)
     @test !occursin("Gridap zero-mean pressure constraint active", exact_solve.inlet_outlet_boundary_status)
     @test !occursin("local smoke boundary evidence", exact_solve.inlet_outlet_boundary_status)
+    exact_solver_diagnostics = exact_solve.solver_diagnostics
+    @test exact_solver_diagnostics.gridap_quadrature_degree == 4
+    @test exact_solver_diagnostics.gridap_quadrature_sensitivity_degree == 6
+    @test isfinite(exact_solver_diagnostics.gridap_quadrature_sensitivity_matrix_relative_change)
+    @test exact_solver_diagnostics.gridap_quadrature_sensitivity_matrix_relative_change >= 0.0
+    @test isfinite(exact_solver_diagnostics.gridap_quadrature_sensitivity_rhs_relative_change)
+    @test exact_solver_diagnostics.gridap_quadrature_sensitivity_rhs_relative_change >= 0.0
+    @test occursin(
+        "higher_degree_quadrature_assembly_comparison_recorded",
+        exact_solver_diagnostics.gridap_quadrature_sensitivity_status,
+    )
+    @test occursin(
+        "diagnostic_only_no_convergence_or_solver_semantics_claim",
+        exact_solver_diagnostics.gridap_quadrature_sensitivity_status,
+    )
+    @test occursin(
+        "zero_outlet_stress_natural_traction_open_boundary",
+        exact_solver_diagnostics.gridap_open_boundary_status,
+    )
+    @test occursin(
+        "diagnostic_node_sample_only_no_outflow_stabilization_claim",
+        exact_solver_diagnostics.gridap_open_boundary_status,
+    )
+    @test exact_solver_diagnostics.gridap_outlet_node_count == length(mesh.tags.outlet_nodes)
+    @test exact_solver_diagnostics.gridap_outlet_velocity_sampling_fallback_count >= 0
+    @test 0 <= exact_solver_diagnostics.gridap_outlet_backflow_node_count
+    @test exact_solver_diagnostics.gridap_outlet_backflow_node_count <= length(mesh.tags.outlet_nodes)
+    @test isfinite(exact_solver_diagnostics.gridap_outlet_normal_velocity_min_cm_s)
+    @test isfinite(exact_solver_diagnostics.gridap_outlet_normal_velocity_max_cm_s)
+    @test isfinite(exact_solver_diagnostics.gridap_outlet_normal_velocity_mean_cm_s)
+    @test exact_solver_diagnostics.gridap_outlet_normal_velocity_min_cm_s <=
+          exact_solver_diagnostics.gridap_outlet_normal_velocity_mean_cm_s
+    @test exact_solver_diagnostics.gridap_outlet_normal_velocity_mean_cm_s <=
+          exact_solver_diagnostics.gridap_outlet_normal_velocity_max_cm_s
 
     exact_velocity, exact_pressure, exact_sampling_fallback_count = native_resolved_fsi_sample_smoke_fields(
         mesh,

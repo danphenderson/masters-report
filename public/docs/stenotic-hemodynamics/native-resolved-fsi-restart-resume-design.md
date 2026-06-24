@@ -1,293 +1,234 @@
 # Native Resolved-FSI Restart/Resume Design
 
-This design describes what must exist before
-`native_resolved_fsi_resume_partitioned_production(...)` can resume a
-partitioned production run from disk. It preserves the current fail-closed
-contract: the existing restart reader validates schema-v1 audit metadata and
-schema-v2 checkpoint-manifest metadata, but resume remains unsupported until
-durable state serialization, a reconstruction runner, and validation tests
-land.
+This design records the current restart/resume boundary for native
+resolved-FSI production runs. The package now writes schema-v3 durable
+checkpoint metadata with wall, mesh, fluid-state, coupling, and output-linkage
+sidecars, and it has a qualified internal split-run resume path for smoke-scale
+operator validation.
 
-The current `state_payload` is audit metadata only. It proves that one
-state-carrying production run recorded finite wall state at the last saved
-snapshot. It is not a durable solver checkpoint and must not be described as
-persisted restart support.
+The public contract remains narrower: `native_resolved_fsi_resume_partitioned_production(...)`
+validates metadata and fails closed, and no default CLI path exposes production
+resume. Restart/resume support remains package/operator evidence only; it does
+not imply paper-grade Section 4.1 reproduction or monolithic ALE FSI.
 
 ## Current Contract
 
-Current package-written restart metadata can record:
+Current package-written restart metadata is versioned by schema:
 
-- `restart_schema_version = 1`;
-- `restart_schema_status = "schema_v1_audit_metadata_only"`;
+- schema v1: legacy audit metadata, readable and fail-closed;
+- schema v2: checkpoint-manifest shape validation, readable and fail-closed;
+- schema v3: durable checkpoint metadata for qualified internal resume.
+
+Schema-v3 metadata requires:
+
+- `restart_schema_version = 3`;
+- `restart_schema_status = "schema_v3_durable_checkpoint"`;
 - `restart_provenance = "state_carrying_partitioned"`;
-- `resume_supported = false`;
-- `resume_status = "deferred"`;
-- `checkpoint_schema_status = "not_persisted_solver_checkpoint"`;
-- `checkpoint_manifest = []`;
+- `resume_supported = true`;
+- `resume_status = "ready"`;
+- `checkpoint_schema_status = "durable_checkpoint_ready"`;
+- nonempty `checkpoint_manifest` entries for `wall_state`, `mesh_identity`,
+  `fluid_state`, `coupling_state`, and `output_linkage`;
+- checksums and byte sizes for every checkpoint sidecar;
 - snapshot manifest and diagnostics paths;
-- snapshot output bundle paths;
+- completed snapshot output bundle paths;
 - boundary mode/status fields;
-- optional versioned `state_payload` with final wall displacement, wall
-  velocity, current radius, wall pressure, saved time, and last snapshot index.
+- a versioned `state_payload` that preserves the old audit metadata boundary.
 
-The restart reader also recognizes schema-v2 checkpoint-manifest metadata with
-`restart_schema_status = "schema_v2_checkpoint_manifest"` and
-`checkpoint_schema_status = "checkpoint_manifest_present_resume_not_implemented"`.
-That metadata must still carry `resume_supported = false` and
-`resume_status = "deferred"` in the current implementation. The manifest shape
-is validated, but it is not yet a resumable solver checkpoint.
+Legacy metadata without `restart_schema_version` is treated as schema v1.
+Schema-v1 and schema-v2 files must continue to carry
+`resume_supported = false` and `resume_status = "deferred"`.
 
-`native_resolved_fsi_resume_partitioned_production(path; kwargs...)` must keep
-validating metadata and then failing closed until state serialization, FE-state
-reconstruction, sidecar ownership, and split-run equivalence tests land.
+## State Payload Boundary
 
-## Why `state_payload` Is Audit Metadata Only
+The versioned `state_payload` remains audit metadata for legacy and current
+metadata. It proves that one state-carrying production run recorded finite wall
+state at the last saved snapshot. It is not, by itself, a durable solver
+checkpoint.
 
-The current payload is insufficient for a true future-process resume because it
-does not store:
+The durable checkpoint is the schema-v3 sidecar set referenced by
+`checkpoint_manifest`. XDMF/HDF5 snapshot bundles are still
+observation/output artifacts. They can be checked for linkage, but they are not
+the FE-state source used to qualify a resume.
 
-- finite-element velocity and pressure solution state in a representation that
-  can seed the next backward-Euler/Picard solve;
-- a durable mapping from stored field values back to Gridap spaces, DOF order,
-  boundary masks, and deformed geometry;
-- previous-step fluid state required by the time integrator;
-- enough coupling history to preserve under-relaxation and residual behavior;
-- a complete snapshot-schedule cursor and append policy for already written
-  artifacts;
-- checksum-verified mesh/deformation identity for the resumed solve;
-- restart-safe output ownership rules for continuing sidecars without
-  overwriting or duplicating rows.
-
-The XDMF/HDF5 snapshot bundles are observation/output artifacts. They are
-node-centered sampled fields, not solver checkpoints. A resume implementation
-may use them for consistency checks, but they cannot by themselves reconstruct
-the exact in-memory FE state.
-
-## Required Persisted State
+## Persisted State
 
 ### Restart Envelope
 
-Persisted restart metadata needs a new schema version and explicit support
-status:
+The restart envelope records:
 
-- `restart_schema_version`, with migration handling for legacy audit metadata;
-- `restart_provenance = "state_carrying_partitioned"`;
-- `resume_supported = true` only for checkpoint files written by the new
-  implementation;
-- `resume_status = "ready"` only when every required state file, checksum, and
-  control field validates;
-- package version or commit, Julia version, and schema writer identifier;
-- absolute or metadata-relative paths for all state files;
-- checksums and byte sizes for checkpoint payloads, sidecars, and last
-  completed output bundles.
-
-Legacy metadata without `restart_schema_version` is treated as schema v1 and
-must remain readable and fail-closed.
+- schema version and writer status;
+- package version, Julia version, and schema writer identifier;
+- absolute or metadata-relative checkpoint sidecar paths;
+- checksums and byte sizes for checkpoint payloads, sidecars, and completed
+  output bundles;
+- parent metadata linkage for resumed forks.
 
 ### Wall State
 
-Persist enough wall state to continue the explicit membrane update without
-guessing:
+The wall sidecar persists:
 
 - axial wall station coordinates in centimeters;
-- wall displacement `eta_cm`;
+- wall displacement `wall_displacement_cm` (`eta`);
 - wall velocity `wall_velocity_cm_s`;
 - current radii `current_radii_cm`;
-- previous wall displacement or previous acceleration if required by the
-  selected update formula;
-- wall pressure `wall_pressure_dyn_cm2` used for the last accepted update;
-- wall mass, stiffness, damping, reference-radius policy, and any evaluated
-  `C0` vector;
-- clamped endpoint status and tolerance used to enforce it.
+- wall pressure `wall_pressure_dyn_cm2`;
+- wall mass, stiffness, damping, reference-radius policy, and evaluated
+  stiffness state;
+- clamped endpoint status and tolerance.
 
-All arrays must be finite, same length, and tied to the saved native mesh
+Arrays must be finite, compatible in length, and tied to the saved native mesh
 resolution and case id.
 
 ### Fluid State Or Restart Representation
 
-Persist a restartable fluid state, not only sampled node output:
+The fluid sidecar persists the restart representation needed by the current
+smoke-scale internal runner:
 
-- velocity FE state for the current deformed mesh, preferably DOF coefficients
-  plus the FE-space metadata needed to reconstruct the Gridap function;
-- pressure FE state or an explicitly declared pressure initial guess for the
-  next Picard solve;
+- velocity and pressure restart values sufficient for the next partitioned
+  step;
 - previous accepted velocity state required by backward Euler;
-- current mesh/deformed-coordinate state associated with those DOFs;
-- Picard iteration counters and final update norm from the last accepted step;
-- pressure gauge convention applied to exported output, separate from the
-  internal FE pressure representation.
+- current mesh/deformed-coordinate state associated with the saved step;
+- pressure-gauge metadata, kept separate from the internal FE pressure
+  representation.
 
-If a future lane chooses projection-from-output rather than DOF persistence, it
-must label that mode explicitly as a lossy restart representation and prove the
-projection error is acceptable for the intended claim. It should not be the
-default production resume path.
+If a later lane switches to a different projection or FE-DOF representation,
+that mode must be labeled explicitly and compared against the direct baseline.
 
 ### Coupling History
 
-Persist enough coupling state to resume the partitioned algorithm with the same
-control semantics:
+The coupling sidecar persists:
 
 - current physical time and completed time-step count;
 - last accepted macro-step size `dt_s`;
-- latest coupling residual and residual history needed for diagnostics;
+- latest coupling residual and residual history used for diagnostics;
 - coupling iteration count, tolerance, and under-relaxation value;
-- last accepted wall update before under-relaxation, when relevant;
-- wall-pressure projection fallback count and sampling fallback count;
-- convergence flags for Picard and coupling loops.
+- wall-pressure projection and sampling fallback counters;
+- Picard and coupling convergence flags.
 
 ### Mesh And Deformation
 
-Persist identity and state for the mesh used by the checkpoint:
+The mesh sidecar persists:
 
-- native case id, severity, explicit geometry parameters, and mesh resolution;
-- reference coordinates and topology checksum;
-- boundary tags/nodes/faces checksum;
-- lifted displacement field or enough wall state to reconstruct it exactly;
-- minimum current radius and minimum signed tetrahedron volume at checkpoint;
-- coordinate mode used for any persisted field representation.
+- native case id, severity, geometry parameters, and mesh resolution;
+- reference-coordinate and topology checksum;
+- boundary tag/node/facet checksum;
+- displacement/deformation identity for the saved step;
+- minimum current radius and minimum signed tetrahedron volume;
+- coordinate mode used for persisted fields.
 
-The resume reader must reject a checkpoint if the regenerated mesh identity
-does not match the stored identity.
+The resume reader rejects checkpoints when the requested spec regenerates a
+different mesh identity.
 
 ### Snapshot Schedule Cursor
 
-Persist the output schedule and cursor:
+The output-linkage sidecar persists:
 
 - `tfinal_s`, `snapshot_times_s`, `time_atol`, and current physical time;
-- `last_snapshot_index` and next pending snapshot index;
+- `last_snapshot_index` and the next pending snapshot index;
 - completed snapshot output directories;
-- policy for appending to or forking from existing sidecars;
-- whether the next run may overwrite, append, or must choose a new output root.
+- parent manifest and diagnostics files;
+- forked output-root policy for resumed production.
 
-A resume run must not silently rewrite completed snapshots.
+A resume run must not silently rewrite completed parent snapshots.
 
 ### Solver Controls
 
-Persist all controls that affect numerical evolution:
+Schema-v3 resume validation rejects attempts to change controls that affect
+the numerical evolution, including:
 
-- `dt_s`, Picard iteration count, Picard tolerance;
-- coupling iteration count, coupling tolerance, coupling under-relaxation;
-- wall density, wall damping, wall stiffness policy, reference-radius policy;
+- `dt_s`, Picard controls, and coupling controls;
+- wall density, wall damping, wall stiffness policy, and reference-radius
+  policy;
 - inlet/outlet boundary mode;
 - `inlet_umax_cm_s` for exact Section 4.1 mode;
-- pressure-drop value for the smoke-loading mode;
-- output guard overrides, including `allow_many_snapshots` and
-  `allow_large_output`;
-- output root and path token policy.
+- pressure-drop value for smoke-loading mode;
+- output guard overrides and snapshot schedule.
 
-Resume should reject attempts to change these controls unless a future design
-adds an explicit continuation-with-changed-controls mode.
+Continuation-with-changed-controls is outside the current design.
 
 ### Boundary And Pressure Status
 
-Persist and revalidate claim-critical status fields:
+Checkpoint metadata preserves and revalidates claim-critical status fields:
 
-- boundary mode and boundary mode class;
-- inlet condition status;
-- outlet condition status;
+- boundary mode and boundary-mode class;
+- inlet and outlet condition status;
 - Section 4.1 boundary status;
-- boundary equivalence status;
+- boundary-equivalence status;
 - wall-pressure projection status;
-- pressure gauge status.
+- pressure-gauge status.
 
-Exact Section 4.1 mode must continue to require positive
-`inlet_umax_cm_s = 45 cm/s` for claim-scale runs and must keep pressure-drop
-wall-pressure fallback disabled.
-
-### Output Manifest Linkage
-
-Link restart metadata to sidecars and output artifacts:
-
-- `snapshot_manifest.csv`;
-- `snapshot_diagnostics.csv`;
-- `restart_metadata.json`;
-- completed velocity/pressure/displacement bundles;
-- optional `section41_observations.csv`;
-- optional `section41_observation_summary.csv`;
-- checksums for all files the resume code depends on.
-
-Resume validation should fail if any referenced file is missing, has a checksum
-mismatch, or points outside the intended output root without explicit approval.
+Exact Section 4.1 mode continues to require positive `inlet_umax_cm_s` and
+keeps pressure-drop wall-pressure fallback disabled.
 
 ## Resume Runner Semantics
 
-A future resume runner should:
+The current runner is deliberately qualified-internal:
 
-1. Read metadata and reject unsupported schemas.
-2. Validate checksums, mesh identity, sidecar linkage, and output ownership.
-3. Reconstruct wall, mesh, fluid, and coupling state.
-4. Rebuild Gridap spaces and restore or project the fluid state according to
-   the declared checkpoint representation.
-5. Resume from the first unsaved snapshot time, not from the last completed
-   snapshot.
-6. Append/fork sidecars according to an explicit policy.
-7. Write new restart metadata that advances the cursor and preserves backward
-   links to the parent checkpoint.
+1. callers must opt into private/internal resume controls;
+2. metadata is read and unsupported schemas are rejected;
+3. sidecar checksums, mesh identity, solver controls, boundary status, and
+   output ownership are validated;
+4. the run must resume into a forked output root, not overwrite the parent
+   production directory;
+5. execution continues from the first pending snapshot after the parent
+   checkpoint;
+6. resumed sidecars preserve parent manifest and diagnostics rows and append
+   new rows for the resumed fork;
+7. new schema-v3 metadata advances the cursor and records parent metadata
+   linkage.
 
-The runner should be callable only through qualified internals until tests and
-docs prove it is safe. No default CLI path should trigger production resume.
+Public `native_resolved_fsi_resume_partitioned_production(...)` remains a
+metadata-validation plus fail-closed API. The default CLI exposes only
+`fsi native-status` for dry-run/status reporting.
 
-## Validation Plan
+## Validation Status
 
-### Metadata Schema Tests
+Implemented validation covers:
 
-- legacy audit metadata remains readable and fail-closed;
-- unsupported schema versions fail with clear errors;
-- schema-v2 checkpoint manifests validate required role/path/checksum/size
-  fields but still fail closed for resume;
-- missing state files, bad checksums, or inconsistent paths fail once durable
-  checkpoint state files are written;
+- legacy schema-v1 audit metadata remains readable and fail-closed;
+- schema-v2 checkpoint-manifest metadata validates required
+  role/path/checksum/size fields and remains fail-closed;
+- schema-v3 metadata requires durable-checkpoint status, nonempty required
+  sidecar roles, checksums, and byte sizes;
+- missing state files, bad checksums, inconsistent paths, invalid mesh/spec
+  controls, and non-forked output roots fail closed;
 - exact boundary metadata still requires positive `inlet_umax_cm_s`;
-- `resume_supported=true` remains rejected until the reconstruction runner
-  lands.
+- public resume validates metadata and still fails closed;
+- a two-snapshot smoke-scale production run can be split into prefix plus
+  qualified internal resume, preserving parent rows and writing the remaining
+  resumed snapshot under a forked output root.
 
-### State Serialization Tests
+Remaining validation before any stronger claim:
 
-- wall arrays round-trip exactly within the chosen binary/text precision;
-- mesh identity checks fail when case, resolution, topology, or boundary tags
-  differ;
-- FE state or projection state round-trips into a finite restart state;
-- pressure gauge metadata is preserved separately from internal pressure state.
+- broader numerical equivalence against uninterrupted runs across more cases
+  and schedules;
+- imported-parity skip-safe resume coverage when optional upstream bundles are
+  present or absent;
+- production-scale resume validation on long `sev23` runs;
+- any public API or CLI exposure review, if a future lane proposes one.
 
-### Resume Runner Tests
+## Claim Boundary Tests
 
-- a two-snapshot smoke-scale run can be split into run + resume and produce the
-  same final sidecar/status shape as an uninterrupted run;
-- completed snapshots are not overwritten silently;
-- cursor advancement handles final-snapshot-only and multi-snapshot schedules;
-- failed resume leaves existing sidecars untouched.
+Tests and docs must keep these boundaries intact:
 
-### Numerical Equivalence Tests
-
-- resumed smoke-scale runs match uninterrupted runs within predeclared
-  tolerances for wall displacement, wall velocity, pressure, and velocity
-  summaries;
-- exact Section 4.1 boundary status survives resume;
-- imported-data parity rows remain skip-safe when optional bundles are absent.
-
-### Claim Boundary Tests
-
-- docs and status rows keep persisted resume separate from paper-grade Section
-  4.1 reproduction;
+- schema-v3 durable checkpoints are package/operator control evidence;
+- public/default resume remains unsupported and fail-closed;
 - restart support does not imply monolithic ALE FSI;
-- `state_payload` remains described as audit metadata for old schemas.
+- restart support does not imply paper-grade Section 4.1 reproduction;
+- old `state_payload` wording remains audit-only.
 
 ## Follow-Up Lanes
 
-1. **10D-1 metadata schema.** Completed for the current boundary. Current
-   production metadata writes explicit schema-v1 audit fields, legacy metadata
-   remains readable, and the reader validates schema-v2 checkpoint-manifest
-   shape while keeping resume fail-closed.
-2. **10D-2 state serialization.** Add durable wall, mesh, FE fluid, coupling,
-   and cursor state writers/readers under ignored scratch output roots.
-3. **10D-3 resume runner.** Implement a qualified-internal resume runner that
-   reconstructs state and continues from the next pending snapshot without
-   exposing production resume through default CLI paths.
-4. **10D-4 validation tests.** Add metadata, serialization, split-run/resume,
-   sidecar append/fork, and exact-boundary status tests.
-5. **10D-5 docs and claim boundary.** Update public docs and editorial
-   handoff text after implementation lands, preserving Section 4.1 and
-   reproduction claim limits.
-
-Until these lanes land, keep
-`native_resolved_fsi_resume_partitioned_production(...)` fail-closed.
+1. **10D-1 metadata schema.** Completed. Schema-v1 audit metadata, schema-v2
+   checkpoint-manifest validation, and schema-v3 durable checkpoint validation
+   are implemented.
+2. **10D-2 state serialization.** Completed at smoke-scale operator scope for
+   wall, mesh, fluid-state, coupling, cursor, and output-linkage sidecars.
+3. **10D-3 resume runner.** Completed for the qualified internal split-run
+   path only. Public API and CLI resume stay closed.
+4. **10D-4 validation tests.** Completed for metadata validation, sidecar
+   ownership, forked output roots, and split-run smoke-scale resume. Broader
+   production-scale and imported-parity resume validation remains future work.
+5. **10D-5 docs and claim boundary.** Completed for package docs and TODO
+   handoff. Manuscript claim promotion remains out of scope.

@@ -429,6 +429,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
     spec::NativeResolvedFSIPartitionedSmokeSpec,
     snapshot_times_s;
     progress_callback = nothing,
+    restart_state = nothing,
 )
     requested_snapshot_times_s = Float64[Float64(time_s) for time_s in snapshot_times_s]
     isempty(requested_snapshot_times_s) &&
@@ -484,6 +485,86 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
     phase_timing = native_resolved_fsi_phase_timing_accumulator()
     snapshots = NativeResolvedFSIPartitionedSmokeSolve[]
     expected_time_step_count = ceil(Int, last(requested_snapshot_times_s) / spec.dt_s)
+
+    if restart_state !== nothing
+        time_s = Float64(restart_state.current_saved_time_s)
+        isfinite(time_s) && time_s > 0.0 || throw(ArgumentError(
+            "native resolved-FSI partitioned restart state current_saved_time_s must be finite and positive",
+        ))
+        first(requested_snapshot_times_s) > time_s || throw(ArgumentError(
+            "native resolved-FSI partitioned restart requires the first requested snapshot time " *
+            "$(first(requested_snapshot_times_s)) to be after saved time $(time_s)",
+        ))
+        time_step_count = Int(restart_state.current_time_step_count)
+        time_step_count > 0 || throw(ArgumentError(
+            "native resolved-FSI partitioned restart state current_time_step_count must be positive",
+        ))
+        restart_wall_axial_coordinates_cm = Float64[Float64(value) for value in restart_state.wall_axial_coordinates_cm]
+        restart_wall_axial_coordinates_cm == wall_axial_coordinates_cm || throw(ArgumentError(
+            "native resolved-FSI partitioned restart wall axial coordinates do not match regenerated mesh",
+        ))
+        wall_displacement_cm = Float64[Float64(value) for value in restart_state.wall_displacement_cm]
+        wall_velocity_cm_s = Float64[Float64(value) for value in restart_state.wall_velocity_cm_s]
+        current_radii_cm = Float64[Float64(value) for value in restart_state.current_radii_cm]
+        physical_wall_forcing_pressure_dyn_cm2 =
+            Float64[Float64(value) for value in restart_state.wall_pressure_dyn_cm2]
+        vector_lengths = (
+            length(wall_axial_coordinates_cm),
+            length(wall_displacement_cm),
+            length(wall_velocity_cm_s),
+            length(current_radii_cm),
+            length(physical_wall_forcing_pressure_dyn_cm2),
+        )
+        all(==(first(vector_lengths)), vector_lengths) || throw(ArgumentError(
+            "native resolved-FSI partitioned restart wall-state arrays must match the mesh axial station count",
+        ))
+        all(isfinite, wall_displacement_cm) || throw(ArgumentError(
+            "native resolved-FSI partitioned restart wall displacement must be finite",
+        ))
+        all(isfinite, wall_velocity_cm_s) || throw(ArgumentError(
+            "native resolved-FSI partitioned restart wall velocity must be finite",
+        ))
+        all(isfinite, current_radii_cm) || throw(ArgumentError(
+            "native resolved-FSI partitioned restart current radii must be finite",
+        ))
+        all(radius -> radius > 0.0, current_radii_cm) || throw(ArgumentError(
+            "native resolved-FSI partitioned restart current radii must be positive",
+        ))
+        maximum(abs, current_radii_cm .- (reference_radii_cm .+ wall_displacement_cm)) <= 1.0e-12 ||
+            throw(ArgumentError(
+                "native resolved-FSI partitioned restart current radii must equal reference radii plus wall displacement",
+            ))
+        !isempty(wall_displacement_cm) &&
+            iszero(wall_displacement_cm[begin]) &&
+            iszero(wall_displacement_cm[end]) &&
+            iszero(wall_velocity_cm_s[begin]) &&
+            iszero(wall_velocity_cm_s[end]) || throw(ArgumentError(
+                "native resolved-FSI partitioned restart wall endpoints must be clamped",
+            ))
+        velocity_dofs_previous = Float64[Float64(value) for value in restart_state.velocity_free_dof_values]
+        isempty(velocity_dofs_previous) && throw(ArgumentError(
+            "native resolved-FSI partitioned restart velocity_free_dof_values must not be empty",
+        ))
+        max_picard_iterations_used = Int(restart_state.max_picard_iterations_used)
+        final_picard_update_norm = Float64(restart_state.final_picard_update_norm)
+        picard_converged = Bool(restart_state.picard_converged)
+        pressure_projection_fallback_count = Int(restart_state.pressure_projection_fallback_count)
+        minimum_signed_tetra_volume6 = Float64(restart_state.minimum_signed_tetra_volume6)
+        max_coupling_iterations_used = Int(restart_state.max_coupling_iterations_used)
+        final_coupling_displacement_residual_cm =
+            Float64(restart_state.final_coupling_displacement_residual_cm)
+        coupling_converged = Bool(restart_state.coupling_converged)
+        coupling_residual_history = copy(restart_state.coupling_residual_history)
+        restart_fluid_wall_boundary_mode = Symbol(restart_state.fluid_wall_boundary_mode)
+        restart_fluid_wall_boundary_mode === fluid_wall_boundary_mode || throw(ArgumentError(
+            "native resolved-FSI partitioned restart fluid wall boundary mode does not match resumed controls",
+        ))
+        minimum_signed_tetra_volume6 = native_resolved_fsi_partitioned_smoke_validate_deformed_mesh(
+            mesh,
+            mesh.coordinates .+ native_resolved_fsi_lifted_displacement(mesh, wall_displacement_cm),
+            current_radii_cm,
+        )
+    end
 
     for snapshot_time_s in requested_snapshot_times_s
         while time_s < snapshot_time_s

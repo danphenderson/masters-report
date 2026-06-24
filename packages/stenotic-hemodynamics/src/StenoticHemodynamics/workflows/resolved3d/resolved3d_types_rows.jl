@@ -35,7 +35,13 @@ struct SectionComparisonRow
     cross_model_time_offset_s::Float64
 end
 
-"""One area-weighted radial-bin profile comparison row."""
+"""
+One area-weighted radial-bin profile comparison row.
+
+Radial bins use the normalized cylindrical coordinate `hypot(x, y) /
+radius_scale`; the velocity fields are axial components, with the 1D value
+reconstructed at the radial-bin midpoint.
+"""
 struct RadialProfileRow
     case_label::String
     severity::Float64

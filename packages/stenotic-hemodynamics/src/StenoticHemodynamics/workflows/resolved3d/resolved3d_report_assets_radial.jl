@@ -56,7 +56,7 @@ function write_report_radial_dat_file(path::String, case_rows::Vector{RadialProf
         headers = ["r"]
         for z in slices
             token = report_slice_token(z)
-            append!(headers, ["u1d$(token)", "u3d$(token)", "area$(token)", "disc$(token)"])
+            append!(headers, ["uax1d$(token)", "uax3d$(token)", "area$(token)", "disc$(token)"])
         end
         println(io, join(headers, " "))
         for bin in bins

@@ -132,14 +132,14 @@ function refinement_rows_for_method(table_kind::String, spec::RefinementStudySpe
     reference_nx = 2 * maximum(spec.nxs)
     reference_params = params_with(spec.base_params; nx=reference_nx, space=method)
     reference = simulate(reference_params, spec.backend; progress_every=spec.progress_every)
-    reference_pressure = pressure(reference, reference_params)
+    reference_pressure = diagnostic_pressure(reference, reference_params)
     reference_u = velocity(reference)
 
     scratch = NamedTuple[]
     for nx in spec.nxs
         params = params_with(spec.base_params; nx=nx, space=method)
         result = simulate(params, spec.backend; progress_every=spec.progress_every)
-        pressure_values = pressure(result, params)
+        pressure_values = diagnostic_pressure(result, params)
         u_values = velocity(result)
         push!(
             scratch,

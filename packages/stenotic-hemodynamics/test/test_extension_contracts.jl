@@ -167,6 +167,7 @@ end
                 joinpath("src", "StenoticHemodynamics", "adapters", "resolved3d_io.jl"),
                 joinpath("src", "StenoticHemodynamics", "adapters", "resolved3d_writer.jl"),
                 joinpath("test", "runtests.jl"),
+                joinpath("test", "test_helpers.jl"),
             ]),
         )
         @test extension_contract_no_violations(

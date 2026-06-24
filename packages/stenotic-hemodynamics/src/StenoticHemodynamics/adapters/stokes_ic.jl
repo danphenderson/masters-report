@@ -354,7 +354,7 @@ end
 function area_for_pressure_and_velocity(target_pressure::Float64, uavg::Float64, z::Float64, p::Params)
     r0, _, _ = stenosis(z, p)
     guess = max(r0^2, AREA_LIMITER_FLOOR)
-    residual(A) = pressure([A], [A * uavg], [z], p)[1] - target_pressure
+    residual(A) = diagnostic_pressure([A], [A * uavg], [z], p)[1] - target_pressure
     lo = AREA_LIMITER_FLOOR
     hi = max(guess * 4.0, lo * 2.0)
     flo = residual(lo)

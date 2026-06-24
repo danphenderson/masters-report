@@ -31,8 +31,8 @@ The implemented native resolved-FSI surface is split into these tiers:
 | Fixed-wall smoke | `run_native_resolved_fsi_smoke(...)` and `run_native_resolved_fsi_navier_stokes_smoke(...)` run coarse fixed-wall Gridap smoke solves and write zero displacement. | Solver-backed smoke and importer round trip, not moving-wall FSI. |
 | Partitioned smoke | `run_native_resolved_fsi_partitioned_smoke(...)` updates a reduced radial membrane state and prescribes radial wall-velocity Dirichlet data on the fluid wall. | Coarse staggered smoke with prescribed wall velocity; not monolithic ALE. |
 | Production dry-run | `native_resolved_fsi_partitioned_production_dry_run(...)` resolves output, sidecar, restart, and imported-parity paths without running a solver or writing files. | Side-effect-free planning only. |
-| Production sidecars | `run_native_resolved_fsi_partitioned_production(...)` advances one state-carrying partitioned snapshot series within a run and writes importer-compatible snapshot bundles, `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, and `restart_metadata.json`. | Production-control and diagnostics harness with in-run state carry; persisted resume, monolithic ALE coupling, and paper-grade reproduction remain deferred. |
-| Restart metadata | `native_resolved_fsi_read_restart_metadata(...)` validates current and legacy package-written restart metadata, including versioned `state_payload` audit data when present. | Persisted process resume is deferred; `native_resolved_fsi_resume_partitioned_production(...)` fails closed. |
+| Production sidecars | `run_native_resolved_fsi_partitioned_production(...)` advances one state-carrying partitioned snapshot series within a run and writes importer-compatible snapshot bundles, `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, `restart_metadata.json`, and schema-v3 durable checkpoint sidecars. | Production-control and diagnostics harness with in-run state carry and qualified internal split-run resume; monolithic ALE coupling, public/default resume, and paper-grade reproduction remain deferred. |
+| Restart metadata | `native_resolved_fsi_read_restart_metadata(...)` validates current and legacy package-written restart metadata, including versioned `state_payload` audit data and schema-v3 durable checkpoints when present. | Schema-v3 checkpoints support qualified internal split-run resume only; `native_resolved_fsi_resume_partitioned_production(...)` still fails closed for public callers. |
 | Observation artifacts | Production parity writes `section41_observations.csv` and `section41_observation_summary.csv`. | Local velocity/pressure observation evidence and optional imported-bundle comparison, not a paper-grade reproduction claim. |
 
 External importer support is retained. Legacy or explicitly supplied
@@ -52,15 +52,17 @@ remain skip-safe when optional local data is absent.
 Interpretation:
 
 - The schema workflow, fixed-wall smoke, partitioned smoke, production dry-run,
-  restart reader/stub, and observation summary CSV surfaces are implemented as
-  qualified Julia-internal workflows.
+  restart reader/schema-v3 checkpoint validator, qualified internal resume
+  controls, and observation summary CSV surfaces are implemented as qualified
+  Julia-internal workflows.
 - Public CLI exposure remains intentionally narrow in this round:
   `cli/dispatch.jl` exposes only `fsi native-status` for dry-run/status
   reporting. Native resolved-FSI production, restart/resume, parity execution,
   and observation-artifact generation remain qualified Julia-internal surfaces.
 - The production tier carries partitioned state through one requested snapshot
-  schedule within a run, but saved restart metadata is not a future-process
-  resume surface.
+  schedule within a run and now writes schema-v3 durable checkpoint sidecars.
+  Qualified internal split-run resume can continue from those checkpoints into
+  a forked output root, but public/default resume remains closed.
 - The moving-wall tier remains partitioned and smoke-backed, not monolithic.
 
 ## Backend decision
@@ -125,7 +127,9 @@ This stage is successful when the workflow can:
 
 ### Stage 2: partitioned smoke with prescribed radial wall velocity
 
-The first wall-coupled target is a partitioned staggered smoke solve:
+The first wall-coupled target is a partitioned staggered smoke solve. It repeats
+fluid solves on the currently deformed domain and updates a reduced radial
+membrane state; it is not a monolithic ALE formulation.
 
 1. advance the fluid step on the current geometry;
 2. sample the wall pressure load from that fluid state;
@@ -150,11 +154,14 @@ state-carrying partitioned snapshot series:
 - `run_native_resolved_fsi_partitioned_production(...)` advances the partitioned
   state through the requested snapshot schedule and writes importer-compatible
   velocity/pressure/displacement bundles, `snapshot_manifest.csv`,
-  `snapshot_diagnostics.csv`, and `restart_metadata.json`.
+  `snapshot_diagnostics.csv`, `restart_metadata.json`, and schema-v3
+  checkpoint sidecars under `checkpoint/`.
 - `native_resolved_fsi_read_restart_metadata(...)` validates current and legacy
-  restart metadata, including versioned `state_payload` audit metadata when
-  present; `native_resolved_fsi_resume_partitioned_production(...)` validates
-  metadata and then fails closed because persisted process resume is deferred.
+  restart metadata, including versioned `state_payload` audit metadata and
+  schema-v3 durable checkpoint sidecars when present. Qualified internal
+  resume can continue a split production run into a forked output root;
+  `native_resolved_fsi_resume_partitioned_production(...)` validates metadata
+  and then fails closed for public callers.
 - Production parity writes `section41_observations.csv` and
   `section41_observation_summary.csv` using the local cross-section velocity
   and pressure observation operators.
@@ -196,6 +203,12 @@ partitioned smoke tier the same weak form is solved on the current displaced
 geometry, but the writer still exports the original reference coordinates plus
 the displacement field.
 
+The native Navier-Stokes adapter records the Gridap quadrature degree used for
+the assembled operator and a higher-degree assembly comparison in
+`solver_diagnostics`. That comparison is a sensitivity diagnostic only; it does
+not claim quadrature convergence, solver equivalence, or a stronger numerical
+method.
+
 ### Boundary conditions
 
 The paper boundary data and current execution evidence are deliberately kept
@@ -214,6 +227,10 @@ The current wall boundary modes are:
 - wall, partitioned smoke: radial wall-velocity Dirichlet data from the
   reduced membrane velocity, implemented through
   `native_resolved_fsi_radial_wall_velocity_function(...)`.
+- wall, exact Section 4.1 production harness: stationary no-slip wall solves
+  on deformed geometry while the reduced membrane update advances the next
+  geometry; this is not a strong moving-wall fluid-boundary or monolithic ALE
+  claim.
 
 The current inlet/outlet realizations are:
 
@@ -222,6 +239,13 @@ The current inlet/outlet realizations are:
 - exact Section 4.1 internal mode: strong Poiseuille inlet with
   `u_max = 45 cm/s` plus zero outlet stress, threaded through the tiny
   partitioned production harness for operator-readiness evidence only.
+
+The native Navier-Stokes adapter also records outlet normal-velocity diagnostics
+in `solver_diagnostics`: outlet node count, fallback sampling count, backflow
+node count, and min/max/mean sampled outlet normal velocity. These diagnostics
+classify the current open-boundary evidence and possible backflow at sampled
+mesh nodes only. They do not add convective-outflow stabilization and do not
+turn either boundary mode into validated Section 4.1 parity.
 
 The partitioned target must not reinterpret the 1D characteristic outlet as a
 3D outlet condition or present either current internal path as validated
@@ -330,8 +354,8 @@ Fluid:
 
 Membrane:
 
-- explicit second-order update using `eta` and `weta`, following the same local
-  stability model as the current `DynamicMembraneMode`;
+- semi-implicit reduced radial wall update for `eta` and `weta`, following the
+  same local stability model as the current `DynamicMembraneMode`;
 - clamped endpoints enforced after every wall update.
 
 Partitioned coupling:
@@ -431,7 +455,7 @@ The current implementation lives on these source surfaces:
 | `src/StenoticHemodynamics/adapters/native_resolved_fsi_roundtrip.jl` | Resolved-3D writer/importer round-trip checks for schema and smoke bundles. |
 | `src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow.jl` | Schema workflow spec construction, scratch output planning, synthetic fields, displacement lift, and writer round trip. |
 | `src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow_production.jl` | Partitioned production spec policy, production dry-run, state-carrying in-run snapshot runner, manifest, diagnostics, and restart metadata writer. |
-| `src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_restart.jl` | Current and legacy restart-metadata reader and fail-closed persisted-resume stub. |
+| `src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_restart.jl` | Current and legacy restart-metadata reader, schema-v3 durable checkpoint validation, qualified internal resume context builder, and public fail-closed resume API. |
 | `src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity.jl` | Native/imported three-field parity and observation operators. |
 | `src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity_production.jl` | Production observation artifact and summary CSV writer, including `section41_observation_summary.csv`. |
 
@@ -483,7 +507,9 @@ status-only CLI surface:
   and state-carrying partitioned snapshot sidecars.
 - `native_resolved_fsi_read_restart_metadata(...)` and
   `native_resolved_fsi_resume_partitioned_production(...)` for
-  restart-identification metadata validation and fail-closed resume.
+  restart-identification metadata validation and public fail-closed resume;
+  qualified internal production-run controls can resume schema-v3 checkpoints
+  into a forked output root.
 - `run_native_resolved_fsi_parity(...)` for native/imported observation and
   parity artifacts.
 - `fsi native-status` for dry-run/status reporting only; it does not run
@@ -498,7 +524,7 @@ The current narrow tests are:
 
 | Test file | Purpose | First acceptance tolerance |
 | --- | --- | --- |
-| `test/test_native_resolved_fsi_workflow.jl` | Schema workflow, production spec policy, dry-run, production sidecars, restart metadata reader, and fail-closed resume | coordinates/topology exact; time `atol=1e-12`; sidecars present; resume error explicit |
+| `test/test_native_resolved_fsi_workflow.jl` | Schema workflow, production spec policy, dry-run, production sidecars, schema-v3 restart metadata reader, qualified internal split-run resume, and public fail-closed resume | coordinates/topology exact; time `atol=1e-12`; sidecars present; resumed fork preserves parent rows and public resume error remains explicit |
 | `test/test_native_resolved_fsi_smoke.jl` | Fixed-wall Stokes/Navier-Stokes smoke and partitioned prescribed radial wall-velocity smoke | all fields finite; saved final time `atol=1e-12`; fixed-wall displacement zero; partitioned wall displacement and velocity nonzero away from clamped endpoints; no inverted tetrahedra |
 | `test/test_native_resolved_fsi_parity.jl` | Native/imported parity contracts and Section 4.1 observation artifact CSVs | operator rows sorted and finite where ready; absent optional imported bundles produce expected skips |
 
@@ -554,7 +580,9 @@ These items remain open and should not be implied by current documentation:
   outlet-quadrature mean for pressure gauge normalization;
 - whether later paper-parity calibration should replace `R_ref = p.rmax` with a
   different constant `R0*`.
-- persisted process resume from restart metadata;
+- public/default process resume from restart metadata;
+- production-scale restart/resume validation and any claim promotion from
+  schema-v3 checkpoints;
 - public CLI exposure beyond the status-only `fsi native-status` surface for
   native resolved-FSI production, restart/resume, parity, or
   observation-artifact workflows;
@@ -564,7 +592,7 @@ These items remain open and should not be implied by current documentation:
 
 No documentation blocker remains for the implemented schema, smoke, production
 dry-run, restart metadata, sidecar, and observation-artifact tiers. The design
-intentionally defers monolithic moving-wall FSI, persisted process resume, CLI
-surfaces beyond `fsi native-status`, and paper-grade reproduction claims
-instead of presenting the current qualified-internal harness as those stronger
-surfaces.
+intentionally defers monolithic moving-wall FSI, public/default process resume,
+CLI surfaces beyond `fsi native-status`, production-scale resume claim
+promotion, and paper-grade reproduction claims instead of presenting the
+current qualified-internal harness as those stronger surfaces.

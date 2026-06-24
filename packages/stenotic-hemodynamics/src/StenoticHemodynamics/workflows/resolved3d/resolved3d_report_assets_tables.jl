@@ -16,8 +16,8 @@ function write_report_section_dat(path::String, rows::Vector{SectionComparisonRo
             append!(
                 headers,
                 [
-                    "u1d$(token)",
-                    "u3d$(token)",
+                    "uax1d$(token)",
+                    "uax3d$(token)",
                     "disc$(token)",
                     "flow1d$(token)",
                     "flow3d$(token)",

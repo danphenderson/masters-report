@@ -642,10 +642,31 @@ end
         @test solver_diagnostics.gridap_pressure_constraint == "zeromean"
         @test solver_diagnostics.gridap_pressure_reference == "additive_nullspace"
         @test solver_diagnostics.gridap_wall_boundary_mode == "prescribed_radial_wall_velocity"
+        @test solver_diagnostics.gridap_quadrature_degree == 4
+        @test solver_diagnostics.gridap_quadrature_sensitivity_degree == 6
+        @test isfinite(solver_diagnostics.gridap_quadrature_sensitivity_matrix_relative_change)
+        @test solver_diagnostics.gridap_quadrature_sensitivity_matrix_relative_change >= 0.0
+        @test isfinite(solver_diagnostics.gridap_quadrature_sensitivity_rhs_relative_change)
+        @test solver_diagnostics.gridap_quadrature_sensitivity_rhs_relative_change >= 0.0
+        @test occursin(
+            "higher_degree_quadrature_assembly_comparison_recorded",
+            solver_diagnostics.gridap_quadrature_sensitivity_status,
+        )
+        @test occursin("diagnostic_only_no_convergence_or_solver_semantics_claim", solver_diagnostics.gridap_quadrature_sensitivity_status)
+        @test occursin("pressure_drop_smoke_outlet_reference", solver_diagnostics.gridap_open_boundary_status)
+        @test occursin("diagnostic_node_sample_only_no_outflow_stabilization_claim", solver_diagnostics.gridap_open_boundary_status)
+        @test solver_diagnostics.gridap_outlet_node_count == length(result.smoke_result.mesh.tags.outlet_nodes)
+        @test 0 <= solver_diagnostics.gridap_outlet_backflow_node_count
+        @test solver_diagnostics.gridap_outlet_backflow_node_count <= solver_diagnostics.gridap_outlet_node_count
+        @test isfinite(solver_diagnostics.gridap_outlet_normal_velocity_min_cm_s)
+        @test isfinite(solver_diagnostics.gridap_outlet_normal_velocity_max_cm_s)
+        @test isfinite(solver_diagnostics.gridap_outlet_normal_velocity_mean_cm_s)
         @test solver_diagnostics.gridap_linear_solve_count >= 1
         @test solver_diagnostics.gridap_rebuild_count == solver_diagnostics.gridap_linear_solve_count
         @test occursin("production snapshot harness", result.method_status.status)
         @test occursin("state-carrying partitioned solve", result.method_status.status)
+        @test occursin("repeated deformed-domain fluid solves", result.method_status.status)
+        @test occursin("reduced radial membrane update", result.method_status.status)
         @test occursin("prescribed radial wall-velocity Dirichlet", result.method_status.status)
         @test occursin("monolithic ALE", result.method_status.status)
         @test occursin("cumulative per-snapshot summaries", result.method_status.status)
@@ -653,7 +674,8 @@ end
         @test occursin("diagnostics CSV", result.output_status.status)
         @test result.diagnostics_status.ready
         @test result.restart_status.ready
-        @test occursin("persisted resume remains explicitly deferred", result.restart_status.status)
+        @test occursin("schema-v3 checkpoint sidecars", result.restart_status.status)
+        @test occursin("qualified internal resume", result.restart_status.status)
         manifest_lines = readlines(result.manifest_csv)
         @test length(manifest_lines) == 2
         @test startswith(
@@ -690,6 +712,20 @@ end
         @test diagnostic_row.section41_boundary_status == "deferred_or_not_selected"
         @test occursin("local smoke boundary evidence", diagnostic_row.boundary_status)
         @test occursin("not_exact_section41_boundary_equivalence", diagnostic_row.boundary_equivalence_status)
+        @test diagnostic_row.gridap_quadrature_degree == 4
+        @test diagnostic_row.gridap_quadrature_sensitivity_degree == 6
+        @test isfinite(diagnostic_row.gridap_quadrature_sensitivity_matrix_relative_change)
+        @test diagnostic_row.gridap_quadrature_sensitivity_matrix_relative_change >= 0.0
+        @test isfinite(diagnostic_row.gridap_quadrature_sensitivity_rhs_relative_change)
+        @test diagnostic_row.gridap_quadrature_sensitivity_rhs_relative_change >= 0.0
+        @test occursin(
+            "higher_degree_quadrature_assembly_comparison_recorded",
+            diagnostic_row.gridap_quadrature_sensitivity_status,
+        )
+        @test occursin("pressure_drop_smoke_outlet_reference", diagnostic_row.gridap_open_boundary_status)
+        @test diagnostic_row.gridap_outlet_node_count == length(result.smoke_result.mesh.tags.outlet_nodes)
+        @test 0 <= diagnostic_row.gridap_outlet_backflow_node_count
+        @test diagnostic_row.gridap_outlet_backflow_node_count <= diagnostic_row.gridap_outlet_node_count
         @test diagnostic_row.wall_displacement_max_cm > 0.0
         @test diagnostic_row.minimum_current_radius_cm > 0.0
         @test diagnostic_row.minimum_signed_tetra_volume6 > 0.0
@@ -701,6 +737,9 @@ end
         @test occursin("boundary_mode", diagnostic_lines[1])
         @test occursin("section41_boundary_status", diagnostic_lines[1])
         @test occursin("pressure_nullspace_status", diagnostic_lines[1])
+        @test occursin("gridap_quadrature_sensitivity_status", diagnostic_lines[1])
+        @test occursin("gridap_open_boundary_status", diagnostic_lines[1])
+        @test occursin("gridap_outlet_backflow_node_count", diagnostic_lines[1])
         @test occursin("wall_update_ready", diagnostic_lines[1])
         @test occursin("provenance", diagnostic_lines[1])
         @test occursin(",ready", diagnostic_lines[2])
@@ -735,6 +774,13 @@ end
         @test any(occursin("\"gridap_pressure_constraint\":\"zeromean\"", line) for line in batch_status_lines)
         @test any(occursin("\"gridap_pressure_reference\":\"additive_nullspace\"", line) for line in batch_status_lines)
         @test any(occursin("\"gridap_wall_boundary_mode\":\"prescribed_radial_wall_velocity\"", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_quadrature_degree\":4", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_quadrature_sensitivity_degree\":6", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_quadrature_sensitivity_matrix_relative_change\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_quadrature_sensitivity_rhs_relative_change\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_quadrature_sensitivity_status\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_open_boundary_status\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_outlet_backflow_node_count\":", line) for line in batch_status_lines)
         @test any(occursin("\"gridap_linear_solve_count\":", line) for line in batch_status_lines)
         @test any(occursin("\"gridap_rebuild_count\":", line) for line in batch_status_lines)
         @test any(occursin("\"gridap_model_setup_s\":", line) for line in batch_status_lines)
@@ -767,6 +813,9 @@ end
         @test occursin("gridap_rebuild_status", first(batch_status_csv_lines))
         @test occursin("gridap_reuse_status", first(batch_status_csv_lines))
         @test occursin("gridap_matrix_structure_digest", first(batch_status_csv_lines))
+        @test occursin("gridap_quadrature_sensitivity_status", first(batch_status_csv_lines))
+        @test occursin("gridap_open_boundary_status", first(batch_status_csv_lines))
+        @test occursin("gridap_outlet_backflow_node_count", first(batch_status_csv_lines))
         @test occursin("gridap_model_setup_s", first(batch_status_csv_lines))
         @test occursin("gridap_space_setup_s", first(batch_status_csv_lines))
         @test occursin("gridap_measure_setup_s", first(batch_status_csv_lines))
@@ -797,6 +846,11 @@ end
         @test occursin("\"gridap_matrix_structure_digest\":", batch_benchmark_text)
         @test occursin("\"gridap_matrix_value_digest\":", batch_benchmark_text)
         @test occursin("\"gridap_rhs_digest\":", batch_benchmark_text)
+        @test occursin("\"gridap_quadrature_degree\": 4", batch_benchmark_text)
+        @test occursin("\"gridap_quadrature_sensitivity_degree\": 6", batch_benchmark_text)
+        @test occursin("\"gridap_quadrature_sensitivity_status\":", batch_benchmark_text)
+        @test occursin("\"gridap_open_boundary_status\":", batch_benchmark_text)
+        @test occursin("\"gridap_outlet_backflow_node_count\":", batch_benchmark_text)
         @test occursin("\"gridap_model_setup_s\":", batch_benchmark_text)
         @test occursin("\"gridap_space_setup_s\":", batch_benchmark_text)
         @test occursin("\"gridap_measure_setup_s\":", batch_benchmark_text)
@@ -878,12 +932,12 @@ end
               "outlet_gauge_normalization_export_only_not_membrane_forcing"
         @test length(result.restart_metadata["coupling_residual_history"]) ==
               length(result.smoke_result.coupling_residual_history)
-        @test result.restart_metadata["resume_supported"] == false
-        @test result.restart_metadata["resume_status"] == "deferred"
-        @test result.restart_metadata["restart_schema_version"] == 2
-        @test result.restart_metadata["restart_schema_status"] == "schema_v2_checkpoint_manifest"
-        @test result.restart_metadata["checkpoint_schema_status"] ==
-              "checkpoint_manifest_present_resume_not_implemented"
+        @test result.restart_metadata["resume_supported"] == true
+        @test result.restart_metadata["resume_status"] == "ready"
+        @test result.restart_metadata["restart_schema_version"] == 3
+        @test result.restart_metadata["restart_schema_status"] == "schema_v3_durable_checkpoint"
+        @test result.restart_metadata["checkpoint_schema_status"] == "durable_checkpoint_ready"
+        @test occursin("Public CLI resume remains intentionally unexposed", result.restart_metadata["resume_note"])
         @test length(result.restart_metadata["checkpoint_manifest"]) == 5
         @test Set(entry["role"] for entry in result.restart_metadata["checkpoint_manifest"]) ==
               Set(["wall_state", "mesh_identity", "fluid_state", "coupling_state", "output_linkage"])
@@ -921,10 +975,10 @@ end
         @test state_payload["resume_supported"] == false
         @test state_payload["resume_status"] == "deferred"
         restart_metadata_text = read(result.restart_metadata_json, String)
-        @test occursin("\"resume_supported\": false", restart_metadata_text)
-        @test occursin("\"restart_schema_version\": 2", restart_metadata_text)
-        @test occursin("\"restart_schema_status\": \"schema_v2_checkpoint_manifest\"", restart_metadata_text)
-        @test occursin("\"checkpoint_schema_status\": \"checkpoint_manifest_present_resume_not_implemented\"", restart_metadata_text)
+        @test occursin("\"resume_supported\": true", restart_metadata_text)
+        @test occursin("\"restart_schema_version\": 3", restart_metadata_text)
+        @test occursin("\"restart_schema_status\": \"schema_v3_durable_checkpoint\"", restart_metadata_text)
+        @test occursin("\"checkpoint_schema_status\": \"durable_checkpoint_ready\"", restart_metadata_text)
         @test occursin("\"checkpoint_manifest\"", restart_metadata_text)
         @test occursin("\"restart_provenance\": \"state_carrying_partitioned\"", restart_metadata_text)
         @test occursin("\"state_carrying_restart\": true", restart_metadata_text)
@@ -951,12 +1005,11 @@ end
         @test parsed_restart_metadata["diagnostics_csv"] == result.diagnostics_csv
         @test parsed_restart_metadata["restart_provenance"] == "state_carrying_partitioned"
         @test parsed_restart_metadata["state_carrying_restart"] == true
-        @test parsed_restart_metadata["resume_supported"] == false
-        @test parsed_restart_metadata["resume_status"] == "deferred"
-        @test parsed_restart_metadata["restart_schema_version"] == 2
-        @test parsed_restart_metadata["restart_schema_status"] == "schema_v2_checkpoint_manifest"
-        @test parsed_restart_metadata["checkpoint_schema_status"] ==
-              "checkpoint_manifest_present_resume_not_implemented"
+        @test parsed_restart_metadata["resume_supported"] == true
+        @test parsed_restart_metadata["resume_status"] == "ready"
+        @test parsed_restart_metadata["restart_schema_version"] == 3
+        @test parsed_restart_metadata["restart_schema_status"] == "schema_v3_durable_checkpoint"
+        @test parsed_restart_metadata["checkpoint_schema_status"] == "durable_checkpoint_ready"
         @test length(parsed_restart_metadata["checkpoint_manifest"]) == 5
         @test parsed_restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
         @test parsed_restart_metadata["boundary_mode_class"] == "local_smoke_loading"
@@ -1004,16 +1057,17 @@ end
         @test resume_error isa ArgumentError
         @test occursin("persisted resume from restart metadata is unsupported", sprint(showerror, resume_error))
         @test occursin("state_carrying_partitioned", sprint(showerror, resume_error))
-        @test occursin("restart_schema_version 2", sprint(showerror, resume_error))
-        @test occursin("state_payload may record state", sprint(showerror, resume_error))
-        @test occursin("no durable FE-state checkpoint runner", sprint(showerror, resume_error))
-        @test occursin("resume_supported is false", sprint(showerror, resume_error))
+        @test occursin("restart_schema_version 3", sprint(showerror, resume_error))
+        @test occursin("qualified internal resume runners", sprint(showerror, resume_error))
+        @test occursin("no default CLI resume command", sprint(showerror, resume_error))
 
         legacy_schema_v1_metadata = deepcopy(result.restart_metadata)
         legacy_schema_v1_metadata["restart_schema_version"] = 1
         legacy_schema_v1_metadata["restart_schema_status"] = "schema_v1_audit_metadata_only"
         legacy_schema_v1_metadata["checkpoint_schema_status"] = "not_persisted_solver_checkpoint"
         legacy_schema_v1_metadata["checkpoint_manifest"] = Any[]
+        legacy_schema_v1_metadata["resume_supported"] = false
+        legacy_schema_v1_metadata["resume_status"] = "deferred"
         legacy_schema_v1_path = joinpath(dir, "legacy-schema-v1-restart-metadata.json")
         StenoticHemodynamics.write_json(legacy_schema_v1_path, legacy_schema_v1_metadata; overwrite=true)
         parsed_legacy_schema_v1_metadata = native_resolved_fsi_read_restart_metadata(legacy_schema_v1_path)
@@ -1111,6 +1165,10 @@ end
         @test occursin("unsupported checkpoint role", sprint(showerror, unsupported_checkpoint_role_error))
 
         invalid_schema_v2_metadata = deepcopy(result.restart_metadata)
+        invalid_schema_v2_metadata["restart_schema_version"] = 2
+        invalid_schema_v2_metadata["restart_schema_status"] = "schema_v2_checkpoint_manifest"
+        invalid_schema_v2_metadata["checkpoint_schema_status"] =
+            "checkpoint_manifest_present_resume_not_implemented"
         invalid_schema_v2_metadata["resume_supported"] = true
         invalid_schema_v2_path = restart_metadata_fixture_path("invalid-schema-v2-restart-metadata.json")
         StenoticHemodynamics.write_json(invalid_schema_v2_path, invalid_schema_v2_metadata; overwrite=true)
@@ -1301,7 +1359,9 @@ end
         @test length(multi_result.restart_metadata["snapshot_outputs"]) == 2
         @test multi_result.restart_metadata["restart_provenance"] == "state_carrying_partitioned"
         @test multi_result.restart_metadata["state_carrying_restart"] == true
-        @test multi_result.restart_metadata["resume_supported"] == false
+        @test multi_result.restart_metadata["resume_supported"] == true
+        @test multi_result.restart_metadata["resume_status"] == "ready"
+        @test multi_result.restart_metadata["restart_schema_version"] == 3
         @test multi_result.restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
         @test multi_result.restart_metadata["section41_boundary_status"] == "deferred_or_not_selected"
         @test [snapshot["time_step_count"] for snapshot in multi_result.restart_metadata["snapshot_outputs"]] == [1, 2]
@@ -1329,6 +1389,79 @@ end
         @test [snapshot["time_step_count"] for snapshot in parsed_multi_restart_metadata["snapshot_outputs"]] == [1, 2]
         @test parsed_multi_restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
         @test parsed_multi_restart_metadata["state_payload"]["last_snapshot_index"] == 2
+    end
+
+    mktempdir() do dir
+        prefix_spec = NativeResolvedFSIPartitionedProductionSpec(
+            resolution=resolution,
+            output_root=joinpath(dir, "production-prefix"),
+            dt_s=1.0e-4,
+            tfinal_s=2.0e-4,
+            snapshot_times_s=[1.0e-4, 2.0e-4],
+            time_atol=1.0e-12,
+        )
+        prefix_result = run_native_resolved_fsi_partitioned_production(
+            prefix_spec;
+            _qualified_internal_resume=true,
+            _internal_stop_after_snapshot_index=1,
+        )
+        @test prefix_result.output_status.ready
+        @test prefix_result.restart_status.ready
+        @test length(prefix_result.snapshot_results) == 1
+        @test prefix_result.restart_metadata["current_snapshot_index"] == 1
+        @test prefix_result.restart_metadata["next_pending_snapshot_index"] == 2
+        @test prefix_result.restart_metadata["resume_supported"] == true
+
+        public_resume_error = try
+            native_resolved_fsi_resume_partitioned_production(prefix_result.restart_metadata_json)
+            nothing
+        catch err
+            err
+        end
+        @test public_resume_error isa ArgumentError
+        @test occursin("no default CLI resume command", sprint(showerror, public_resume_error))
+
+        resume_spec = NativeResolvedFSIPartitionedProductionSpec(
+            resolution=resolution,
+            output_root=joinpath(dir, "production-resumed"),
+            dt_s=1.0e-4,
+            tfinal_s=2.0e-4,
+            snapshot_times_s=[1.0e-4, 2.0e-4],
+            time_atol=1.0e-12,
+        )
+        resume_result = run_native_resolved_fsi_partitioned_production(
+            resume_spec;
+            _qualified_internal_resume=true,
+            _resume_checkpoint_path=prefix_result.restart_metadata_json,
+        )
+        @test resume_result.output_status.ready
+        @test resume_result.method_status.ready
+        @test resume_result.diagnostics_status.ready
+        @test resume_result.restart_status.ready
+        @test length(resume_result.snapshot_results) == 1
+        @test only(resume_result.snapshot_results).snapshot_index == 2
+        @test only(resume_result.snapshot_results).snapshot_time_s ≈ 2.0e-4
+        @test dirname(only(resume_result.snapshot_results).output_dir) == resume_result.output_dir
+        resume_manifest_lines = readlines(resume_result.manifest_csv)
+        @test length(resume_manifest_lines) == 3
+        @test occursin(prefix_result.output_dir, resume_manifest_lines[2])
+        @test occursin(resume_result.output_dir, resume_manifest_lines[3])
+        resume_diagnostic_lines = readlines(resume_result.diagnostics_csv)
+        @test length(resume_diagnostic_lines) == 3
+        @test occursin(prefix_result.output_dir, resume_diagnostic_lines[2])
+        @test occursin(resume_result.output_dir, resume_diagnostic_lines[3])
+        @test resume_result.restart_metadata["resume_run_role"] == "forked_internal_resume"
+        @test resume_result.restart_metadata["completed_parent_snapshot_count"] == 1
+        @test resume_result.restart_metadata["current_snapshot_index"] == 2
+        @test resume_result.restart_metadata["next_pending_snapshot_index"] === nothing
+        @test length(resume_result.restart_metadata["snapshot_outputs"]) == 2
+        @test resume_result.restart_metadata["snapshot_outputs"][1]["output_dir"] ==
+              prefix_result.restart_metadata["snapshot_outputs"][1]["output_dir"]
+        @test resume_result.restart_metadata["snapshot_outputs"][2]["ownership"] == "current_resume_output_root"
+        parsed_resume_metadata = native_resolved_fsi_read_restart_metadata(resume_result.restart_metadata_json)
+        @test parsed_resume_metadata["resume_supported"] == true
+        @test parsed_resume_metadata["restart_schema_version"] == 3
+        @test parsed_resume_metadata["current_snapshot_index"] == 2
     end
 
     mktempdir() do dir
@@ -1437,6 +1570,8 @@ end
         @test exact_production_result.smoke_result.section41_boundary_status.ready
         @test exact_production_result.smoke_result.pressure_projection_fallback_count == 0
         @test occursin("stationary no-slip wall", exact_production_result.method_status.status)
+        @test occursin("repeated deformed-domain fluid solves", exact_production_result.method_status.status)
+        @test occursin("reduced radial membrane update", exact_production_result.method_status.status)
         @test occursin("exact Section 4.1 inlet/outlet boundary mode", exact_production_result.method_status.status)
         @test occursin("physical wall-forcing pressure", exact_production_result.method_status.status)
         @test occursin("pressure-drop fallback disabled", exact_production_result.method_status.status)
@@ -1480,6 +1615,15 @@ end
         @test exact_diagnostic_row.section41_boundary_status == "implemented_smoke_validated"
         @test occursin("exact_section41_boundary_mode_selected_smoke_validated", exact_diagnostic_row.boundary_equivalence_status)
         @test exact_diagnostic_row.pressure_projection_fallback_count == 0
+        @test exact_diagnostic_row.gridap_quadrature_degree == 4
+        @test exact_diagnostic_row.gridap_quadrature_sensitivity_degree == 6
+        @test occursin(
+            "higher_degree_quadrature_assembly_comparison_recorded",
+            exact_diagnostic_row.gridap_quadrature_sensitivity_status,
+        )
+        @test occursin("zero_outlet_stress_natural_traction_open_boundary", exact_diagnostic_row.gridap_open_boundary_status)
+        @test 0 <= exact_diagnostic_row.gridap_outlet_backflow_node_count
+        @test exact_diagnostic_row.gridap_outlet_backflow_node_count <= exact_diagnostic_row.gridap_outlet_node_count
         @test exact_production_result.restart_metadata["inlet_umax_cm_s"] ≈ 45.0
         @test exact_production_result.restart_metadata["fluid_wall_boundary_mode"] ==
               "stationary_wall_on_deformed_geometry"

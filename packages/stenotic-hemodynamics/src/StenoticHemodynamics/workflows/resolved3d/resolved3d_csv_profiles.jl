@@ -2,7 +2,7 @@
     write_radial_profile_csv(path, rows; overwrite=false)
 
 Write one per-case radial-profile CSV assembled from imported resolved-3D
-velocity samples and their 1D comparison rows.
+axial-velocity samples and their reconstructed 1D axial comparison rows.
 """
 function write_radial_profile_csv(
     path::String,
@@ -29,8 +29,8 @@ function radial_profile_header()
         "r_over_radius_mid",
         "area_cm2",
         "flow_3d_cm3_s",
-        "mean_u3d_cm_s",
-        "mean_u1d_cm_s",
+        "mean_axial_u3d_cm_s",
+        "reconstructed_axial_u1d_cm_s",
         "abs_velocity_discrepancy_cm_s",
         "relative_discrepancy",
         "intersection_count",

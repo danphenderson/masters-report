@@ -296,6 +296,66 @@ function native_resolved_fsi_matrix_value_digest(matrix)
     return native_resolved_fsi_short_digest((size=size(matrix), values=native_resolved_fsi_vector_digest(vec(Matrix(matrix)))))
 end
 
+native_resolved_fsi_vector_l2_norm(values) = sqrt(sum(abs2, values))
+
+function native_resolved_fsi_matrix_l2_norm(matrix)
+    matrix isa SparseMatrixCSC && return sqrt(sum(abs2, nonzeros(matrix)))
+    return sqrt(sum(abs2, matrix))
+end
+
+function native_resolved_fsi_relative_l2_change(candidate_norm::Real, reference_norm::Real)
+    candidate_value = Float64(candidate_norm)
+    reference_value = Float64(reference_norm)
+    reference_value > 0.0 && return candidate_value / reference_value
+    return candidate_value == 0.0 ? 0.0 : Inf
+end
+
+function native_resolved_fsi_quadrature_sensitivity_diagnostics(
+    matrix,
+    rhs,
+    sensitivity_operator_builder;
+    primary_degree::Integer,
+    sensitivity_degree::Integer,
+)
+    primary_degree_value = Int(primary_degree)
+    sensitivity_degree_value = Int(sensitivity_degree)
+    try
+        sensitivity_operator = sensitivity_operator_builder()
+        sensitivity_matrix = get_matrix(sensitivity_operator)
+        sensitivity_rhs = get_vector(sensitivity_operator)
+        matrix_relative_change = native_resolved_fsi_relative_l2_change(
+            native_resolved_fsi_matrix_l2_norm(sensitivity_matrix - matrix),
+            native_resolved_fsi_matrix_l2_norm(matrix),
+        )
+        rhs_relative_change = native_resolved_fsi_relative_l2_change(
+            native_resolved_fsi_vector_l2_norm(sensitivity_rhs .- rhs),
+            native_resolved_fsi_vector_l2_norm(rhs),
+        )
+        finite_status =
+            isfinite(matrix_relative_change) && isfinite(rhs_relative_change) ?
+            "higher_degree_quadrature_assembly_comparison_recorded" :
+            "higher_degree_quadrature_assembly_comparison_nonfinite"
+        return (
+            gridap_quadrature_degree=primary_degree_value,
+            gridap_quadrature_sensitivity_degree=sensitivity_degree_value,
+            gridap_quadrature_sensitivity_matrix_relative_change=matrix_relative_change,
+            gridap_quadrature_sensitivity_rhs_relative_change=rhs_relative_change,
+            gridap_quadrature_sensitivity_status=
+                "$(finite_status); diagnostic_only_no_convergence_or_solver_semantics_claim",
+        )
+    catch error
+        return (
+            gridap_quadrature_degree=primary_degree_value,
+            gridap_quadrature_sensitivity_degree=sensitivity_degree_value,
+            gridap_quadrature_sensitivity_matrix_relative_change=NaN,
+            gridap_quadrature_sensitivity_rhs_relative_change=NaN,
+            gridap_quadrature_sensitivity_status=
+                "higher_degree_quadrature_assembly_comparison_failed: $(sprint(showerror, error)); " *
+                "diagnostic_only_no_solver_semantics_changed",
+        )
+    end
+end
+
 function native_resolved_fsi_solver_diagnostics(
     matrix,
     rhs;
@@ -320,6 +380,18 @@ function native_resolved_fsi_solver_diagnostics(
         gridap_pressure_constraint=pressure_constraint,
         gridap_pressure_reference=pressure_reference,
         gridap_wall_boundary_mode=wall_boundary_mode,
+        gridap_quadrature_degree=Int(get(context, :quadrature_degree, 0)),
+        gridap_quadrature_sensitivity_degree=Int(get(context, :quadrature_sensitivity_degree, 0)),
+        gridap_quadrature_sensitivity_matrix_relative_change=NaN,
+        gridap_quadrature_sensitivity_rhs_relative_change=NaN,
+        gridap_quadrature_sensitivity_status="not_evaluated",
+        gridap_open_boundary_status="not_evaluated",
+        gridap_outlet_node_count=0,
+        gridap_outlet_velocity_sampling_fallback_count=0,
+        gridap_outlet_backflow_node_count=0,
+        gridap_outlet_normal_velocity_min_cm_s=NaN,
+        gridap_outlet_normal_velocity_max_cm_s=NaN,
+        gridap_outlet_normal_velocity_mean_cm_s=NaN,
         gridap_dt_s=Float64(get(context, :dt_s, NaN)),
         gridap_time_step_index=Int(get(context, :time_step_index, 0)),
         gridap_picard_iteration=Int(get(context, :picard_iteration, 0)),
@@ -335,6 +407,7 @@ function native_resolved_fsi_timed_affine_solve(
     Y,
     phase_timing::AbstractDict{Symbol,Float64};
     context::NamedTuple = NamedTuple(),
+    quadrature_sensitivity_operator_builder = nothing,
 )
     operator_start_ns = time_ns()
     operator = AffineFEOperator(a, l, X, Y)
@@ -356,6 +429,18 @@ function native_resolved_fsi_timed_affine_solve(
         affine_operator_elapsed_s + matrix_extraction_elapsed_s + rhs_extraction_elapsed_s,
     )
     solver_diagnostics = native_resolved_fsi_solver_diagnostics(matrix, rhs; context=context)
+    if quadrature_sensitivity_operator_builder !== nothing
+        solver_diagnostics = merge(
+            solver_diagnostics,
+            native_resolved_fsi_quadrature_sensitivity_diagnostics(
+                matrix,
+                rhs,
+                quadrature_sensitivity_operator_builder;
+                primary_degree=Int(get(context, :quadrature_degree, 0)),
+                sensitivity_degree=Int(get(context, :quadrature_sensitivity_degree, 0)),
+            ),
+        )
+    end
 
     solver = LUSolver()
 
@@ -375,6 +460,89 @@ function native_resolved_fsi_timed_affine_solve(
     solution = FEFunction(X, solution_dofs)
     velocity_h, pressure_h = solution
     return velocity_h, pressure_h, solver_diagnostics
+end
+
+function native_resolved_fsi_sample_velocity_at_node(
+    mesh::NativeResolvedFSIMesh,
+    node::Int,
+    velocity_h;
+    coordinates::AbstractMatrix{<:Real} = mesh.coordinates,
+    wall_radius_at_z = z -> native_resolved_fsi_radius(mesh.case_spec, z),
+)
+    direct_point = Point(Float64(coordinates[node, 1]), Float64(coordinates[node, 2]), Float64(coordinates[node, 3]))
+    direct_value = try
+        velocity_h(direct_point)
+    catch
+        nothing
+    end
+    if direct_value !== nothing
+        components = (direct_value[1], direct_value[2], direct_value[3])
+        all(component -> component isa Real && isfinite(component), components) &&
+            return components, false
+    end
+
+    fallback_point = native_resolved_fsi_smoke_interior_sample_point(
+        mesh,
+        node;
+        coordinates=coordinates,
+        wall_radius_at_z=wall_radius_at_z,
+    )
+    fallback_value = try
+        velocity_h(fallback_point)
+    catch
+        nothing
+    end
+    if fallback_value !== nothing
+        components = (fallback_value[1], fallback_value[2], fallback_value[3])
+        all(component -> component isa Real && isfinite(component), components) &&
+            return components, true
+    end
+    throw(ArgumentError("native resolved-FSI open-boundary velocity diagnostic sampling failed at mesh node $node"))
+end
+
+function native_resolved_fsi_open_boundary_diagnostics(
+    mesh::NativeResolvedFSIMesh,
+    velocity_h;
+    coordinates::AbstractMatrix{<:Real} = mesh.coordinates,
+    wall_radius_at_z = z -> native_resolved_fsi_radius(mesh.case_spec, z),
+    inlet_outlet_boundary_mode::Symbol,
+)
+    outlet_nodes = mesh.tags.outlet_nodes
+    isempty(outlet_nodes) &&
+        throw(ArgumentError("native resolved-FSI open-boundary diagnostics require at least one outlet node"))
+    normal_velocity_cm_s = Float64[]
+    fallback_count = 0
+    for node in outlet_nodes
+        velocity_value, used_fallback = native_resolved_fsi_sample_velocity_at_node(
+            mesh,
+            node,
+            velocity_h;
+            coordinates=coordinates,
+            wall_radius_at_z=wall_radius_at_z,
+        )
+        push!(normal_velocity_cm_s, Float64(velocity_value[3]))
+        fallback_count += used_fallback ? 1 : 0
+    end
+    backflow_count = count(value -> value < -1.0e-10, normal_velocity_cm_s)
+    normal_min = minimum(normal_velocity_cm_s)
+    normal_max = maximum(normal_velocity_cm_s)
+    normal_mean = sum(normal_velocity_cm_s) / length(normal_velocity_cm_s)
+    boundary_status = if inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
+        "zero_outlet_stress_natural_traction_open_boundary"
+    else
+        "pressure_drop_smoke_outlet_reference_not_section41_open_boundary_evidence"
+    end
+    backflow_status = backflow_count == 0 ? "no_mesh_node_backflow_detected" : "mesh_node_backflow_detected"
+    return (
+        gridap_open_boundary_status=
+            "$(boundary_status); $(backflow_status); diagnostic_node_sample_only_no_outflow_stabilization_claim",
+        gridap_outlet_node_count=length(outlet_nodes),
+        gridap_outlet_velocity_sampling_fallback_count=fallback_count,
+        gridap_outlet_backflow_node_count=backflow_count,
+        gridap_outlet_normal_velocity_min_cm_s=normal_min,
+        gridap_outlet_normal_velocity_max_cm_s=normal_max,
+        gridap_outlet_normal_velocity_mean_cm_s=normal_mean,
+    )
 end
 
 function native_resolved_fsi_solve_navier_stokes(
@@ -472,10 +640,8 @@ function native_resolved_fsi_solve_navier_stokes(
     Γout = BoundaryTriangulation(model, labels, tags="outlet")
     n_in = get_normal_vector(Γin)
     n_out = get_normal_vector(Γout)
-    degree = 2 * order
-    dΩ = Measure(Ω, degree)
-    dΓin = Measure(Γin, degree)
-    dΓout = Measure(Γout, degree)
+    quadrature_degree = 2 * order
+    quadrature_sensitivity_degree = quadrature_degree + 2
     native_resolved_fsi_record_phase_elapsed!(:gridap_measure_setup_s, setup_start_ns, phase_timing)
 
     velocity_state = native_resolved_fsi_navier_stokes_initial_velocity_state(U, initial_velocity_function, initial_velocity_dofs)
@@ -503,23 +669,34 @@ function native_resolved_fsi_solve_navier_stokes(
             velocity_advector = velocity_iterate
             weak_form_coefficients =
                 native_resolved_fsi_navier_stokes_weak_form_coefficients(rho, mu, dt_step)
-            a((u, pfield), (v, q)) =
-                ∫(
-                    weak_form_coefficients.transient_mass * (v ⋅ u) +
-                    weak_form_coefficients.cauchy_viscous_stress * (ε(v) ⊙ ε(u)) +
-                    weak_form_coefficients.convection_density * (v ⋅ ((∇(u)) ⋅ velocity_advector)) -
-                    weak_form_coefficients.dynamic_pressure * (∇ ⋅ v) * pfield +
-                    q * (∇ ⋅ u)
-                ) * dΩ
-            l((v, q)) =
-                if inlet_outlet_boundary_mode_value === :pressure_drop_weak_inlet_outlet_gauge_smoke
-                    ∫(weak_form_coefficients.previous_step_mass * (v ⋅ velocity_previous_step)) * dΩ +
-                    ∫(-weak_form_coefficients.boundary_traction * pressure_drop_value * (v ⋅ n_in)) * dΓin +
-                    ∫(-0.0 * (v ⋅ n_out)) * dΓout
-                else
-                    ∫(weak_form_coefficients.previous_step_mass * (v ⋅ velocity_previous_step)) * dΩ +
-                    ∫(0.0 * (v ⋅ n_out)) * dΓout
-                end
+            function weak_forms_for_quadrature_degree(degree_value::Int)
+                dΩ = Measure(Ω, degree_value)
+                dΓin = Measure(Γin, degree_value)
+                dΓout = Measure(Γout, degree_value)
+                a((u, pfield), (v, q)) =
+                    ∫(
+                        weak_form_coefficients.transient_mass * (v ⋅ u) +
+                        weak_form_coefficients.cauchy_viscous_stress * (ε(v) ⊙ ε(u)) +
+                        weak_form_coefficients.convection_density * (v ⋅ ((∇(u)) ⋅ velocity_advector)) -
+                        weak_form_coefficients.dynamic_pressure * (∇ ⋅ v) * pfield +
+                        q * (∇ ⋅ u)
+                    ) * dΩ
+                l((v, q)) =
+                    if inlet_outlet_boundary_mode_value === :pressure_drop_weak_inlet_outlet_gauge_smoke
+                        ∫(weak_form_coefficients.previous_step_mass * (v ⋅ velocity_previous_step)) * dΩ +
+                        ∫(-weak_form_coefficients.boundary_traction * pressure_drop_value * (v ⋅ n_in)) * dΓin +
+                        ∫(-0.0 * (v ⋅ n_out)) * dΓout
+                    else
+                        ∫(weak_form_coefficients.previous_step_mass * (v ⋅ velocity_previous_step)) * dΩ +
+                        ∫(0.0 * (v ⋅ n_out)) * dΓout
+                    end
+                return a, l
+            end
+            a, l = weak_forms_for_quadrature_degree(quadrature_degree)
+            quadrature_sensitivity_operator_builder = () -> begin
+                a_sensitivity, l_sensitivity = weak_forms_for_quadrature_degree(quadrature_sensitivity_degree)
+                return AffineFEOperator(a_sensitivity, l_sensitivity, X, Y)
+            end
 
             linear_solve_count += 1
             pressure_policy = native_resolved_fsi_pressure_space_policy(inlet_outlet_boundary_mode_value)
@@ -537,11 +714,24 @@ function native_resolved_fsi_solve_navier_stokes(
                                         string(pressure_policy.gridap_constraint),
                     pressure_reference=string(pressure_policy.pressure_reference),
                     wall_boundary_mode=string(wall_boundary_mode),
+                    quadrature_degree=quadrature_degree,
+                    quadrature_sensitivity_degree=quadrature_sensitivity_degree,
                     dt_s=dt_step,
                     time_step_index=time_step_count + 1,
                     picard_iteration=iteration,
                     linear_solve_count=linear_solve_count,
                     gridap_rebuild_count=linear_solve_count,
+                ),
+                quadrature_sensitivity_operator_builder=quadrature_sensitivity_operator_builder,
+            )
+            solver_diagnostics = merge(
+                solver_diagnostics,
+                native_resolved_fsi_open_boundary_diagnostics(
+                    mesh,
+                    velocity_next;
+                    coordinates=coordinates,
+                    wall_radius_at_z=wall_radius_at_z,
+                    inlet_outlet_boundary_mode=inlet_outlet_boundary_mode_value,
                 ),
             )
             step_update_norm = native_resolved_fsi_smoke_velocity_update_norm(velocity_next, velocity_iterate)

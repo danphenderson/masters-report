@@ -24,7 +24,7 @@ using StenoticHemodynamics
         :CarreauRheology,
         :CarreauYasudaRheology,
         :CassonRheology,
-        :ClassicalNoSlip1DModel,
+        :ClassicalParabolicOneDModel,
         :DGMethod,
         :FVFirstOrderMethod,
         :FVLaxWendroffMethod,
@@ -68,8 +68,10 @@ using StenoticHemodynamics
         :characteristic_shear_rate,
         :characteristic_speeds,
         :degrees_of_freedom,
+        :diagnostic_pressure,
         :effective_dynamic_viscosity,
         :effective_kinematic_viscosity,
+        :evolution_pressure,
         :forcing_name,
         :forward_model,
         :forward_model_name,
@@ -89,6 +91,7 @@ using StenoticHemodynamics
         :profile_exponent,
         :profile_name,
         :radial_profile_velocity,
+        :reconstructed_axial_velocity,
         :rheology_name,
         :shear_rate_factor,
         :simulate,
@@ -101,6 +104,26 @@ using StenoticHemodynamics
         :wall_law_name,
     ])
     @test exported_names == expected_exports
+
+    classical = forward_model("classical-parabolic-1d")
+    legacy_classical = forward_model("classical-1d-no-slip")
+    @test classical isa ClassicalParabolicOneDModel
+    @test legacy_classical isa ClassicalParabolicOneDModel
+    @test legacy_classical isa ClassicalNoSlip1DModel
+    @test forward_model_name(legacy_classical) == "classical-parabolic-1d"
+
+    params = Params(initial_condition=GeometryRestIC(), severity=30.0)
+    z = [2.75]
+    area = [0.035]
+    flow = [0.012]
+    @test diagnostic_pressure(area, flow, z, params) == pressure(area, flow, z, params)
+    @test evolution_pressure(area, flow, z, params)[1] ≈ StenoticHemodynamics.wall_elastic_pressure(area[1], z[1], params)
+    @test diagnostic_pressure(area, flow, z, params)[1] != evolution_pressure(area, flow, z, params)[1]
+
+    parabolic = ParabolicVelocityProfile()
+    @test reconstructed_axial_velocity(3.0, 0.0, 2.0, parabolic) ≈ 6.0
+    @test radial_profile_velocity(3.0, 0.0, 2.0, parabolic) ≈
+          reconstructed_axial_velocity(3.0, 0.0, 2.0, parabolic)
 
     internal_names = Symbol[
         :parse_args,

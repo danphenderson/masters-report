@@ -144,7 +144,7 @@ end
 
 function result_metrics(params, result)
     velocity_values = velocity(result)
-    pressure_values = pressure(result, params)
+    pressure_values = diagnostic_pressure(result, params)
     return (;
         min_area=minimum(result.area),
         max_abs_u=maximum(abs.(velocity_values)),

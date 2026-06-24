@@ -10,7 +10,7 @@ function write_csv(
     p::Params;
     overwrite::Bool = true,
 )
-    P = pressure(A, Q, z, p)
+    P = diagnostic_pressure(A, Q, z, p)
 
     header = [
         "z_cm",
@@ -66,7 +66,7 @@ function write_svg(
     overwrite::Bool = true,
 )
     u = Q ./ A
-    P = pressure(A, Q, z, p)
+    P = diagnostic_pressure(A, Q, z, p)
     r0 = [stenosis(zi, p)[1] for zi in z]
 
     width = 900
@@ -113,7 +113,7 @@ end
 
 function summary_lines(result::SimulationResult, p::Params, out::OutputSpec)
     u = velocity(result)
-    P = pressure(result, p)
+    P = diagnostic_pressure(result, p)
     nu_eff = [
         effective_kinematic_viscosity(result.area[i], result.flow[i], stenosis(result.z[i], p)[1], p)
         for i in eachindex(result.z)

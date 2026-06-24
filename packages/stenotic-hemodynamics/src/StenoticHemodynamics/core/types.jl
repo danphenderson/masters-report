@@ -214,7 +214,7 @@ end
 
 Final state returned by all time backends. `area` and `flow` are sampled at
 cell centers `z`, and diagnostics such as `velocity(result)` and
-`pressure(result, params)` are derived from this structure.
+`diagnostic_pressure(result, params)` are derived from this structure.
 """
 struct SimulationResult
     z::Vector{Float64}

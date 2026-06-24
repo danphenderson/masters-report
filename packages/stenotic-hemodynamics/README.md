@@ -108,7 +108,10 @@ The exported core workflow is:
    - `SciMLTimeBackend(solve=SolveSpec(...))` for SciML/OrdinaryDiffEq.
 3. Run `simulate(params, backend)` to obtain a `SimulationResult`.
 4. Derive diagnostics with exported helpers such as `velocity(result)` and
-   `pressure(result, params)`.
+   `diagnostic_pressure(result, params)`. `evolution_pressure(result, params)`
+   exposes the wall-law pressure used by the evolution convention, while the
+   deprecated compatibility helper `pressure(result, params)` currently aliases
+   `diagnostic_pressure(result, params)`.
 
 Study, benchmark, adapter, native resolved-FSI, and report-asset helpers are
 intentionally qualified module internals, for example
@@ -250,9 +253,20 @@ Poiseuille transport with `alpha = 4/3`, shear-rate factor `4`, and
 - `--velocity-profile power --profile-exponent GAMMA`
 
 The forward-model descriptor defaults to `--model canic-extended-1d`. Use
-`--model classical-1d-no-slip` for the classical parabolic-profile baseline; it
-requires `--velocity-profile parabolic` and disables the Canic variable-radius
-effective-alpha correction terms.
+`--model classical-parabolic-1d` for the classical parabolic-profile baseline;
+it requires `--velocity-profile parabolic` and disables the Canic
+variable-radius effective-alpha correction terms. The previous
+`--model classical-1d-no-slip` token and `ClassicalNoSlip1DModel` constructor
+remain deprecated compatibility aliases for `ClassicalParabolicOneDModel`.
+
+Radial profile helpers reconstruct axial velocity from the 1D section-mean
+state. Use `reconstructed_axial_velocity(...)`; the older
+`radial_profile_velocity(...)` name remains a deprecated compatibility alias.
+Resolved-3D radial-bin observations use the normalized cylindrical coordinate
+`hypot(x, y) / radius_scale`, equal-width bins on `[0, 1]`, and retain
+near-wall overshoot through normalized radius `1.05` by clamping it into the
+outer bin. Samples beyond that tolerance are excluded from radial-bin area,
+flow, and velocity totals.
 
 The default rheology is Newtonian and uses `Params.nu` as the kinematic
 viscosity. Additional local closure objects are available for comparison hooks:

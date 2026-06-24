@@ -111,13 +111,28 @@ function source_point(
            Q^2 / Ai * effective_alpha_c_z(p, r0z, r0zz)
 end
 
-function pressure(result::SimulationResult, p::Params)
-    return pressure(result.area, result.flow, result.z, p)
+function evolution_pressure(result::SimulationResult, p::Params)
+    return evolution_pressure(result.area, result.flow, result.z, p)
 end
 
-function pressure(A::AbstractVector{Float64}, Q::AbstractVector{Float64}, z::AbstractVector{Float64}, p::Params)
-    gp2 = gamma_plus_two(p)
+function evolution_pressure(A::AbstractVector{Float64}, _Q::AbstractVector{Float64}, z::AbstractVector{Float64}, p::Params)
     out = similar(A)
+
+    for i in eachindex(A)
+        Ai = positive_area(A[i])
+        out[i] = wall_elastic_pressure(Ai, z[i], p)
+    end
+
+    return out
+end
+
+function diagnostic_pressure(result::SimulationResult, p::Params)
+    return diagnostic_pressure(result.area, result.flow, result.z, p)
+end
+
+function diagnostic_pressure(A::AbstractVector{Float64}, Q::AbstractVector{Float64}, z::AbstractVector{Float64}, p::Params)
+    gp2 = gamma_plus_two(p)
+    out = evolution_pressure(A, Q, z, p)
 
     for i in eachindex(A)
         Ai = positive_area(A[i])
@@ -127,8 +142,13 @@ function pressure(A::AbstractVector{Float64}, Q::AbstractVector{Float64}, z::Abs
         correction = variable_radius_terms_enabled(p) ?
                      variable_radius_pressure_correction(Ai, Q[i], r0, r0z, nu_eff, gp2, p) :
                      0.0
-        out[i] = wall_elastic_pressure(Ai, z[i], p) + correction
+        out[i] += correction
     end
 
     return out
+end
+
+function pressure(args...)
+    Base.depwarn("pressure is deprecated; use diagnostic_pressure or evolution_pressure", :pressure)
+    return diagnostic_pressure(args...)
 end

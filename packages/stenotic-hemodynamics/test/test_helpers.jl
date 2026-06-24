@@ -1,3 +1,5 @@
+using HDF5
+
 function assert_finite_positive_state(result::SimulationResult, params::Params)
     @test result.completed_time ≈ params.tfinal
     @test result.steps >= 0
@@ -7,7 +9,7 @@ function assert_finite_positive_state(result::SimulationResult, params::Params)
     @test all(isfinite, result.flow)
     @test minimum(result.area) > 0.0
 
-    pressure_values = pressure(result, params)
+    pressure_values = diagnostic_pressure(result, params)
     @test length(pressure_values) == params.nx
     @test all(isfinite, pressure_values)
 end

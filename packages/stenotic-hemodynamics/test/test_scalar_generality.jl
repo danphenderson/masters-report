@@ -145,7 +145,7 @@ end
     @test typeof(shear_rate_factor(flat32)) === Float32
     @test typeof(momentum_alpha(flat32)) === Float32
     @test typeof(mean_to_max_velocity_ratio(flat32)) === Float32
-    @test radial_profile_velocity(Float32(3.0), Float32(1.5), Float32(2.0), flat32) === Float32(3.0)
+    @test reconstructed_axial_velocity(Float32(3.0), Float32(1.5), Float32(2.0), flat32) === Float32(3.0)
 
     power32_positional = PowerVelocityProfile(Float32(2.0))
     @test power32_positional isa PowerVelocityProfile{Float32}
@@ -159,7 +159,7 @@ end
     @test momentum_alpha(power32) ≈ Float32(4.0 / 3.0)
     @test shear_rate_factor(power32) ≈ Float32(4.0)
     @test mean_to_max_velocity_ratio(power32) ≈ Float32(0.5)
-    @test typeof(radial_profile_velocity(Float32(3.0), Float32(1.0), Float32(2.0), power32)) === Float32
+    @test typeof(reconstructed_axial_velocity(Float32(3.0), Float32(1.0), Float32(2.0), power32)) === Float32
 
     power_big = PowerVelocityProfile(alpha=big"1.1")
     @test power_big isa PowerVelocityProfile{BigFloat}
@@ -183,7 +183,7 @@ end
     @test mean_to_max_velocity_ratio(parabolic_big) == big"0.5"
     @test profile_exponent(parabolic_big) == big"2.0"
 
-    parabolic_velocity = radial_profile_velocity(big"3.0", big"1.0", big"2.0", parabolic_big)
+    parabolic_velocity = reconstructed_axial_velocity(big"3.0", big"1.0", big"2.0", parabolic_big)
     @test typeof(parabolic_velocity) === BigFloat
     @test parabolic_velocity == big"4.5"
 end
@@ -284,9 +284,11 @@ end
     @test typeof(variable_alpha32) === Float32
     @test variable_alpha32 == alpha32
 
-    classical_params = Params(model=ClassicalNoSlip1DModel(), velocity_profile=ParabolicVelocityProfile(BigFloat))
+    classical_params = Params(model=ClassicalParabolicOneDModel(), velocity_profile=ParabolicVelocityProfile(BigFloat))
     classical_alpha_big = StenoticHemodynamics.effective_alpha_c(classical_params, big"0.3")
     classical_alpha_z_big = StenoticHemodynamics.effective_alpha_c_z(classical_params, big"0.3", big"0.4")
+    @test classical_params.model isa ClassicalParabolicOneDModel
+    @test classical_params.model isa ClassicalNoSlip1DModel
     @test typeof(classical_alpha_big) === BigFloat
     @test typeof(classical_alpha_z_big) === BigFloat
     @test classical_alpha_big == big"0.0"

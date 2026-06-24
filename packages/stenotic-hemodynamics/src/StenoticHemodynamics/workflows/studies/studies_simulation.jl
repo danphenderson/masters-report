@@ -69,7 +69,7 @@ function summarize_study_run(
     result::SimulationResult,
 )
     u = velocity(result)
-    P = pressure(result, params)
+    P = diagnostic_pressure(result, params)
     return StudyRunSummary(
         study_kind,
         params.severity,

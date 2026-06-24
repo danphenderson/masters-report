@@ -1,5 +1,6 @@
 const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_AUDIT_METADATA_VERSION = 1
 const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_CHECKPOINT_MANIFEST_VERSION = 2
+const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_DURABLE_CHECKPOINT_VERSION = 3
 const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V2_REQUIRED_CHECKPOINT_ROLES = (
     "wall_state",
     "mesh_identity",
@@ -7,6 +8,8 @@ const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V2_REQUIRED_CHECKPOINT_ROLES = (
     "coupling_state",
     "output_linkage",
 )
+const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V3_REQUIRED_CHECKPOINT_ROLES =
+    NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V2_REQUIRED_CHECKPOINT_ROLES
 
 """
     native_resolved_fsi_read_restart_metadata(path)
@@ -35,8 +38,13 @@ function native_resolved_fsi_read_restart_metadata(path::AbstractString)
         "native resolved-FSI restart metadata restart_provenance must be " *
         "\"independent_smoke_backed_snapshots\" or \"state_carrying_partitioned\"; got $(repr(provenance))",
     ))
-    native_resolved_fsi_require_restart_metadata_value(metadata, "resume_supported", false)
-    native_resolved_fsi_require_restart_metadata_value(metadata, "resume_status", "deferred")
+    if restart_schema_version == NATIVE_RESOLVED_FSI_RESTART_SCHEMA_DURABLE_CHECKPOINT_VERSION
+        native_resolved_fsi_require_restart_metadata_value(metadata, "resume_supported", true)
+        native_resolved_fsi_require_restart_metadata_value(metadata, "resume_status", "ready")
+    else
+        native_resolved_fsi_require_restart_metadata_value(metadata, "resume_supported", false)
+        native_resolved_fsi_require_restart_metadata_value(metadata, "resume_status", "deferred")
+    end
     if provenance == "state_carrying_partitioned"
         native_resolved_fsi_require_restart_metadata_value(metadata, "state_carrying_restart", true)
     end
@@ -105,10 +113,9 @@ end
     native_resolved_fsi_resume_partitioned_production(path; kwargs...)
 
 Validate restart-identification metadata, including any optional state payload,
-then fail closed because persisted resume from restart metadata is not
-implemented. Current production metadata may carry state within a single run,
-but saved payloads are audit metadata until an actual resumed run is
-implemented and tested.
+then fail closed for public callers. Durable schema-v3 checkpoints are
+reserved for qualified internal resume runners; default package APIs and CLI
+paths do not expose production resume.
 """
 function native_resolved_fsi_resume_partitioned_production(path::AbstractString; kwargs...)
     metadata = native_resolved_fsi_read_restart_metadata(path)
@@ -119,10 +126,9 @@ function native_resolved_fsi_resume_partitioned_production(path::AbstractString;
         NATIVE_RESOLVED_FSI_RESTART_SCHEMA_AUDIT_METADATA_VERSION,
     )
     throw(ArgumentError(
-        "native resolved-FSI persisted resume from restart metadata is unsupported for provenance " *
-        "$(repr(provenance)) and restart_schema_version $(restart_schema_version); state_payload may record state " *
-        "carried within a production run, but no durable FE-state checkpoint runner is implemented and " *
-        "resume_supported is false with resume_status deferred",
+        "native resolved-FSI public persisted resume from restart metadata is unsupported for provenance " *
+        "$(repr(provenance)) and restart_schema_version $(restart_schema_version); durable schema-v3 checkpoints " *
+        "are limited to qualified internal resume runners and no default CLI resume command is exposed",
     ))
 end
 
@@ -170,6 +176,18 @@ function native_resolved_fsi_require_restart_metadata_positive_integer(
     value = metadata[key]
     value isa Integer && !(value isa Bool) || throw(ArgumentError("$(context) '$(key)' must be an integer"))
     value > 0 || throw(ArgumentError("$(context) '$(key)' must be positive"))
+    return value
+end
+
+function native_resolved_fsi_require_restart_metadata_nonnegative_integer(
+    metadata::Dict{String,Any},
+    key::String;
+    context::String = "native resolved-FSI restart metadata",
+)
+    haskey(metadata, key) || throw(ArgumentError("$(context) requires '$(key)'"))
+    value = metadata[key]
+    value isa Integer && !(value isa Bool) || throw(ArgumentError("$(context) '$(key)' must be an integer"))
+    value >= 0 || throw(ArgumentError("$(context) '$(key)' must be nonnegative"))
     return value
 end
 
@@ -255,8 +273,9 @@ function native_resolved_fsi_restart_schema_version(metadata::Dict{String,Any})
     version in (
         NATIVE_RESOLVED_FSI_RESTART_SCHEMA_AUDIT_METADATA_VERSION,
         NATIVE_RESOLVED_FSI_RESTART_SCHEMA_CHECKPOINT_MANIFEST_VERSION,
+        NATIVE_RESOLVED_FSI_RESTART_SCHEMA_DURABLE_CHECKPOINT_VERSION,
     ) || throw(ArgumentError(
-        "native resolved-FSI restart metadata restart_schema_version must be 1 or 2; got $(repr(version))",
+        "native resolved-FSI restart metadata restart_schema_version must be 1, 2, or 3; got $(repr(version))",
     ))
     return version
 end
@@ -290,21 +309,38 @@ function native_resolved_fsi_validate_restart_schema_contract(
         return nothing
     end
 
-    native_resolved_fsi_require_restart_metadata_value(
-        metadata,
-        "restart_schema_status",
-        "schema_v2_checkpoint_manifest",
-    )
-    native_resolved_fsi_require_restart_metadata_value(
-        metadata,
-        "checkpoint_schema_status",
-        "checkpoint_manifest_present_resume_not_implemented",
-    )
+    if restart_schema_version == NATIVE_RESOLVED_FSI_RESTART_SCHEMA_CHECKPOINT_MANIFEST_VERSION
+        native_resolved_fsi_require_restart_metadata_value(
+            metadata,
+            "restart_schema_status",
+            "schema_v2_checkpoint_manifest",
+        )
+        native_resolved_fsi_require_restart_metadata_value(
+            metadata,
+            "checkpoint_schema_status",
+            "checkpoint_manifest_present_resume_not_implemented",
+        )
+    else
+        native_resolved_fsi_require_restart_metadata_value(
+            metadata,
+            "restart_schema_status",
+            "schema_v3_durable_checkpoint",
+        )
+        native_resolved_fsi_require_restart_metadata_value(
+            metadata,
+            "checkpoint_schema_status",
+            "durable_checkpoint_ready",
+        )
+    end
     checkpoint_manifest = native_resolved_fsi_require_restart_metadata_vector(metadata, "checkpoint_manifest")
     isempty(checkpoint_manifest) && throw(ArgumentError(
-        "native resolved-FSI restart metadata schema v2 requires a non-empty checkpoint_manifest",
+        "native resolved-FSI restart metadata schema $(restart_schema_version) requires a non-empty checkpoint_manifest",
     ))
-    required_roles = Set(NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V2_REQUIRED_CHECKPOINT_ROLES)
+    required_checkpoint_roles =
+        restart_schema_version == NATIVE_RESOLVED_FSI_RESTART_SCHEMA_DURABLE_CHECKPOINT_VERSION ?
+        NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V3_REQUIRED_CHECKPOINT_ROLES :
+        NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V2_REQUIRED_CHECKPOINT_ROLES
+    required_roles = Set(required_checkpoint_roles)
     observed_roles = Set{String}()
     for (index, checkpoint_entry) in enumerate(checkpoint_manifest)
         context = "native resolved-FSI restart metadata checkpoint_manifest[$(index)]"
@@ -313,7 +349,7 @@ function native_resolved_fsi_validate_restart_schema_contract(
         role = native_resolved_fsi_require_restart_metadata_string(checkpoint_entry, "role"; context=context)
         role in required_roles || throw(ArgumentError(
             "$(context) has unsupported checkpoint role $(repr(role)); expected one of " *
-            "$(join(NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V2_REQUIRED_CHECKPOINT_ROLES, ", "))",
+            "$(join(required_checkpoint_roles, ", "))",
         ))
         role in observed_roles && throw(ArgumentError(
             "$(context) duplicates checkpoint role $(repr(role))",
@@ -346,10 +382,682 @@ function native_resolved_fsi_validate_restart_schema_contract(
     end
     missing_roles = sort!(collect(setdiff(required_roles, observed_roles)))
     isempty(missing_roles) || throw(ArgumentError(
-        "native resolved-FSI restart metadata schema v2 checkpoint_manifest is missing required role(s): " *
+        "native resolved-FSI restart metadata schema $(restart_schema_version) checkpoint_manifest is missing required role(s): " *
         join(missing_roles, ", "),
     ))
+    if restart_schema_version == NATIVE_RESOLVED_FSI_RESTART_SCHEMA_DURABLE_CHECKPOINT_VERSION
+        native_resolved_fsi_validate_restart_durable_checkpoint_sidecars(metadata, metadata_dir, checkpoint_manifest)
+    end
     return nothing
+end
+
+function native_resolved_fsi_restart_checkpoint_entries_by_role(checkpoint_manifest, metadata_dir::String)
+    entries = Dict{String,NamedTuple}()
+    for checkpoint_entry in checkpoint_manifest
+        role = String(checkpoint_entry["role"])
+        relative_path = String(checkpoint_entry["path"])
+        resolved_path = native_resolved_fsi_restart_metadata_confined_checkpoint_path(
+            relative_path,
+            metadata_dir,
+            "native resolved-FSI restart metadata checkpoint_manifest role $(repr(role))",
+        )
+        entries[role] = (
+            path=resolved_path,
+            relative_path=relative_path,
+            sha256=String(checkpoint_entry["sha256"]),
+            byte_size=Int(checkpoint_entry["byte_size"]),
+        )
+    end
+    return entries
+end
+
+function native_resolved_fsi_load_restart_checkpoint_sidecars(metadata_dir::String, checkpoint_manifest)
+    entries = native_resolved_fsi_restart_checkpoint_entries_by_role(checkpoint_manifest, metadata_dir)
+    sidecars = Dict{String,Dict{String,Any}}()
+    for role in NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V3_REQUIRED_CHECKPOINT_ROLES
+        haskey(entries, role) || throw(ArgumentError(
+            "native resolved-FSI durable checkpoint is missing sidecar role $(repr(role))",
+        ))
+        loaded = load_yaml_file(entries[role].path)
+        sidecar = native_resolved_fsi_normalize_restart_metadata(loaded)
+        sidecars[role] = sidecar
+    end
+    return sidecars
+end
+
+function native_resolved_fsi_restart_metadata_mesh_resolution(
+    metadata::Dict{String,Any};
+    context::String = "native resolved-FSI restart metadata",
+)
+    resolution = native_resolved_fsi_require_restart_metadata_mapping(metadata, "mesh_resolution"; context=context)
+    return NativeResolvedFSIMeshResolution(
+        axial=native_resolved_fsi_require_restart_metadata_positive_integer(
+            resolution,
+            "axial";
+            context="$(context) mesh_resolution",
+        ),
+        radial=native_resolved_fsi_require_restart_metadata_positive_integer(
+            resolution,
+            "radial";
+            context="$(context) mesh_resolution",
+        ),
+        angular=native_resolved_fsi_require_restart_metadata_positive_integer(
+            resolution,
+            "angular";
+            context="$(context) mesh_resolution",
+        ),
+    )
+end
+
+function native_resolved_fsi_require_restart_sidecar_schema(
+    sidecar::Dict{String,Any},
+    representation::String,
+    context::String,
+)
+    schema_version =
+        native_resolved_fsi_require_restart_metadata_positive_integer(sidecar, "schema_version"; context=context)
+    schema_version == 1 || throw(ArgumentError("$(context) requires schema_version == 1"))
+    native_resolved_fsi_require_restart_metadata_value(sidecar, "representation", representation; context=context)
+    return sidecar
+end
+
+function native_resolved_fsi_restart_resolved_existing_file(
+    path::String,
+    metadata_dir::String,
+    context::String,
+)
+    resolved_path = native_resolved_fsi_restart_metadata_resolved_path(path, metadata_dir, isfile)
+    isempty(resolved_path) && throw(ArgumentError("$(context) references a missing file: $(path)"))
+    return resolved_path
+end
+
+function native_resolved_fsi_require_restart_sidecar_file_digest(
+    sidecar::Dict{String,Any},
+    path_key::String,
+    digest_key::String,
+    metadata_dir::String,
+    context::String,
+)
+    path = native_resolved_fsi_require_restart_metadata_string(sidecar, path_key; context=context)
+    digest = native_resolved_fsi_require_restart_metadata_string(sidecar, digest_key; context=context)
+    resolved_path = native_resolved_fsi_restart_resolved_existing_file(path, metadata_dir, "$(context) '$(path_key)'")
+    sha256_file(resolved_path) == digest || throw(ArgumentError(
+        "$(context) '$(digest_key)' does not match file digest for $(path_key)",
+    ))
+    return resolved_path
+end
+
+function native_resolved_fsi_validate_restart_wall_sidecar(
+    metadata::Dict{String,Any},
+    wall_state::Dict{String,Any},
+)
+    context = "native resolved-FSI durable checkpoint wall_state"
+    native_resolved_fsi_require_restart_sidecar_schema(wall_state, "durable_reduced_wall_state", context)
+    wall_axial_coordinates_cm = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        wall_state,
+        "wall_axial_coordinates_cm";
+        context=context,
+    )
+    reference_radii_cm = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        wall_state,
+        "reference_radii_cm";
+        context=context,
+    )
+    wall_displacement_cm = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        wall_state,
+        "wall_displacement_cm";
+        context=context,
+    )
+    wall_velocity_cm_s = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        wall_state,
+        "wall_velocity_cm_s";
+        context=context,
+    )
+    current_radii_cm = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        wall_state,
+        "current_radii_cm";
+        context=context,
+    )
+    wall_pressure_dyn_cm2 = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        wall_state,
+        "wall_pressure_dyn_cm2";
+        context=context,
+    )
+    vector_lengths = (
+        length(wall_axial_coordinates_cm),
+        length(reference_radii_cm),
+        length(wall_displacement_cm),
+        length(wall_velocity_cm_s),
+        length(current_radii_cm),
+        length(wall_pressure_dyn_cm2),
+    )
+    all(==(first(vector_lengths)), vector_lengths) ||
+        throw(ArgumentError("$(context) wall arrays must have matching lengths"))
+    all(radius -> radius > 0.0, current_radii_cm) ||
+        throw(ArgumentError("$(context) current_radii_cm entries must be positive"))
+    maximum(abs, current_radii_cm .- (reference_radii_cm .+ wall_displacement_cm)) <= 1.0e-12 ||
+        throw(ArgumentError("$(context) current_radii_cm must equal reference_radii_cm plus wall_displacement_cm"))
+    !isempty(wall_displacement_cm) &&
+        iszero(wall_displacement_cm[begin]) &&
+        iszero(wall_displacement_cm[end]) &&
+        iszero(wall_velocity_cm_s[begin]) &&
+        iszero(wall_velocity_cm_s[end]) ||
+        throw(ArgumentError("$(context) wall displacement and velocity endpoints must be clamped"))
+    native_resolved_fsi_require_restart_metadata_value(
+        wall_state,
+        "pressure_gauge_convention",
+        "outlet_gauge_normalization_export_only_not_membrane_forcing";
+        context=context,
+    )
+    if haskey(metadata, "current_wall_displacement_cm")
+        metadata_displacement = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+            metadata,
+            "current_wall_displacement_cm",
+        )
+        metadata_displacement == wall_displacement_cm ||
+            throw(ArgumentError("$(context) wall displacement does not match restart metadata"))
+    end
+    return nothing
+end
+
+function native_resolved_fsi_validate_restart_mesh_sidecar(
+    metadata::Dict{String,Any},
+    mesh_identity::Dict{String,Any},
+)
+    context = "native resolved-FSI durable checkpoint mesh_identity"
+    native_resolved_fsi_require_restart_sidecar_schema(mesh_identity, "native_mesh_identity", context)
+    case_id = native_resolved_fsi_require_restart_metadata_string(metadata, "case_id")
+    resolution = native_resolved_fsi_restart_metadata_mesh_resolution(metadata)
+    mesh = native_resolved_fsi_mesh(Symbol(case_id), resolution)
+    expected_identity = native_resolved_fsi_checkpoint_mesh_identity(mesh)
+    for key in (
+        "case_id",
+        "severity_percent",
+        "node_count",
+        "tetrahedron_count",
+        "reference_coordinates_sha256",
+        "topology_sha256",
+        "boundary_tags_sha256",
+        "axial_coordinates_sha256",
+        "reference_radii_sha256",
+    )
+        haskey(mesh_identity, key) || throw(ArgumentError("$(context) requires '$(key)'"))
+        mesh_identity[key] == expected_identity[key] || throw(ArgumentError(
+            "$(context) '$(key)' does not match regenerated native mesh identity",
+        ))
+    end
+    native_resolved_fsi_require_restart_metadata_finite_real(
+        mesh_identity,
+        "minimum_signed_tetra_volume6";
+        context=context,
+    ) > 0.0 || throw(ArgumentError("$(context) minimum_signed_tetra_volume6 must be positive"))
+    return nothing
+end
+
+function native_resolved_fsi_validate_restart_fluid_sidecar(
+    fluid_state::Dict{String,Any},
+    metadata_dir::String,
+)
+    context = "native resolved-FSI durable checkpoint fluid_state"
+    native_resolved_fsi_require_restart_sidecar_schema(fluid_state, "gridap_free_dof_checkpoint", context)
+    native_resolved_fsi_require_restart_metadata_bool(fluid_state, "restartable_fe_state", true; context=context)
+    velocity_dofs =
+        native_resolved_fsi_require_restart_metadata_positive_integer(fluid_state, "velocity_dofs"; context=context)
+    pressure_dofs =
+        native_resolved_fsi_require_restart_metadata_positive_integer(fluid_state, "pressure_dofs"; context=context)
+    velocity_free_dof_values = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        fluid_state,
+        "velocity_free_dof_values";
+        context=context,
+    )
+    pressure_free_dof_values = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        fluid_state,
+        "pressure_free_dof_values";
+        context=context,
+    )
+    previous_velocity_free_dof_values = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        fluid_state,
+        "previous_velocity_free_dof_values";
+        context=context,
+    )
+    length(velocity_free_dof_values) == velocity_dofs ||
+        throw(ArgumentError("$(context) velocity_free_dof_values length must match velocity_dofs"))
+    length(previous_velocity_free_dof_values) == velocity_dofs ||
+        throw(ArgumentError("$(context) previous_velocity_free_dof_values length must match velocity_dofs"))
+    length(pressure_free_dof_values) == pressure_dofs ||
+        throw(ArgumentError("$(context) pressure_free_dof_values length must match pressure_dofs"))
+    native_resolved_fsi_require_restart_metadata_value(
+        fluid_state,
+        "pressure_gauge_convention",
+        "outlet_gauge_normalization_export_only_not_membrane_forcing";
+        context=context,
+    )
+    for (path_key, digest_key) in (
+        ("velocity_h5", "velocity_h5_sha256"),
+        ("pressure_h5", "pressure_h5_sha256"),
+        ("displacement_h5", "displacement_h5_sha256"),
+    )
+        native_resolved_fsi_require_restart_sidecar_file_digest(
+            fluid_state,
+            path_key,
+            digest_key,
+            metadata_dir,
+            context,
+        )
+    end
+    return nothing
+end
+
+function native_resolved_fsi_validate_restart_coupling_sidecar(
+    metadata::Dict{String,Any},
+    coupling_state::Dict{String,Any},
+)
+    context = "native resolved-FSI durable checkpoint coupling_state"
+    native_resolved_fsi_require_restart_sidecar_schema(
+        coupling_state,
+        "partitioned_coupling_state_and_cursor",
+        context,
+    )
+    current_snapshot_index = native_resolved_fsi_require_restart_metadata_positive_integer(
+        coupling_state,
+        "current_snapshot_index";
+        context=context,
+    )
+    metadata_snapshot_index =
+        native_resolved_fsi_require_restart_metadata_positive_integer(metadata, "current_snapshot_index")
+    current_snapshot_index == metadata_snapshot_index ||
+        throw(ArgumentError("$(context) current_snapshot_index must match restart metadata"))
+    completed_snapshot_count = native_resolved_fsi_require_restart_metadata_positive_integer(
+        coupling_state,
+        "completed_snapshot_count";
+        context=context,
+    )
+    completed_snapshot_count == current_snapshot_index ||
+        throw(ArgumentError("$(context) completed_snapshot_count must match current_snapshot_index"))
+    snapshot_times_s = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        coupling_state,
+        "snapshot_times_s";
+        context=context,
+    )
+    metadata_snapshot_times_s = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        metadata,
+        "snapshot_times_s",
+    )
+    snapshot_times_s == metadata_snapshot_times_s ||
+        throw(ArgumentError("$(context) snapshot_times_s must match restart metadata"))
+    current_snapshot_index <= length(snapshot_times_s) ||
+        throw(ArgumentError("$(context) current_snapshot_index exceeds snapshot schedule length"))
+    expected_next = current_snapshot_index < length(snapshot_times_s) ? current_snapshot_index + 1 : nothing
+    get(coupling_state, "next_pending_snapshot_index", nothing) == expected_next ||
+        throw(ArgumentError("$(context) next_pending_snapshot_index is inconsistent with current_snapshot_index"))
+    for key in ("dt_s", "tfinal_s", "time_atol", "coupling_tolerance", "coupling_under_relaxation")
+        native_resolved_fsi_require_restart_metadata_finite_real(coupling_state, key; context=context)
+    end
+    for key in ("coupling_iteration_count", "max_coupling_iterations_used")
+        native_resolved_fsi_require_restart_metadata_positive_integer(coupling_state, key; context=context)
+    end
+    native_resolved_fsi_require_restart_metadata_nonnegative_integer(
+        coupling_state,
+        "pressure_projection_fallback_count";
+        context=context,
+    )
+    if haskey(coupling_state, "sampling_fallback_count")
+        native_resolved_fsi_require_restart_metadata_nonnegative_integer(
+            coupling_state,
+            "sampling_fallback_count";
+            context=context,
+        )
+    end
+    native_resolved_fsi_require_restart_metadata_string(coupling_state, "fluid_wall_boundary_mode"; context=context)
+    native_resolved_fsi_require_restart_metadata_vector(coupling_state, "coupling_residual_history")
+    return nothing
+end
+
+function native_resolved_fsi_validate_restart_output_linkage_sidecar(
+    metadata::Dict{String,Any},
+    output_linkage::Dict{String,Any},
+    metadata_dir::String,
+)
+    context = "native resolved-FSI durable checkpoint output_linkage"
+    native_resolved_fsi_require_restart_sidecar_schema(output_linkage, "sidecar_and_output_linkage", context)
+    native_resolved_fsi_require_restart_sidecar_file_digest(
+        output_linkage,
+        "snapshot_manifest_csv",
+        "snapshot_manifest_sha256",
+        metadata_dir,
+        context,
+    )
+    native_resolved_fsi_require_restart_sidecar_file_digest(
+        output_linkage,
+        "diagnostics_csv",
+        "diagnostics_sha256",
+        metadata_dir,
+        context,
+    )
+    snapshot_outputs = native_resolved_fsi_require_restart_metadata_vector(output_linkage, "snapshot_outputs")
+    metadata_snapshot_outputs = native_resolved_fsi_require_restart_metadata_vector(metadata, "snapshot_outputs")
+    length(snapshot_outputs) == length(metadata_snapshot_outputs) || throw(ArgumentError(
+        "$(context) snapshot_outputs length must match restart metadata",
+    ))
+    for (index, snapshot_output) in enumerate(snapshot_outputs)
+        snapshot_output isa Dict{String,Any} ||
+            throw(ArgumentError("$(context) snapshot_outputs[$(index)] must be a mapping"))
+        snapshot_context = "$(context) snapshot_outputs[$(index)]"
+        native_resolved_fsi_require_restart_metadata_string(snapshot_output, "output_dir"; context=snapshot_context)
+        for key in ("velocity_xdmf", "pressure_xdmf", "displacement_xdmf")
+            path = native_resolved_fsi_require_restart_metadata_string(snapshot_output, key; context=snapshot_context)
+            native_resolved_fsi_restart_resolved_existing_file(path, metadata_dir, "$(snapshot_context) '$(key)'")
+        end
+        for (path_key, digest_key) in (
+            ("velocity_h5", "velocity_h5_sha256"),
+            ("pressure_h5", "pressure_h5_sha256"),
+            ("displacement_h5", "displacement_h5_sha256"),
+        )
+            if haskey(snapshot_output, path_key)
+                native_resolved_fsi_require_restart_sidecar_file_digest(
+                    snapshot_output,
+                    path_key,
+                    digest_key,
+                    metadata_dir,
+                    snapshot_context,
+                )
+            end
+        end
+    end
+    return nothing
+end
+
+function native_resolved_fsi_validate_restart_durable_checkpoint_sidecars(
+    metadata::Dict{String,Any},
+    metadata_dir::String,
+    checkpoint_manifest,
+)
+    sidecars = native_resolved_fsi_load_restart_checkpoint_sidecars(metadata_dir, checkpoint_manifest)
+    native_resolved_fsi_validate_restart_wall_sidecar(metadata, sidecars["wall_state"])
+    native_resolved_fsi_validate_restart_mesh_sidecar(metadata, sidecars["mesh_identity"])
+    native_resolved_fsi_validate_restart_fluid_sidecar(sidecars["fluid_state"], metadata_dir)
+    native_resolved_fsi_validate_restart_coupling_sidecar(metadata, sidecars["coupling_state"])
+    native_resolved_fsi_validate_restart_output_linkage_sidecar(metadata, sidecars["output_linkage"], metadata_dir)
+    return nothing
+end
+
+function native_resolved_fsi_restart_csv_data_lines(path::String, metadata_dir::String, label::String)
+    resolved_path = native_resolved_fsi_restart_resolved_existing_file(path, metadata_dir, label)
+    lines = readlines(resolved_path)
+    length(lines) >= 2 || throw(ArgumentError("$(label) must include a header and at least one data row"))
+    return lines[2:end]
+end
+
+function native_resolved_fsi_restart_metadata_required_snapshot_index(metadata::Dict{String,Any})
+    current_snapshot_index =
+        native_resolved_fsi_require_restart_metadata_positive_integer(metadata, "current_snapshot_index")
+    snapshot_outputs = native_resolved_fsi_require_restart_metadata_vector(metadata, "snapshot_outputs")
+    current_snapshot_index == length(snapshot_outputs) || throw(ArgumentError(
+        "native resolved-FSI restart metadata current_snapshot_index must match snapshot_outputs length",
+    ))
+    snapshot_times_s = native_resolved_fsi_require_restart_metadata_finite_real_vector(metadata, "snapshot_times_s")
+    current_snapshot_index < length(snapshot_times_s) || throw(ArgumentError(
+        "native resolved-FSI restart metadata has no pending snapshots to resume",
+    ))
+    next_pending_snapshot_index = native_resolved_fsi_require_restart_metadata_positive_integer(
+        metadata,
+        "next_pending_snapshot_index",
+    )
+    next_pending_snapshot_index == current_snapshot_index + 1 || throw(ArgumentError(
+        "native resolved-FSI restart metadata next_pending_snapshot_index must equal current_snapshot_index + 1",
+    ))
+    return current_snapshot_index, next_pending_snapshot_index
+end
+
+function native_resolved_fsi_restart_require_matching_spec(
+    metadata::Dict{String,Any},
+    spec;
+    context::String = "native resolved-FSI internal resume",
+)
+    case_id = native_resolved_fsi_require_restart_metadata_string(metadata, "case_id"; context=context)
+    string(spec.case_spec.case_id) == case_id || throw(ArgumentError(
+        "$(context) case_id does not match restart metadata",
+    ))
+    metadata_resolution = native_resolved_fsi_restart_metadata_mesh_resolution(metadata; context=context)
+    metadata_resolution == spec.resolution || throw(ArgumentError(
+        "$(context) mesh_resolution does not match restart metadata",
+    ))
+    for key in ("dt_s", "tfinal_s", "time_atol", "coupling_tolerance", "coupling_under_relaxation")
+        metadata_value = native_resolved_fsi_require_restart_metadata_finite_real(metadata, key; context=context)
+        spec_value = Float64(getfield(spec, Symbol(key)))
+        isapprox(metadata_value, spec_value; atol=0.0, rtol=1.0e-12) || throw(ArgumentError(
+            "$(context) $(key) does not match restart metadata",
+        ))
+    end
+    snapshot_times_s = native_resolved_fsi_require_restart_metadata_finite_real_vector(
+        metadata,
+        "snapshot_times_s";
+        context=context,
+    )
+    snapshot_times_s == Float64[Float64(value) for value in spec.snapshot_times_s] || throw(ArgumentError(
+        "$(context) snapshot_times_s does not match restart metadata",
+    ))
+    metadata_coupling_iteration_count = native_resolved_fsi_require_restart_metadata_positive_integer(
+        metadata,
+        "coupling_iteration_count";
+        context=context,
+    )
+    metadata_coupling_iteration_count == spec.coupling_iteration_count || throw(ArgumentError(
+        "$(context) coupling_iteration_count does not match restart metadata",
+    ))
+    boundary_mode =
+        native_resolved_fsi_require_restart_metadata_string(metadata, "boundary_mode"; context=context)
+    Symbol(boundary_mode) === spec.inlet_outlet_boundary_mode || throw(ArgumentError(
+        "$(context) boundary_mode does not match restart metadata",
+    ))
+    if spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
+        inlet_umax_cm_s =
+            native_resolved_fsi_require_restart_metadata_finite_real(metadata, "inlet_umax_cm_s"; context=context)
+        isapprox(inlet_umax_cm_s, spec.inlet_umax_cm_s; atol=0.0, rtol=1.0e-12) || throw(ArgumentError(
+            "$(context) inlet_umax_cm_s does not match restart metadata",
+        ))
+    end
+    metadata_output_dir =
+        native_resolved_fsi_require_restart_metadata_string(metadata, "production_output_dir"; context=context)
+    resumed_output_dir = default_native_resolved_fsi_partitioned_production_output_dir(spec)
+    production_canonical(path) = normpath(abspath(path))
+    production_canonical(resumed_output_dir) != production_canonical(metadata_output_dir) || throw(ArgumentError(
+        "$(context) requires a forked output_root; resumed production output_dir must not overwrite the parent checkpoint run",
+    ))
+    return nothing
+end
+
+function native_resolved_fsi_restart_bool(sidecar::Dict{String,Any}, key::String, context::String)
+    haskey(sidecar, key) || throw(ArgumentError("$(context) requires '$(key)'"))
+    value = sidecar[key]
+    value isa Bool || throw(ArgumentError("$(context) '$(key)' must be a boolean"))
+    return value
+end
+
+function native_resolved_fsi_restart_coupling_history(coupling_state::Dict{String,Any})
+    context = "native resolved-FSI durable checkpoint coupling_state"
+    rows = native_resolved_fsi_require_restart_metadata_vector(coupling_state, "coupling_residual_history")
+    history = NamedTuple[]
+    for (index, row) in enumerate(rows)
+        row isa Dict{String,Any} || throw(ArgumentError(
+            "$(context) coupling_residual_history[$(index)] must be a mapping",
+        ))
+        row_context = "$(context) coupling_residual_history[$(index)]"
+        push!(history, (
+            time_step_index=native_resolved_fsi_require_restart_metadata_positive_integer(
+                row,
+                "time_step_index";
+                context=row_context,
+            ),
+            coupling_iteration=native_resolved_fsi_require_restart_metadata_positive_integer(
+                row,
+                "coupling_iteration";
+                context=row_context,
+            ),
+            time_start_s=native_resolved_fsi_require_restart_metadata_finite_real(row, "time_start_s"; context=row_context),
+            time_end_s=native_resolved_fsi_require_restart_metadata_finite_real(row, "time_end_s"; context=row_context),
+            displacement_residual_cm=native_resolved_fsi_require_restart_metadata_finite_real(
+                row,
+                "displacement_residual_cm";
+                context=row_context,
+            ),
+            coupling_tolerance_cm=native_resolved_fsi_require_restart_metadata_finite_real(
+                row,
+                "coupling_tolerance_cm";
+                context=row_context,
+            ),
+            under_relaxation=native_resolved_fsi_require_restart_metadata_finite_real(
+                row,
+                "under_relaxation";
+                context=row_context,
+            ),
+            converged=native_resolved_fsi_restart_bool(row, "converged", row_context),
+            fluid_wall_boundary_mode=native_resolved_fsi_require_restart_metadata_string(
+                row,
+                "fluid_wall_boundary_mode";
+                context=row_context,
+            ),
+            inlet_outlet_boundary_mode=get(row, "inlet_outlet_boundary_mode", ""),
+        ))
+    end
+    return history
+end
+
+function native_resolved_fsi_restart_solver_state(
+    metadata::Dict{String,Any},
+    sidecars::Dict{String,Dict{String,Any}},
+)
+    wall_state = sidecars["wall_state"]
+    fluid_state = sidecars["fluid_state"]
+    coupling_state = sidecars["coupling_state"]
+    return (
+        current_saved_time_s=native_resolved_fsi_require_restart_metadata_finite_real(
+            coupling_state,
+            "current_saved_time_s";
+            context="native resolved-FSI durable checkpoint coupling_state",
+        ),
+        current_time_step_count=native_resolved_fsi_require_restart_metadata_positive_integer(
+            coupling_state,
+            "current_time_step_count";
+            context="native resolved-FSI durable checkpoint coupling_state",
+        ),
+        wall_axial_coordinates_cm=native_resolved_fsi_require_restart_metadata_finite_real_vector(
+            wall_state,
+            "wall_axial_coordinates_cm";
+            context="native resolved-FSI durable checkpoint wall_state",
+        ),
+        wall_displacement_cm=native_resolved_fsi_require_restart_metadata_finite_real_vector(
+            wall_state,
+            "wall_displacement_cm";
+            context="native resolved-FSI durable checkpoint wall_state",
+        ),
+        wall_velocity_cm_s=native_resolved_fsi_require_restart_metadata_finite_real_vector(
+            wall_state,
+            "wall_velocity_cm_s";
+            context="native resolved-FSI durable checkpoint wall_state",
+        ),
+        current_radii_cm=native_resolved_fsi_require_restart_metadata_finite_real_vector(
+            wall_state,
+            "current_radii_cm";
+            context="native resolved-FSI durable checkpoint wall_state",
+        ),
+        wall_pressure_dyn_cm2=native_resolved_fsi_require_restart_metadata_finite_real_vector(
+            wall_state,
+            "wall_pressure_dyn_cm2";
+            context="native resolved-FSI durable checkpoint wall_state",
+        ),
+        velocity_free_dof_values=native_resolved_fsi_require_restart_metadata_finite_real_vector(
+            fluid_state,
+            "velocity_free_dof_values";
+            context="native resolved-FSI durable checkpoint fluid_state",
+        ),
+        max_picard_iterations_used=native_resolved_fsi_require_restart_metadata_positive_integer(
+            fluid_state,
+            "max_picard_iterations_used";
+            context="native resolved-FSI durable checkpoint fluid_state",
+        ),
+        final_picard_update_norm=native_resolved_fsi_require_restart_metadata_finite_real(
+            fluid_state,
+            "final_picard_update_norm";
+            context="native resolved-FSI durable checkpoint fluid_state",
+        ),
+        picard_converged=native_resolved_fsi_restart_bool(
+            fluid_state,
+            "picard_converged",
+            "native resolved-FSI durable checkpoint fluid_state",
+        ),
+        pressure_projection_fallback_count=native_resolved_fsi_require_restart_metadata_nonnegative_integer(
+            coupling_state,
+            "pressure_projection_fallback_count";
+            context="native resolved-FSI durable checkpoint coupling_state",
+        ),
+        minimum_signed_tetra_volume6=native_resolved_fsi_require_restart_metadata_finite_real(
+            coupling_state,
+            "minimum_signed_tetra_volume6";
+            context="native resolved-FSI durable checkpoint coupling_state",
+        ),
+        max_coupling_iterations_used=native_resolved_fsi_require_restart_metadata_positive_integer(
+            coupling_state,
+            "max_coupling_iterations_used";
+            context="native resolved-FSI durable checkpoint coupling_state",
+        ),
+        final_coupling_displacement_residual_cm=native_resolved_fsi_require_restart_metadata_finite_real(
+            coupling_state,
+            "final_coupling_displacement_residual_cm";
+            context="native resolved-FSI durable checkpoint coupling_state",
+        ),
+        coupling_converged=native_resolved_fsi_restart_bool(
+            coupling_state,
+            "coupling_converged",
+            "native resolved-FSI durable checkpoint coupling_state",
+        ),
+        coupling_residual_history=native_resolved_fsi_restart_coupling_history(coupling_state),
+        fluid_wall_boundary_mode=native_resolved_fsi_require_restart_metadata_string(
+            coupling_state,
+            "fluid_wall_boundary_mode";
+            context="native resolved-FSI durable checkpoint coupling_state",
+        ),
+        production_spec_digest=native_resolved_fsi_require_restart_metadata_string(
+            metadata,
+            "production_spec_digest",
+        ),
+    )
+end
+
+function native_resolved_fsi_restart_resume_context(path::AbstractString, spec)
+    metadata_path = String(path)
+    metadata = native_resolved_fsi_read_restart_metadata(metadata_path)
+    restart_schema_version = native_resolved_fsi_restart_schema_version(metadata)
+    restart_schema_version == NATIVE_RESOLVED_FSI_RESTART_SCHEMA_DURABLE_CHECKPOINT_VERSION || throw(ArgumentError(
+        "native resolved-FSI internal resume requires schema-v3 durable checkpoint metadata",
+    ))
+    native_resolved_fsi_restart_require_matching_spec(metadata, spec)
+    completed_snapshot_count, next_snapshot_index =
+        native_resolved_fsi_restart_metadata_required_snapshot_index(metadata)
+    metadata_dir = dirname(metadata_path)
+    checkpoint_manifest = native_resolved_fsi_require_restart_metadata_vector(metadata, "checkpoint_manifest")
+    sidecars = native_resolved_fsi_load_restart_checkpoint_sidecars(metadata_dir, checkpoint_manifest)
+    manifest_csv = native_resolved_fsi_require_restart_metadata_string(metadata, "snapshot_manifest_csv")
+    diagnostics_csv = native_resolved_fsi_require_restart_metadata_string(metadata, "diagnostics_csv")
+    snapshot_outputs = native_resolved_fsi_require_restart_metadata_vector(metadata, "snapshot_outputs")
+    return (
+        parent_restart_metadata_json=metadata_path,
+        completed_snapshot_count=completed_snapshot_count,
+        next_snapshot_index=next_snapshot_index,
+        completed_snapshot_outputs=deepcopy(snapshot_outputs),
+        completed_manifest_data_lines=native_resolved_fsi_restart_csv_data_lines(
+            manifest_csv,
+            metadata_dir,
+            "native resolved-FSI restart metadata snapshot_manifest_csv",
+        ),
+        completed_diagnostics_data_lines=native_resolved_fsi_restart_csv_data_lines(
+            diagnostics_csv,
+            metadata_dir,
+            "native resolved-FSI restart metadata diagnostics_csv",
+        ),
+        solver_state=native_resolved_fsi_restart_solver_state(metadata, sidecars),
+        metadata=metadata,
+    )
 end
 
 const NATIVE_RESOLVED_FSI_RESTART_BOUNDARY_STATUS_KEYS = (

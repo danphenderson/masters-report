@@ -3,7 +3,7 @@ const CANIC_2024_SOURCE_COMMIT = "056a9da2b36b480691f18025d242d2c00f6e7180"
 const CANIC_2024_SOURCE_LICENSE = "GPL-3.0"
 const CANIC_SECTION41_PAPER_TIME_S = 1.0
 const CANIC_SECTION41_DEFAULT_OUTPUT_DIR = joinpath(DEFAULT_SIMULATION_OUTPUT_ROOT, "canic-replication", "section41")
-const CANIC_SECTION41_DEFAULT_MODELS = ("canic-extended-1d", "classical-1d-no-slip")
+const CANIC_SECTION41_DEFAULT_MODELS = ("canic-extended-1d", "classical-parabolic-1d")
 const CANIC_SECTION41_EXPECTED_FILENAMES = (
     "velocity.xdmf",
     "velocity.h5",
@@ -400,7 +400,7 @@ function run_canic_section41_replication(spec::CanicSection41ReplicationSpec)
             params = canic_section41_params(record, model_value, spec)
             result = simulate(params, NativeRK3Backend(); progress_every=0)
             u1d = velocity(result)
-            p1d = pressure(result, params)
+            p1d = diagnostic_pressure(result, params)
             velocity_abs_errors = Float64[]
             velocity_rel_errors = Float64[]
             pressure_abs_errors = Float64[]

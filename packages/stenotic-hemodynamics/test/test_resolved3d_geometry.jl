@@ -1,3 +1,5 @@
+isdefined(@__MODULE__, :write_synthetic_xdmf_hdf5_case) || include("test_helpers.jl")
+
 const parse_xdmf_velocity = StenoticHemodynamics.parse_xdmf_velocity
 
 @testset "StenoticHemodynamics resolved 3D parsing and loading" begin
@@ -325,6 +327,13 @@ end
     @test area_mismatch ≈ 0.0 atol=1.0e-14
     @test reconstructed_error ≈ 2.0
 
+    mktempdir() do dir
+        radial_dat = StenoticHemodynamics.write_report_radial_dat_file(joinpath(dir, "radial.dat"), radial_rows; overwrite=true)
+        radial_header = split(readline(radial_dat))
+        @test any(startswith("uax1d"), radial_header)
+        @test any(startswith("uax3d"), radial_header)
+    end
+
     status_short, message_short, _, _ = StenoticHemodynamics.radial_profile_slice_audit(
         radial_rows[1:19],
         [section_row];
@@ -431,6 +440,11 @@ end
 
             bins = StenoticHemodynamics.radial_bins(field.coordinates, node_ids, 0.1, 4)
             radial_rows = StenoticHemodynamics.radial_profile_observations(field, 3.0, 0.1, 4, operator)
+            @test StenoticHemodynamics.radial_profile_bin_index(0.0, 0.0, 0.1, 4) == 1
+            @test StenoticHemodynamics.radial_profile_bin_index(0.025, 0.0, 0.1, 4) == 2
+            @test StenoticHemodynamics.radial_profile_bin_index(0.1, 0.0, 0.1, 4) == 4
+            @test StenoticHemodynamics.radial_profile_bin_index(0.104, 0.0, 0.1, 4) == 4
+            @test StenoticHemodynamics.radial_profile_bin_index(0.106, 0.0, 0.1, 4) === nothing
             @test length(radial_rows) == 4
             @test [row.node_count for row in radial_rows] == length.(bins)
             @test [row.area_valid for row in radial_rows] == fill(false, 4)
@@ -520,6 +534,12 @@ end
             @test "time_offset_s" in header
             @test all(in(header), time_columns)
             @test all(in(header), provenance_columns)
+            if path in (result.section_csvs[1], result.profile_csvs[1], result.sensitivity_csv)
+                @test "mean_axial_u3d_cm_s" in header
+                @test "reconstructed_axial_u1d_cm_s" in header
+                @test !("mean_u3d_cm_s" in header)
+                @test !("mean_u1d_cm_s" in header)
+            end
             if path == result.summary_csv
                 @test all(in(header), production_columns)
             end
@@ -556,6 +576,9 @@ end
         @test isfile(production_report_path)
         @test joinpath(report_dir, "section-quadrature-reference.dat") in report_paths
         @test isfile(joinpath(report_dir, "section-quadrature.dat"))
+        section_report_header = split(readline(joinpath(report_dir, "section-quadrature-reference.dat")))
+        @test any(startswith("uax1d"), section_report_header)
+        @test any(startswith("uax3d"), section_report_header)
         node_slab_report_header = split(readline(node_slab_report_path), ",")
         @test "time_offset_s" in node_slab_report_header
         @test all(in(node_slab_report_header), time_columns)

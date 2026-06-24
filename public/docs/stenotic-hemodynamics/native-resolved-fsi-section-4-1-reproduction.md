@@ -35,9 +35,10 @@ local operator evidence in separate tiers:
 - Fixed-wall smoke: coarse fixed-wall Stokes and Navier-Stokes smoke bundles
   with explicit zero displacement and package-local pressure-drop weak
   inlet/outlet loading.
-- Partitioned smoke: a reduced membrane update with prescribed radial
-  wall-velocity Dirichlet data on the fluid wall, still using the same
-  pressure-drop-driven inlet/outlet smoke loading, not an ALE formulation.
+- Partitioned smoke: repeated deformed-domain fluid solves with a reduced
+  membrane update and prescribed radial wall-velocity Dirichlet data on the
+  fluid wall, still using the same pressure-drop-driven inlet/outlet smoke
+  loading by default, not a monolithic ALE formulation.
 - Boundary-condition audit: the current Gridap smoke path still records
   pressure-drop weak inlet/outlet loading as local boundary evidence. The
   low-level internal `poiseuille_inlet_zero_outlet_stress_section41` mode is
@@ -50,11 +51,16 @@ local operator evidence in separate tiers:
 - Production sidecars: `run_native_resolved_fsi_partitioned_production(...)`
   writes state-carrying-in-run partitioned snapshot bundles plus
   `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, and
-  `restart_metadata.json`.
+  `restart_metadata.json` with schema-v3 durable checkpoint sidecars. The
+  diagnostics include Gridap quadrature degree, higher-degree assembly
+  sensitivity, and outlet node backflow/open-boundary indicators; these are
+  observability fields, not convergence or parity claims.
 - Restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
   current and legacy metadata, including versioned `state_payload` audit
-  metadata when present; `native_resolved_fsi_resume_partitioned_production(...)`
-  intentionally fails closed because persisted resume is deferred.
+  metadata and schema-v3 durable checkpoints when present. Qualified internal
+  split-run resume can continue into a forked output root for smoke-scale
+  operator validation; `native_resolved_fsi_resume_partitioned_production(...)`
+  still intentionally fails closed for public callers.
 - Observation artifacts: native/imported/parity rows are written to
   `section41_observations.csv` and summarized in
   `section41_observation_summary.csv`.
@@ -283,9 +289,11 @@ Current generated artifacts may support these bounded statements:
 - fixed-wall and partitioned smoke outputs can be written, reloaded, and
   summarized locally;
 - production sidecars document state-carrying behavior within a production run,
-  not persisted process resume or a paper-grade transient reproduction;
+  schema-v3 durable checkpoint state, and qualified internal split-run resume,
+  not public/default process resume or a paper-grade transient reproduction;
 - restart metadata may carry versioned `state_payload` audit state for the last
-  in-run snapshot without turning persisted resume into a supported workflow;
+  in-run snapshot without turning public/default resume into a supported
+  workflow;
 - local velocity and pressure observation artifacts can be generated and
   summarized in `section41_observation_summary.csv`.
 - smoke results now carry executable boundary-condition status showing
@@ -300,8 +308,10 @@ Deferred claims:
 - public CLI exposure for native resolved-FSI production, restart, and
   observation-artifact workflows beyond the status-only `fsi native-status`
   dry-run/status command;
-- persisted restart and resume beyond the current audit-oriented metadata
-  reader;
+- public/default restart and resume beyond the current metadata reader and
+  qualified internal split-run path;
+- production-scale restart/resume validation and any manuscript claim promotion
+  from schema-v3 checkpoint sidecars;
 - validated native resolved-FSI Section 4.1 boundary parity and paper-grade
   numerical reproduction of the Poiseuille-inlet / zero-outlet-stress case;
 - monolithic ALE FSI;

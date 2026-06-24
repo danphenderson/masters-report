@@ -2,33 +2,38 @@ abstract type AbstractForwardModel end
 
 struct CanicExtendedOneDModel <: AbstractForwardModel end
 
-struct ClassicalNoSlip1DModel <: AbstractForwardModel end
+struct ClassicalParabolicOneDModel <: AbstractForwardModel end
 
-const FORWARD_MODEL_NAMES = ("canic-extended-1d", "classical-1d-no-slip")
+Base.@deprecate_binding ClassicalNoSlip1DModel ClassicalParabolicOneDModel
+
+const FORWARD_MODEL_NAMES = ("canic-extended-1d", "classical-parabolic-1d")
+const DEPRECATED_FORWARD_MODEL_NAMES = ("classical-1d-no-slip",)
+const ALL_FORWARD_MODEL_NAMES = (FORWARD_MODEL_NAMES..., DEPRECATED_FORWARD_MODEL_NAMES...)
 
 forward_model_name(::CanicExtendedOneDModel) = "canic-extended-1d"
-forward_model_name(::ClassicalNoSlip1DModel) = "classical-1d-no-slip"
+forward_model_name(::ClassicalParabolicOneDModel) = "classical-parabolic-1d"
 
 variable_radius_terms_enabled(::CanicExtendedOneDModel) = true
-variable_radius_terms_enabled(::ClassicalNoSlip1DModel) = false
+variable_radius_terms_enabled(::ClassicalParabolicOneDModel) = false
 
 wall_boundary_condition(::CanicExtendedOneDModel) = "reduced-wall-closure"
-wall_boundary_condition(::ClassicalNoSlip1DModel) = "no-slip-wall"
+wall_boundary_condition(::ClassicalParabolicOneDModel) = "no-slip-wall"
 
 function forward_model(name::AbstractString)
     normalized = replace(lowercase(strip(name)), "_" => "-")
     normalized == "canic-extended-1d" && return CanicExtendedOneDModel()
-    normalized == "classical-1d-no-slip" && return ClassicalNoSlip1DModel()
-    throw(ArgumentError("unknown model '$name'; expected $(join(FORWARD_MODEL_NAMES, ", "))"))
+    normalized == "classical-parabolic-1d" && return ClassicalParabolicOneDModel()
+    normalized == "classical-1d-no-slip" && return ClassicalParabolicOneDModel()
+    throw(ArgumentError("unknown model '$name'; expected $(join(ALL_FORWARD_MODEL_NAMES, ", "))"))
 end
 
 function validate_model_profile(::CanicExtendedOneDModel, ::AbstractVelocityProfile)
     return nothing
 end
 
-function validate_model_profile(::ClassicalNoSlip1DModel, profile::AbstractVelocityProfile)
+function validate_model_profile(::ClassicalParabolicOneDModel, profile::AbstractVelocityProfile)
     profile isa ParabolicVelocityProfile ||
-        throw(ArgumentError("classical-1d-no-slip requires --velocity-profile parabolic and does not accept --alpha"))
+        throw(ArgumentError("classical-parabolic-1d requires --velocity-profile parabolic and does not accept --alpha"))
     return nothing
 end
 
