@@ -12,7 +12,10 @@ end
 FlatVelocityProfile(; shear_rate_factor::Real = 4.0) = FlatVelocityProfile(shear_rate_factor)
 
 """Poiseuille/parabolic profile normalized by the section-mean velocity."""
-struct ParabolicVelocityProfile <: AbstractVelocityProfile end
+struct ParabolicVelocityProfile{T<:AbstractFloat} <: AbstractVelocityProfile end
+
+ParabolicVelocityProfile() = ParabolicVelocityProfile{Float64}()
+ParabolicVelocityProfile(::Type{T}) where {T<:AbstractFloat} = ParabolicVelocityProfile{T}()
 
 """Power-family profile normalized by the section-mean velocity."""
 struct PowerVelocityProfile{T<:AbstractFloat} <: AbstractVelocityProfile
@@ -47,23 +50,24 @@ profile_name(::ParabolicVelocityProfile) = "parabolic"
 profile_name(::PowerVelocityProfile) = "power"
 
 momentum_alpha(profile::FlatVelocityProfile{T}) where {T<:AbstractFloat} = one(T)
-momentum_alpha(::ParabolicVelocityProfile) = 4.0 / 3.0
+momentum_alpha(::ParabolicVelocityProfile{T}) where {T<:AbstractFloat} = T(4) / T(3)
 function momentum_alpha(profile::PowerVelocityProfile{T}) where {T<:AbstractFloat}
     return (profile.exponent + T(2)) / (profile.exponent + one(T))
 end
 
 shear_rate_factor(profile::FlatVelocityProfile) = profile.shear_rate_factor
-shear_rate_factor(::ParabolicVelocityProfile) = 4.0
+shear_rate_factor(::ParabolicVelocityProfile{T}) where {T<:AbstractFloat} = T(4)
 shear_rate_factor(profile::PowerVelocityProfile{T}) where {T<:AbstractFloat} = profile.exponent + T(2)
 
 mean_to_max_velocity_ratio(profile::FlatVelocityProfile{T}) where {T<:AbstractFloat} = one(T)
-mean_to_max_velocity_ratio(::ParabolicVelocityProfile) = 0.5
+mean_to_max_velocity_ratio(::ParabolicVelocityProfile{T}) where {T<:AbstractFloat} = one(T) / T(2)
 function mean_to_max_velocity_ratio(profile::PowerVelocityProfile{T}) where {T<:AbstractFloat}
     return profile.exponent / (profile.exponent + T(2))
 end
 
 profile_exponent(::AbstractVelocityProfile) = NaN
-profile_exponent(::ParabolicVelocityProfile) = 2.0
+profile_exponent(::FlatVelocityProfile{T}) where {T<:AbstractFloat} = T(NaN)
+profile_exponent(::ParabolicVelocityProfile{T}) where {T<:AbstractFloat} = T(2)
 profile_exponent(profile::PowerVelocityProfile) = profile.exponent
 
 function path_token(value::Real)
@@ -146,7 +150,7 @@ function validate(profile::FlatVelocityProfile{T}) where {T<:AbstractFloat}
     return profile
 end
 
-function validate(profile::ParabolicVelocityProfile)
+function validate(profile::ParabolicVelocityProfile{T}) where {T<:AbstractFloat}
     return profile
 end
 

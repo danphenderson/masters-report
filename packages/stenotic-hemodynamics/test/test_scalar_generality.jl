@@ -113,10 +113,32 @@ end
 @testset "StenoticHemodynamics scalar-generic velocity profile configs" begin
     flat_default = FlatVelocityProfile()
     @test flat_default isa FlatVelocityProfile{Float64}
+    @test typeof(profile_exponent(flat_default)) === Float64
+    @test isnan(profile_exponent(flat_default))
 
     flat32_positional = FlatVelocityProfile(Float32(5.0))
     @test flat32_positional isa FlatVelocityProfile{Float32}
     @test typeof(flat32_positional.shear_rate_factor) === Float32
+    @test typeof(profile_exponent(flat32_positional)) === Float32
+    @test isnan(profile_exponent(flat32_positional))
+
+    parabolic_default = ParabolicVelocityProfile()
+    @test parabolic_default isa ParabolicVelocityProfile{Float64}
+    @test typeof(momentum_alpha(parabolic_default)) === Float64
+    @test typeof(shear_rate_factor(parabolic_default)) === Float64
+    @test typeof(mean_to_max_velocity_ratio(parabolic_default)) === Float64
+    @test typeof(profile_exponent(parabolic_default)) === Float64
+
+    parabolic32 = ParabolicVelocityProfile(Float32)
+    @test parabolic32 isa ParabolicVelocityProfile{Float32}
+    @test typeof(momentum_alpha(parabolic32)) === Float32
+    @test typeof(shear_rate_factor(parabolic32)) === Float32
+    @test typeof(mean_to_max_velocity_ratio(parabolic32)) === Float32
+    @test typeof(profile_exponent(parabolic32)) === Float32
+    @test momentum_alpha(parabolic32) ≈ Float32(4.0 / 3.0)
+    @test shear_rate_factor(parabolic32) === Float32(4.0)
+    @test mean_to_max_velocity_ratio(parabolic32) === Float32(0.5)
+    @test profile_exponent(parabolic32) === Float32(2.0)
 
     flat32 = FlatVelocityProfile(shear_rate_factor=Float32(5.0))
     @test flat32 isa FlatVelocityProfile{Float32}
@@ -150,14 +172,20 @@ end
     @test shear_rate_factor(power_big) == big"11.0"
     @test mean_to_max_velocity_ratio(power_big) == big"9.0" / big"11.0"
 
-    parabolic_velocity = radial_profile_velocity(big"3.0", big"1.0", big"2.0", ParabolicVelocityProfile())
+    parabolic_big = ParabolicVelocityProfile(BigFloat)
+    @test parabolic_big isa ParabolicVelocityProfile{BigFloat}
+    @test typeof(momentum_alpha(parabolic_big)) === BigFloat
+    @test typeof(shear_rate_factor(parabolic_big)) === BigFloat
+    @test typeof(mean_to_max_velocity_ratio(parabolic_big)) === BigFloat
+    @test typeof(profile_exponent(parabolic_big)) === BigFloat
+    @test momentum_alpha(parabolic_big) == big"4.0" / big"3.0"
+    @test shear_rate_factor(parabolic_big) == big"4.0"
+    @test mean_to_max_velocity_ratio(parabolic_big) == big"0.5"
+    @test profile_exponent(parabolic_big) == big"2.0"
+
+    parabolic_velocity = radial_profile_velocity(big"3.0", big"1.0", big"2.0", parabolic_big)
     @test typeof(parabolic_velocity) === BigFloat
     @test parabolic_velocity == big"4.5"
-
-    # Parameter-free parabolic metadata remains Float64 because the profile carries no scalar parameter.
-    @test typeof(momentum_alpha(ParabolicVelocityProfile())) === Float64
-    @test typeof(shear_rate_factor(ParabolicVelocityProfile())) === Float64
-    @test typeof(profile_exponent(ParabolicVelocityProfile())) === Float64
 end
 
 @testset "StenoticHemodynamics scalar-generic rheology configs" begin
@@ -235,6 +263,50 @@ end
     nu_eff_big = effective_kinematic_viscosity(big"0.04", big"0.10", big"0.20", params_big)
     @test typeof(nu_eff_big) === BigFloat
     @test nu_eff_big == BigFloat(params_big.nu)
+end
+
+@testset "StenoticHemodynamics scalar-generic geometry and boundary helpers" begin
+    params32 = Params(velocity_profile=ParabolicVelocityProfile(Float32))
+    throat32, throat_z32, throat_zz32 = StenoticHemodynamics.stenosis(Float32(3.0), params32)
+    @test typeof(throat32) === Float32
+    @test typeof(throat_z32) === Float32
+    @test typeof(throat_zz32) === Float32
+
+    alpha32 = StenoticHemodynamics.alpha_c(Float32(0.3))
+    @test typeof(alpha32) === Float32
+    @test alpha32 ≈ Float32(-(2.0 / 35.0) * 0.3^2)
+
+    alpha_z_big = StenoticHemodynamics.alpha_c_z(big"0.3", big"0.4")
+    @test typeof(alpha_z_big) === BigFloat
+    @test alpha_z_big == -(big"4.0" / big"35.0") * big"0.3" * big"0.4"
+
+    variable_alpha32 = StenoticHemodynamics.effective_alpha_c(params32, Float32(0.3))
+    @test typeof(variable_alpha32) === Float32
+    @test variable_alpha32 == alpha32
+
+    classical_params = Params(model=ClassicalNoSlip1DModel(), velocity_profile=ParabolicVelocityProfile(BigFloat))
+    classical_alpha_big = StenoticHemodynamics.effective_alpha_c(classical_params, big"0.3")
+    classical_alpha_z_big = StenoticHemodynamics.effective_alpha_c_z(classical_params, big"0.3", big"0.4")
+    @test typeof(classical_alpha_big) === BigFloat
+    @test typeof(classical_alpha_z_big) === BigFloat
+    @test classical_alpha_big == big"0.0"
+    @test classical_alpha_z_big == big"0.0"
+
+    coeff_big = StenoticHemodynamics.wall_elastic_coefficient(params32, big"0.18")
+    @test typeof(coeff_big) === BigFloat
+
+    c_big = StenoticHemodynamics.characteristic_speed_from_area(big"0.04", params32)
+    @test typeof(c_big) === BigFloat
+
+    wminus32 = StenoticHemodynamics.invariant_minus(Float32(0.04), Float32(0.10), params32)
+    wplus32 = StenoticHemodynamics.invariant_plus(Float32(0.04), Float32(0.10), params32)
+    @test typeof(wminus32) === Float32
+    @test typeof(wplus32) === Float32
+
+    area_big, flow_big = StenoticHemodynamics.state_from_invariants(big"-5.0", big"7.0", params32)
+    @test typeof(area_big) === BigFloat
+    @test typeof(flow_big) === BigFloat
+    @test area_big > big"0.0"
 end
 
 @testset "StenoticHemodynamics scalar-generic boundary configs" begin

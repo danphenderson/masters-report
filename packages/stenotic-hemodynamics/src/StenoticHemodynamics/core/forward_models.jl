@@ -35,5 +35,12 @@ end
 model_name(p) = forward_model_name(p.model)
 variable_radius_terms_enabled(p) = variable_radius_terms_enabled(p.model)
 wall_boundary_condition(p) = wall_boundary_condition(p.model)
-effective_alpha_c(p, r0z::Float64) = variable_radius_terms_enabled(p) ? alpha_c(r0z) : 0.0
-effective_alpha_c_z(p, r0z::Float64, r0zz::Float64) = variable_radius_terms_enabled(p) ? alpha_c_z(r0z, r0zz) : 0.0
+function effective_alpha_c(p, r0z::Real)
+    T = _float_input_type(r0z)
+    return variable_radius_terms_enabled(p) ? alpha_c(r0z) : zero(T)
+end
+
+function effective_alpha_c_z(p, r0z::Real, r0zz::Real)
+    T = _promote_float_type(r0z, r0zz)
+    return variable_radius_terms_enabled(p) ? alpha_c_z(r0z, r0zz) : zero(T)
+end

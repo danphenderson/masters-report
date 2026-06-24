@@ -131,24 +131,33 @@ function invariant_speed_factor(p)
     return wall_invariant_speed_factor(p)
 end
 
-function characteristic_speed_from_area(A::Float64, p)
-    return invariant_speed_factor(p) * positive_area(A)^0.25
-end
-
-function invariant_minus(A::Float64, Q::Float64, p)
-    Apos = positive_area(A)
-    return Q / Apos - 4.0 * characteristic_speed_from_area(Apos, p)
-end
-
-function invariant_plus(A::Float64, Q::Float64, p)
-    Apos = positive_area(A)
-    return Q / Apos + 4.0 * characteristic_speed_from_area(Apos, p)
-end
-
-function state_from_invariants(wminus::Float64, wplus::Float64, p)
+function characteristic_speed_from_area(A::Real, p)
     c0 = invariant_speed_factor(p)
-    speed_term = max((wplus - wminus) / (8.0 * c0), AREA_LIMITER_FLOOR^0.25)
-    A = max(speed_term^4, AREA_LIMITER_FLOOR)
-    u = 0.5 * (wminus + wplus)
+    T = _float_input_type(A)
+    Apos = max(T(A), T(AREA_FLOOR))
+    return T(c0) * sqrt(sqrt(Apos))
+end
+
+function invariant_minus(A::Real, Q::Real, p)
+    c = characteristic_speed_from_area(A, p)
+    T = _promote_float_type(A, Q)
+    Apos = max(T(A), T(AREA_FLOOR))
+    return T(Q) / Apos - T(4) * T(c)
+end
+
+function invariant_plus(A::Real, Q::Real, p)
+    c = characteristic_speed_from_area(A, p)
+    T = _promote_float_type(A, Q)
+    Apos = max(T(A), T(AREA_FLOOR))
+    return T(Q) / Apos + T(4) * T(c)
+end
+
+function state_from_invariants(wminus::Real, wplus::Real, p)
+    c0 = invariant_speed_factor(p)
+    T = _promote_float_type(wminus, wplus)
+    c0_t = T(c0)
+    speed_term = max((T(wplus) - T(wminus)) / (T(8) * c0_t), sqrt(sqrt(T(AREA_LIMITER_FLOOR))))
+    A = max(speed_term^4, T(AREA_LIMITER_FLOOR))
+    u = (T(wminus) + T(wplus)) / T(2)
     return A, A * u
 end
