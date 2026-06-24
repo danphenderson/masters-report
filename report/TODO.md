@@ -2,7 +2,8 @@
 
 ## Current Status
 
-This TODO is refreshed after the report-owned final submission-readiness sweep.
+This TODO is refreshed after the report-owned final submission-readiness sweep
+and the 2026-06-24 package coordination update.
 
 The active manuscript now has the following report-side narrative state:
 
@@ -24,6 +25,10 @@ The active manuscript now has the following report-side narrative state:
   runtime roadmap.
 - Appendix H now matches the live `main` branch layout and records the clean
   submission-readiness base used for this sweep.
+- The latest package handoff adds viewer evidence controls and native
+  resolved-FSI timing-sidecar review only. These are package/operator
+  coordination updates, not new manuscript evidence, so no report asset or PDF
+  refresh is required from that handoff alone.
 
 ## Completed Report Alignment
 
@@ -89,6 +94,67 @@ same report-owned boundaries:
 - no claim promotion for native resolved-FSI production, imported parity,
   moving-wall/ALE fidelity, or persisted restart/resume.
 
+## Asset Regeneration And Promotion Plan
+
+No manuscript asset regeneration is required for the current viewer/timing
+package changes. The web viewer controls, evidence badges, missing-field
+states, timing sidecars, matrix fingerprints, and warmed timing pilot are
+inspection or execution-readiness metadata only. Do not promote them into
+figures, tables, or claims without a separate accepted report-evidence lane.
+
+If a future package handoff supplies accepted report evidence, use this
+promotion sequence instead of editing the manuscript ad hoc:
+
+1. Identify the source workflow and artifact class. The accepted Section 4.1
+   manuscript assets still come from `canic-replication section41 --publish-report-assets`,
+   not from native Gridap production timing or viewer exports.
+2. Regenerate into ignored scratch first, then publish only reviewed artifacts
+   into `report/assets/**` with the workflow's explicit `--publish-report-assets`
+   or documented report-output flags.
+3. Review generated CSV/JSON/TeX fragments for provenance, optional-input
+   skips, source inconsistencies, and claim-boundary language before touching
+   `report/sections/**` or `report/appendices/**`.
+4. Promote into manuscript source only when the asset supports an accepted
+   reader-facing claim. Viewer screenshots, browser bundles, timing sidecars,
+   and reuse/fingerprint metadata remain out of the manuscript unless a new
+   figure/table objective is explicitly approved.
+5. Build source-only first:
+
+   ```sh
+   pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
+   ```
+
+6. Refresh `public/final-report.pdf` only after the source/assets are accepted
+   for reader-facing publication:
+
+   ```sh
+   pipenv run ops-build-report --outdir /tmp/masters-report-build
+   shasum -a 256 public/final-report.pdf /tmp/masters-report-build/final-report.pdf
+   ```
+
+The currently relevant report-promotion commands remain those recorded in
+Appendix H:
+
+```sh
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
+  --data-root public/var/data/simulations/canic_case3 \
+  --output-dir tmp/simulations/output/canic-replication/section41 \
+  --coordinate-mode deformed \
+  --nx 100 \
+  --dt 1e-5 \
+  --tfinal 1.0 \
+  --section-count 200 \
+  --radial-sample-count 41 \
+  --publish-report-assets \
+  --report-assets-dir report/assets \
+  --overwrite
+```
+
+For native resolved-FSI web visualization, keep generated browser assets in
+scratch or viewer demo fixtures. The visualization export does not run
+production, does not publish `report/assets/**`, and does not provide
+paper-grade Section 4.1 reproduction evidence.
+
 ## Post-Sweep Verification Shape
 
 If a later report-owned lane touches source again, start with:
@@ -130,12 +196,15 @@ aligned to the current accepted package evidence boundary:
 - DG p-improvement language remains limited to the explicit limiter-disabled
   smooth MMS verification configuration.
 - Native resolved-FSI timing/fingerprint work is execution-readiness metadata
-  only. The current tiny two-step timing pilot indicates first-use Gridap
-  lifecycle and affine-operator setup dominate that small run, while numeric
-  factorization is not the first observed bottleneck. This does not change any
-  manuscript claim boundary.
-- Web-viewer surface slice diagnostics are viewer-derived inspection aids
-  only. They do not constitute cross-section integration, production
+  only. The tiny two-step timing pilot indicates first-use Gridap lifecycle
+  and affine-operator setup dominate that small run. The warmed 12x2x12
+  timing review found repeated affine-operator assembly cost with stable
+  sparsity but changing matrix and RHS values, so no factorization-reuse or
+  Gridap-context reuse patch was accepted. This does not change any manuscript
+  claim boundary.
+- Web-viewer scalar toggles, colorbar ranges, evidence badges, missing-field
+  disabled states, and surface slice diagnostics are viewer-derived inspection
+  aids only. They do not constitute cross-section integration, production
   validation, imported parity, or native moving-wall/ALE evidence.
 
 If a future package handoff changes those boundaries, refresh this TODO before
