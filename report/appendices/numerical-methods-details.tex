@@ -206,8 +206,9 @@ implementation check for the native modal-DG surface. The implementation
 supports modal Legendre DG degrees $p=0,\ldots,4$; selected closure-catalog or
 package-benchmark rows may exercise only subsets such as $p=0,1,2$, while the
 p-refinement verification workflow runs through $p=4$. The fixed-grid
-p-refinement rows plateau after $p=1$ in the generated record, so they are not
-used here as evidence for a p-convergence claim.
+p-refinement rows include conservative $L^2$ diagnostic statuses. Plateau or
+regressed statuses are read as degree-sweep diagnostics, not as accepted
+p-convergence evidence.
 
 \IfFileExists{report/assets/tables/verification/p_h_refinement_demo.tex}{%
     \input{report/assets/tables/verification/p_h_refinement_demo.tex}

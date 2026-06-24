@@ -145,9 +145,27 @@ end
         @test all(row.status == "ok" for row in ph_demo.rows)
         @test any(row.sweep == "h_refinement" && isfinite(row.flow_l2_observed_order) for row in ph_demo.rows)
         @test any(row.sweep == "p_refinement" && row.degree == 4 for row in ph_demo.rows)
+        @test StenoticHemodynamics.p_sweep_reduction_status(1.10) == "improved"
+        @test StenoticHemodynamics.p_sweep_reduction_status(1.01) == "plateau"
+        @test StenoticHemodynamics.p_sweep_reduction_status(0.90) == "regressed"
+        @test StenoticHemodynamics.combine_p_sweep_status("improved", "regressed") == "regressed"
+        @test all(row.p_sweep_status == "not_applicable" for row in ph_demo.rows if row.sweep == "h_refinement")
+        @test any(row.p_sweep_status == "baseline" for row in ph_demo.rows if row.sweep == "p_refinement")
+        @test all(
+            row.p_sweep_status in ("baseline", "improved", "plateau", "regressed", "not_evaluated") for
+            row in ph_demo.rows if row.sweep == "p_refinement"
+        )
         ph_csv_text = read(ph_demo.summary_csv, String)
         @test occursin("flow_log10_l2_error", ph_csv_text)
         @test occursin("flow_l2_reduction", ph_csv_text)
+        @test occursin("area_p_sweep_status", ph_csv_text)
+        @test occursin("flow_p_sweep_status", ph_csv_text)
+        @test occursin("p_sweep_status", ph_csv_text)
+        @test occursin("baseline", ph_csv_text)
+        ph_tex_text = read(ph_demo.summary_tex, String)
+        @test occursin("p- and h-refinement diagnostic", ph_tex_text)
+        @test occursin("not accepted p-convergence evidence", ph_tex_text)
+        @test occursin("p-status", ph_tex_text)
 
         cli_demo = StenoticHemodynamics.run_cli([
             "verify",

@@ -36,12 +36,15 @@ Base.@kwdef struct PHRefinementDemoRow
     area_l2_observed_order::Float64
     area_log10_l2_error::Float64
     area_l2_reduction::Float64
+    area_p_sweep_status::String = "not_evaluated"
     flow_l1_error::Float64
     flow_l2_error::Float64
     flow_linf_error::Float64
     flow_l2_observed_order::Float64
     flow_log10_l2_error::Float64
     flow_l2_reduction::Float64
+    flow_p_sweep_status::String = "not_evaluated"
+    p_sweep_status::String = "not_evaluated"
     status::String
     error_message::String
 end
@@ -166,12 +169,15 @@ function ph_refinement_demo_case(sweep::String, spec::PHRefinementDemoSpec, nx::
             area_l2_observed_order=NaN,
             area_log10_l2_error=safe_log10(metrics.area_l2_error),
             area_l2_reduction=NaN,
+            area_p_sweep_status="not_evaluated",
             flow_l1_error=metrics.flow_l1_error,
             flow_l2_error=metrics.flow_l2_error,
             flow_linf_error=metrics.flow_linf_error,
             flow_l2_observed_order=NaN,
             flow_log10_l2_error=safe_log10(metrics.flow_l2_error),
             flow_l2_reduction=NaN,
+            flow_p_sweep_status="not_evaluated",
+            p_sweep_status="not_evaluated",
             status="ok",
             error_message="",
         )
@@ -197,12 +203,15 @@ function failed_ph_refinement_demo_row(sweep::String, params::Params, degree::In
         area_l2_observed_order=NaN,
         area_log10_l2_error=NaN,
         area_l2_reduction=NaN,
+        area_p_sweep_status="not_evaluated",
         flow_l1_error=NaN,
         flow_l2_error=NaN,
         flow_linf_error=NaN,
         flow_l2_observed_order=NaN,
         flow_log10_l2_error=NaN,
         flow_l2_reduction=NaN,
+        flow_p_sweep_status="not_evaluated",
+        p_sweep_status="not_evaluated",
         status="error",
         error_message=message,
     )
@@ -255,7 +264,19 @@ function assign_ph_h_orders(rows::Vector{PHRefinementDemoRow})
                      observed_order_ratio(current.area_l2_error, next_row.area_l2_error, ratio)
         flow_order = next_row === nothing ? NaN :
                      observed_order_ratio(current.flow_l2_error, next_row.flow_l2_error, ratio)
-        push!(output, ph_row_with_diagnostics(current, area_order, NaN, flow_order, NaN))
+        push!(
+            output,
+            ph_row_with_diagnostics(
+                current,
+                area_order,
+                NaN,
+                "not_applicable",
+                flow_order,
+                NaN,
+                "not_applicable",
+                "not_applicable",
+            ),
+        )
     end
     return output
 end
@@ -266,7 +287,22 @@ function assign_ph_p_reductions(rows::Vector{PHRefinementDemoRow})
     for row in rows
         area_reduction = previous === nothing ? NaN : safe_reduction(previous.area_l2_error, row.area_l2_error)
         flow_reduction = previous === nothing ? NaN : safe_reduction(previous.flow_l2_error, row.flow_l2_error)
-        push!(output, ph_row_with_diagnostics(row, NaN, area_reduction, NaN, flow_reduction))
+        area_status = previous === nothing ? "baseline" : p_sweep_reduction_status(area_reduction)
+        flow_status = previous === nothing ? "baseline" : p_sweep_reduction_status(flow_reduction)
+        combined_status = combine_p_sweep_status(area_status, flow_status)
+        push!(
+            output,
+            ph_row_with_diagnostics(
+                row,
+                NaN,
+                area_reduction,
+                area_status,
+                NaN,
+                flow_reduction,
+                flow_status,
+                combined_status,
+            ),
+        )
         previous = row
     end
     return output
@@ -276,8 +312,11 @@ function ph_row_with_diagnostics(
     row::PHRefinementDemoRow,
     area_order::Float64,
     area_reduction::Float64,
+    area_p_sweep_status::String,
     flow_order::Float64,
     flow_reduction::Float64,
+    flow_p_sweep_status::String,
+    p_sweep_status::String,
 )
     return PHRefinementDemoRow(
         sweep=row.sweep,
@@ -295,12 +334,15 @@ function ph_row_with_diagnostics(
         area_l2_observed_order=area_order,
         area_log10_l2_error=row.area_log10_l2_error,
         area_l2_reduction=area_reduction,
+        area_p_sweep_status=area_p_sweep_status,
         flow_l1_error=row.flow_l1_error,
         flow_l2_error=row.flow_l2_error,
         flow_linf_error=row.flow_linf_error,
         flow_l2_observed_order=flow_order,
         flow_log10_l2_error=row.flow_log10_l2_error,
         flow_l2_reduction=flow_reduction,
+        flow_p_sweep_status=flow_p_sweep_status,
+        p_sweep_status=p_sweep_status,
         status=row.status,
         error_message=row.error_message,
     )
@@ -315,6 +357,24 @@ function safe_reduction(previous_error::Float64, current_error::Float64)
     isfinite(previous_error) && isfinite(current_error) || return NaN
     previous_error > 0.0 && current_error > 0.0 || return NaN
     return previous_error / current_error
+end
+
+function p_sweep_reduction_status(reduction::Float64; tolerance::Float64 = 0.05)
+    isfinite(reduction) || return "not_evaluated"
+    reduction > 1.0 + tolerance && return "improved"
+    reduction < 1.0 - tolerance && return "regressed"
+    return "plateau"
+end
+
+function combine_p_sweep_status(area_status::String, flow_status::String)
+    statuses = (area_status, flow_status)
+    all(status -> status == "not_applicable", statuses) && return "not_applicable"
+    all(status -> status == "baseline", statuses) && return "baseline"
+    any(status -> status == "regressed", statuses) && return "regressed"
+    any(status -> status == "not_evaluated", statuses) && return "not_evaluated"
+    any(status -> status == "plateau", statuses) && return "plateau"
+    all(status -> status == "improved", statuses) && return "improved"
+    return "not_evaluated"
 end
 
 function write_ph_refinement_demo_csv(path::String, rows::Vector{PHRefinementDemoRow}; overwrite::Bool = false)
@@ -337,12 +397,15 @@ ph_refinement_demo_header() = [
     "area_l2_observed_order",
     "area_log10_l2_error",
     "area_l2_reduction",
+    "area_p_sweep_status",
     "flow_l1_error",
     "flow_l2_error",
     "flow_linf_error",
     "flow_l2_observed_order",
     "flow_log10_l2_error",
     "flow_l2_reduction",
+    "flow_p_sweep_status",
+    "p_sweep_status",
     "status",
     "error_message",
 ]
@@ -364,12 +427,15 @@ function ph_refinement_demo_values(row::PHRefinementDemoRow)
         row.area_l2_observed_order,
         row.area_log10_l2_error,
         row.area_l2_reduction,
+        row.area_p_sweep_status,
         row.flow_l1_error,
         row.flow_l2_error,
         row.flow_linf_error,
         row.flow_l2_observed_order,
         row.flow_log10_l2_error,
         row.flow_l2_reduction,
+        row.flow_p_sweep_status,
+        row.p_sweep_status,
         row.status,
         row.error_message,
     ]
@@ -380,11 +446,11 @@ function write_ph_refinement_demo_tex(path::String, rows::Vector{PHRefinementDem
         println(io, "\\begin{table}[!htb]")
         println(io, "    \\centering")
         println(io, "    \\scriptsize")
-        println(io, "    \\caption{Manufactured-solution p- and h-refinement demonstration. The h-refinement rows report observed order from adjacent grid spacings; the p-refinement rows report the error reduction relative to the previous polynomial degree on the fixed mesh.}")
+        println(io, "    \\caption{Manufactured-solution p- and h-refinement diagnostic. The h-refinement rows report \$L_2\$ observed order from adjacent grid spacings; the p-refinement rows report fixed-mesh \$L_2\$ error reduction and conservative diagnostic status, not accepted p-convergence evidence.}")
         println(io, "    \\resizebox{\\textwidth}{!}{%")
-        println(io, "    \\begin{tabular}{@{}lrrrrrrrrr@{}}")
+        println(io, "    \\begin{tabular}{@{}lrrrrrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        Sweep & \$p\$ & \$N\$ & DOFs & \$\\|e_a\\|_2\$ & h-order & p-reduction & \$\\|e_q\\|_2\$ & h-order & p-reduction \\\\")
+        println(io, "        Sweep & \$p\$ & \$N\$ & DOFs & \$\\|e_a\\|_2\$ & h-order & p-reduction & \$\\|e_q\\|_2\$ & h-order & p-reduction & p-status \\\\")
         println(io, "        \\midrule")
         for row in rows
             row.status == "ok" || continue
@@ -411,5 +477,8 @@ function ph_refinement_demo_latex_row(row::PHRefinementDemoRow)
         latex_number(row.flow_l2_error),
         latex_number(row.flow_l2_observed_order),
         latex_number(row.flow_l2_reduction),
+        latex_status(row.p_sweep_status),
     ), " & ") * " \\\\"
 end
+
+latex_status(value::String) = replace(value, "_" => "\\_")

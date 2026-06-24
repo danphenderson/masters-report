@@ -82,6 +82,17 @@ def sweep_label(value: str) -> str:
     return "h-refinement" if value == "h_refinement" else "p-refinement"
 
 
+def p_sweep_status(row: dict[str, str]) -> str:
+    status = (row.get("p_sweep_status") or "").strip()
+    if status:
+        return status
+    return "not_applicable" if row.get("sweep") == "h_refinement" else "not_evaluated"
+
+
+def latex_text(value: str) -> str:
+    return value.replace("_", r"\_")
+
+
 def render_figure(rows: list[dict[str, str]]) -> plt.Figure:
     h_rows = [row for row in rows if row.get("sweep") == "h_refinement"]
     p_rows = [row for row in rows if row.get("sweep") == "p_refinement"]
@@ -154,16 +165,17 @@ def render_table(rows: list[dict[str, str]], table_dir: Path) -> Path:
         r"    \centering",
         r"    \scriptsize",
         (
-            r"    \caption{Manufactured-solution p- and h-refinement demonstration. "
-            r"The h-refinement rows report observed order from adjacent grid spacings; "
-            r"the p-refinement rows report error reduction relative to the previous polynomial degree.}"
+            r"    \caption{Manufactured-solution p- and h-refinement diagnostic. "
+            r"The h-refinement rows report $L_2$ observed order from adjacent grid spacings; "
+            r"the p-refinement rows report fixed-mesh $L_2$ error reduction and conservative "
+            r"diagnostic status, not accepted p-convergence evidence.}"
         ),
         r"    \resizebox{\textwidth}{!}{%",
-        r"    \begin{tabular}{@{}lrrrrrrrrr@{}}",
+        r"    \begin{tabular}{@{}lrrrrrrrrrr@{}}",
         r"        \toprule",
         (
             r"        Sweep & $p$ & $N$ & DOFs & $\|e_a\|_2$ & h-order & p-reduction "
-            r"& $\|e_q\|_2$ & h-order & p-reduction \\"
+            r"& $\|e_q\|_2$ & h-order & p-reduction & p-status \\"
         ),
         r"        \midrule",
     ]
@@ -182,6 +194,7 @@ def render_table(rows: list[dict[str, str]], table_dir: Path) -> Path:
                     latex_number(row.get("flow_l2_error")),
                     latex_number(row.get("flow_l2_observed_order")),
                     latex_number(row.get("flow_l2_reduction")),
+                    latex_text(p_sweep_status(row)),
                 ]
             )
             + r" \\"
