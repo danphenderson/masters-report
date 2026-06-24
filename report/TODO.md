@@ -2,26 +2,22 @@
 
 ## Current Status
 
-This TODO is refreshed after the report/package mathematical-contract alignment
-round and the latest report PDF refresh.
+This TODO is refreshed after the report/package mathematical-contract alignment,
+MMS metric-order reporting, and smooth-DG limiter-policy planning rounds.
 
 Grounding at the start of this round:
 
 - Report source synchronization is landed through
   `72bb504 Sync report with focused FSI contract evidence`.
-- The tracked PDF artifact was refreshed in
-  `d0b08da Refresh final report PDF`.
+- The tracked PDF artifact was refreshed in `d0b08da Refresh final report PDF`
+  and approved in `416e686 Approve final report PDF`.
 - Package-side planning has advanced through
-  `c503231 Plan native FSI phase timing gate`.
-- `pipenv run ops-orchestrate status --json` reported only one report source
-  edit and one protected PDF edit; the source edit was a transient Section 1
-  prose regression and has been restored to the committed text.
-- The current working tree still has a protected
-  `public/final-report.pdf` modification. Treat it as unaccepted artifact
-  churn until an explicit PDF artifact lane compares, refreshes, and commits
-  it or intentionally restores the tracked artifact.
+  `7ca274e Refresh verification follow-up plan`.
+- `pipenv run ops-orchestrate status --json` reported a clean tree at this
+  refresh. There is no active report/PDF artifact diff to close out before
+  Lane 12B.
 
-Latest PDF artifact decision:
+Resolved PDF artifact decision:
 
 - A scratch report build passed with no untracked consumed inputs.
 - `pdftotext -layout` output is identical for the tracked PDF, working-tree
@@ -29,8 +25,9 @@ Latest PDF artifact decision:
 - `pdfinfo` reports the same title, metadata fields, page count, page size, and
   file size; the differing SHA values are explained by PDF creation/modification
   timestamps.
-- Do not commit the dirty `public/final-report.pdf` as a reader-facing report
-  update. Leave it for an explicit artifact-owner cleanup or restore decision.
+- The PDF artifact has since been approved in `416e686`; do not reopen PDF
+  hygiene unless a new source/asset lane explicitly changes reader-facing
+  output.
 
 Latest verification-reporting decision:
 
@@ -96,10 +93,14 @@ Do not reopen these lanes without a new technical finding:
 
 ## Next Round Objective
 
-Close the artifact/evidence-readiness gap without changing scientific claims.
-The next round should decide what to do with the dirty `public/final-report.pdf`
-and then prepare for regenerated evidence only after the package fleet gates
-produce accepted inputs.
+Execute Lane 12B: regenerate and review the DG p/h verification report assets
+under the explicit smooth-verification limiter policy, then update Appendix G
+wording only as far as the regenerated evidence supports. The claim boundary is
+narrow: the default production limiter remains conservative, and any accepted
+p-improvement wording is limited to the limiter-disabled smooth MMS
+verification configuration. Do not promote native resolved-FSI Section 4.1
+production, imported parity, moving-wall/ALE fidelity, persisted resume, or
+manuscript-grade reproduction claims.
 
 ## Immediate Execution Plan
 
@@ -116,43 +117,57 @@ pipenv run ops-orchestrate status --json
 Expected starting condition:
 
 - no report TeX source diff unless another editor has landed a new prose lane;
-- `public/final-report.pdf` may be dirty and protected;
+- no dirty `public/final-report.pdf` unless a new artifact lane has started;
 - package code/docs are owned by the package orchestrator unless explicitly
   assigned back to the report lane.
 
-### 2. PDF Artifact Decision
+### 2. Lane 12B DG p/h Asset Regeneration
 
-If the only dirty file is `public/final-report.pdf`, do not commit it blindly.
-First compare the tracked, working-tree, and scratch-build PDFs:
+Coordinate with the package orchestrator before regenerating assets. The report
+lane needs a package-side handoff naming the command, output paths, and expected
+metadata fields for the limiter-disabled smooth MMS verification run.
+
+Required report-side outcomes:
+
+- regenerate `report/assets/data/verification/p_h_refinement_demo.csv`;
+- regenerate `report/assets/tables/verification/p_h_refinement_demo.tex`;
+- ensure the generated table exposes enough limiter-policy metadata, such as
+  `dg_limiter_policy`, that a reader can distinguish default limited runs from
+  limiter-disabled smooth-verification rows;
+- update Appendix G only after the generated assets are reviewed. The allowed
+  interpretation is smooth-MMS, limiter-disabled p-improvement evidence for the
+  DG implementation surface, not a production-method claim.
+
+Suggested validation after regeneration:
+
+```sh
+git diff --check -- report/assets/data/verification/p_h_refinement_demo.csv report/assets/tables/verification/p_h_refinement_demo.tex report/appendices/numerical-methods-details.tex
+pipenv run ops-audit-report-prose --json
+pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
+```
+
+### 3. PDF Artifact Decision
+
+Only after Lane 12B source/assets are accepted, decide whether the public PDF is
+in scope. If it is, first compare the tracked, working-tree, and scratch-build
+PDFs:
 
 ```sh
 git show HEAD:public/final-report.pdf > /tmp/head-final-report.pdf
 pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
 pdftotext -layout /tmp/head-final-report.pdf /tmp/head-final-report.txt
-pdftotext -layout public/final-report.pdf /tmp/worktree-final-report.txt
 pdftotext -layout /tmp/masters-report-build/final-report.pdf /tmp/scratch-final-report.txt
 diff -u /tmp/head-final-report.txt /tmp/scratch-final-report.txt
-diff -u /tmp/worktree-final-report.txt /tmp/scratch-final-report.txt
 ```
-
-Then choose one path:
-
-- If source is clean and scratch text/layout matches the tracked PDF, restore
-  or leave the working-tree PDF only by explicit artifact-owner decision.
-- If scratch output reflects intentional source or asset changes, run
-  `pipenv run ops-build-report --outdir /tmp/masters-report-build` to sync the
-  public PDF, visually spot-check the changed pages, and commit the PDF alone.
-- If text/layout differs unexpectedly, inspect the affected pages before any
-  PDF commit.
 
 Do not use SHA equality alone as the acceptance criterion for PDFs; build
 metadata can change even when reader-facing text is unchanged.
 
-### 3. Evidence-Regeneration Readiness
+### 4. Evidence-Regeneration Readiness
 
-Do not regenerate report comparison assets until the package side hands off
-accepted evidence for the relevant gate. The report lane needs explicit
-package-side handoff for:
+Do not regenerate report comparison assets outside Lane 12B until the package
+side hands off accepted evidence for the relevant gate. The report lane still
+needs explicit package-side handoff for:
 
 - `sev23` preproduction execution;
 - production/fleet execution;
@@ -172,7 +187,7 @@ pipenv run ops-audit-report-prose --json
 Add package/evidence-specific commands from `packages/stenotic-hemodynamics/TODO.md`
 when that lane supplies them.
 
-### 4. Claim-Boundary Scan
+### 5. Claim-Boundary Scan
 
 Before any claim promotion or final PDF refresh, scan active manuscript prose:
 
@@ -187,14 +202,14 @@ report evidence.
 For verification-reporting language, also scan:
 
 ```sh
-rg -n "L2-only|L_2-only|observed \\$L_2\\$ rates|order columns use adjacent-grid \\$L_2\\$|accepted DG p-convergence|accepted p-convergence" report/sections report/appendices report/assets/tables report/TODO.md -g '*.tex' -g '*.md'
+rg -n "L2-only|L_2-only|observed \\$L_2\\$ rates|order columns use adjacent-grid \\$L_2\\$|accepted DG p-convergence|accepted p-convergence|default limiter p-convergence|production p-convergence" report/sections report/appendices report/assets/tables report/TODO.md -g '*.tex' -g '*.md'
 ```
 
 Allowed matches should be guardrail text only. MMS spatial orders should be
 metric-specific, and DG fixed-grid p-sweep rows should remain diagnostic unless
 a future numerical-method repair supplies accepted p-convergence evidence.
 
-### 5. Final Editorial Closeout
+### 6. Final Editorial Closeout
 
 After evidence assets and source prose are stable:
 
