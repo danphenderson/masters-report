@@ -105,6 +105,13 @@ Implemented and committed:
 - `cf2d78c`: the web viewer has a documented production-bundle serve command
   (`npm run serve` / `pipenv run ops-serve-stenotic-hemodynamics-viewer`) with
   README and public-doc coverage.
+- `ab258bc`: Wave 1 viewer evidence controls landed. The viewer field rail is
+  manifest/frame-backed for velocity magnitude, pressure, and displacement
+  magnitude; missing fields disable cleanly; colorbar labels report
+  current/global ranges; evidence badges cover claim boundary, coordinate
+  mode, skipped snapshots, sidecars, and observations; browser smoke covers a
+  generated missing-field manifest. The package TODO was refreshed to close
+  obsolete Wave 1 lanes before Wave 2 review.
 
 ## Non-Negotiable Claim Boundary
 
@@ -232,10 +239,28 @@ Implemented and committed:
   affine-operator construction about 0.089 s, numeric factorization about
   0.0013 s, and backsolve about 0.00004 s. The sparse structure digest stayed
   stable (`46fc7ac62087e904`), while matrix/RHS value digests changed. This
-  completes Lane 10C-P1 for the current wave. Wave 2 is authorized after the
-  current Wave 1 commit, but it must start with representative warmed/
-  development-scale timing evidence; do not implement factorization or
-  Gridap-context reuse from this tiny timing evidence alone.
+  completed Lane 10C-P1 for the current wave and did not justify
+  factorization or Gridap-context reuse from tiny timing evidence alone. Wave
+  2 subsequently ran the representative warmed/development-scale timing pilot
+  recorded below.
+- Wave 2 warmed/development timing pilot
+  `native-fsi-wave2-warmed-timing-current-head-ab258bc-12x2x12-20260624-104028`
+  completed four `sev23` time steps at `(12, 2, 12)` with final-only output.
+  Sidecars live under
+  `tmp/simulations/output/native-fsi-wave2-warmed-timing-current-head-ab258bc-12x2x12-20260624-104028/.../batch_status.jsonl`,
+  `batch_status.csv`, and `batch_benchmark.json`. The first step still carried
+  first-use Gridap lifecycle cost (`step_total_s` about 42.415 s). Warm steps
+  2-4 averaged about 1.229 s each, with repeated affine-operator assembly
+  dominant at about 0.792 s, numeric factorization secondary at about 0.266 s,
+  and backsolve about 0.008 s. Model/space/measure setup averaged only about
+  0.013 s combined on warm steps. The sparse structure digest stayed stable
+  (`f792679cae71ca24`), but every matrix-value digest and RHS digest changed.
+  Wave 2 therefore does not land a factorization-reuse or Gridap-context reuse
+  patch in this pass: numeric reuse is unsafe when matrix values change,
+  symbolic setup is not a measured bottleneck, and context setup is no longer
+  the repeated warm-step cost. Future optimization should target
+  assembly-specific design only after preserving the changing-geometry,
+  changing-advection, and changing-boundary-value invariants.
 
 ## Orchestration Rules
 
@@ -279,18 +304,19 @@ Wave 1 closeout status:
   for skipped snapshots, sidecars, and observations. Viewer diagnostics remain
   inspection/operator aids only.
 
-Wave 2 is authorized after the Wave 1 commit, but remains evidence-gated:
+Wave 2 closeout status:
 
-- Lane 10C-P2 native-FSI measured optimization only if timing sidecars prove
-  repeated Gridap lifecycle, assembly, matrix/RHS extraction, or
-  factorization cost and explicit invariants can gate reuse. Start with a
-  representative warmed/development-scale timing review, then a
-  Gridap-context/factorization-invariant design if the sidecars justify it; do
-  not change solver physics.
+- Lane 10C-P2 timing review ran at `(12, 2, 12)` for four warmed-scale steps.
+  It found repeated affine-operator assembly cost, stable sparse structure, and
+  changing matrix/RHS values. No solver reuse patch is accepted in this pass.
+  A future optimization lane must be assembly-specific and fail closed unless
+  it preserves changing geometry, Picard/advection state, Dirichlet boundary
+  values, pressure policy, mesh topology, and constrained DOF maps.
 - Lane 11 P1 mathematical-contract stewardship if it touches disjoint
   observation/model/API files from any optimization lane.
 
-Wave 3 starts only after Wave 2 timing/optimization evidence is accepted:
+Wave 3 remains blocked until the no-reuse Wave 2 decision is accepted or a
+future assembly-specific optimization lands with validation:
 
 - `sev23` preproduction batch execution and imported parity staging. Do not
   relaunch long runs before the instrumentation review and any accepted
@@ -562,10 +588,10 @@ git diff --check -- packages/stenotic-hemodynamics-viewer packages/stenotic-hemo
 ### Lane 10C-P: Native FSI Phase Timing Before Numerics Optimization
 
 Status: instrumentation implemented as package code in `d52dcb1`; current
-Wave 1 timing review complete. The preproduction attempt was naturally
-classified as incomplete at step 40/1000. Subsequent long `sev23` launches
-remain blocked until Wave 2 either declines optimization after representative
-timing or lands a measured optimization with validation.
+Wave 1 and Wave 2 timing reviews complete. The preproduction attempt was
+naturally classified as incomplete at step 40/1000. Subsequent long `sev23`
+launches remain blocked until the no-reuse Wave 2 decision is accepted or a
+future assembly-specific optimization lands with validation.
 
 Objective: instrument before changing numerics so future preproduction and
 production launches report where wall time and memory are spent. The current
@@ -606,24 +632,43 @@ Completed timing review:
    RHS values changed. This is useful invariant evidence for a future
    representative review, not enough to ship reuse now.
 5. Do not implement a cache or solver optimization under the preproduction
-   banner from this tiny timing evidence. Wave 2 may now proceed only by first
-   collecting representative warmed/development-scale timing sidecars; measured
-   optimization remains conditional on those sidecars showing repeated
-   lifecycle/assembly, extraction, or factorization cost.
+   banner from this tiny timing evidence.
 
-Measured optimization dispatch after representative timing evidence:
+Completed Wave 2 warmed timing review:
 
-1. Reuse the linear solve/factorization object when the matrix, coefficients,
+1. The `12x2x12` four-step pilot on `ab258bc` confirmed a repeated warm-step
+   cost after first-use setup.
+2. Warm steps were dominated by affine-operator assembly; numeric
+   factorization was secondary; backsolve, matrix/RHS extraction, and
+   model/space/measure setup were not the main repeated costs.
+3. Sparse structure was stable, but matrix values and RHS changed each step.
+   This blocks numeric factorization reuse for the current path.
+4. Symbolic setup was effectively zero in the timing sidecars, so
+   symbolic/permutation reuse is not a measured priority for this workload.
+5. Gridap context setup is already small on warm steps; a context-cache patch
+   would not address the dominant repeated phase observed here.
+6. No Wave 2 solver patch is accepted in this pass. Keep the optimization
+   path design-only until an assembly-specific proposal preserves all
+   changing-state invariants and compares outputs against the current direct
+   baseline.
+
+Future measured optimization dispatch after assembly-specific design:
+
+1. Start with an assembly-specific design that identifies which parts of the
+   Gridap affine-operator construction are invariant under changing geometry,
+   Picard/advection state, wall/inlet boundary values, pressure policy, and
+   constrained DOF maps.
+2. Reuse the linear solve/factorization object only when the matrix, coefficients,
    boundary-condition sparsity pattern, pressure policy, mesh topology, and
    constrained DOF maps are unchanged and only the RHS changes.
-2. If coefficients change but sparsity is stable, evaluate symbolic/permutation
+3. If coefficients change but sparsity is stable, evaluate symbolic/permutation
    reuse with fresh numeric factorization.
-3. If assembly changes sparse structure, stabilize connectivity, sparsity
+4. If assembly changes sparse structure, stabilize connectivity, sparsity
    pattern, row/column maps, constrained DOF maps, and boundary operators before
    changing solver algorithms.
-4. Consider Krylov plus reusable preconditioners only after the direct-solve
+5. Consider Krylov plus reusable preconditioners only after the direct-solve
    baseline is instrumented and reuse boundaries are tested.
-5. Consider parallel sparse direct solvers only after algorithmic reuse is
+6. Consider parallel sparse direct solvers only after algorithmic reuse is
    addressed; dependency changes are not the first response to repeated
    refactorization.
 
