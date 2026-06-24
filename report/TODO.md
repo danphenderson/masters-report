@@ -32,6 +32,22 @@ Latest PDF artifact decision:
 - Do not commit the dirty `public/final-report.pdf` as a reader-facing report
   update. Leave it for an explicit artifact-owner cleanup or restore decision.
 
+Latest verification-reporting decision:
+
+- Package/report commit `bbf485e Report MMS metric-specific orders` updated the
+  MMS verification workflow, generated verification table, and Section 7 prose
+  so observed orders are reported separately for the discrete $L_1$, $L_2$,
+  and $L_\infty$ area/flow metrics.
+- Commit `d73afa9 Guard MMS metric order prose` added an ops prose-audit guard
+  against stale L2-only MMS-order wording.
+- Commit `56e68e1 Classify DG p-sweep diagnostics` classifies fixed-mesh DG
+  p-sweep rows as `baseline`, `regressed`, or `plateau`; Appendix G now treats
+  plateau/regressed p rows as diagnostics, not accepted DG p-convergence
+  evidence.
+- These are verification-reporting refinements only. They do not promote native
+  resolved-FSI Section 4.1 production, imported parity, moving-wall/ALE
+  fidelity, or manuscript-grade reproduction claims.
+
 The Lane 11 P0 mathematical-contract blocker is retired at focused package-test
 scope only. The report may describe focused package evidence for the
 density-consistent transient/convection terms, symmetric-gradient Cauchy viscous
@@ -60,6 +76,11 @@ Do not reopen these lanes without a new technical finding:
 - Appendix G and Section 5 now state that focused native-FSI mathematical
   contract evidence exists without promoting Section 4.1 reproduction or
   production parity.
+- Section 7 verification and the generated MMS table now report
+  metric-specific observed orders for discrete $L_1$, $L_2$, and $L_\infty$
+  manufactured-solution errors.
+- Appendix G now classifies the DG fixed-grid p-sweep as diagnostic when rows
+  plateau or regress, not as accepted p-convergence evidence.
 
 ## Next Round Objective
 
@@ -150,6 +171,16 @@ rg -n "Section 4\\.1 reproduction|paper-grade|production parity|imported parity|
 Allowed matches should be bounded negative claims or TODO gate descriptions.
 Any positive reproduction/parity claim must be backed by accepted package and
 report evidence.
+
+For verification-reporting language, also scan:
+
+```sh
+rg -n "L2-only|L_2-only|observed \\$L_2\\$ rates|order columns use adjacent-grid \\$L_2\\$|accepted DG p-convergence|accepted p-convergence" report/sections report/appendices report/assets/tables report/TODO.md -g '*.tex' -g '*.md'
+```
+
+Allowed matches should be guardrail text only. MMS spatial orders should be
+metric-specific, and DG fixed-grid p-sweep rows should remain diagnostic unless
+a future numerical-method repair supplies accepted p-convergence evidence.
 
 ### 5. Final Editorial Closeout
 
