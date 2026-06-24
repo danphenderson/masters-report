@@ -253,17 +253,10 @@ function native_resolved_fsi_navier_stokes_controls(spec::NativeResolvedFSIParti
     )
 end
 
-native_resolved_fsi_phase_elapsed_s(start_ns::UInt64) =
-    Float64(time_ns() - start_ns) / 1.0e9
-
 function native_resolved_fsi_timed_affine_solve(a, l, X, Y, phase_timing::AbstractDict{Symbol,Float64})
     start_ns = time_ns()
     operator = AffineFEOperator(a, l, X, Y)
-    native_resolved_fsi_add_phase_timing!(
-        phase_timing,
-        :gridap_operator_assembly_s,
-        native_resolved_fsi_phase_elapsed_s(start_ns),
-    )
+    native_resolved_fsi_record_phase_elapsed!(:gridap_operator_assembly_s, start_ns, phase_timing)
 
     matrix = get_matrix(operator)
     rhs = get_vector(operator)
@@ -271,28 +264,16 @@ function native_resolved_fsi_timed_affine_solve(a, l, X, Y, phase_timing::Abstra
 
     start_ns = time_ns()
     symbolic = symbolic_setup(solver, matrix)
-    native_resolved_fsi_add_phase_timing!(
-        phase_timing,
-        :linear_symbolic_factorization_s,
-        native_resolved_fsi_phase_elapsed_s(start_ns),
-    )
+    native_resolved_fsi_record_phase_elapsed!(:linear_symbolic_factorization_s, start_ns, phase_timing)
 
     start_ns = time_ns()
     numeric = numerical_setup(symbolic, matrix)
-    native_resolved_fsi_add_phase_timing!(
-        phase_timing,
-        :linear_numeric_factorization_s,
-        native_resolved_fsi_phase_elapsed_s(start_ns),
-    )
+    native_resolved_fsi_record_phase_elapsed!(:linear_numeric_factorization_s, start_ns, phase_timing)
 
     solution_dofs = similar(rhs)
     start_ns = time_ns()
     solve!(solution_dofs, numeric, rhs)
-    native_resolved_fsi_add_phase_timing!(
-        phase_timing,
-        :linear_backsolve_s,
-        native_resolved_fsi_phase_elapsed_s(start_ns),
-    )
+    native_resolved_fsi_record_phase_elapsed!(:linear_backsolve_s, start_ns, phase_timing)
 
     return FEFunction(X, solution_dofs)
 end
@@ -449,15 +430,11 @@ function native_resolved_fsi_solve_navier_stokes(
 
         max_picard_iterations_used = max(max_picard_iterations_used, step_iterations_used)
         final_picard_update_norm = step_update_norm
-        picard_converged &= step_converged
+        picard_converged = picard_converged && step_converged
         time_s += dt_step
         time_step_count += 1
     end
-    native_resolved_fsi_add_phase_timing!(
-        phase_timing,
-        :fluid_solve_total_s,
-        native_resolved_fsi_phase_elapsed_s(fluid_solve_start_ns),
-    )
+    native_resolved_fsi_record_phase_elapsed!(:fluid_solve_total_s, fluid_solve_start_ns, phase_timing)
 
     time_step_count > 0 ||
         throw(ArgumentError("native resolved-FSI Navier-Stokes smoke produced zero time steps despite positive tfinal_s"))

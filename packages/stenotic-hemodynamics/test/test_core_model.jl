@@ -199,6 +199,15 @@ end
     @test length(xis5) == 5
     @test sum(weights5) ≈ 2.0
     @test sum(w * xi^8 for (xi, w) in zip(xis5, weights5)) ≈ 2.0 / 9.0
+    zq_centers = collect(range(0.125, step=0.25, length=64))
+    zq_dx = 0.25
+    StenoticHemodynamics.dg_quadrature_locations(zq_centers, zq_dx, xis5)
+    zq_allocated = @allocated StenoticHemodynamics.dg_quadrature_locations(zq_centers, zq_dx, xis5)
+    zq_locations = StenoticHemodynamics.dg_quadrature_locations(zq_centers, zq_dx, xis5)
+    @test length(zq_locations) == length(zq_centers) * length(xis5)
+    @test zq_locations[begin:length(xis5)] ≈ [first(zq_centers) + 0.5 * zq_dx * xi for xi in xis5]
+    @test zq_locations[(end - length(xis5) + 1):end] ≈ [last(zq_centers) + 0.5 * zq_dx * xi for xi in xis5]
+    @test zq_allocated <= sizeof(Float64) * length(zq_locations) + 2048
 
     @test observed_order(0.25, 0.125) ≈ 1.0
     @test isnan(observed_order(0.0, 0.125))

@@ -73,6 +73,71 @@ const run_native_resolved_fsi_workflow = StenoticHemodynamics.run_native_resolve
     @test minimum_signed_volume6 > 0.0
 end
 
+@testset "StenoticHemodynamics native resolved-FSI phase timing helper contract" begin
+    phase_keys = StenoticHemodynamics.NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS
+    timings = StenoticHemodynamics.native_resolved_fsi_phase_timing_accumulator()
+    @test Set(keys(timings)) == Set(phase_keys)
+    @test all(iszero, values(timings))
+
+    @test_throws ArgumentError StenoticHemodynamics.native_resolved_fsi_add_phase_timing!(
+        timings,
+        :not_a_phase,
+        1.0,
+    )
+    @test_throws ArgumentError StenoticHemodynamics.native_resolved_fsi_add_phase_timing!(
+        timings,
+        :wall_update_s,
+        -1.0,
+    )
+    @test_throws ArgumentError StenoticHemodynamics.native_resolved_fsi_add_phase_timing!(
+        timings,
+        :wall_update_s,
+        Inf,
+    )
+
+    @test StenoticHemodynamics.native_resolved_fsi_add_phase_timing!(timings, :wall_update_s, 0.25) === timings
+    @test timings[:wall_update_s] ≈ 0.25
+    @test StenoticHemodynamics.native_resolved_fsi_add_phase_timing!(timings, :wall_update_s, 0.125) === timings
+    @test timings[:wall_update_s] ≈ 0.375
+
+    primary = StenoticHemodynamics.native_resolved_fsi_phase_timing_accumulator()
+    secondary = StenoticHemodynamics.native_resolved_fsi_phase_timing_accumulator()
+    elapsed_s = StenoticHemodynamics.native_resolved_fsi_record_phase_elapsed!(
+        :diagnostics_s,
+        time_ns(),
+        primary,
+        secondary,
+    )
+    @test isfinite(elapsed_s)
+    @test elapsed_s >= 0.0
+    @test primary[:diagnostics_s] ≈ elapsed_s
+    @test secondary[:diagnostics_s] ≈ elapsed_s
+
+    nested_fluid = StenoticHemodynamics.native_resolved_fsi_phase_timing_accumulator()
+    StenoticHemodynamics.native_resolved_fsi_add_phase_timing!(nested_fluid, :linear_backsolve_s, 2.0)
+    StenoticHemodynamics.native_resolved_fsi_add_phase_timing!(nested_fluid, :fluid_solve_total_s, 999.0)
+    nested_fluid_tuple = StenoticHemodynamics.native_resolved_fsi_phase_timing_named_tuple(nested_fluid)
+    fluid_total = StenoticHemodynamics.native_resolved_fsi_record_fluid_solve_phase_timing!(
+        nested_fluid_tuple,
+        time_ns(),
+        primary,
+        secondary,
+    )
+    @test isfinite(fluid_total)
+    @test fluid_total >= 0.0
+    @test primary[:linear_backsolve_s] ≈ 2.0
+    @test secondary[:linear_backsolve_s] ≈ 2.0
+    @test primary[:fluid_solve_total_s] ≈ fluid_total
+    @test secondary[:fluid_solve_total_s] ≈ fluid_total
+
+    timing_tuple = StenoticHemodynamics.native_resolved_fsi_phase_timing_named_tuple(primary)
+    @test Set(keys(timing_tuple)) == Set(phase_keys)
+    @test timing_tuple.linear_backsolve_s ≈ 2.0
+    @test timing_tuple.wall_update_s ≈ 0.0
+    expected_total = sum(Float64(getfield(timing_tuple, key)) for key in phase_keys)
+    @test StenoticHemodynamics.native_resolved_fsi_phase_timing_total_s(timing_tuple) ≈ expected_total
+end
+
 @testset "StenoticHemodynamics native resolved-FSI workflow round trip" begin
     resolution = NativeResolvedFSIMeshResolution(axial=2, radial=2, angular=8)
     default_spec = NativeResolvedFSIWorkflowSpec(case_id=:sev23, resolution=resolution)

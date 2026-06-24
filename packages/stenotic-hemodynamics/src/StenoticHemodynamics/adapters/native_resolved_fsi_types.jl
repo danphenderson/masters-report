@@ -45,6 +45,9 @@ function native_resolved_fsi_phase_timing_accumulator()
     return Dict{Symbol,Float64}(key => 0.0 for key in NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS)
 end
 
+native_resolved_fsi_phase_elapsed_s(start_ns::UInt64) =
+    Float64(time_ns() - start_ns) / 1.0e9
+
 function native_resolved_fsi_phase_timing_named_tuple(timings::AbstractDict{Symbol,<:Real})
     return NamedTuple{NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS}(
         ntuple(
@@ -68,6 +71,14 @@ function native_resolved_fsi_add_phase_timing!(
     return timings
 end
 
+function native_resolved_fsi_record_phase_elapsed!(key::Symbol, start_ns::UInt64, timings...)
+    elapsed_s = native_resolved_fsi_phase_elapsed_s(start_ns)
+    for timing in timings
+        native_resolved_fsi_add_phase_timing!(timing, key, elapsed_s)
+    end
+    return elapsed_s
+end
+
 function native_resolved_fsi_merge_phase_timing!(
     timings::AbstractDict{Symbol,Float64},
     phase_timing::NamedTuple;
@@ -78,6 +89,15 @@ function native_resolved_fsi_merge_phase_timing!(
         native_resolved_fsi_add_phase_timing!(timings, key, get(phase_timing, key, 0.0))
     end
     return timings
+end
+
+function native_resolved_fsi_record_fluid_solve_phase_timing!(fluid_phase_timing::NamedTuple, start_ns::UInt64, timings...)
+    elapsed_s = native_resolved_fsi_phase_elapsed_s(start_ns)
+    for timing in timings
+        native_resolved_fsi_merge_phase_timing!(timing, fluid_phase_timing; exclude=(:fluid_solve_total_s,))
+        native_resolved_fsi_add_phase_timing!(timing, :fluid_solve_total_s, elapsed_s)
+    end
+    return elapsed_s
 end
 
 function native_resolved_fsi_phase_timing_total_s(phase_timing::NamedTuple)

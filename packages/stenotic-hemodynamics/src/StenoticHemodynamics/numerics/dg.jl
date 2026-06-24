@@ -65,13 +65,7 @@ function dg_initial_coefficients_with_summary(p::Params, method::DGMethod)
     Acoef = zeros(Float64, p.nx, degree + 1)
     Qcoef = zeros(Float64, p.nx, degree + 1)
     xis, weights = dg_quadrature(degree)
-    zq = Float64[]
-
-    for i in 1:p.nx
-        for xi in xis
-            push!(zq, z[i] + 0.5 * dx * xi)
-        end
-    end
+    zq = dg_quadrature_locations(z, dx, xis)
 
     Aq_values, Qq_values, summary = initial_condition_values(p, zq)
     sample = 1
@@ -93,6 +87,19 @@ function dg_initial_coefficients_with_summary(p::Params, method::DGMethod)
     end
 
     return z, Acoef, Qcoef, dx, summary
+end
+
+function dg_quadrature_locations(z::AbstractVector, dx::Real, xis)
+    quadrature_count = length(xis)
+    zq = Vector{promote_type(eltype(z), typeof(dx), eltype(xis))}(undef, length(z) * quadrature_count)
+    sample = 1
+    @inbounds for zi in z
+        for xi in xis
+            zq[sample] = zi + 0.5 * dx * xi
+            sample += 1
+        end
+    end
+    return zq
 end
 
 function dg_value(coeffs::AbstractMatrix{Float64}, i::Int, xi::Float64, degree::Int)
