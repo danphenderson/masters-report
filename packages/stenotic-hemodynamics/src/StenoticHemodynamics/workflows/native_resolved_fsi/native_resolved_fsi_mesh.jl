@@ -375,13 +375,14 @@ function native_resolved_fsi_coordinates(geometry::NativeResolvedFSIGeometry)
 end
 
 function native_resolved_fsi_cross_section_triangles(resolution::NativeResolvedFSIMeshResolution)
-    triangles = NTuple{3,Int}[]
-    sizehint!(triangles, resolution.angular * (2 * resolution.radial - 1))
+    triangles = Matrix{Int}(undef, resolution.angular * (2 * resolution.radial - 1), 3)
+    row = 1
 
     for sector in 1:resolution.angular
         next_sector = native_resolved_fsi_next_sector(resolution, sector)
-        push!(
+        row = write_triangle_row!(
             triangles,
+            row,
             sorted_triangle(
                 1,
                 native_resolved_fsi_plane_node_index(resolution, 1, sector),
@@ -397,12 +398,12 @@ function native_resolved_fsi_cross_section_triangles(resolution::NativeResolvedF
             inner_next = native_resolved_fsi_plane_node_index(resolution, ring - 1, next_sector)
             outer_sector = native_resolved_fsi_plane_node_index(resolution, ring, sector)
             outer_next = native_resolved_fsi_plane_node_index(resolution, ring, next_sector)
-            push!(triangles, sorted_triangle(inner_sector, outer_sector, outer_next))
-            push!(triangles, sorted_triangle(inner_sector, inner_next, outer_next))
+            row = write_triangle_row!(triangles, row, sorted_triangle(inner_sector, outer_sector, outer_next))
+            row = write_triangle_row!(triangles, row, sorted_triangle(inner_sector, inner_next, outer_next))
         end
     end
 
-    return tuples_to_matrix(triangles, 3)
+    return triangles
 end
 
 function native_resolved_fsi_topology(
@@ -411,8 +412,8 @@ function native_resolved_fsi_topology(
     resolution::NativeResolvedFSIMeshResolution,
 )
     plane_node_count = native_resolved_fsi_nodes_per_plane(resolution)
-    tetrahedra = NTuple{4,Int}[]
-    sizehint!(tetrahedra, resolution.axial * size(cross_section_triangles, 1) * 3)
+    tetrahedra = Matrix{Int}(undef, resolution.axial * size(cross_section_triangles, 1) * 3, 4)
+    row_out = 1
 
     for slab in 0:(resolution.axial - 1)
         lower_offset = slab * plane_node_count
@@ -429,13 +430,13 @@ function native_resolved_fsi_topology(
             B = upper_offset + b_local
             C = upper_offset + c_local
 
-            push!(tetrahedra, oriented_tetrahedron(a, b, c, C, coordinates))
-            push!(tetrahedra, oriented_tetrahedron(a, b, B, C, coordinates))
-            push!(tetrahedra, oriented_tetrahedron(a, A, B, C, coordinates))
+            row_out = write_tetrahedron_row!(tetrahedra, row_out, oriented_tetrahedron(a, b, c, C, coordinates))
+            row_out = write_tetrahedron_row!(tetrahedra, row_out, oriented_tetrahedron(a, b, B, C, coordinates))
+            row_out = write_tetrahedron_row!(tetrahedra, row_out, oriented_tetrahedron(a, A, B, C, coordinates))
         end
     end
 
-    return tuples_to_matrix(tetrahedra, 4)
+    return tetrahedra
 end
 
 function native_resolved_fsi_tags(
@@ -458,49 +459,42 @@ function native_resolved_fsi_tags(
         outlet_faces[row, 3] = last_plane_offset + cross_section_triangles[row, 3]
     end
 
-    outer_edges = NTuple{2,Int}[]
-    sizehint!(outer_edges, resolution.angular)
-    for sector in 1:resolution.angular
-        next_sector = native_resolved_fsi_next_sector(resolution, sector)
-        push!(
-            outer_edges,
-            sorted_edge(
-                native_resolved_fsi_plane_node_index(resolution, resolution.radial, sector),
-                native_resolved_fsi_plane_node_index(resolution, resolution.radial, next_sector),
-            ),
-        )
-    end
-
-    wall_faces = NTuple{3,Int}[]
-    sizehint!(wall_faces, 2 * resolution.axial * length(outer_edges))
+    wall_faces = Matrix{Int}(undef, 2 * resolution.axial * resolution.angular, 3)
+    wall_face_row = 1
     for slab in 0:(resolution.axial - 1)
         lower_offset = slab * plane_node_count
         upper_offset = lower_offset + plane_node_count
-        for (u_local, v_local) in outer_edges
+        for sector in 1:resolution.angular
+            next_sector = native_resolved_fsi_next_sector(resolution, sector)
+            u_local, v_local = sorted_edge(
+                native_resolved_fsi_plane_node_index(resolution, resolution.radial, sector),
+                native_resolved_fsi_plane_node_index(resolution, resolution.radial, next_sector),
+            )
             u = lower_offset + u_local
             v = lower_offset + v_local
             U = upper_offset + u_local
             V = upper_offset + v_local
-            push!(wall_faces, sorted_triangle(u, v, V))
-            push!(wall_faces, sorted_triangle(u, U, V))
+            wall_face_row = write_triangle_row!(wall_faces, wall_face_row, sorted_triangle(u, v, V))
+            wall_face_row = write_triangle_row!(wall_faces, wall_face_row, sorted_triangle(u, U, V))
         end
     end
 
     inlet_nodes = collect(1:plane_node_count)
     outlet_nodes = collect((last_plane_offset + 1):(last_plane_offset + plane_node_count))
-    wall_nodes = Int[]
-    sizehint!(wall_nodes, (resolution.axial + 1) * resolution.angular)
+    wall_nodes = Vector{Int}(undef, (resolution.axial + 1) * resolution.angular)
+    wall_node_row = 1
     for plane in 0:resolution.axial
         offset = plane * plane_node_count
         for sector in 1:resolution.angular
-            push!(wall_nodes, offset + native_resolved_fsi_plane_node_index(resolution, resolution.radial, sector))
+            wall_nodes[wall_node_row] = offset + native_resolved_fsi_plane_node_index(resolution, resolution.radial, sector)
+            wall_node_row += 1
         end
     end
 
     return NativeResolvedFSIMeshTags(
         inlet_faces,
         outlet_faces,
-        tuples_to_matrix(wall_faces, 3),
+        wall_faces,
         inlet_nodes,
         outlet_nodes,
         wall_nodes,
@@ -528,14 +522,19 @@ function sorted_triangle(a::Int, b::Int, c::Int)
     return (a, b, c)
 end
 
-function tuples_to_matrix(rows::Vector{T}, width::Int) where {T<:Tuple}
-    matrix = Matrix{Int}(undef, length(rows), width)
-    for row in eachindex(rows)
-        for col in 1:width
-            matrix[row, col] = rows[row][col]
-        end
-    end
-    return matrix
+function write_triangle_row!(matrix::Matrix{Int}, row::Int, triangle::NTuple{3,Int})
+    matrix[row, 1] = triangle[1]
+    matrix[row, 2] = triangle[2]
+    matrix[row, 3] = triangle[3]
+    return row + 1
+end
+
+function write_tetrahedron_row!(matrix::Matrix{Int}, row::Int, tetrahedron::NTuple{4,Int})
+    matrix[row, 1] = tetrahedron[1]
+    matrix[row, 2] = tetrahedron[2]
+    matrix[row, 3] = tetrahedron[3]
+    matrix[row, 4] = tetrahedron[4]
+    return row + 1
 end
 
 function oriented_tetrahedron(a::Int, b::Int, c::Int, d::Int, coordinates::Matrix{Float64})

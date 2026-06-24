@@ -1,3 +1,10 @@
+"""
+    InletAreaSolveControls(; kwargs...)
+
+Numerical policy for `solve_inlet_area`: the initial bracket around the area
+guess, multiplicative bracket growth, bisection tolerances, and iteration caps.
+Validation rejects nonfinite or sign-invalid values before the solve starts.
+"""
 struct InletAreaSolveControls{T<:AbstractFloat}
     bracket_lower_scale::T
     bracket_upper_scale::T
@@ -33,6 +40,16 @@ InletAreaSolveControls(; kwargs...) = InletAreaSolveControls{Float64}(; kwargs..
 const DEFAULT_INLET_AREA_SOLVE_CONTROLS = InletAreaSolveControls{Float64}()
 
 function validate_inlet_area_solve_controls(controls::InletAreaSolveControls)
+    all(
+        isfinite,
+        (
+            controls.bracket_lower_scale,
+            controls.bracket_upper_scale,
+            controls.bracket_growth_factor,
+            controls.residual_tolerance,
+            controls.area_tolerance,
+        ),
+    ) || throw(ArgumentError("inlet area solve floating controls must be finite"))
     controls.bracket_lower_scale > 0 || throw(ArgumentError("inlet area lower bracket scale must be positive"))
     controls.bracket_upper_scale > controls.bracket_lower_scale ||
         throw(ArgumentError("inlet area upper bracket scale must exceed lower bracket scale"))

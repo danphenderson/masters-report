@@ -26,6 +26,47 @@
     @test typeof(Ain32) === Float32
     @test Ain32 ≈ Float32(target_area) atol=Float32(1.0e-6)
 
+    growth_controls = StenoticHemodynamics.InletAreaSolveControls(
+        bracket_lower_scale=0.8,
+        bracket_upper_scale=1.2,
+        bracket_growth_factor=2.0,
+        residual_tolerance=1.0e-12,
+        area_tolerance=1.0e-14,
+        max_bracket_iterations=8,
+        max_bisection_iterations=96,
+    )
+    growth_Ain = StenoticHemodynamics.solve_inlet_area(Qin, w2, 0.002, params; controls=growth_controls)
+    @test growth_Ain ≈ target_area atol=1.0e-11
+
+    no_growth_controls = StenoticHemodynamics.InletAreaSolveControls(
+        bracket_lower_scale=0.8,
+        bracket_upper_scale=1.2,
+        bracket_growth_factor=2.0,
+        max_bracket_iterations=0,
+    )
+    no_growth = @test_logs (:warn, "inlet area solver failed to bracket; returning limited guess") begin
+        StenoticHemodynamics.solve_inlet_area(Qin, w2, 0.002, params; controls=no_growth_controls)
+    end
+    @test no_growth == 0.002
+
+    invalid_controls = (
+        StenoticHemodynamics.InletAreaSolveControls(bracket_lower_scale=0.0),
+        StenoticHemodynamics.InletAreaSolveControls(bracket_upper_scale=0.01),
+        StenoticHemodynamics.InletAreaSolveControls(bracket_growth_factor=1.0),
+        StenoticHemodynamics.InletAreaSolveControls(residual_tolerance=Inf),
+        StenoticHemodynamics.InletAreaSolveControls(area_tolerance=0.0),
+        StenoticHemodynamics.InletAreaSolveControls(max_bracket_iterations=-1),
+    )
+    for invalid_control in invalid_controls
+        @test_throws ArgumentError StenoticHemodynamics.solve_inlet_area(
+            Qin,
+            w2,
+            0.02,
+            params;
+            controls=invalid_control,
+        )
+    end
+
     @test_throws ArgumentError StenoticHemodynamics.solve_inlet_area(
         Qin,
         w2,
