@@ -1,154 +1,105 @@
 # Report Orchestration TODO
 
-## Current Status
+Date: 2026-06-24
 
-This TODO is refreshed after the report-owned final submission-readiness sweep
-and the 2026-06-24 package coordination update.
+This file is the live report-side coordination document. Completed package and
+report lanes were removed from the active queue during this refresh; use git
+history for detailed closed-lane records.
 
-The active manuscript now has the following report-side narrative state:
+## Live State
 
-- Section 5 keeps the stable `Numerical contract stack` anchor while using
-  more precise surrounding language for model specification, observation
-  operator, and metric interpretation.
-- Section 7 methodology and comparison now read more consistently with the
-  result-first worked-example frame, without reopening the underlying
-  derivations or boundary design.
-- Section 7 now uses one consistent boundary for deferred radial-profile
-  evidence in the main comparator: same-cut radial-profile outputs remain
-  supplemental reproducibility artifacts rather than localization evidence.
-- Appendix H now includes the promoted Canic Section 4.1 source-artifact
-  replication tables and the parameter audit for restored upstream 3D bundles.
-- Section 8 states the contribution and limitations through the direct
-  interpretive chain rather than through a more schematic template description.
-- The mathematical-notation appendix remains reference-style, and Appendix G
-  preserves the accepted package evidence boundary without widening into a
-  runtime roadmap.
-- Appendix H now matches the live `main` branch layout and records the clean
-  submission-readiness base used for this sweep.
-- The latest package handoff adds viewer evidence controls, native
-  resolved-FSI timing-sidecar review, mathematical-contract API/terminology
-  cleanup, native diagnostic/classification updates, and schema-v3
-  package-internal restart/resume support. These are package/operator
-  coordination updates, not new manuscript evidence, so no report asset or PDF
-  refresh is required from that handoff alone.
+- Current branch state at refresh start: `main...origin/main [ahead 5]`, clean.
+- Latest package coordination commit:
+  `20f487a Refresh native FSI contract and resume stewardship`.
+- The manuscript remains in final-freeze territory unless committee/advisor
+  feedback opens a bounded source lane.
+- The latest package handoff is package/operator evidence only: canonical API
+  naming, native diagnostics, timing decisions, viewer controls, and schema-v3
+  internal restart/resume support do not require report assets or PDF refresh.
 
-## Completed Report Alignment
+## Current Report TODOs
 
-Do not reopen these report lanes without a new technical or editorial finding:
+No report-source, report-asset, or tracked-PDF work is open from the current
+package handoff.
 
-- Section 2 and Appendix E distinguish control-volume integral balance forms
-  from variational weak forms and include compact ALE/FSI interface statements.
-- Section 5.1 separates pressure gauge, velocity-pressure inf-sup stability,
-  advective stabilization, and divergence control.
-- Section 5, Section 7, and Appendix notation now use a shared numerical
-  template for interpreting model, discretization, observation, and metric
-  choices.
-- Section 7.3.6 treats radial profiles as deferred secondary evidence rather
-  than as accepted physical closure failure.
-- Appendix G keeps stable numerical-method exposition separate from mutable
-  runtime status, restart design, and parity-roadmap details.
-- The DG p/h demo now states exactly that accepted p-improvement belongs only
-  to the explicit limiter-disabled smooth MMS verification configuration.
-- Section 2.3 rheology reintegration remains closed as a broad editorial lane;
-  the current continuum/generalized-Newtonian framing is retained unless a
-  concrete live-text inconsistency is found later.
-- Section 7 methodology no longer carries the densest visible terminology drift
-  around `contract` in reader-facing prose; stable labels remain in place.
+The next report round should be one of:
 
-## Standard Closeout Rule
-
-For report-side handbacks, synced PDF refresh is now the default closeout
-behavior. Treat a source-only lane as an exception that should be named
-explicitly in the task.
-
-Default report-side closeout sequence:
-
-```sh
-pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
-pipenv run ops-build-report --outdir /tmp/masters-report-build
-shasum -a 256 public/final-report.pdf /tmp/masters-report-build/final-report.pdf
-```
-
-If source and PDF changes are both in scope, prefer separate commits unless the
-artifact refresh depends immediately on the same source patch and splitting
-would only create noise.
-
-## Next Round Objective
-
-Unless committee or advisor feedback opens a new lane, the manuscript is now in
-final-freeze territory rather than active prose development. The next report
-round should therefore be limited to one of the following:
-
-- a committee-feedback correction lane with explicitly bounded file scope;
+- a committee/advisor correction with explicit file scope;
 - a final archival/release lane that records the accepted source commit or
   release tag for the committee-submitted PDF;
-- a no-op verification handback confirming that the tracked PDF, source tree,
-  and release metadata remain aligned.
+- a no-op verification handback confirming that source, tracked PDF, and
+  release metadata remain aligned.
 
-Do not reopen broad editorial work without a new manuscript finding. Keep the
-same report-owned boundaries:
+Do not reopen broad editorial work without a concrete manuscript finding.
 
-- no package/runtime implementation;
-- no bibliography entries or source-inventory work;
-- no new figures/tables or regenerated evidence unless a separate accepted lane
-  supplies them; the accepted Canic source-artifact lane now supplies the
-  Appendix H Section 4.1 tables;
-- no claim promotion for native resolved-FSI production, imported parity,
-  moving-wall/ALE fidelity, or persisted restart/resume.
+## Package Coordination Boundary
+
+- Manuscript-grade Canic Section 4.1 source-artifact reproduction is tracked
+  through `canic-replication section41`, not through the native Gridap
+  resolved-FSI production path.
+- Native resolved-FSI preproduction/production execution, imported parity,
+  moving-wall/ALE fidelity, public/default restart/resume, and
+  production-scale restart/resume claims remain unpromoted from the report
+  side.
+- Native resolved-FSI timing/fingerprint work is execution-readiness metadata
+  only. The warmed `12x2x12` timing review found repeated affine-operator
+  assembly cost with stable sparsity but changing matrix and RHS values, so no
+  factorization-reuse or Gridap-context reuse patch was accepted.
+- Schema-v3 checkpoint sidecars and the qualified internal split-run resume
+  path are package/operator controls only. They do not change manuscript
+  claims, do not justify public/default restart wording, and do not require
+  report assets or PDF refresh.
+- Viewer scalar toggles, colorbar ranges, evidence badges, missing-field
+  disabled states, and surface slice diagnostics are inspection aids only.
+  They are not cross-section integration, production validation, imported
+  parity, or native moving-wall/ALE evidence.
+
+Refresh this TODO before changing manuscript claims if a future package handoff
+changes any boundary above.
 
 ## Asset Regeneration And Promotion Plan
 
 No manuscript asset regeneration is required for the current package changes.
-The web viewer controls, evidence badges, missing-field states, timing
-sidecars, matrix fingerprints, warmed timing pilot, canonical package API names,
-native diagnostics, and schema-v3 internal restart/resume sidecars are
-inspection, compatibility, or execution-readiness metadata only. Do not promote
-them into figures, tables, or claims without a separate accepted report-evidence
+Do not promote viewer screenshots, browser bundles, timing sidecars,
+reuse/fingerprint metadata, restart checkpoint sidecars, or dry-run status rows
+into figures, tables, or claims without a separate accepted report-evidence
 lane.
 
-If a future package handoff supplies accepted report evidence, use this
-promotion sequence instead of editing the manuscript ad hoc:
+If a future package handoff supplies accepted report evidence:
 
 1. Identify the source workflow and artifact class. The accepted Section 4.1
-   manuscript assets still come from `canic-replication section41 --publish-report-assets`,
-   not from native Gridap production timing or viewer exports.
-2. Regenerate into ignored scratch first, then publish only reviewed artifacts
-   into `report/assets/**` with the workflow's explicit `--publish-report-assets`
-   or documented report-output flags.
-3. Review generated CSV/JSON/TeX fragments for provenance, optional-input
+   manuscript assets still come from
+   `canic-replication section41 --publish-report-assets`, not from native
+   Gridap production timing or viewer exports.
+2. Regenerate into ignored scratch first.
+3. Publish only reviewed derived artifacts into `report/assets/**` with the
+   workflow's explicit `--publish-report-assets` or documented report-output
+   flags.
+4. Review generated CSV/JSON/TeX fragments for provenance, optional-input
    skips, source inconsistencies, and claim-boundary language before touching
    `report/sections/**` or `report/appendices/**`.
-4. Promote into manuscript source only when the asset supports an accepted
-   reader-facing claim. Viewer screenshots, browser bundles, timing sidecars,
-   reuse/fingerprint metadata, restart checkpoint sidecars, and dry-run status
-   rows remain out of the manuscript unless a new figure/table objective is
-   explicitly approved.
 5. If regeneration crosses package naming changes, update generated assets and
-   their consuming TeX/TikZ together. Current package code emits canonical
+   consuming TeX/TikZ together. Current package code emits canonical
    `classical-parabolic-1d` and axial-observation labels, while some accepted
    tracked report assets still carry historical `classical-1d-no-slip`,
-   `u1d`, and `u3d` labels from the source-artifact lane. That mismatch does
-   not force immediate regeneration, but a future accepted regeneration lane
-   must reconcile the asset columns and manuscript consumers before refreshing
-   the PDF.
+   `u1d`, and `u3d` labels from the source-artifact lane.
 6. Build source-only first:
 
-   ```sh
+   ```bash
    pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
    ```
 
-7. Refresh `public/final-report.pdf` only after the source/assets are accepted
-   for reader-facing publication:
+7. Refresh `public/final-report.pdf` only after reader-facing source/assets are
+   accepted:
 
-   ```sh
+   ```bash
    pipenv run ops-build-report --outdir /tmp/masters-report-build
    shasum -a 256 public/final-report.pdf /tmp/masters-report-build/final-report.pdf
    ```
 
-The currently relevant report-promotion commands remain those recorded in
-Appendix H:
+Current Section 4.1 promotion command, retained for reference:
 
-```sh
+```bash
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
   --data-root public/var/data/simulations/canic_case3 \
   --output-dir tmp/simulations/output/canic-replication/section41 \
@@ -163,116 +114,54 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication secti
   --overwrite
 ```
 
-For native resolved-FSI web visualization, keep generated browser assets in
-scratch or viewer demo fixtures. The visualization export does not run
-production, does not publish `report/assets/**`, and does not provide
-paper-grade Section 4.1 reproduction evidence.
+For future native resolved-FSI preproduction or imported-parity evidence, keep
+raw bundles, observation CSVs, parity summaries, restart/checkpoint sidecars,
+and status files in scratch until a report-evidence lane explicitly approves a
+reader-facing figure/table. Only then should reviewed derived artifacts enter
+`report/assets/**` and the manuscript.
 
-For future native resolved-FSI preproduction or imported-parity evidence, use a
-separate report-evidence lane after the package lane supplies accepted
-production outputs. The package owner should first regenerate or produce the
-native artifacts under ignored scratch/output roots, run the relevant parity or
-observation workflows, and hand back exact paths plus claim-boundary language.
-Only then should the report owner decide whether any reviewed CSV/JSON/TeX
-tables, figures, or prose updates belong in `report/assets/**` and the
-manuscript. The tracked PDF should stay untouched until those source/assets are
-accepted.
+## Standard Report Closeout
 
-## Post-Sweep Verification Shape
+For report-source lanes, source-only validation is:
 
-If a later report-owned lane touches source again, start with:
-
-```sh
-git status --short
-git log -8 --oneline
-pipenv run ops-orchestrate status --json
-```
-
-Then rerun the standing claim-boundary and report gates:
-
-```sh
-rg -n "Section 4\\.1 reproduction|paper-grade|preproduction|production execution|imported parity|moving-wall/ALE fidelity|persisted restart|restart/resume" \
-  report/sections report/appendices report/TODO.md -g '*.tex' -g '*.md'
+```bash
 pipenv run ops-audit-report-prose --json
 pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
 ```
 
-Refresh the tracked PDF whenever reader-facing source changes are accepted:
+For reader-facing source changes that are accepted for publication, refresh the
+tracked PDF:
 
-```sh
+```bash
 pipenv run ops-build-report --outdir /tmp/masters-report-build
 shasum -a 256 public/final-report.pdf /tmp/masters-report-build/final-report.pdf
 ```
 
-## Package Coordination Boundary
+## Validation
 
-The report lane still does not own package implementation. Keep report wording
-aligned to the current accepted package evidence boundary:
+For this TODO-only refresh:
 
-- focused mathematical-contract package evidence is accepted;
-- manuscript-grade Canic Section 4.1 source-artifact reproduction is now
-  tracked through `canic-replication section41`, not through the native
-  Gridap resolved-FSI production path;
-- imported parity, preproduction/production execution, moving-wall/ALE
-  fidelity, public/default restart/resume, and production-scale
-  restart/resume claims remain unpromoted from the report side;
-- DG p-improvement language remains limited to the explicit limiter-disabled
-  smooth MMS verification configuration.
-- Native resolved-FSI timing/fingerprint work is execution-readiness metadata
-  only. The tiny two-step timing pilot indicates first-use Gridap lifecycle
-  and affine-operator setup dominate that small run. The warmed 12x2x12
-  timing review found repeated affine-operator assembly cost with stable
-  sparsity but changing matrix and RHS values, so no factorization-reuse or
-  Gridap-context reuse patch was accepted. This does not change any manuscript
-  claim boundary.
-- Native resolved-FSI schema-v3 checkpoint sidecars and the qualified internal
-  split-run resume path are package/operator controls only. They do not change
-  manuscript claims, do not justify public/default restart wording, and do not
-  require report assets or PDF refresh.
-- Web-viewer scalar toggles, colorbar ranges, evidence badges, missing-field
-  disabled states, and surface slice diagnostics are viewer-derived inspection
-  aids only. They do not constitute cross-section integration, production
-  validation, imported parity, or native moving-wall/ALE evidence.
-
-If a future package handoff changes those boundaries, refresh this TODO before
-changing manuscript claims.
-
-## Validation Commands
-
-For `report/TODO.md` only:
-
-```sh
-git diff --check -- report/TODO.md
-sed -n '1,260p' report/TODO.md
+```bash
+git diff --check -- packages/stenotic-hemodynamics/TODO.md report/TODO.md
+pipenv run ops-orchestrate docs-contract
 ```
 
-For report-source editorial lanes:
+For future report-source lanes:
 
-```sh
+```bash
 git diff --check -- report/TODO.md report/sections report/appendices
 pipenv run ops-audit-report-prose --json
 pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
 ```
 
-For report-source lanes that close with synced PDF refresh:
-
-```sh
-pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
-pipenv run ops-build-report --outdir /tmp/masters-report-build
-shasum -a 256 public/final-report.pdf /tmp/masters-report-build/final-report.pdf
-```
-
 ## Live Layout Guardrails
 
 - manuscript entrypoint: `report/final-report.tex`
-- Section 2: `report/sections/02-continuum/index.tex`
-- Section 5: `report/sections/05-numerical-methods/index.tex`
-- Section 7 overview: `report/sections/07-case-study/index.tex`
-- Section 7 comparison: `report/sections/07-case-study/comparison.tex`
-- discussion and conclusion: `report/sections/08-discussion-conclusion/index.tex`
-- Appendix E: `report/appendices/continuum-derivation-details.tex`
-- Appendix G: `report/appendices/numerical-methods-details.tex`
-- Appendix H: `report/appendices/code-and-ai-use.tex`
+- prose: `report/sections/**`
+- appendices: `report/appendices/**`
+- shared setup: `report/preamble/**`
+- bibliography: `public/references/references.bib`
+- report assets: `report/assets/**`
 - repo documentation: `public/docs/**`
 
 Do not reference stale root `docs/**` paths or
