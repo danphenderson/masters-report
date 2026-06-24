@@ -2,33 +2,21 @@
 
 ## Current Status
 
-This TODO is refreshed after the latest report-side cohesion pass and artifact
-sync:
-
-- `33f7f3f` polished the numerical narrative across Sections 5--8 and the
-  notation appendix.
-- `adf831b` harmonized residual terminology drift across the hierarchy,
-  closures, and case-study opening.
-- `513702e` refreshed the tracked
-  [public/final-report.pdf](/Users/doe/hemodynamics/masters-report/public/final-report.pdf)
-  from the current accepted sources.
-- `pipenv run ops-audit-report-prose --json` passed with no findings on the
-  current manuscript.
-- `pipenv run ops-build-report --outdir /tmp/masters-report-build` passed, and
-  the synced public PDF matches the scratch build byte-for-byte.
+This TODO is refreshed after the committee-polish report-boundary pass.
 
 The active manuscript now has the following report-side narrative state:
 
-- Section 5 states a common numerical template and stencil bridge without
-  turning the chapter into a reproducibility ledger.
-- Section 6 now bridges directly into Section 7's worked-example frame.
-- Section 7 comparison leads with the result, then the retained discrepancy
-  evidence, then the interpretive budget and its limits.
-- Section 8 now states more directly that interpretation depends on the
-  declared equation, retained state, discretization, observation operator, and
-  metric.
-- The mathematical-notation appendix now reads as reference material rather
-  than a theorem-style object.
+- Section 5 keeps the stable `Numerical contract stack` anchor while using
+  more precise surrounding language for model specification, observation
+  operator, and metric interpretation.
+- Section 7 methodology and comparison now read more consistently with the
+  result-first worked-example frame, without reopening the underlying
+  derivations or boundary design.
+- Section 8 states the contribution and limitations through the direct
+  interpretive chain rather than through a more schematic template description.
+- The mathematical-notation appendix remains reference-style, and Appendix G
+  preserves the accepted package evidence boundary without widening into a
+  runtime roadmap.
 
 ## Completed Report Alignment
 
@@ -47,6 +35,11 @@ Do not reopen these report lanes without a new technical or editorial finding:
   runtime status, restart design, and parity-roadmap details.
 - The DG p/h demo now states exactly that accepted p-improvement belongs only
   to the explicit limiter-disabled smooth MMS verification configuration.
+- Section 2.3 rheology reintegration remains closed as a broad editorial lane;
+  the current continuum/generalized-Newtonian framing is retained unless a
+  concrete live-text inconsistency is found later.
+- Section 7 methodology no longer carries the densest visible terminology drift
+  around `contract` in reader-facing prose; stable labels remain in place.
 
 ## Standard Closeout Rule
 
@@ -68,21 +61,21 @@ would only create noise.
 
 ## Next Round Objective
 
-Run one bounded committee-polish pass over the active manuscript TeX, then
-refresh and commit the public PDF as part of the same editorial lane. The goal
-is not new scientific depth. The goal is to eliminate the remaining small
-register inconsistencies so the report reads as one continuous mathematical
-argument from Introduction through Conclusion.
+Run a final submission-readiness sweep rather than another broad prose lane.
+The manuscript narrative is now close to stable. The next round should focus on
+final claim-boundary inspection, page-level visual checks, Appendix H source
+record accuracy, and any last reader-facing cleanup discovered through those
+checks.
 
 The next round should stay report-owned and source-grounded:
 
-- no new package/runtime implementation;
-- no new bibliography entries or source-inventory work;
-- no new numerical claims, tables, or figures unless already generated and
-  accepted elsewhere;
+- no package/runtime implementation;
+- no bibliography entries or source-inventory work;
+- no new figures/tables or regenerated evidence unless a separate accepted lane
+  supplies them;
 - no claim promotion for native resolved-FSI production, imported parity,
-  moving-wall/ALE fidelity, persisted resume, or manuscript-grade Section 4.1
-  reproduction.
+  moving-wall/ALE fidelity, persisted restart/resume, or manuscript-grade
+  Section 4.1 reproduction.
 
 ## Immediate Execution Plan
 
@@ -105,42 +98,28 @@ Expected starting condition:
 - package code remains out of scope unless a separate package handoff changes
   the report claim boundary.
 
-### 2. Remaining Terminology Sweep
+### 2. Final Claim-Boundary Scan
 
-Goal: remove the last nonessential drift among `contract`, `specification`,
-`template`, `rule`, and `declaration`.
-
-Primary files:
-
-- `report/sections/03-model-hierarchy/index.tex`
-- `report/sections/04-modeling-closures/index.tex`
-- `report/sections/05-numerical-methods/index.tex`
-- `report/sections/06-synthesis/index.tex`
-- `report/sections/07-case-study/index.tex`
-- `report/sections/07-case-study/comparison.tex`
-- `report/sections/08-discussion-conclusion/index.tex`
-- `report/appendices/mathematical-notation.tex`
-
-Working rule:
-
-- keep `contract` only where it names a genuinely mathematical or comparison
-  boundary;
-- prefer `model specification`, `closure specification`, `observation rule`,
-  `metric definition`, or `comparison setup` where those are more exact;
-- keep `template` only for the Section 5 interpretive chain and direct
-  descendants of that construction.
-
-Suggested scan:
+Re-scan the active manuscript for any accidental claim promotion:
 
 ```sh
-rg -n "contract|specification|template|declaration|observation map|comparison setup" \
-  report/sections report/appendices -g '*.tex'
+rg -n "Section 4\\.1 reproduction|paper-grade|preproduction|production execution|imported parity|moving-wall/ALE fidelity|persisted restart|restart/resume" \
+  report/sections report/appendices report/TODO.md -g '*.tex' -g '*.md'
 ```
 
-### 3. Comparison Cadence Audit
+Allowed matches should be bounded negative claims or explicit planning
+guardrails only.
 
-Re-read the full `report/sections/07-case-study/comparison.tex` narrative as
-one unit and check that the result cadence still holds after all recent edits:
+### 3. Comparison and Methodology Read-Through
+
+Re-read the full Section 7 worked-example chain as one unit:
+
+- `report/sections/07-case-study/index.tex`
+- `report/sections/07-case-study/methodology.tex`
+- `report/sections/07-case-study/verification.tex`
+- `report/sections/07-case-study/comparison.tex`
+
+Check that the result cadence still holds:
 
 1. result summary;
 2. main discrepancy table and figure;
@@ -154,16 +133,15 @@ Audit for:
   interpretation;
 - no repeated statement of the same limitation in adjacent paragraphs.
 
-### 4. Appendix Linkage Compression
+### 4. Appendix H Source Record and Final Appendix Linkage
 
 Check whether the body still repeats appendix-level mechanics that can now be
 forwarded cleanly.
 
 Primary surfaces:
 
-- `report/appendices/mathematical-notation.tex`
-- `report/appendices/domain-notation.tex`
 - `report/appendices/code-and-ai-use.tex`
+- `report/appendices/mathematical-notation.tex`
 - nearby body references in Sections 5, 7, and 8
 
 Acceptance:
@@ -172,49 +150,13 @@ Acceptance:
   arguments;
 - notation appendix stays compact and reference-like;
 - Appendix H should capture provenance/AI-use detail without intruding on the
-  mathematical narrative.
+  mathematical narrative, and it should record the exact source commit used for
+  the submitted PDF.
 
-### 5. Section-Transition Normalization
-
-Check the starts and ends of the main report sections as a single argument arc.
-
-Priority surfaces:
-
-- `report/sections/01-intro/index.tex`
-- `report/sections/02-continuum/index.tex`
-- `report/sections/03-model-hierarchy/index.tex`
-- `report/sections/04-modeling-closures/index.tex`
-- `report/sections/07-case-study/index.tex`
-- `report/sections/08-discussion-conclusion/index.tex`
-
-Goal:
-
-- each section should end by handing the reader to the next question;
-- each next section should open by answering that question, not by restarting
-  the narrative cold.
-
-### 6. Final Scope-Language Sweep
-
-Run one final prose check on synthesis and conclusion language so the closing
-claims remain bounded to the actual evidence chain.
-
-Primary files:
-
-- `report/sections/06-synthesis/index.tex`
-- `report/sections/08-discussion-conclusion/index.tex`
-
-Target language:
-
-- interpretation depends on the declared equation, retained state,
-  discretization, observation operator, and metric;
-- evidence categories remain distinct;
-- no slide back into generic `evidence type / claim type` wording where the
-  newer direct formulation is stronger.
-
-### 7. Standard PDF Refresh
+### 5. Page-Level Visual Check and Standard PDF Refresh
 
 After accepted report-side source edits, refresh the public PDF as part of the
-same handback.
+same handback and visually inspect the pages most likely to drift.
 
 Required commands:
 
@@ -227,6 +169,7 @@ shasum -a 256 public/final-report.pdf /tmp/masters-report-build/final-report.pdf
 
 Also visually spot-check the pages most likely to drift:
 
+- Section 7 methodology pages;
 - Section 7 comparison pages;
 - Appendix G pages with DG verification language;
 - conclusion pages.

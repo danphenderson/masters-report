@@ -6,7 +6,7 @@
 
 This section reports final-time comparisons between the selected 1D
 area--flow solution and two resolved stenotic-vessel datasets. Under the
-reference-coordinate section observation map, the 23\% case has mean absolute
+reference-coordinate section observation operator, the 23\% case has mean absolute
 section-velocity discrepancy $0.505\,\mathrm{cm}/\mathrm{s}$ and relative RMS
 discrepancy $2.77\%$; the 40\% case has $0.966\,\mathrm{cm}/\mathrm{s}$ and
 $6.88\%$. The larger discrepancies occur near the throat, and the available
@@ -114,7 +114,7 @@ $R_{\min}=0.1386\,\mathrm{cm}$ for the 23\% stenosis case and
 $R_{\min}=0.1080\,\mathrm{cm}$ for the 40\% stenosis case.
 The area check below shows that the section cuts track the analytic reference
 geometry closely enough for the velocity comparison to be interpreted as an
-observation-map comparison rather than a gross cut-geometry mismatch.
+observation-operator comparison rather than a gross cut-geometry mismatch.
 
 \begin{table}[!htb]
     \centering
@@ -162,7 +162,7 @@ attribution.
     \scriptsize
     \caption{Reference-coordinate section-mean velocity discrepancy summary at
     the matched final-time sample after applying the common section observation
-    map. Values are in cm/s except for the axial location column in cm; the
+    operator. Values are in cm/s except for the axial location column in cm; the
     table reports diagnostic cross-model discrepancy, not clinical validation.}
     \label{tab:t1-3d-comparison-summary}
     \resizebox{\textwidth}{!}{%
@@ -191,7 +191,7 @@ attribution.
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{section-mean-comparison}
     \caption{Area-mean axial velocity comparison at $t=0.9995$ s under the
-    reference-coordinate section observation map. Solid curves are tetrahedral
+    reference-coordinate section observation operator. Solid curves are tetrahedral
     cross-section quadrature means from the resolved 3D velocity field; dashed
     curves are interpolated 1D means
     $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.}
@@ -356,7 +356,7 @@ resolved wall history or boundary histories.
     \centering
     \scriptsize
     \caption{Reference-coordinate versus deformed-coordinate discrepancy
-    measures for the same section observation map. $D_{u,1}$ and $D_{u,2}$ are
+    measures for the same section observation operator. $D_{u,1}$ and $D_{u,2}$ are
     the mean absolute and RMS section-mean velocity discrepancies in cm/s;
     $D_{Q,1}$ is the mean absolute physical-flow discrepancy in cm$^3$/s.}
     \label{tab:t1-coordinate-mode-comparison}
@@ -367,7 +367,7 @@ resolved wall history or boundary histories.
     \centering
     \captionsetup{aboveskip=2pt,belowskip=2pt}
     \figtikz{coordinate-mode-discrepancy}
-    \caption{Effect of the displacement-aware observation map on the
+    \caption{Effect of the displacement-aware observation operator on the
     section-wise velocity discrepancy. Solid curves use reference mesh
     coordinates, while dashed curves form the same plane cuts after the nodal
     map $x\mapsto x+d(x)$; the figure changes the coordinate mode, not the 1D

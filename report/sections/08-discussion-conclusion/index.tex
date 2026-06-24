@@ -14,12 +14,12 @@ propagation; and Quarteroni--Veneziani multiscale coupling shows that boundary
 data can be a reduced model of omitted circulation
 \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,QuarteroniVeneziani2003GeometricalMultiscale}.
 Thus 0D, 1D, and 2D formulations should not be described as weaker versions of
-3D CFD; they retain different states and require different observation maps.
+3D CFD; they retain different states and require different observation operators.
 
 The case study demonstrates this answer by using a distributed 1D
 area--flow state only for quantities it can natively or reconstructively
 support: area, flow, section-mean velocity, wall-law pressure, and a declared
-velocity observation map. It does not ask that state to produce native WSS,
+velocity observation operator. It does not ask that state to produce native WSS,
 secondary flow, wall stress, or clinical pressure-ratio evidence.
 
 \subsection{RQ2: Observables and Closure Choices}
@@ -79,9 +79,9 @@ chain rather than to one validation grade.
 \label{subsec:discussion-contribution-limitations}
 
 The contribution is a review framework for reading mathematical hemodynamics
-across model tiers. It supplies a concise template connecting retained state,
-closures, boundary data, discretization, observation operator, metric, and
-evidence type. It applies that template once in an idealized stenosis
+across model tiers. It connects retained state, closures, boundary data,
+discretization, observation operator, metric, and evidence standard in one
+interpretive chain, then applies that chain once in an idealized stenosis
 computation.
 
 The limitations are correspondingly bounded. The review is narrative and

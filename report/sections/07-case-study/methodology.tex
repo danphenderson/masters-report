@@ -1,9 +1,9 @@
-\subsection{Case-Study Role and Model Contract}
+\subsection{Case-Study Role and Model Specification}
 \label{sec:methodology}
 
 This section applies the review framework to one controlled stenosis example.
 The model tier, retained variables, closure choices, boundary approximation,
-finite-volume operator, observation map, and matching limits are stated before
+finite-volume operator, observation rule, and matching limits are stated before
 any result is interpreted. Dense operator formulas, secondary numerical
 surfaces, and reproducibility commands remain in the appendices unless they are
 needed to understand a main-body claim. The paragraphs below therefore name
@@ -27,7 +27,7 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Case-study contract for the retained 23\% and 40\%
+    \caption{Case-study specification for the retained 23\% and 40\%
     stenosis-severity numerical evidence. The table states how the worked
     example should be read before the numerical results are interpreted.}
     \label{tab:t1-case-study-contract}
@@ -36,7 +36,7 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
         >{\raggedright\arraybackslash}p{0.39\textwidth}
         >{\raggedright\arraybackslash}X@{}}
         \toprule
-        \textbf{Contract item}
+        \textbf{Specification item}
             & \textbf{Main-body statement}
             & \textbf{Interpretation boundary} \\
         \midrule
@@ -85,7 +85,7 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
     \end{tabularx}
 \end{table}
 
-\subsubsection{Model Contract and Native Variables}
+\subsubsection{Model Specification and Native Variables}
 \label{subsec:methodology-problem-definition}
 \label{subsec:selected-1d-forward-model}
 \label{subsec:cross-sectional-variables-governing-equations}
@@ -304,7 +304,7 @@ mathematical point is that the retained state is only axial area and flow;
 transverse velocity, wall response, friction, rheology, and variable-radius
 effects enter through closures. Appendix~\ref{app:num-current-solver-operator}
 is the operator authority in solver coordinates. The main text uses it only to
-state the contract needed to interpret the evidence.
+state the specification needed to interpret the evidence.
 
 The selected continuous law has a rest state that matters for the evidence
 standard. Under constant external pressure and compatible zero-flow boundary
@@ -340,7 +340,7 @@ the geometry-rest verification test in Section~\ref{subsec:rest-state-drift}.
 \end{proof}
 
 This proposition is the model-side item in Definition~\ref{def:well-balanced-checklist}
-for the selected contract stack in Section~\ref{subsec:numerical-contract-stack}.
+for the selected numerical template in Section~\ref{subsec:numerical-contract-stack}.
 Its implementation limits remain in Section~\ref{subsec:conservative-form-source-terms} and
 \ref{subsec:rest-state-drift}, where the comparison uses numerical residuals
 rather than exact algebraic cancellation.
@@ -423,9 +423,9 @@ Appendix~\ref{app:num-boundary-state-realization} uses an $\alpha=1$,
 fixed-area characteristic approximation as the boundary invariant for the
 variable-$\alpha_{\mathrm{eff}}$ solver.
 
-\begin{definition}[Fixed-area characteristic approximation contract]
+\begin{definition}[Fixed-area characteristic approximation]
 \label{def:fixed-area-characteristic-contract}
-At each boundary call, the selected contract sets the ghost geometry to the
+At each boundary call, the selected boundary approximation sets the ghost geometry to the
 reference values and closes the incoming Riemann relation using fixed-area
 characteristics.
 \begin{flalign*}
@@ -446,7 +446,7 @@ reported as part of the declared boundary approximation rather than attributed
 to the continuous model alone.
 \end{definition}
 
-The contract is therefore an implemented boundary approximation, not an exact
+This is therefore an implemented boundary approximation, not an exact
 invariant derivation for the full variable-radius balance law.
 
 \subsubsection{Principal MUSCL/Rusanov/SSPRK3 Method}
@@ -461,7 +461,7 @@ timestep cap of $10^{-5}$ s, and a CFL cap of 0.45. The optional
 output-sensitivity check reruns the same comparison protocol at
 $N=200,400,800$ cells and is interpreted only as a production-grid sensitivity
 check. The boundary-state approximation is the fixed-area characteristic
-contract defined in
+approximation defined in
 Appendix~\ref{app:num-boundary-state-realization}. Other finite-volume, modal-DG,
 time-stepper, and ODE-integration surfaces are secondary sensitivity context
 summarized in Table~\ref{tab:implemented-discretization-surface};

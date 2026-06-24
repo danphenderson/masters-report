@@ -6,7 +6,7 @@ Choosing a model tier does not close a hemodynamic problem. The mathematical
 state must be paired with constitutive, wall, geometric, boundary, data, and
 observable conventions. These choices determine which terms appear in the
 equations and which reported quantities are native states, derived fields,
-diagnostics, or cross-tier observation maps. They are therefore part of the
+diagnostics, or cross-tier observation operators. They are therefore part of the
 mathematical model, not secondary implementation detail.
 
 \subsection{Rheology and Effective-Viscosity Modeling}
@@ -190,7 +190,7 @@ can be compared across model classes only after both states have been observed
 through compatible pressure and flow conventions \cite{Blanco2018FFR1D3D}.
 
 The operator forms used in the report are intentionally explicit observation
-maps:
+operators:
 \begin{flalign*}
     \quad
     Q=\int_S \vu\cdot\nhat_S\,dA,\qquad
@@ -201,7 +201,7 @@ where $S$ is the declared section and $\bar p$ is a section representative, not
 a pointwise pressure value. A pressure drop is
 $\Delta p=p_{\mathrm{up}}-p_{\mathrm{down}}$, and a pressure ratio is
 $p_{\mathrm{down}}/p_{\mathrm{up}}$ only after the pressure convention,
-locations, and pressure observation maps are declared. A WSS vector is the
+locations, and pressure observation operators are declared. A WSS vector is the
 tangential projection of $\vT\nhat$ on the wall, with scalar indices such as
 AWSS or OSI derived only after the vector convention and wall-output operator
 are fixed. An FFR-style pressure ratio should not be called FFR unless the

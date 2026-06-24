@@ -35,7 +35,7 @@ traction or kinematic coupling
 \cite{QuarteroniFormaggia2004CardiovascularModeling,FormaggiaEtAl2007FSICoupling}.
 Thus 0D, 1D, and 2D tiers are not simply alternative ``3D CFD methods''; they
 are reduced or coupled formulations with different native states and observation
-maps.
+operators.
 
 \subsection{Resolved 3D CFD and FSI Models}
 \label{subsec:resolved-reduced-model-tiers}
@@ -87,7 +87,7 @@ models remain useful for sectional diagnostics and controlled comparisons only
 when their boundary conditions, rheology, wall treatment, and observable
 definitions are declared. Suppressed secondary flow, asymmetric geometry, and
 wall mechanics cannot later be recovered as native outputs unless an additional
-closure or observation map supplies them.
+closure or observation operator supplies them.
 
 \subsection{Distributed One-Dimensional Area--Flow Models}
 \label{subsec:distributed-one-dimensional-models}
@@ -320,7 +320,7 @@ case therefore belongs beside other 1D stenosis models, including extended
 variable-radius formulations \cite{CanicEtAl2024Extended1DStenosis}, rather
 than beside resolved CFD or FSI as a native wall-traction or wall-displacement
 solver. When it is compared with resolved data, the comparison passes through
-an observation map from 1D area--flow variables to the chosen velocity, flow, or
+an observation operator from 1D area--flow variables to the chosen velocity, flow, or
 pressure quantity.
 \end{stenosisillustration}
 

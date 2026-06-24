@@ -1,7 +1,7 @@
 \section{Numerical Methods Details}
 \label{app:numerical-methods-details}
 This appendix gives the numerical-method details needed to interpret the
-implemented solver contract, the verification evidence, and the diagnostic
+implemented solver specification, the verification evidence, and the diagnostic
 1D--3D velocity comparison. Secondary solver surfaces are included only where
 they support retained secondary numerical diagnostics; the principal comparison
 method remains MUSCL finite volume with minmod limiting, Rusanov flux, source
@@ -310,7 +310,7 @@ and accepted for the report.
     \centering
     \scriptsize
     \caption{Optional production-grid sensitivity for the reference-coordinate
-    resolved-velocity observation map. Flow discrepancies are in cm$^3$/s and
+    resolved-velocity observation operator. Flow discrepancies are in cm$^3$/s and
     velocity discrepancies are in cm/s; the rows test numerical sensitivity of
     the comparison output, not patient-specific interpretation.}
     \label{tab:t1-grid-sensitivity-summary}
@@ -325,7 +325,7 @@ and accepted for the report.
     \caption{Five largest section-wise velocity discrepancies in the
     reference-coordinate comparison. Velocities and velocity discrepancies are
     in cm/s; physical flows and flow discrepancies are in cm$^3$/s. The ranking
-    identifies where the declared observation map differs most strongly between
+    identifies where the declared observation operator differs most strongly between
     tiers.}
     \label{tab:t1-largest-section-discrepancies}
     \begin{tabular}{@{}rlrrrrrrrr@{}}
@@ -370,7 +370,7 @@ and accepted for the report.
 The local three-dimensional refinement study is limited to a fixed-wall
 stationary-Stokes problem on the smooth idealized stenosis geometry. It is an
 initializer and projection diagnostic, not a replacement for the 1D
-initial-condition contract and not a resolved FSI record. The rows document
+initial-condition specification and not a resolved FSI record. The rows document
 successful projection and coarse-to-fine discrepancies relative to the largest
 completed mesh; no asymptotic convergence claim is made from this short
 refinement set.
@@ -429,7 +429,8 @@ establish the severity-23 preproduction execution gate, production parity,
 imported parity, moving-wall/ALE fidelity, durable restart or resume support,
 regenerated report tables, promoted radial-profile evidence, or
 manuscript-grade reproduction of Section~4.1 of Canic et al. Current
-Gridap-based resolved-flow language is therefore focused contract evidence
+Gridap-based resolved-flow language is therefore focused package
+mathematical-contract evidence
 rather than a backend-replacement or production-claim basis.
 
 The corresponding report-generation entry point is:
@@ -456,7 +457,7 @@ artifact-refresh lane explicitly promotes them.
 \label{app:num-elastic-potential-form}
 
 The reduced state is $\mathbf U=(A,Q)^\top$. For a law in the
-$\mathcal W_{\mathrm{elastic1D}}$ balance-law contract with prescribed
+$\mathcal W_{\mathrm{elastic1D}}$ balance-law specification with prescribed
 momentum-flux correction $\alpha$, the reference elastic-potential form is
 \begin{flalign*}
     \quad
