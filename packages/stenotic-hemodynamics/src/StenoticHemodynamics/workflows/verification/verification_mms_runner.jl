@@ -49,11 +49,9 @@ function manufactured_verification_case(study_kind::String, spec::ManufacturedVe
             area_l1_error=l1_error(result.area, exact_A),
             area_l2_error=l2_error(result.area, exact_A),
             area_linf_error=linf_error(result.area, exact_A),
-            area_observed_order=NaN,
             flow_l1_error=l1_error(result.flow, exact_Q),
             flow_l2_error=l2_error(result.flow, exact_Q),
             flow_linf_error=linf_error(result.flow, exact_Q),
-            flow_observed_order=NaN,
             accepted_dt_min=result.diagnostics.dt_min,
             accepted_dt_max=result.diagnostics.dt_max,
             realized_cfl_max=result.diagnostics.cfl_max,
@@ -72,11 +70,9 @@ function manufactured_verification_case(study_kind::String, spec::ManufacturedVe
             area_l1_error=NaN,
             area_l2_error=NaN,
             area_linf_error=NaN,
-            area_observed_order=NaN,
             flow_l1_error=NaN,
             flow_l2_error=NaN,
             flow_linf_error=NaN,
-            flow_observed_order=NaN,
             accepted_dt_min=NaN,
             accepted_dt_max=NaN,
             realized_cfl_max=NaN,
@@ -100,11 +96,21 @@ function assign_manufactured_orders(rows::Vector{ManufacturedVerificationRow})
         else
             current.dt / next_row.dt
         end
-        area_order = next_row === nothing ? NaN : observed_order_ratio(current.area_l2_error, next_row.area_l2_error, ratio)
-        flow_order = next_row === nothing ? NaN : observed_order_ratio(current.flow_l2_error, next_row.flow_l2_error, ratio)
+        area_l1_order = next_row === nothing ? NaN : observed_order_ratio(current.area_l1_error, next_row.area_l1_error, ratio)
+        area_l2_order = next_row === nothing ? NaN : observed_order_ratio(current.area_l2_error, next_row.area_l2_error, ratio)
+        area_linf_order =
+            next_row === nothing ? NaN : observed_order_ratio(current.area_linf_error, next_row.area_linf_error, ratio)
+        flow_l1_order = next_row === nothing ? NaN : observed_order_ratio(current.flow_l1_error, next_row.flow_l1_error, ratio)
+        flow_l2_order = next_row === nothing ? NaN : observed_order_ratio(current.flow_l2_error, next_row.flow_l2_error, ratio)
+        flow_linf_order =
+            next_row === nothing ? NaN : observed_order_ratio(current.flow_linf_error, next_row.flow_linf_error, ratio)
         if current.study_kind != "spatial"
-            area_order = NaN
-            flow_order = NaN
+            area_l1_order = NaN
+            area_l2_order = NaN
+            area_linf_order = NaN
+            flow_l1_order = NaN
+            flow_l2_order = NaN
+            flow_linf_order = NaN
         end
         push!(
             output,
@@ -117,11 +123,17 @@ function assign_manufactured_orders(rows::Vector{ManufacturedVerificationRow})
                 area_l1_error=current.area_l1_error,
                 area_l2_error=current.area_l2_error,
                 area_linf_error=current.area_linf_error,
-                area_observed_order=area_order,
+                area_l1_observed_order=area_l1_order,
+                area_l2_observed_order=area_l2_order,
+                area_linf_observed_order=area_linf_order,
+                area_observed_order=area_l2_order,
                 flow_l1_error=current.flow_l1_error,
                 flow_l2_error=current.flow_l2_error,
                 flow_linf_error=current.flow_linf_error,
-                flow_observed_order=flow_order,
+                flow_l1_observed_order=flow_l1_order,
+                flow_l2_observed_order=flow_l2_order,
+                flow_linf_observed_order=flow_linf_order,
+                flow_observed_order=flow_l2_order,
                 accepted_dt_min=current.accepted_dt_min,
                 accepted_dt_max=current.accepted_dt_max,
                 realized_cfl_max=current.realized_cfl_max,

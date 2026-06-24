@@ -26,11 +26,15 @@ manufactured_verification_header() = [
     "area_l1_error",
     "area_l2_error",
     "area_linf_error",
+    "area_l1_observed_order",
     "area_l2_observed_order",
+    "area_linf_observed_order",
     "flow_l1_error",
     "flow_l2_error",
     "flow_linf_error",
+    "flow_l1_observed_order",
     "flow_l2_observed_order",
+    "flow_linf_observed_order",
     "accepted_dt_min",
     "accepted_dt_max",
     "realized_cfl_max",
@@ -50,11 +54,15 @@ function manufactured_verification_values(row::ManufacturedVerificationRow)
         row.area_l1_error,
         row.area_l2_error,
         row.area_linf_error,
-        row.area_observed_order,
+        row.area_l1_observed_order,
+        row.area_l2_observed_order,
+        row.area_linf_observed_order,
         row.flow_l1_error,
         row.flow_l2_error,
         row.flow_linf_error,
-        row.flow_observed_order,
+        row.flow_l1_observed_order,
+        row.flow_l2_observed_order,
+        row.flow_linf_observed_order,
         row.accepted_dt_min,
         row.accepted_dt_max,
         row.realized_cfl_max,
@@ -69,8 +77,8 @@ end
     write_manufactured_verification_tex(path, rows; overwrite=false)
 
 Write the MMS verification LaTeX tables. The first table is the spatial
-verification summary; the second reports timestep insensitivity on the finest
-configured grid.
+error summary, the second reports metric-specific spatial observed orders, and
+the third reports timestep insensitivity on the finest configured grid.
 """
 function write_manufactured_verification_tex(
     path::String,
@@ -81,15 +89,33 @@ function write_manufactured_verification_tex(
         println(io, "\\begin{table}[!htb]")
         println(io, "    \\centering")
         println(io, "    \\scriptsize")
-        println(io, "    \\caption{Manufactured-solution spatial verification errors. The order columns use adjacent-grid \$L_2\$ errors; the final column checks the inserted forcing against an independently assembled residual.}")
+        println(io, "    \\caption{Manufactured-solution spatial verification errors in the cell-center discrete \$L_1\$, \$L_2\$, and \$L_\\infty\$ metrics. The final column checks the inserted forcing against an independently assembled residual.}")
         println(io, "    \\resizebox{\\textwidth}{!}{%")
-        println(io, "    \\begin{tabular}{@{}rrrrrrrrrrrr@{}}")
+        println(io, "    \\begin{tabular}{@{}rrrrrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        \$N\$ & \$\\Delta t_{\\min}\$ & CFL\$_{\\max}\$ & \$\\|e_a\\|_1\$ & \$\\|e_a\\|_2\$ & \$\\|e_a\\|_\\infty\$ & \$p_a\$ & \$\\|e_q\\|_1\$ & \$\\|e_q\\|_2\$ & \$\\|e_q\\|_\\infty\$ & \$p_q\$ & forcing check \\\\")
+        println(io, "        \$N\$ & \$\\Delta t_{\\min}\$ & CFL\$_{\\max}\$ & \$\\|e_a\\|_1\$ & \$\\|e_a\\|_2\$ & \$\\|e_a\\|_\\infty\$ & \$\\|e_q\\|_1\$ & \$\\|e_q\\|_2\$ & \$\\|e_q\\|_\\infty\$ & forcing check \\\\")
         println(io, "        \\midrule")
-        for row in rows
-            row.status == "ok" && row.study_kind == "spatial" || continue
+        spatial_rows = [row for row in rows if row.status == "ok" && row.study_kind == "spatial"]
+        for row in spatial_rows
             println(io, manufactured_verification_latex_row(row))
+        end
+        println(io, "        \\bottomrule")
+        println(io, "    \\end{tabular}%")
+        println(io, "    }")
+        println(io, "\\end{table}")
+        println(io)
+        println(io, "\\begin{table}[!htb]")
+        println(io, "    \\centering")
+        println(io, "    \\scriptsize")
+        println(io, "    \\caption{Observed spatial orders computed separately from adjacent-grid manufactured-solution errors in each discrete metric.}")
+        println(io, "    \\resizebox{\\textwidth}{!}{%")
+        println(io, "    \\begin{tabular}{@{}rrrrrrr@{}}")
+        println(io, "        \\toprule")
+        println(io, "        grid pair & \$p_{a,1}\$ & \$p_{a,2}\$ & \$p_{a,\\infty}\$ & \$p_{q,1}\$ & \$p_{q,2}\$ & \$p_{q,\\infty}\$ \\\\")
+        println(io, "        \\midrule")
+        for index in eachindex(spatial_rows)
+            index < lastindex(spatial_rows) || continue
+            println(io, manufactured_order_latex_row(spatial_rows[index], spatial_rows[index + 1]))
         end
         println(io, "        \\bottomrule")
         println(io, "    \\end{tabular}%")
@@ -125,12 +151,22 @@ function manufactured_verification_latex_row(row::ManufacturedVerificationRow)
         latex_number(row.area_l1_error),
         latex_number(row.area_l2_error),
         latex_number(row.area_linf_error),
-        latex_number(row.area_observed_order),
         latex_number(row.flow_l1_error),
         latex_number(row.flow_l2_error),
         latex_number(row.flow_linf_error),
-        latex_number(row.flow_observed_order),
         latex_number(max(row.independent_mass_forcing_max_abs_diff, row.independent_momentum_forcing_max_abs_diff)),
+    ), " & ") * " \\\\"
+end
+
+function manufactured_order_latex_row(row::ManufacturedVerificationRow, next_row::ManufacturedVerificationRow)
+    return join((
+        "$(row.nx)--$(next_row.nx)",
+        latex_number(row.area_l1_observed_order),
+        latex_number(row.area_l2_observed_order),
+        latex_number(row.area_linf_observed_order),
+        latex_number(row.flow_l1_observed_order),
+        latex_number(row.flow_l2_observed_order),
+        latex_number(row.flow_linf_observed_order),
     ), " & ") * " \\\\"
 end
 

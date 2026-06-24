@@ -36,11 +36,17 @@ Base.@kwdef struct ManufacturedVerificationRow
     area_l1_error::Float64
     area_l2_error::Float64
     area_linf_error::Float64
-    area_observed_order::Float64
+    area_observed_order::Float64 = NaN
+    area_l1_observed_order::Float64 = NaN
+    area_l2_observed_order::Float64 = area_observed_order
+    area_linf_observed_order::Float64 = NaN
     flow_l1_error::Float64
     flow_l2_error::Float64
     flow_linf_error::Float64
-    flow_observed_order::Float64
+    flow_observed_order::Float64 = NaN
+    flow_l1_observed_order::Float64 = NaN
+    flow_l2_observed_order::Float64 = flow_observed_order
+    flow_linf_observed_order::Float64 = NaN
     accepted_dt_min::Float64
     accepted_dt_max::Float64
     realized_cfl_max::Float64

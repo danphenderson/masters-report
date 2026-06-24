@@ -132,20 +132,26 @@ The verification table reports cell-center discrete errors
     \|e\|_2&=\left(\frac{1}{N}\sum_i e_i^2\right)^{1/2},&
     \|e\|_\infty&=\max_i |e_i|, &&
 \end{flalign*}
-with observed orders computed from the discrete $L_2$ rows as
+with observed orders computed separately for each metric
+$m\in\{1,2,\infty\}$ as
 \begin{flalign*}
     \quad
-    p_{\mathrm{obs}}
+    p_{\mathrm{obs}}^{(m)}
     &=
-    \frac{\log(E_{\mathrm{coarse}}/E_{\mathrm{fine}})}
+    \frac{\log(E_{\mathrm{coarse}}^{(m)}/E_{\mathrm{fine}}^{(m)})}
          {\log(\Delta_{\mathrm{coarse}}/\Delta_{\mathrm{fine}})}. &&
 \end{flalign*}
-These are discrete $L_2$ norm values for the stated error samples. For spatial
-rows $\Delta$ is the grid spacing. For requested-timestep rows the
-native solver also reports realized CFL diagnostics because the accepted
-timestep is $\min(\Delta t_{\mathrm{request}},\Delta t_{\mathrm{CFL}})$. The
+These are discrete norm values for the stated cell-center error samples. The
+$L^1$ metric tracks integrated error, the $L^2$ metric gives the RMS-like error
+used in many convergence summaries, and the $L^\infty$ metric exposes the
+largest pointwise discrepancy, including boundary, limiter, or source-term
+localization. For spatial rows $\Delta$ is the grid spacing. For
+requested-timestep rows the native solver also reports realized CFL diagnostics
+because the accepted timestep is
+$\min(\Delta t_{\mathrm{request}},\Delta t_{\mathrm{CFL}})$. The
 timestep-insensitivity rows in the generated MMS table are therefore read
-through accepted timestep and realized CFL, not as a clean temporal-order study.
+through accepted timestep and realized CFL, not as a clean temporal-order
+study.
 
 \IfFileExists{report/assets/tables/verification/mms_verification.tex}{%
     \input{report/assets/tables/verification/mms_verification.tex}
@@ -157,12 +163,13 @@ through accepted timestep and realized CFL, not as a clean temporal-order study.
     \end{center}
 }
 The spatial rows provide bounded, positive implementation-verification evidence
-for the declared forced operator. The observed $L_2$ rates are approximately
-1.70 for area and 1.50 for flow over this grid range, below the formal
-smooth-region MUSCL/SSPRK3 expectation, so this table is not reported as a
-formal-order result for every model variant. The $L^1$ history tracks
-integrated error behavior, while $L^\infty$ highlights localized boundary,
-limiter, or source-discretization effects.
+for the declared forced operator. Over this grid range, the area orders are
+about $1.96$ in $L^1$, $1.70$--$1.75$ in $L^2$, and $1.33$--$1.37$ in
+$L^\infty$. The flow orders are about $1.81$--$1.93$ in $L^1$, about $1.50$ in
+$L^2$, and about $1.00$ in $L^\infty$. The maximum-norm columns therefore
+emphasize a more localized part of the error than the averaged metrics. The
+evidence is read as metric-specific implementation-verification behavior, not
+as a blanket formal-order claim for every model variant.
 
 \subsubsection{Geometry-Rest Preservation Test}
 \label{subsec:rest-state-drift}
