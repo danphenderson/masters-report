@@ -124,8 +124,9 @@ follows standard compliant-artery and dimension-reduced modeling arguments
             \text{observed 3D cross-sectional mean gauge pressure}.
     \end{flalign*}
     Here $p_{3D,\mathrm g}$ is continuum pressure in the wall-law gauge frame.
-    The observed representative $\bar p_{3D,\mathrm g}$ is distinct from the
-    reduced wall-law pressure variable introduced below.
+    The observed representative $\bar p_{3D,\mathrm g}$ is the declared
+    section-average observation of that field, not a pointwise pressure value.
+    It is distinct from the reduced wall-law pressure variable introduced below.
 \end{definition}
 
 \begin{definition}[Physical-to-solver map for the implemented 1D state]
@@ -285,8 +286,10 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     and pressure-diagnostic bars refer to that legacy diagnostic, not to
     $p_{\mathcal W,\mathrm g}^{\mathrm{evol}}$. The 1D model identifies
     $p_{\mathcal W,\mathrm g}^{\mathrm{evol}}$ with
-    a cross-sectional pressure representative as a closure assumption and does
-    not resolve radial pressure variation.
+    a cross-sectional pressure representative as a closure assumption. It is a
+    reconstructed wall-law representative, not automatically the same object as
+    a 3D pointwise pressure, and the reduced state does not resolve radial
+    pressure variation.
 \end{definition}
 
 \subsubsection{Reduced Balance Law and Rest-State Contract}
