@@ -21,6 +21,72 @@ const NATIVE_RESOLVED_FSI_INLET_OUTLET_BOUNDARY_MODES = (
 )
 const NATIVE_RESOLVED_FSI_DEFAULT_INLET_OUTLET_BOUNDARY_MODE =
     :pressure_drop_weak_inlet_outlet_gauge_smoke
+const NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS = (
+    :gridap_operator_assembly_s,
+    :linear_symbolic_factorization_s,
+    :linear_numeric_factorization_s,
+    :linear_backsolve_s,
+    :fluid_solve_total_s,
+    :wall_pressure_sampling_s,
+    :wall_update_s,
+    :diagnostics_s,
+    :checkpoint_output_s,
+    :output_write_s,
+    :step_total_s,
+)
+
+function native_resolved_fsi_empty_phase_timing()
+    return NamedTuple{NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS}(
+        ntuple(_ -> 0.0, length(NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS)),
+    )
+end
+
+function native_resolved_fsi_phase_timing_accumulator()
+    return Dict{Symbol,Float64}(key => 0.0 for key in NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS)
+end
+
+function native_resolved_fsi_phase_timing_named_tuple(timings::AbstractDict{Symbol,<:Real})
+    return NamedTuple{NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS}(
+        ntuple(
+            index -> Float64(get(timings, NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS[index], 0.0)),
+            length(NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS),
+        ),
+    )
+end
+
+function native_resolved_fsi_add_phase_timing!(
+    timings::AbstractDict{Symbol,Float64},
+    key::Symbol,
+    elapsed_s::Real,
+)
+    key in NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS ||
+        throw(ArgumentError("native resolved-FSI phase timing key is not recognized: $(repr(key))"))
+    value = Float64(elapsed_s)
+    isfinite(value) && value >= 0.0 ||
+        throw(ArgumentError("native resolved-FSI phase timing values must be finite and nonnegative"))
+    timings[key] = get(timings, key, 0.0) + value
+    return timings
+end
+
+function native_resolved_fsi_merge_phase_timing!(
+    timings::AbstractDict{Symbol,Float64},
+    phase_timing::NamedTuple;
+    exclude = (),
+)
+    for key in NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS
+        key in exclude && continue
+        native_resolved_fsi_add_phase_timing!(timings, key, get(phase_timing, key, 0.0))
+    end
+    return timings
+end
+
+function native_resolved_fsi_phase_timing_total_s(phase_timing::NamedTuple)
+    total = 0.0
+    for key in NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS
+        total += Float64(get(phase_timing, key, 0.0))
+    end
+    return total
+end
 
 """
     NativeResolvedFSISmokeSpec(; kwargs...)
@@ -290,6 +356,7 @@ struct NativeResolvedFSINavierStokesSmokeSolve
     inlet_outlet_boundary_mode::Symbol
     inlet_umax_cm_s::Float64
     inlet_outlet_boundary_status::String
+    phase_timing_s::NamedTuple
 end
 
 """
@@ -343,6 +410,7 @@ struct NativeResolvedFSIPartitionedSmokeResult
     pressure_projection_fallback_count::Int
     sampling_fallback_count::Int
     pressure_gauge_offset_dyn_cm2::Float64
+    phase_timing_s::NamedTuple
     estimated_field_payload_bytes::Int
     loaded_coordinates::Matrix{Float64}
     loaded_topology::Matrix{Int}
@@ -384,6 +452,7 @@ struct NativeResolvedFSIPartitionedSmokeSolve
     stability_dt_limit_s::Float64
     minimum_signed_tetra_volume6::Float64
     pressure_projection_fallback_count::Int
+    phase_timing_s::NamedTuple
 end
 
 function validate(spec::NativeResolvedFSISmokeSpec)
@@ -770,6 +839,9 @@ function native_resolved_fsi_partitioned_smoke_result(
     pressure, pressure_gauge_offset_dyn_cm2 = native_resolved_fsi_outlet_gauge_pressure(pressure, mesh.tags.outlet_nodes)
     native_resolved_fsi_smoke_validate_finite_fields("partitioned native resolved-FSI smoke", velocity, pressure, displacement)
 
+    phase_timing = native_resolved_fsi_phase_timing_accumulator()
+    native_resolved_fsi_merge_phase_timing!(phase_timing, solve_result.phase_timing_s)
+    output_start_ns = time_ns()
     roundtrip = native_resolved_fsi_smoke_roundtrip_bundle(
         mesh,
         output_dir,
@@ -780,6 +852,11 @@ function native_resolved_fsi_partitioned_smoke_result(
         saved_time_s=Float64(saved_time_s),
         time_atol=spec.time_atol,
         overwrite=spec.overwrite,
+    )
+    native_resolved_fsi_add_phase_timing!(
+        phase_timing,
+        :output_write_s,
+        native_resolved_fsi_phase_elapsed_s(output_start_ns),
     )
 
     minimum_current_radius_cm = minimum(solve_result.current_radii_cm)
@@ -828,6 +905,7 @@ function native_resolved_fsi_partitioned_smoke_result(
         solve_result.pressure_projection_fallback_count,
         sampling_fallback_count,
         pressure_gauge_offset_dyn_cm2,
+        native_resolved_fsi_phase_timing_named_tuple(phase_timing),
         Int(estimated_field_payload_bytes),
         roundtrip.loaded_coordinates,
         roundtrip.loaded_topology,

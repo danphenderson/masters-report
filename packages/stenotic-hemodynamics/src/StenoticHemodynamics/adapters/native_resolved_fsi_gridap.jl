@@ -253,6 +253,50 @@ function native_resolved_fsi_navier_stokes_controls(spec::NativeResolvedFSIParti
     )
 end
 
+native_resolved_fsi_phase_elapsed_s(start_ns::UInt64) =
+    Float64(time_ns() - start_ns) / 1.0e9
+
+function native_resolved_fsi_timed_affine_solve(a, l, X, Y, phase_timing::AbstractDict{Symbol,Float64})
+    start_ns = time_ns()
+    operator = AffineFEOperator(a, l, X, Y)
+    native_resolved_fsi_add_phase_timing!(
+        phase_timing,
+        :gridap_operator_assembly_s,
+        native_resolved_fsi_phase_elapsed_s(start_ns),
+    )
+
+    matrix = get_matrix(operator)
+    rhs = get_vector(operator)
+    solver = LUSolver()
+
+    start_ns = time_ns()
+    symbolic = symbolic_setup(solver, matrix)
+    native_resolved_fsi_add_phase_timing!(
+        phase_timing,
+        :linear_symbolic_factorization_s,
+        native_resolved_fsi_phase_elapsed_s(start_ns),
+    )
+
+    start_ns = time_ns()
+    numeric = numerical_setup(symbolic, matrix)
+    native_resolved_fsi_add_phase_timing!(
+        phase_timing,
+        :linear_numeric_factorization_s,
+        native_resolved_fsi_phase_elapsed_s(start_ns),
+    )
+
+    solution_dofs = similar(rhs)
+    start_ns = time_ns()
+    solve!(solution_dofs, numeric, rhs)
+    native_resolved_fsi_add_phase_timing!(
+        phase_timing,
+        :linear_backsolve_s,
+        native_resolved_fsi_phase_elapsed_s(start_ns),
+    )
+
+    return FEFunction(X, solution_dofs)
+end
+
 function native_resolved_fsi_solve_navier_stokes(
     mesh::NativeResolvedFSIMesh;
     coordinates::AbstractMatrix{<:Real} = mesh.coordinates,
@@ -354,6 +398,8 @@ function native_resolved_fsi_solve_navier_stokes(
     max_picard_iterations_used = 0
     final_picard_update_norm = 0.0
     picard_converged = true
+    phase_timing = native_resolved_fsi_phase_timing_accumulator()
+    fluid_solve_start_ns = time_ns()
 
     while time_s < tfinal_value
         dt_step = min(dt_value, tfinal_value - time_s)
@@ -387,7 +433,7 @@ function native_resolved_fsi_solve_navier_stokes(
                     ∫(0.0 * (v ⋅ n_out)) * dΓout
                 end
 
-            velocity_next, pressure_next = solve(AffineFEOperator(a, l, X, Y))
+            velocity_next, pressure_next = native_resolved_fsi_timed_affine_solve(a, l, X, Y, phase_timing)
             step_update_norm = native_resolved_fsi_smoke_velocity_update_norm(velocity_next, velocity_iterate)
             velocity_scale = max(native_resolved_fsi_smoke_velocity_dof_norm(velocity_next), 1.0)
             velocity_state = velocity_next
@@ -407,6 +453,11 @@ function native_resolved_fsi_solve_navier_stokes(
         time_s += dt_step
         time_step_count += 1
     end
+    native_resolved_fsi_add_phase_timing!(
+        phase_timing,
+        :fluid_solve_total_s,
+        native_resolved_fsi_phase_elapsed_s(fluid_solve_start_ns),
+    )
 
     time_step_count > 0 ||
         throw(ArgumentError("native resolved-FSI Navier-Stokes smoke produced zero time steps despite positive tfinal_s"))
@@ -428,6 +479,7 @@ function native_resolved_fsi_solve_navier_stokes(
             inlet_outlet_boundary_mode_value;
             inlet_umax_cm_s=inlet_umax_value,
         ),
+        native_resolved_fsi_phase_timing_named_tuple(phase_timing),
     )
 end
 

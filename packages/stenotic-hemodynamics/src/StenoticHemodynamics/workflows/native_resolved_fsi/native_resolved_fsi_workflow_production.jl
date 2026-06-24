@@ -1009,6 +1009,17 @@ function run_native_resolved_fsi_partitioned_production(
         "fluid_wall_boundary_mode",
         "inlet_outlet_boundary_mode",
         "production_spec_digest",
+        "gridap_operator_assembly_s",
+        "linear_symbolic_factorization_s",
+        "linear_numeric_factorization_s",
+        "linear_backsolve_s",
+        "fluid_solve_total_s",
+        "wall_pressure_sampling_s",
+        "wall_update_s",
+        "diagnostics_s",
+        "checkpoint_output_s",
+        "output_write_s",
+        "step_total_s",
         "output_dir",
         "snapshot_manifest_csv",
         "snapshot_diagnostics_csv",
@@ -1063,6 +1074,7 @@ function run_native_resolved_fsi_partitioned_production(
             step_index > 0 && expected_steps >= step_index ?
             round(elapsed_s * (expected_steps - step_index) / step_index; digits=6) :
             NaN
+        phase_timing = batch_event_value(event, :phase_timing_s, native_resolved_fsi_empty_phase_timing())
         return (
             event=string(batch_event_value(event, :event, "status")),
             status=string(batch_event_value(event, :status, "running")),
@@ -1096,6 +1108,17 @@ function run_native_resolved_fsi_partitioned_production(
                 string(local_spec.inlet_outlet_boundary_mode),
             )),
             production_spec_digest=native_resolved_fsi_partitioned_production_spec_digest(local_spec),
+            gridap_operator_assembly_s=phase_timing.gridap_operator_assembly_s,
+            linear_symbolic_factorization_s=phase_timing.linear_symbolic_factorization_s,
+            linear_numeric_factorization_s=phase_timing.linear_numeric_factorization_s,
+            linear_backsolve_s=phase_timing.linear_backsolve_s,
+            fluid_solve_total_s=phase_timing.fluid_solve_total_s,
+            wall_pressure_sampling_s=phase_timing.wall_pressure_sampling_s,
+            wall_update_s=phase_timing.wall_update_s,
+            diagnostics_s=phase_timing.diagnostics_s,
+            checkpoint_output_s=phase_timing.checkpoint_output_s,
+            output_write_s=phase_timing.output_write_s,
+            step_total_s=phase_timing.step_total_s,
             output_dir=default_native_resolved_fsi_partitioned_production_output_dir(local_spec),
             snapshot_manifest_csv=manifest_path(local_spec),
             snapshot_diagnostics_csv=diagnostics_path(local_spec),
@@ -1170,11 +1193,15 @@ function run_native_resolved_fsi_partitioned_production(
     function write_batch_benchmark(
         local_spec::NativeResolvedFSIPartitionedProductionSpec,
         result,
-        start_ns::UInt64,
+        start_ns::UInt64;
+        phase_timing = result.smoke_result.phase_timing_s,
     )
         elapsed_s = telemetry_elapsed_s(start_ns)
         time_steps = result.smoke_result.time_step_count
         tetrahedra = size(result.smoke_result.mesh.topology, 1)
+        phase_timing_dict = Dict{String,Any}(
+            string(key) => get(phase_timing, key, 0.0) for key in NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS
+        )
         benchmark = Dict{String,Any}(
             "case_id" => string(local_spec.case_spec.case_id),
             "mesh_resolution" => Dict{String,Any}(
@@ -1192,6 +1219,21 @@ function run_native_resolved_fsi_partitioned_production(
             "seconds_per_step" => time_steps > 0 ? elapsed_s / time_steps : NaN,
             "steps_per_second" => elapsed_s > 0.0 ? time_steps / elapsed_s : NaN,
             "tetrahedron_steps_per_second" => elapsed_s > 0.0 ? tetrahedra * time_steps / elapsed_s : NaN,
+            "phase_timing_s" => phase_timing_dict,
+            "phase_timing_total_s" => native_resolved_fsi_phase_timing_total_s(phase_timing),
+            "gridap_operator_assembly_s" => phase_timing.gridap_operator_assembly_s,
+            "linear_symbolic_factorization_s" => phase_timing.linear_symbolic_factorization_s,
+            "linear_numeric_factorization_s" => phase_timing.linear_numeric_factorization_s,
+            "linear_backsolve_s" => phase_timing.linear_backsolve_s,
+            "fluid_solve_total_s" => phase_timing.fluid_solve_total_s,
+            "wall_pressure_sampling_s" => phase_timing.wall_pressure_sampling_s,
+            "wall_update_s" => phase_timing.wall_update_s,
+            "diagnostics_s" => phase_timing.diagnostics_s,
+            "checkpoint_output_s" => phase_timing.checkpoint_output_s,
+            "output_write_s" => phase_timing.output_write_s,
+            "step_total_s" => phase_timing.step_total_s,
+            "phase_timing_status" =>
+                "instrumentation_only_no_solver_semantics_changed; optimize only after measured phase timings",
             "estimated_runtime_s_from_development_reference" =>
                 native_resolved_fsi_partitioned_production_estimated_runtime_s(local_spec),
             "maxrss_bytes" => batch_memory_bytes(),
@@ -1954,12 +1996,26 @@ function run_native_resolved_fsi_partitioned_production(
     @telemetry_info "native resolved-FSI production started" event="native_resolved_fsi_production_started" stage="native_resolved_fsi_production" status="started" case_id=string(spec.case_spec.case_id) output_dir=production_output_dir dt_s=spec.dt_s tfinal_s=spec.tfinal_s expected_time_step_count=native_resolved_fsi_partitioned_production_estimated_time_step_count(spec) expected_fluid_solve_upper_bound=native_resolved_fsi_partitioned_production_expected_fluid_solve_upper_bound(spec) production_spec_digest=native_resolved_fsi_partitioned_production_spec_digest(spec)
     try
         snapshot_results = run_state_carrying_snapshots(spec, start_ns)
+        post_solve_phase_timing = native_resolved_fsi_phase_timing_accumulator()
         manifest_csv = manifest_path(spec)
+        manifest_start_ns = time_ns()
         write_manifest(manifest_csv, spec, snapshot_results)
+        native_resolved_fsi_add_phase_timing!(
+            post_solve_phase_timing,
+            :output_write_s,
+            native_resolved_fsi_phase_elapsed_s(manifest_start_ns),
+        )
         diagnostics_csv = diagnostics_path(spec)
+        diagnostics_start_ns = time_ns()
         diagnostic_rows = build_diagnostic_rows(spec, snapshot_results)
         write_diagnostics(diagnostics_csv, diagnostic_rows, spec.overwrite)
+        native_resolved_fsi_add_phase_timing!(
+            post_solve_phase_timing,
+            :diagnostics_s,
+            native_resolved_fsi_phase_elapsed_s(diagnostics_start_ns),
+        )
         restart_metadata_json = restart_metadata_path(spec)
+        checkpoint_start_ns = time_ns()
         checkpoint_manifest = write_restart_checkpoint_state(
             spec,
             snapshot_results,
@@ -1970,7 +2026,18 @@ function run_native_resolved_fsi_partitioned_production(
         )
         metadata = restart_metadata(spec, snapshot_results, diagnostic_rows, manifest_csv, diagnostics_csv, checkpoint_manifest)
         write_restart_metadata(restart_metadata_json, metadata, spec.overwrite)
+        native_resolved_fsi_add_phase_timing!(
+            post_solve_phase_timing,
+            :checkpoint_output_s,
+            native_resolved_fsi_phase_elapsed_s(checkpoint_start_ns),
+        )
         final_snapshot = snapshot_results[end]
+        production_phase_timing = native_resolved_fsi_phase_timing_accumulator()
+        native_resolved_fsi_merge_phase_timing!(production_phase_timing, final_snapshot.smoke_result.phase_timing_s)
+        native_resolved_fsi_merge_phase_timing!(
+            production_phase_timing,
+            native_resolved_fsi_phase_timing_named_tuple(post_solve_phase_timing),
+        )
         result = NativeResolvedFSIPartitionedProductionResult(
             spec,
             final_snapshot.smoke_spec,
@@ -1989,7 +2056,12 @@ function run_native_resolved_fsi_partitioned_production(
             diagnostics_status(diagnostic_rows, diagnostics_csv),
             restart_status(metadata, restart_metadata_json),
         )
-        write_batch_benchmark(spec, result, start_ns)
+        write_batch_benchmark(
+            spec,
+            result,
+            start_ns;
+            phase_timing=native_resolved_fsi_phase_timing_named_tuple(production_phase_timing),
+        )
         append_batch_status!(spec, batch_status_row(
             spec,
             (
@@ -2011,6 +2083,7 @@ function run_native_resolved_fsi_partitioned_production(
                 pressure_projection_fallback_count=result.smoke_result.pressure_projection_fallback_count,
                 fluid_wall_boundary_mode=string(result.smoke_result.fluid_wall_boundary_mode),
                 inlet_outlet_boundary_mode=string(result.smoke_result.inlet_outlet_boundary_mode),
+                phase_timing_s=native_resolved_fsi_phase_timing_named_tuple(production_phase_timing),
                 message="native resolved-FSI production batch completed",
             ),
             start_ns,

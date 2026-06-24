@@ -481,11 +481,14 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
     fluid_wall_boundary_mode = native_resolved_fsi_partitioned_fluid_wall_boundary_mode(
         controls.inlet_outlet_boundary_mode,
     )
+    phase_timing = native_resolved_fsi_phase_timing_accumulator()
     snapshots = NativeResolvedFSIPartitionedSmokeSolve[]
     expected_time_step_count = ceil(Int, last(requested_snapshot_times_s) / spec.dt_s)
 
     for snapshot_time_s in requested_snapshot_times_s
         while time_s < snapshot_time_s
+            step_phase_timing = native_resolved_fsi_phase_timing_accumulator()
+            step_start_ns = time_ns()
             dt_step = min(spec.dt_s, snapshot_time_s - time_s)
             step_index = time_step_count + 1
             step_start_displacement_cm = copy(wall_displacement_cm)
@@ -520,6 +523,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     wall_axial_coordinates_cm,
                     iteration_velocity_cm_s,
                 )
+                fluid_start_ns = time_ns()
                 fluid_state = native_resolved_fsi_solve_navier_stokes(
                     mesh;
                     coordinates=deformed_coordinates,
@@ -534,7 +538,21 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     picard_tolerance=controls.picard_tolerance,
                     initial_velocity_dofs=coupling_velocity_dofs,
                 )
+                fluid_elapsed_s = native_resolved_fsi_phase_elapsed_s(fluid_start_ns)
+                native_resolved_fsi_merge_phase_timing!(
+                    phase_timing,
+                    fluid_state.phase_timing_s;
+                    exclude=(:fluid_solve_total_s,),
+                )
+                native_resolved_fsi_merge_phase_timing!(
+                    step_phase_timing,
+                    fluid_state.phase_timing_s;
+                    exclude=(:fluid_solve_total_s,),
+                )
+                native_resolved_fsi_add_phase_timing!(phase_timing, :fluid_solve_total_s, fluid_elapsed_s)
+                native_resolved_fsi_add_phase_timing!(step_phase_timing, :fluid_solve_total_s, fluid_elapsed_s)
                 coupling_velocity_dofs = native_resolved_fsi_copy_free_dof_values(fluid_state.velocity)
+                pressure_start_ns = time_ns()
                 physical_wall_forcing_pressure_dyn_cm2, step_pressure_fallback_count =
                     native_resolved_fsi_partitioned_physical_wall_pressure_profile(
                         mesh,
@@ -546,11 +564,15 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                         allow_pressure_fallback=
                             controls.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke,
                     )
+                pressure_elapsed_s = native_resolved_fsi_phase_elapsed_s(pressure_start_ns)
+                native_resolved_fsi_add_phase_timing!(phase_timing, :wall_pressure_sampling_s, pressure_elapsed_s)
+                native_resolved_fsi_add_phase_timing!(step_phase_timing, :wall_pressure_sampling_s, pressure_elapsed_s)
                 pressure_projection_fallback_count += step_pressure_fallback_count
 
                 candidate_displacement_cm = copy(step_start_displacement_cm)
                 candidate_velocity_cm_s = copy(step_start_velocity_cm_s)
                 candidate_radii_cm = copy(reference_radii_cm)
+                wall_update_start_ns = time_ns()
                 try
                     native_resolved_fsi_partitioned_wall_state!(
                         candidate_displacement_cm,
@@ -581,6 +603,9 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                         "native resolved-FSI partitioned smoke wall-update guard failed at time step $(step_index), coupling iteration $(coupling_iteration): $(sprint(showerror, error)); $(diagnostics)",
                     ))
                 end
+                wall_update_elapsed_s = native_resolved_fsi_phase_elapsed_s(wall_update_start_ns)
+                native_resolved_fsi_add_phase_timing!(phase_timing, :wall_update_s, wall_update_elapsed_s)
+                native_resolved_fsi_add_phase_timing!(step_phase_timing, :wall_update_s, wall_update_elapsed_s)
 
                 relaxed_displacement_cm =
                     iteration_displacement_cm .+
@@ -648,6 +673,9 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             max_picard_iterations_used = max(max_picard_iterations_used, fluid_state.max_picard_iterations_used)
             final_picard_update_norm = fluid_state.final_picard_update_norm
             picard_converged &= fluid_state.picard_converged
+            step_elapsed_s = native_resolved_fsi_phase_elapsed_s(step_start_ns)
+            native_resolved_fsi_add_phase_timing!(phase_timing, :step_total_s, step_elapsed_s)
+            native_resolved_fsi_add_phase_timing!(step_phase_timing, :step_total_s, step_elapsed_s)
             if progress_callback !== nothing
                 wall_state_finite =
                     all(isfinite, wall_displacement_cm) &&
@@ -680,6 +708,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     pressure_projection_fallback_count=pressure_projection_fallback_count,
                     fluid_wall_boundary_mode=string(fluid_wall_boundary_mode),
                     inlet_outlet_boundary_mode=string(controls.inlet_outlet_boundary_mode),
+                    phase_timing_s=native_resolved_fsi_phase_timing_named_tuple(step_phase_timing),
                 ))
             end
         end
@@ -700,6 +729,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             wall_velocity_cm_s,
         )
         refresh_dt = min(spec.dt_s, snapshot_time_s)
+        refresh_start_ns = time_ns()
         fluid_state = native_resolved_fsi_solve_navier_stokes(
             mesh;
             coordinates=final_deformed_coordinates,
@@ -714,10 +744,18 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             picard_tolerance=controls.picard_tolerance,
             initial_velocity_dofs=velocity_dofs_previous,
         )
+        refresh_elapsed_s = native_resolved_fsi_phase_elapsed_s(refresh_start_ns)
+        native_resolved_fsi_merge_phase_timing!(
+            phase_timing,
+            fluid_state.phase_timing_s;
+            exclude=(:fluid_solve_total_s,),
+        )
+        native_resolved_fsi_add_phase_timing!(phase_timing, :fluid_solve_total_s, refresh_elapsed_s)
         velocity_dofs_previous = native_resolved_fsi_copy_free_dof_values(fluid_state.velocity)
         max_picard_iterations_used = max(max_picard_iterations_used, fluid_state.max_picard_iterations_used)
         final_picard_update_norm = fluid_state.final_picard_update_norm
         picard_converged &= fluid_state.picard_converged
+        refresh_pressure_start_ns = time_ns()
         physical_wall_forcing_pressure_dyn_cm2, refresh_pressure_fallback_count =
             native_resolved_fsi_partitioned_physical_wall_pressure_profile(
                 mesh,
@@ -729,6 +767,11 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                 allow_pressure_fallback=
                     controls.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke,
             )
+        native_resolved_fsi_add_phase_timing!(
+            phase_timing,
+            :wall_pressure_sampling_s,
+            native_resolved_fsi_phase_elapsed_s(refresh_pressure_start_ns),
+        )
         pressure_projection_fallback_count += refresh_pressure_fallback_count
 
         push!(snapshots, NativeResolvedFSIPartitionedSmokeSolve(
@@ -759,6 +802,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             stability_dt_limit_s,
             minimum_signed_tetra_volume6,
             pressure_projection_fallback_count,
+            native_resolved_fsi_phase_timing_named_tuple(phase_timing),
         ))
         if progress_callback !== nothing
             progress_callback((
@@ -785,6 +829,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                 pressure_projection_fallback_count=pressure_projection_fallback_count,
                 fluid_wall_boundary_mode=string(fluid_wall_boundary_mode),
                 inlet_outlet_boundary_mode=string(controls.inlet_outlet_boundary_mode),
+                phase_timing_s=native_resolved_fsi_phase_timing_named_tuple(phase_timing),
             ))
         end
     end

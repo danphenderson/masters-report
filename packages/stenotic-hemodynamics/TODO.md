@@ -170,6 +170,9 @@ Implemented and committed:
   solve upper bound, status/benchmark/failure sidecar paths, checkpoint roles,
   and a production spec digest. The full `sev23` preproduction solve has not
   been launched or validated.
+- The first `sev23` preproduction evidence attempt at `(80, 4, 24)`,
+  `dt_s=1e-4`, `T=0.1` stopped without completion artifacts after reaching
+  step 40/1000. Treat its sidecars as incomplete runtime diagnostics only.
 
 ## Orchestration Rules
 
@@ -197,19 +200,19 @@ Implemented and committed:
 
 ### Lane 10C-P: Native FSI Phase Timing Before Numerics Optimization
 
-Priority: P0 execution-readiness follow-up after Hypatia's active `sev23`
-preproduction run returns or is otherwise naturally classified. Do not
-interrupt the active run and do not edit native FSI solver/source files while
-that run is the protected evidence generator.
+Status: implemented as instrumentation-only package code. The preproduction
+attempt was naturally classified as incomplete at step 40/1000, so subsequent
+long `sev23` launches are blocked on reviewing phase sidecars and deciding
+whether a measured optimization lane is justified.
 
 Objective: instrument before changing numerics so future preproduction and
 production launches report where wall time and memory are spent. The current
-process-level sampling suggests sparse direct factorization may be hot, but the
-production sidecars do not yet split matrix assembly, symbolic factorization,
-numeric factorization, backsolve, wall update, diagnostics, checkpoint, output,
-and total-step timing.
+process-level sampling suggested sparse direct factorization may be hot; the
+production sidecars now split matrix assembly, symbolic factorization, numeric
+factorization, backsolve, wall-pressure sampling, wall update, diagnostics,
+checkpoint, output, and total-step timing.
 
-Required first patch:
+Implemented first patch:
 
 - Add phase timers only. Emit per-step and aggregate phase timing fields to
   `batch_status.jsonl`, `batch_status.csv`, and `batch_benchmark.json`.
@@ -219,7 +222,7 @@ Required first patch:
 - Validate on tiny smoke/development runs before any new long preproduction
   launch.
 
-Optimization order after timing evidence:
+Next optimization dispatch after timing evidence:
 
 1. Reuse the linear solve/factorization object when the matrix, coefficients,
    boundary-condition sparsity pattern, pressure policy, mesh topology, and

@@ -535,6 +535,17 @@ end
         @test isfile(joinpath(result.output_dir, "displace.xdmf"))
         @test result.smoke_result.post_update_fluid_refresh
         @test result.smoke_result.field_status.ready
+        phase_timing = result.smoke_result.phase_timing_s
+        for key in StenoticHemodynamics.NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS
+            @test haskey(phase_timing, key)
+            @test isfinite(getfield(phase_timing, key))
+            @test getfield(phase_timing, key) >= 0.0
+        end
+        @test phase_timing.gridap_operator_assembly_s > 0.0
+        @test phase_timing.linear_numeric_factorization_s > 0.0
+        @test phase_timing.linear_backsolve_s > 0.0
+        @test phase_timing.fluid_solve_total_s > 0.0
+        @test phase_timing.step_total_s > 0.0
         @test occursin("production snapshot harness", result.method_status.status)
         @test occursin("state-carrying partitioned solve", result.method_status.status)
         @test occursin("prescribed radial wall-velocity Dirichlet", result.method_status.status)
@@ -607,6 +618,14 @@ end
         @test any(occursin("\"minimum_signed_tetra_volume6\":", line) for line in batch_status_lines)
         @test any(occursin("\"field_finite_status\":\"ready\"", line) for line in batch_status_lines)
         @test any(occursin("\"production_spec_digest\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_operator_assembly_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"linear_symbolic_factorization_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"linear_numeric_factorization_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"linear_backsolve_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"fluid_solve_total_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"wall_pressure_sampling_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"wall_update_s\":", line) for line in batch_status_lines)
+        @test any(occursin("\"step_total_s\":", line) for line in batch_status_lines)
         @test any(occursin("\"process_id\":$(Distributed.myid())", line) for line in batch_status_lines)
         @test any(occursin("\"thread_count\":$(Threads.nthreads())", line) for line in batch_status_lines)
         @test any(occursin("\"parallel_workers\":1", line) for line in batch_status_lines)
@@ -620,10 +639,46 @@ end
         @test occursin("force_process", first(batch_status_csv_lines))
         @test occursin("fluid_wall_boundary_mode", first(batch_status_csv_lines))
         @test occursin("production_spec_digest", first(batch_status_csv_lines))
+        @test occursin("gridap_operator_assembly_s", first(batch_status_csv_lines))
+        @test occursin("linear_symbolic_factorization_s", first(batch_status_csv_lines))
+        @test occursin("linear_numeric_factorization_s", first(batch_status_csv_lines))
+        @test occursin("linear_backsolve_s", first(batch_status_csv_lines))
+        @test occursin("fluid_solve_total_s", first(batch_status_csv_lines))
+        @test occursin("wall_pressure_sampling_s", first(batch_status_csv_lines))
+        @test occursin("wall_update_s", first(batch_status_csv_lines))
+        @test occursin("diagnostics_s", first(batch_status_csv_lines))
+        @test occursin("checkpoint_output_s", first(batch_status_csv_lines))
+        @test occursin("output_write_s", first(batch_status_csv_lines))
+        @test occursin("step_total_s", first(batch_status_csv_lines))
         batch_benchmark_text = read(batch_benchmark_json, String)
         @test occursin("\"elapsed_wall_time_s\":", batch_benchmark_text)
         @test occursin("\"seconds_per_step\":", batch_benchmark_text)
         @test occursin("\"tetrahedron_steps_per_second\":", batch_benchmark_text)
+        @test occursin("\"phase_timing_s\":", batch_benchmark_text)
+        @test occursin("\"phase_timing_total_s\":", batch_benchmark_text)
+        @test occursin("\"gridap_operator_assembly_s\":", batch_benchmark_text)
+        @test occursin("\"linear_symbolic_factorization_s\":", batch_benchmark_text)
+        @test occursin("\"linear_numeric_factorization_s\":", batch_benchmark_text)
+        @test occursin("\"linear_backsolve_s\":", batch_benchmark_text)
+        @test occursin("\"fluid_solve_total_s\":", batch_benchmark_text)
+        @test occursin("\"wall_pressure_sampling_s\":", batch_benchmark_text)
+        @test occursin("\"wall_update_s\":", batch_benchmark_text)
+        @test occursin("\"diagnostics_s\":", batch_benchmark_text)
+        @test occursin("\"checkpoint_output_s\":", batch_benchmark_text)
+        @test occursin("\"output_write_s\":", batch_benchmark_text)
+        @test occursin("\"step_total_s\":", batch_benchmark_text)
+        @test occursin("instrumentation_only_no_solver_semantics_changed", batch_benchmark_text)
+        function benchmark_phase_value(key)
+            found = match(Regex("\"$(key)\"\\s*:\\s*([-+0-9.eE]+)"), batch_benchmark_text)
+            @test found !== nothing
+            return parse(Float64, only(found.captures))
+        end
+        for key in StenoticHemodynamics.NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS
+            value = benchmark_phase_value(string(key))
+            @test isfinite(value)
+            @test value >= 0.0
+        end
+        @test benchmark_phase_value("phase_timing_total_s") > 0.0
         @test occursin("\"production_spec_digest\":", batch_benchmark_text)
         @test occursin("\"process_id\": $(Distributed.myid())", batch_benchmark_text)
         @test occursin("\"thread_count\": $(Threads.nthreads())", batch_benchmark_text)
