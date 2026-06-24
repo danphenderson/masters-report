@@ -1,10 +1,16 @@
 import type { FieldName, LoadedSnapshotFrame, NumericRange } from "./types";
 
 export function fieldValues(field: FieldName, frame: LoadedSnapshotFrame): Float32Array {
-  if (field === "pressure" && frame.pressure) {
+  if (field === "pressure") {
+    if (!frame.pressure) {
+      throw new Error(`pressure field is unavailable for frame ${frame.descriptor.id}`);
+    }
     return frame.pressure;
   }
-  if (field === "displacement" && frame.displacement) {
+  if (field === "displacement") {
+    if (!frame.displacement) {
+      throw new Error(`displacement field is unavailable for frame ${frame.descriptor.id}`);
+    }
     return vectorMagnitude(frame.displacement);
   }
   return vectorMagnitude(frame.velocity);

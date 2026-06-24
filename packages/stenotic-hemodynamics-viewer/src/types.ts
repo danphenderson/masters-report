@@ -93,6 +93,19 @@ export type LoadedSnapshotFrame = {
   displacement: Float32Array | null;
 };
 
+export type LoadedEvidenceArtifact = {
+  collection: "sidecars" | "observations";
+  key: string;
+  label: string;
+  status: string;
+  sourcePath: string | null;
+  path: string | null;
+  byteSize: number | null;
+  content: unknown | null;
+  loadStatus: "metadata" | "loaded" | "missing" | "error";
+  error?: string;
+};
+
 export type LoadedVizData = {
   manifestUrl: string;
   manifest: WebVizManifest;
@@ -100,5 +113,5 @@ export type LoadedVizData = {
   indices: Uint32Array;
   frames: FrameDescriptor[];
   globalRanges: Record<string, NumericRange>;
-  fieldCatalog: Record<FieldName, { label: string; units: string; range: NumericRange | null }>;
+  fieldCatalog: Record<FieldName, { label: string; units: string; range: NumericRange | null; available: boolean }>;
 };

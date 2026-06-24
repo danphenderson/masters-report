@@ -1,3 +1,9 @@
+isdefined(@__MODULE__, :read_simple_csv) || include("test_helpers.jl")
+
+function membrane_fsi_float_column(rows, column::String)
+    return [parse(Float64, row[column]) for row in rows]
+end
+
 @testset "StenoticHemodynamics membrane FSI mathematics" begin
     params = Params(nx=8, tfinal=0.0, severity=23.0, initial_condition=GeometryRestIC())
 
@@ -129,8 +135,35 @@ end
         )
         @test dynamic_solution.time_step_count == 3
         @test length(dynamic_solution.history) == 3
+        @test maximum(abs.(dynamic_solution.wall_velocity)) > 0.0
         @test last(dynamic_solution.history).wall_pressure_max_dyn_cm2 ≈ maximum(dynamic_solution.wall_pressure)
         @test last(dynamic_solution.history).current_radius_max_cm ≈ maximum(dynamic_solution.current_radius)
+        @test last(dynamic_solution.history).wall_velocity_max_cm_s ≈ maximum(dynamic_solution.wall_velocity)
+        @test last(dynamic_solution.history).wall_velocity_max_cm_s > 0.0
+
+        dynamic_solution_profile_csv = joinpath(dir, "dynamic-solution-profile.csv")
+        dynamic_solution_history_csv = joinpath(dir, "dynamic-solution-history.csv")
+        StenoticHemodynamics.write_membrane_fsi_profile_csv(
+            dynamic_solution_profile_csv,
+            dynamic_solution;
+            overwrite=true,
+        )
+        StenoticHemodynamics.write_membrane_fsi_history_csv(
+            dynamic_solution_history_csv,
+            dynamic_solution;
+            overwrite=true,
+        )
+        dynamic_solution_profile_rows = read_simple_csv(dynamic_solution_profile_csv)
+        dynamic_solution_history_rows = read_simple_csv(dynamic_solution_history_csv)
+        @test length(dynamic_solution_profile_rows) == length(dynamic_solution.z)
+        @test length(dynamic_solution_history_rows) == length(dynamic_solution.history)
+        @test maximum(membrane_fsi_float_column(dynamic_solution_profile_rows, "wall_velocity_cm_s")) ≈
+              maximum(dynamic_solution.wall_velocity)
+        @test maximum(membrane_fsi_float_column(dynamic_solution_profile_rows, "wall_velocity_cm_s")) > 0.0
+        @test parse(Float64, last(dynamic_solution_history_rows)["wall_velocity_max_cm_s"]) ≈
+              maximum(dynamic_solution.wall_velocity)
+        @test parse(Float64, last(dynamic_solution_history_rows)["current_radius_max_cm"]) ≈
+              maximum(dynamic_solution.current_radius)
 
         dynamic = StenoticHemodynamics.run_membrane_fsi_validation(
             StenoticHemodynamics.MembraneFSIValidationSpec(
@@ -151,11 +184,33 @@ end
         @test dynamic_row.time_step_count == 3
         @test dynamic_row.time_s ≈ 3.0e-5
         @test isfinite(dynamic_row.wall_velocity_max_cm_s)
+        @test dynamic_row.wall_velocity_max_cm_s > 0.0
         @test dynamic_row.current_radius_min_cm > 0.0
         @test isfile(dynamic_row.profile_csv)
         @test isfile(dynamic_row.history_csv)
         @test occursin("wall_velocity_cm_s", readline(dynamic_row.profile_csv))
         @test occursin("wall_velocity_max_cm_s", readline(dynamic_row.history_csv))
+        dynamic_profile_rows = read_simple_csv(dynamic_row.profile_csv)
+        dynamic_history_rows = read_simple_csv(dynamic_row.history_csv)
+        @test length(dynamic_profile_rows) == dynamic_row.mesh_nz + 1
+        @test length(dynamic_history_rows) == dynamic_row.time_step_count
+        @test maximum(membrane_fsi_float_column(dynamic_profile_rows, "wall_velocity_cm_s")) ≈
+              dynamic_row.wall_velocity_max_cm_s
+        @test maximum(membrane_fsi_float_column(dynamic_profile_rows, "wall_velocity_cm_s")) > 0.0
+        @test minimum(membrane_fsi_float_column(dynamic_profile_rows, "wall_velocity_cm_s")) ≈
+              dynamic_row.wall_velocity_min_cm_s
+        @test minimum(membrane_fsi_float_column(dynamic_profile_rows, "current_radius_cm")) ≈
+              dynamic_row.current_radius_min_cm
+        @test maximum(membrane_fsi_float_column(dynamic_profile_rows, "current_radius_cm")) ≈
+              dynamic_row.current_radius_max_cm
+        @test parse(Int, last(dynamic_history_rows)["step"]) == dynamic_row.time_step_count
+        @test parse(Float64, last(dynamic_history_rows)["time_s"]) ≈ dynamic_row.time_s
+        @test parse(Float64, last(dynamic_history_rows)["wall_velocity_max_cm_s"]) ≈
+              dynamic_row.wall_velocity_max_cm_s
+        @test parse(Float64, last(dynamic_history_rows)["current_radius_min_cm"]) ≈
+              dynamic_row.current_radius_min_cm
+        @test parse(Float64, last(dynamic_history_rows)["current_radius_max_cm"]) ≈
+              dynamic_row.current_radius_max_cm
         @test !occursin("planned-dynamic-mode", read(dynamic.summary_csv, String))
 
         report_assets_dir = joinpath(dir, "report-assets")

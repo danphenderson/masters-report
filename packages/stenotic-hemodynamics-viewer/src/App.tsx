@@ -24,13 +24,22 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import {
   loadSnapshotFrame,
+  loadEvidenceArtifacts,
   loadVizData,
   prefetchSnapshotFrame,
   rangeForField,
   resolveManifestUrl,
 } from "./dataLoader";
+import {
+  artifactStatusLabel,
+  artifactTitle,
+  evidenceBadges,
+  isDiscrepancyEvidence,
+  recordCount,
+  summarizeEvidenceContent,
+} from "./evidence";
 import { formatNumber } from "./fieldMath";
-import type { FieldName, GeometryView, LoadedSnapshotFrame, LoadedVizData, NumericRange, ViewMode } from "./types";
+import type { FieldName, GeometryView, LoadedEvidenceArtifact, LoadedSnapshotFrame, LoadedVizData, NumericRange, ViewMode } from "./types";
 import ViewerScene from "./ViewerScene";
 
 const modeDefaults: Record<
@@ -43,7 +52,7 @@ const modeDefaults: Record<
   }
 > = {
   flow: {
-    label: "Flow",
+    label: "Velocity",
     field: "speed",
     deformationScale: 5,
     glyphs: true,
@@ -55,7 +64,7 @@ const modeDefaults: Record<
     glyphs: false,
   },
   wall: {
-    label: "Wall motion",
+    label: "Displacement",
     field: "displacement",
     deformationScale: 14,
     glyphs: false,
@@ -63,6 +72,12 @@ const modeDefaults: Record<
 };
 
 const drawerWidth = 360;
+const fieldRampCss: Record<FieldName, string> = {
+  velocity: "linear-gradient(90deg, #0f4e56 0%, #d8d5cc 50%, #8f3d54 100%)",
+  speed: "linear-gradient(90deg, #0f4e56 0%, #d8d5cc 50%, #8f3d54 100%)",
+  pressure: "linear-gradient(90deg, #315d83 0%, #d8d5cc 50%, #9b2f3a 100%)",
+  displacement: "linear-gradient(90deg, #506271 0%, #d7d2c2 50%, #b0742c 100%)",
+};
 
 function frameCount(data: LoadedVizData | null): number {
   return data?.frames.length ?? 0;
@@ -76,17 +91,35 @@ function playbackFps(data: LoadedVizData | null): number {
   return 8;
 }
 
-function modeAvailable(data: LoadedVizData | null, mode: ViewMode): boolean {
+function fieldAvailable(data: LoadedVizData | null, field: FieldName, frame: LoadedSnapshotFrame | null): boolean {
   if (!data) {
     return true;
   }
-  if (mode === "pressure") {
-    return Boolean(data.frames[0]?.fields.pressure?.asset);
+  if (!data.fieldCatalog[field].available) {
+    return false;
   }
-  if (mode === "wall") {
-    return Boolean(data.frames[0]?.fields.displacement?.asset);
+  if (field === "pressure") {
+    return Boolean((frame?.descriptor.fields ?? data.frames[0]?.fields)?.pressure?.asset);
+  }
+  if (field === "displacement") {
+    return Boolean((frame?.descriptor.fields ?? data.frames[0]?.fields)?.displacement?.asset);
   }
   return true;
+}
+
+function modeAvailable(data: LoadedVizData | null, mode: ViewMode, frame: LoadedSnapshotFrame | null = null): boolean {
+  return fieldAvailable(data, modeDefaults[mode].field, frame);
+}
+
+function modeDisabledReason(data: LoadedVizData | null, mode: ViewMode, frame: LoadedSnapshotFrame | null): string {
+  if (!data || modeAvailable(data, mode, frame)) {
+    return "";
+  }
+  const field = modeDefaults[mode].field;
+  if (!data.fieldCatalog[field].available) {
+    return `${data.fieldCatalog[field].label} is not present in this manifest`;
+  }
+  return `${data.fieldCatalog[field].label} is not present in this frame`;
 }
 
 function rangeLabel(range: NumericRange | null): string {
@@ -94,6 +127,29 @@ function rangeLabel(range: NumericRange | null): string {
     return "n/a";
   }
   return `${formatNumber(range.min)} - ${formatNumber(range.max)}`;
+}
+
+function fieldStatusLabel(data: LoadedVizData, field: FieldName, frame: LoadedSnapshotFrame | null): string {
+  if (fieldAvailable(data, field, frame)) {
+    return "available";
+  }
+  if (!data.fieldCatalog[field].available) {
+    return "missing from manifest";
+  }
+  return "missing in frame";
+}
+
+function coordinateModeMessage(data: LoadedVizData | null, canApplyDisplacement: boolean, effectiveScale: number): string {
+  if (!data) {
+    return "No manifest loaded";
+  }
+  if (data.manifest.coordinate_mode === "deformed") {
+    return "Manifest positions are already deformed; displacement is not added in the viewer.";
+  }
+  if (canApplyDisplacement) {
+    return `Reference positions loaded; deformed display applies displacement once at ${formatNumber(effectiveScale)}x.`;
+  }
+  return "Reference positions loaded; no displacement field is available for deformed display.";
 }
 
 export default function App() {
@@ -108,26 +164,35 @@ export default function App() {
   const [snapshotIndex, setSnapshotIndex] = useState(0);
   const [data, setData] = useState<LoadedVizData | null>(null);
   const [frame, setFrame] = useState<LoadedSnapshotFrame | null>(null);
+  const [evidenceArtifacts, setEvidenceArtifacts] = useState<LoadedEvidenceArtifact[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loadingBundle, setLoadingBundle] = useState(true);
   const [loadingFrame, setLoadingFrame] = useState(false);
+  const [loadingEvidence, setLoadingEvidence] = useState(false);
 
   const manifestUrl = useMemo(resolveManifestUrl, []);
-  const activeField = modeDefaults[mode].field;
+  const activeMode: ViewMode = data && frame && !modeAvailable(data, mode, frame) ? "flow" : mode;
+  const activeField = modeDefaults[activeMode].field;
   const totalFrames = frameCount(data);
   const hasTimeline = totalFrames > 1;
   const fps = playbackFps(data);
   const activeRange = data && frame ? rangeForField(data, frame, activeField, useGlobalRange) : null;
   const currentRange = data && frame ? rangeForField(data, frame, activeField, false) : null;
+  const globalRange = data?.fieldCatalog[activeField].range ?? null;
   const fieldCatalog = data?.fieldCatalog[activeField];
   const activeTime = frame?.descriptor.time_s ?? data?.frames[snapshotIndex]?.time_s ?? 0;
   const globalDefault = data?.manifest.schema_version === 2;
   const canApplyDisplacement = data?.manifest.coordinate_mode === "reference" && Boolean(frame?.displacement);
   const effectiveGeometryView: GeometryView =
-    geometryView === "deformed" && (canApplyDisplacement || data?.manifest.coordinate_mode === "deformed")
+    data?.manifest.coordinate_mode === "deformed"
       ? "deformed"
-      : "reference";
+      : geometryView === "deformed" && canApplyDisplacement
+        ? "deformed"
+        : "reference";
   const effectiveDeformationScale = canApplyDisplacement && effectiveGeometryView === "deformed" ? deformationScale : 0;
+  const evidenceBadgeList = useMemo(() => (data ? evidenceBadges(data.manifest, evidenceArtifacts) : []), [data, evidenceArtifacts]);
+  const discrepancyArtifacts = useMemo(() => evidenceArtifacts.filter(isDiscrepancyEvidence), [evidenceArtifacts]);
+  const coordinateMessage = coordinateModeMessage(data, Boolean(canApplyDisplacement), effectiveDeformationScale);
 
   useEffect(() => {
     let active = true;
@@ -138,6 +203,8 @@ export default function App() {
           return;
         }
         setData(loaded);
+        setFrame(null);
+        setEvidenceArtifacts([]);
         setSnapshotIndex(0);
         setUseGlobalRange(loaded.manifest.schema_version === 2);
         setError(null);
@@ -161,10 +228,33 @@ export default function App() {
     if (!data) {
       return;
     }
-    if (!modeAvailable(data, mode)) {
+    if (!modeAvailable(data, mode, frame)) {
       setMode("flow");
     }
-  }, [data, mode]);
+  }, [data, frame, mode]);
+
+  useEffect(() => {
+    if (!data) {
+      setEvidenceArtifacts([]);
+      return;
+    }
+    let active = true;
+    setLoadingEvidence(true);
+    loadEvidenceArtifacts(data)
+      .then((artifacts) => {
+        if (active) {
+          setEvidenceArtifacts(artifacts);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoadingEvidence(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [data]);
 
   useEffect(() => {
     if (!data) {
@@ -235,10 +325,10 @@ export default function App() {
           data={data}
           frame={frame}
           field={activeField}
-          mode={mode}
+          mode={activeMode}
           geometryView={effectiveGeometryView}
           deformationScale={effectiveDeformationScale}
-          showGlyphs={mode === "flow" && showGlyphs}
+          showGlyphs={activeMode === "flow" && showGlyphs}
           glyphDensity={glyphDensity}
           colorRange={activeRange}
         />
@@ -289,6 +379,7 @@ export default function App() {
         </Box>
         {data ? (
           <Stack direction="row" spacing={0.75} sx={{ display: { xs: "none", sm: "flex" } }}>
+            <Chip size="small" color="info" label="artifact/operator aid" />
             <Chip size="small" label={`${data.manifest.severity_percent}% stenosis`} />
             <Chip size="small" label={`t=${formatNumber(activeTime)} s`} />
             <Chip size="small" label={`schema v${data.manifest.schema_version}`} />
@@ -342,36 +433,49 @@ export default function App() {
           }}
         >
           <Stack spacing={0.75}>
-            <Stack direction="row" alignItems="baseline" justifyContent="space-between" spacing={1}>
-              <Typography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0 }}>
-                {fieldCatalog?.label ?? modeDefaults[mode].label}
-              </Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                {fieldCatalog?.units ?? ""}
-              </Typography>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0 }}>
+                  {fieldCatalog?.label ?? modeDefaults[activeMode].label}
+                </Typography>
+                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", lineHeight: 1.2 }}>
+                  {useGlobalRange ? "Global color range" : "Current-frame color range"}
+                </Typography>
+              </Box>
+              {fieldCatalog?.units ? <Chip size="small" label={fieldCatalog.units} /> : null}
             </Stack>
             <Box
               sx={{
-                height: 8,
+                height: 10,
                 borderRadius: 0.5,
-                background:
-                  mode === "pressure"
-                    ? "linear-gradient(90deg, #315d83 0%, #d8d5cc 50%, #9b2f3a 100%)"
-                    : mode === "wall"
-                      ? "linear-gradient(90deg, #506271 0%, #d7d2c2 50%, #b0742c 100%)"
-                      : "linear-gradient(90deg, #0f4e56 0%, #d8d5cc 50%, #8f3d54 100%)",
+                background: fieldRampCss[activeField],
+                border: "1px solid rgba(20, 31, 43, 0.12)",
               }}
             />
-            <Stack direction="row" justifyContent="space-between" spacing={1}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
               <Typography variant="caption" color="text.secondary">
-                {useGlobalRange ? "Global" : "Current"} {rangeLabel(activeRange)}
+                {formatNumber(activeRange?.min)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {fieldCatalog?.units ?? ""}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {formatNumber(activeRange?.max)}
+              </Typography>
+            </Stack>
+            <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+              <Typography variant="caption" color="text.secondary">
+                Current {rangeLabel(currentRange)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Global {rangeLabel(globalRange)}
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 Frame {snapshotIndex + 1}/{totalFrames}
               </Typography>
             </Stack>
-            <Typography variant="caption" color="text.secondary">
-              Current {rangeLabel(currentRange)} · geometry {effectiveGeometryView} · deformation {formatNumber(effectiveDeformationScale)}x
+            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.25 }}>
+              {coordinateMessage}
             </Typography>
           </Stack>
         </Box>
@@ -453,10 +557,10 @@ export default function App() {
       >
         <ToggleButtonGroup
           exclusive
-          value={mode}
+          value={activeMode}
           size="small"
           onChange={(_, value: ViewMode | null) => {
-            if (value && modeAvailable(data, value)) {
+            if (value && modeAvailable(data, value, frame)) {
               applyMode(value);
             }
           }}
@@ -472,7 +576,12 @@ export default function App() {
           }}
         >
           {(["flow", "pressure", "wall"] as ViewMode[]).map((option) => (
-            <ToggleButton key={option} value={option} disabled={!modeAvailable(data, option)} aria-label={modeDefaults[option].label}>
+            <ToggleButton
+              key={option}
+              value={option}
+              disabled={!modeAvailable(data, option, frame)}
+              aria-label={modeDisabledReason(data, option, frame) || modeDefaults[option].label}
+            >
               {modeDefaults[option].label}
             </ToggleButton>
           ))}
@@ -500,6 +609,37 @@ export default function App() {
               {data?.manifest.case_id ?? "No manifest loaded"}
             </Typography>
           </Box>
+          {data ? (
+            <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+              {evidenceBadgeList.map((badge) => (
+                <Chip key={badge.key} size="small" color={badge.color} label={badge.label} />
+              ))}
+            </Stack>
+          ) : null}
+          <Divider />
+          {data ? (
+            <Stack spacing={1}>
+              <Typography variant="body2" color="text.secondary">
+                Field Diagnostics
+              </Typography>
+              {(["speed", "pressure", "displacement"] as FieldName[]).map((field) => {
+                const status = fieldStatusLabel(data, field, frame);
+                return (
+                  <Stack key={field} direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {data.fieldCatalog[field].label}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {rangeLabel(data.fieldCatalog[field].range)} {data.fieldCatalog[field].units}
+                      </Typography>
+                    </Box>
+                    <Chip size="small" color={status === "available" ? "success" : "default"} label={status} />
+                  </Stack>
+                );
+              })}
+            </Stack>
+          ) : null}
           <Divider />
           <Stack spacing={1.2}>
             <Box>
@@ -524,13 +664,16 @@ export default function App() {
                   Deformed
                 </ToggleButton>
               </ToggleButtonGroup>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75, lineHeight: 1.25 }}>
+                {coordinateMessage}
+              </Typography>
             </Box>
             <FormControlLabel
               control={<Switch checked={useGlobalRange} onChange={(event) => setUseGlobalRange(event.target.checked)} />}
               label="Fixed global color range"
             />
             <FormControlLabel
-              control={<Switch checked={showGlyphs} onChange={(event) => setShowGlyphs(event.target.checked)} disabled={mode !== "flow"} />}
+              control={<Switch checked={showGlyphs} onChange={(event) => setShowGlyphs(event.target.checked)} disabled={activeMode !== "flow"} />}
               label="Velocity glyphs"
             />
             <Box>
@@ -543,6 +686,7 @@ export default function App() {
                 step={0.5}
                 value={deformationScale}
                 onChange={(_, value) => setDeformationScale(value as number)}
+                disabled={!canApplyDisplacement || effectiveGeometryView !== "deformed"}
                 valueLabelDisplay="auto"
               />
             </Box>
@@ -556,7 +700,7 @@ export default function App() {
                 step={1}
                 value={glyphDensity}
                 onChange={(_, value) => setGlyphDensity(value as number)}
-                disabled={mode !== "flow" || !showGlyphs}
+                disabled={activeMode !== "flow" || !showGlyphs}
                 valueLabelDisplay="auto"
               />
             </Box>
@@ -597,6 +741,63 @@ export default function App() {
                 {data.manifest.claim_boundary}
               </Typography>
             </Stack>
+          ) : null}
+          {data &&
+          ((data.manifest.skipped_snapshots?.length ?? 0) > 0 ||
+            recordCount(data.manifest.sidecars) > 0 ||
+            recordCount(data.manifest.observations) > 0) ? (
+            <>
+              <Divider />
+              <Stack spacing={1}>
+                <Typography variant="body2" color="text.secondary">
+                  Evidence Artifacts
+                </Typography>
+                {(data.manifest.skipped_snapshots?.length ?? 0) > 0 ? (
+                  <Typography variant="body2">
+                    Skipped snapshots: {data.manifest.skipped_snapshots?.join(", ")}
+                  </Typography>
+                ) : null}
+                {loadingEvidence ? (
+                  <Typography variant="caption" color="text.secondary">
+                    Loading sidecar metadata
+                  </Typography>
+                ) : null}
+                {evidenceArtifacts.map((artifact) => (
+                  <Box
+                    key={`${artifact.collection}:${artifact.key}`}
+                    sx={{ border: "1px solid rgba(20, 31, 43, 0.12)", borderRadius: 1, p: 1 }}
+                  >
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {artifactTitle(artifact)}
+                      </Typography>
+                      <Chip size="small" label={artifactStatusLabel(artifact)} />
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, lineHeight: 1.25 }}>
+                      {summarizeEvidenceContent(artifact)}
+                    </Typography>
+                  </Box>
+                ))}
+              </Stack>
+            </>
+          ) : null}
+          {discrepancyArtifacts.length > 0 ? (
+            <>
+              <Divider />
+              <Stack spacing={1}>
+                <Typography variant="body2" color="text.secondary">
+                  Discrepancy Summaries
+                </Typography>
+                <Alert severity="info" sx={{ py: 0.5 }}>
+                  Artifact/operator evidence only; not production validation.
+                </Alert>
+                {discrepancyArtifacts.map((artifact) => (
+                  <Typography key={`${artifact.collection}:${artifact.key}:discrepancy`} variant="body2">
+                    {artifactTitle(artifact)}: {summarizeEvidenceContent(artifact)}
+                  </Typography>
+                ))}
+              </Stack>
+            </>
           ) : null}
         </Stack>
       </Drawer>

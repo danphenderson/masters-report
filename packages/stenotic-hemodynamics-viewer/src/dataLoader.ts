@@ -3,6 +3,7 @@ import type {
   FieldDescriptor,
   FieldName,
   FrameDescriptor,
+  LoadedEvidenceArtifact,
   LoadedSnapshotFrame,
   LoadedVizData,
   NumericRange,
@@ -30,6 +31,11 @@ async function loadBinaryAsset(asset: AssetDescriptor, manifestUrl: string): Pro
   const buffer = await response.arrayBuffer();
   assertAssetByteLength(asset, buffer);
   return buffer;
+}
+
+async function loadTextAsset(asset: AssetDescriptor, manifestUrl: string): Promise<string> {
+  const buffer = await loadBinaryAsset(asset, manifestUrl);
+  return new TextDecoder().decode(buffer);
 }
 
 async function loadFloat32(asset: AssetDescriptor, manifestUrl: string): Promise<Float32Array> {
@@ -118,32 +124,44 @@ function normalizeFrames(manifest: WebVizManifest): FrameDescriptor[] {
   });
 }
 
-function fieldCatalog(manifest: WebVizManifest): LoadedVizData["fieldCatalog"] {
+function hasFrameField(frames: FrameDescriptor[], field: "pressure" | "displacement"): boolean {
+  return frames.some((frame) => Boolean(frame.fields[field]?.asset));
+}
+
+function fieldCatalog(
+  manifest: WebVizManifest,
+  frames: FrameDescriptor[],
+  globalRanges: Record<string, NumericRange>,
+): LoadedVizData["fieldCatalog"] {
   const available = manifest.available_fields ?? [];
   const byName = new Map(available.map((field) => [field.name, field]));
-  const speedRange = rangeOrNull(manifest.global_ranges?.speed_cm_s);
-  const pressureRange = rangeOrNull(manifest.global_ranges?.pressure_dyn_cm2);
-  const displacementRange = rangeOrNull(manifest.global_ranges?.displacement_magnitude_cm);
+  const speedRange = rangeOrNull(globalRanges.speed_cm_s ?? byName.get("speed")?.range);
+  const pressureRange = rangeOrNull(globalRanges.pressure_dyn_cm2 ?? byName.get("pressure")?.range);
+  const displacementRange = rangeOrNull(globalRanges.displacement_magnitude_cm ?? byName.get("displacement")?.range);
   return {
     velocity: {
       label: "Velocity vector",
       units: byName.get("velocity")?.units ?? manifest.units.velocity ?? "cm/s",
       range: speedRange,
+      available: true,
     },
     speed: {
       label: "Velocity magnitude",
       units: byName.get("speed")?.units ?? manifest.units.velocity ?? "cm/s",
       range: speedRange,
+      available: true,
     },
     pressure: {
       label: "Pressure",
       units: byName.get("pressure")?.units ?? manifest.units.pressure ?? "dyn/cm^2",
       range: pressureRange,
+      available: hasFrameField(frames, "pressure"),
     },
     displacement: {
       label: "Wall displacement magnitude",
       units: byName.get("displacement")?.units ?? manifest.units.displacement ?? "cm",
       range: displacementRange,
+      available: hasFrameField(frames, "displacement"),
     },
   };
 }
@@ -195,14 +213,17 @@ export async function loadVizData(manifestUrl: string): Promise<LoadedVizData> {
     }
   }
 
+  const frames = normalizeFrames(manifest);
+  const globalRanges = normalizeGlobalRanges(manifest);
+
   return {
     manifestUrl,
     manifest,
     positions,
     indices,
-    frames: normalizeFrames(manifest),
-    globalRanges: normalizeGlobalRanges(manifest),
-    fieldCatalog: fieldCatalog(manifest),
+    frames,
+    globalRanges,
+    fieldCatalog: fieldCatalog(manifest, frames, globalRanges),
   };
 }
 
@@ -251,9 +272,90 @@ export function prefetchSnapshotFrame(data: LoadedVizData, index: number): void 
 }
 
 export function rangeForField(data: LoadedVizData, frame: LoadedSnapshotFrame, field: FieldName, useGlobalRange: boolean): NumericRange | null {
+  if (field === "pressure" && !frame.descriptor.fields.pressure?.asset) {
+    return null;
+  }
+  if (field === "displacement" && !frame.descriptor.fields.displacement?.asset) {
+    return null;
+  }
   if (useGlobalRange) {
     return data.fieldCatalog[field].range;
   }
   const key = field === "pressure" ? "pressure_dyn_cm2" : field === "displacement" ? "displacement_magnitude_cm" : "speed_cm_s";
   return rangeOrNull(frame.descriptor.ranges[key]);
+}
+
+function evidenceEntryObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function evidenceEntryAsset(value: unknown): AssetDescriptor | null {
+  const entry = evidenceEntryObject(value);
+  return typeof entry.path === "string" && typeof entry.byte_size === "number"
+    ? { path: entry.path, byte_size: entry.byte_size, sha256: typeof entry.sha256 === "string" ? entry.sha256 : undefined }
+    : null;
+}
+
+function evidenceEntryLabel(key: string, value: unknown): string {
+  const entry = evidenceEntryObject(value);
+  return typeof entry.label === "string" && entry.label ? entry.label : key;
+}
+
+function evidenceEntryStatus(value: unknown, asset: AssetDescriptor | null): string {
+  const entry = evidenceEntryObject(value);
+  if (typeof entry.status === "string" && entry.status) {
+    return entry.status;
+  }
+  return asset ? "copied" : "metadata";
+}
+
+async function loadEvidenceEntry(
+  data: LoadedVizData,
+  collection: LoadedEvidenceArtifact["collection"],
+  key: string,
+  value: unknown,
+): Promise<LoadedEvidenceArtifact> {
+  const entry = evidenceEntryObject(value);
+  const asset = evidenceEntryAsset(value);
+  const status = evidenceEntryStatus(value, asset);
+  const base = {
+    collection,
+    key,
+    label: evidenceEntryLabel(key, value),
+    status,
+    sourcePath: typeof entry.source_path === "string" ? entry.source_path : null,
+    path: asset?.path ?? null,
+    byteSize: asset?.byte_size ?? null,
+  };
+  if (status === "missing") {
+    return { ...base, content: null, loadStatus: "missing" };
+  }
+  if (!asset) {
+    return { ...base, content: null, loadStatus: "metadata" };
+  }
+  try {
+    const text = await loadTextAsset(asset, data.manifestUrl);
+    try {
+      return { ...base, content: JSON.parse(text), loadStatus: "loaded" };
+    } catch {
+      return { ...base, content: text, loadStatus: "loaded" };
+    }
+  } catch (err: unknown) {
+    return {
+      ...base,
+      content: null,
+      loadStatus: "error",
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+export async function loadEvidenceArtifacts(data: LoadedVizData): Promise<LoadedEvidenceArtifact[]> {
+  const sidecarEntries = Object.entries(data.manifest.sidecars ?? {}).map(([key, value]) =>
+    loadEvidenceEntry(data, "sidecars", key, value),
+  );
+  const observationEntries = Object.entries(data.manifest.observations ?? {}).map(([key, value]) =>
+    loadEvidenceEntry(data, "observations", key, value),
+  );
+  return Promise.all([...sidecarEntries, ...observationEntries]);
 }
