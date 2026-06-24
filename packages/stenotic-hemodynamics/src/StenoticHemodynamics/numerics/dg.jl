@@ -95,7 +95,7 @@ function dg_quadrature_locations(z::AbstractVector, dx::Real, xis)
     sample = 1
     @inbounds for zi in z
         for xi in xis
-            zq[sample] = zi + 0.5 * dx * xi
+            zq[sample] = zi + dx * xi / 2
             sample += 1
         end
     end
