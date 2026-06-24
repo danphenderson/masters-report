@@ -22,7 +22,7 @@ directly from that state before any reconstruction, diagnostic closure, or
 cross-tier output map is applied.
 
 The dimensional labels below therefore describe retained state and observation
-contracts, not merely mesh geometry. A 0D model stores lumped pressure, volume,
+rules, not merely mesh geometry. A 0D model stores lumped pressure, volume,
 or flow variables and is often used as a terminal or network closure for a
 distributed or resolved domain. A 1D vessel model advances axial balance laws
 for section area, flow, mean velocity, and wall-law pressure along a centerline
@@ -119,7 +119,7 @@ structure and terminal assumptions, so the Duanmu coronary-tree contribution is
 not just another single-vessel stenosis model; it shows how reduced vessel
 states become part of a larger pressure--flow network
 \cite{DuanmuEtAl2019CoronaryArterialTree}. These sources should therefore be
-compared by target observable and closure contract, not collected under a
+compared by target observable and closure specification, not collected under a
 single ``1D'' label.
 
 \subsection{Zero-Dimensional Networks and Multiscale Coupling}
@@ -176,16 +176,16 @@ domain.
 Tables~\ref{tab:model-hierarchy-comparison} and
 \ref{tab:model-hierarchy-observation-evidence} summarize the hierarchy in two
 steps. The first table summarizes retained state, reduction, closure, and data
-requirements. The second summarizes observables, evidence role, and interpretation
-limits. The split keeps the reading frame organized around state and
-observation rather than around individual papers. Read each row as a claim
-contract: what the tier solves natively, what it closes, what it can report
-directly, and which evidence role its outputs can support.
+requirements. The second summarizes observables, evidence role, and
+interpretation limits. The split keeps the reading frame organized around
+state and observation rather than around individual papers. Read each row as a
+compact specification: what the tier solves natively, what it closes, what it
+can report directly, and which evidence role its outputs can support.
 
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{State, reduction, closure, and data contract for cardiovascular
+    \caption{State, reduction, closure, and data requirements for cardiovascular
     model tiers.}
     \label{tab:model-hierarchy-comparison}
     \begin{tabularx}{\textwidth}{@{}
@@ -290,7 +290,7 @@ directly, and which evidence role its outputs can support.
             & Declared learned target.
             & Derived diagnostics such as FFR.
             & Supports in-distribution generalization tests; credibility is
-            bounded by the data-generating contract. \\
+            bounded by the data-generating assumptions. \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -306,7 +306,7 @@ Cross-tier comparisons are therefore observed-output comparisons:
 \end{flalign*}
 Unless the comparison design separates them, $\delta Y$ combines model-form,
 closure, parameter, numerical, data-matching, and observation-operator effects.
-Blanco's 1D--3D FFR study is read here as an FFR-specific matched-contract
+Blanco's 1D--3D FFR study is read here as an FFR-specific matched-observable
 comparison with pressure boundary matching and dedicated stenosis/bifurcation
 losses, not as evidence of general model-tier equivalence
 \cite{Blanco2018FFR1D3D}.
@@ -323,3 +323,7 @@ solver. When it is compared with resolved data, the comparison passes through
 an observation map from 1D area--flow variables to the chosen velocity, flow, or
 pressure quantity.
 \end{stenosisillustration}
+
+The next section makes those closure choices, boundary data, and observation
+rules explicit before Section~\ref{sec:numerical-methods} turns to their
+discrete realization and evidence standards.
