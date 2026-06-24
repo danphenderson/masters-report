@@ -44,6 +44,15 @@ Latest verification-reporting decision:
   p-sweep rows as `baseline`, `regressed`, or `plateau`; Appendix G now treats
   plateau/regressed p rows as diagnostics, not accepted DG p-convergence
   evidence.
+- Package commit `0413a97 Add DG limiter policy for smooth verification`
+  implements an explicit limiter-disabled smooth MMS verification policy while
+  preserving the conservative limited default. Focused package tests show
+  restored fixed-mesh DG p-improvement for smooth MMS rows, but tracked report
+  assets have not yet been regenerated from that policy.
+- Package commits `a89f6fd`, `c9a85c3`, and `49e0ba8` landed scalar-generic
+  helper continuation, explicit inlet-area solve controls, and stronger
+  refinement-study CLI tests. These are package correctness/maintenance
+  changes and do not alter manuscript claims.
 - These are verification-reporting refinements only. They do not promote native
   resolved-FSI Section 4.1 production, imported parity, moving-wall/ALE
   fidelity, or manuscript-grade reproduction claims.
@@ -81,6 +90,9 @@ Do not reopen these lanes without a new technical finding:
   manufactured-solution errors.
 - Appendix G now classifies the DG fixed-grid p-sweep as diagnostic when rows
   plateau or regress, not as accepted p-convergence evidence.
+- Package-side smooth MMS DG p-improvement now exists at focused test scope,
+  but Appendix G and generated report assets still need a coordinated
+  regeneration/review lane before any accepted p-convergence prose changes.
 
 ## Next Round Objective
 
@@ -199,6 +211,10 @@ After evidence assets and source prose are stable:
 The report lane does not own package implementation. Current package-side
 follow-ups remain:
 
+- 12B regenerated DG p/h verification assets and Appendix G wording, coordinated
+  with the package orchestrator so limiter-policy metadata is visible and the
+  conservative production limiter is not misrepresented;
+- 12C focused test hardening for dynamic membrane output and Python renderers;
 - 10C-P native resolved-FSI phase timing before solver/numerics changes;
 - FEM-05 quadrature sensitivity and open-boundary/backflow diagnostics;
 - OBS-02 radial-coordinate and excluded-area policy;

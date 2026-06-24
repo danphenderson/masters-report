@@ -80,6 +80,22 @@ Implemented and committed:
   with conservative diagnostic status (`baseline`, `regressed`, `plateau`,
   `not_evaluated`) instead of allowing plateaued or regressed rows to read as
   accepted p-convergence evidence.
+- `0413a97`: DG smooth-verification runs can now disable the modal limiter
+  explicitly while preserving the existing limited default. Focused
+  verification tests show the limiter-disabled smooth MMS p-sweep restores
+  rapid area/flow p-improvement; tracked report assets have not yet been
+  regenerated from that policy.
+- `a89f6fd`: scalar-generic core helper continuation landed for velocity
+  profiles, geometry, wall coefficients, characteristic invariants, and
+  variable-radius correction terms. Native resolved-FSI production/Gridap
+  arrays remain `Float64`-oriented.
+- `c9a85c3`: the inlet characteristic area solve no longer hides root-solve
+  policy as magic loop limits. It now uses validated internal
+  `InletAreaSolveControls`, preserves finite `AbstractFloat` scalar inputs
+  where applicable, and has seam tests for custom controls and invalid
+  policies.
+- `49e0ba8`: CLI refinement-study tests are standalone-include safe and assert
+  finite, nonzero p-refinement errors in addition to metadata.
 
 ## Non-Negotiable Claim Boundary
 
@@ -114,9 +130,10 @@ Implemented and committed:
 - Manufactured-solution MMS observed orders are discrete metric-specific
   verification evidence only. They do not establish physical validation,
   resolved-FSI parity, or manuscript-grade Section 4.1 reproduction.
-- Fixed-mesh DG p-sweep rows are diagnostic until a dedicated numerical-method
-  repair supplies accepted p-convergence evidence. Current `plateau` or
-  `regressed` p rows must not be described as successful p-refinement.
+- Fixed-mesh DG p-sweep rows are diagnostic unless the row metadata identifies
+  the smooth-verification limiter policy that produced accepted p-improvement.
+  Existing tracked report assets remain bounded to the diagnostic limited
+  policy until regenerated and reviewed.
 
 ## Current Planning Artifact
 
@@ -214,10 +231,12 @@ Implemented and committed:
 
 ### Lane 12A: Smooth-DG p-Convergence Repair
 
-Priority: P0 for numerical-method/report completeness before any accepted
-DG p-convergence claim. This lane does not alter native resolved-FSI production
-claims, and it must not change manuscript wording beyond diagnostic safeguards
-until new evidence exists.
+Status: implemented in `0413a97` at package-test scope. Report assets and
+manuscript prose are not yet regenerated from the limiter-disabled smooth
+verification policy.
+
+Priority: completed code lane; keep as evidence background for Lane 12B. This
+lane does not alter native resolved-FSI production claims.
 
 Objective: determine whether the fixed-mesh DG p-sweep failure is caused by
 the limiter/boundary-cell mode policy or by deeper flux/source/timestep
@@ -251,21 +270,19 @@ Conditional files only after improved numerical evidence exists:
 - `packages/ops/tests/test_python_ph_refinement_demo.py`
 - `report/appendices/numerical-methods-details.tex`
 
-Implementation plan:
+Implemented:
 
-1. Add a verification-controllable limiter policy to the DG solve path, such as
-   `apply_limiter::Bool = true`, while keeping current default behavior
-   unchanged.
-2. Guard the initial modal-projection limiter and all RK-stage limiter calls
-   behind that policy.
-3. Run scratch fixed-mesh p-sweeps with limiter disabled before regenerating
-   tracked report assets.
-4. If the no-limiter smooth MMS p-sweep improves credibly, extend
-   `PHRefinementDemoSpec` with explicit limiter-policy metadata and decide
-   whether the report demo should use the smooth-verification policy.
-5. If the no-limiter p-sweep still fails, defer report-asset changes and open a
-   narrower numerical audit of Rusanov dissipation, manufactured forcing,
-   source quadrature, and timestep sensitivity.
+1. Added `apply_limiter::Bool = true` through the DG coefficient-simulation
+   path and `PHRefinementDemoSpec`.
+2. Guarded the initial modal-projection limiter and RK-stage limiter calls
+   while leaving default production/simulation behavior unchanged.
+3. Added `dg_limiter_policy` metadata to p/h refinement rows and CSV output.
+4. Focused tests cover default-policy preservation and limiter-disabled smooth
+   MMS p-improvement for area and flow.
+
+Remaining: regenerate tracked report assets only in Lane 12B after editorial
+coordination, because changing the table from diagnostic limited-policy rows
+to smooth-verification rows changes the manuscript evidence statement.
 
 Validation commands:
 
@@ -288,6 +305,89 @@ Acceptance criteria:
   exists.
 - Any accepted p-convergence claim is bounded to the specific smooth MMS
   verification configuration that produced it.
+
+### Lane 12B: Regenerate DG p/h Verification Assets
+
+Priority: P0 for report numerical-method completeness after Lane 12A.
+
+Objective: update the generated p/h verification demonstration assets and
+manuscript wording to report the smooth MMS limiter policy honestly: the
+default production limiter remains conservative, while the limiter-disabled
+smooth-verification policy demonstrates expected p-improvement for the
+manufactured smooth problem.
+
+Owned files:
+
+- `report/assets/data/verification/p_h_refinement_demo.csv`
+- `report/assets/tables/verification/p_h_refinement_demo.tex`
+- `packages/ops/src/ops/render_ph_refinement_demo.py`
+- `packages/ops/tests/test_python_ph_refinement_demo.py`
+- `report/appendices/numerical-methods-details.tex`
+- `report/TODO.md`
+
+Dispatch notes:
+
+1. Coordinate with the editorial orchestrator before touching report prose or
+   generated table assets.
+2. Regenerate the p/h refinement demo with explicit `dg_limiter_policy`
+   metadata. The table must not imply that the production limiter was changed.
+3. Update renderer/tests so `modal_limiter` and `disabled` policies are
+   preserved visibly and non-improvement statuses remain visible when present.
+4. Update Appendix G wording to separate conservative production limiting from
+   smooth MMS verification.
+5. Build the report in scratch and run the report prose audit before any PDF
+   refresh.
+
+Validation commands:
+
+```bash
+pipenv run ops-render-ph-refinement-demo --csv report/assets/data/verification/p_h_refinement_demo.csv --output-dir report/assets/rendered --table-dir report/assets/tables/verification
+pipenv run pytest packages/ops/tests/test_python_ph_refinement_demo.py
+pipenv run ruff check packages/ops/tests/test_python_ph_refinement_demo.py
+pipenv run black --check packages/ops/tests/test_python_ph_refinement_demo.py
+pipenv run ops-audit-report-prose --json
+pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
+git diff --check -- packages/ops report
+```
+
+Acceptance criteria:
+
+- The regenerated table includes metric-specific values and limiter-policy
+  metadata sufficient to distinguish diagnostic limited-policy rows from
+  smooth-verification rows.
+- Appendix G does not describe fixed-mesh p rows as accepted convergence unless
+  those rows are the limiter-disabled smooth MMS verification rows.
+- No native resolved-FSI production, parity, restart/resume, moving-wall/ALE,
+  or Section 4.1 reproduction claim changes.
+
+### Lane 12C: Focused Test Hardening Follow-Up
+
+Priority: P1 after report-critical DG asset regeneration unless a test failure
+reopens it.
+
+Objective: address the remaining non-vacuity improvements identified by the
+read-only test-quality audit without broadening into speculative test churn.
+
+Targets:
+
+- Strengthen `test_membrane_fsi.jl` dynamic membrane validation so
+  wall-velocity maxima are asserted nonzero and agree with written history or
+  profile rows.
+- Strengthen `packages/ops/tests/test_python_ph_refinement_demo.py` after Lane
+  12B so plateau/regressed/improved statuses and limiter-policy fields are
+  rendered from fixture values.
+- Strengthen `packages/ops/tests/test_python_package_benchmark.py` with
+  nonempty rendered artifact and key numeric/stage-count assertions.
+
+Validation:
+
+```bash
+packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_membrane_fsi.jl")'
+pipenv run pytest packages/ops/tests/test_python_ph_refinement_demo.py packages/ops/tests/test_python_package_benchmark.py
+pipenv run ruff check packages/ops/tests/test_python_ph_refinement_demo.py packages/ops/tests/test_python_package_benchmark.py
+pipenv run black --check packages/ops/tests/test_python_ph_refinement_demo.py packages/ops/tests/test_python_package_benchmark.py
+git diff --check -- packages/stenotic-hemodynamics/test/test_membrane_fsi.jl packages/ops/tests/test_python_ph_refinement_demo.py packages/ops/tests/test_python_package_benchmark.py
+```
 
 ### Lane 10C-P: Native FSI Phase Timing Before Numerics Optimization
 
