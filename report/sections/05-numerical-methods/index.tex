@@ -100,7 +100,7 @@ discretizes the corresponding weak incompressible-flow or FSI problem. The
 numerical claim is therefore a mixed weak-form and interface-coupling claim, not
 simply a mesh claim. A finite-element realization chooses discrete velocity and
 pressure spaces and solves the resulting saddle-point problem. Several
-numerical contracts have to be kept separate. First, when the continuous
+numerical issues have to be kept separate. First, when the continuous
 problem determines pressure only up to an additive constant, the discrete
 problem needs a pressure gauge, quotient space, or equivalent null-mode
 constraint; that is a pressure-uniqueness convention. Second, the
@@ -109,16 +109,17 @@ or it must include pressure stabilization such as pressure projection, PSPG, or
 local-projection stabilization. Stable Taylor--Hood-type pairs and suitable
 divergence-conforming constructions address this mixed-space requirement
 directly, while equal-order pairs generally need an added pressure-space
-stabilization contract. Third, advective stabilization such as SUPG addresses
+stabilization mechanism. Third, advective stabilization such as SUPG addresses
 convection-dominated transport behavior. Fourth, grad-div terms improve
 discrete divergence control. SUPG and grad-div terms do not by themselves
 repair an inf-sup-unstable pressure space. Galdi and coauthors are useful here
 not as a generic FEM citation, but because their hemodynamical-flow treatment
 ties continuum equations, mixed discretization, stabilization, and simulation
 evidence together \cite{GaldiEtAl2008HemodynamicalFlows}. Package-facing Gridap
-wording in this report is therefore bounded to focused contract and smoke-test
-evidence for continuous P2-velocity/P1-pressure routes. That evidence checks the
-local mathematical contract; it is not a manuscript-grade reproduction or
+wording in this report is therefore bounded to focused formulation-level and
+smoke-test evidence for continuous P2-velocity/P1-pressure routes. That
+evidence checks the local mathematical specification; it is not a
+manuscript-grade reproduction or
 production-execution claim.
 At the algebraic level, this local dependency appears as sparsity. For
 element-local Galerkin terms, a stiffness or coupling block associated with
@@ -127,7 +128,7 @@ on an element; local stabilization terms may enlarge the patch, but the row
 pattern is still induced by mesh connectivity rather than by all degrees of
 freedom at once.
 
-When the wall moves, the numerical contract also includes the fluid--structure
+When the wall moves, the numerical specification also includes the fluid--structure
 interface. FSI formulations must transfer traction and velocity or displacement
 data across the interface, update the fluid domain or mesh, and control the
 added-mass and time-lag effects that appear in partitioned coupling. Monolithic
@@ -220,9 +221,10 @@ preference or a cosmetic refinement of an otherwise verified scheme.
 \begin{definition}[Well-balanced preservation checklist]
 \label{def:well-balanced-checklist}
 For a target rest family $\mathcal E\subset\mathcal U$ and shared sampling
-interval $\mathcal T$, a well-balanced claim is tied to the following contract:
+interval $\mathcal T$, a well-balanced claim requires the following
+specification:
 \begin{enumerate}
-    \item the model contract and source balance define $\mathcal E$;
+    \item the model specification and source balance define $\mathcal E$;
     \item boundary realizations are constrained to the same equilibrium family;
     \item the discrete maps $M_{h,\theta_h}$ and $\Psi_{\Delta t,h,\lambda_h}$
         are used with the same equilibrium assumptions;
@@ -360,9 +362,10 @@ in the case study.
             preservation test.
             & Preservation of unrelated transients or patient-specific behavior. \\
         Two schemes agree
-            & Shared benchmark, matched model contracts, and comparable output
+            & Shared benchmark, matched model specifications, and comparable
+            output
             quantities.
-            & Correctness if the shared model contract is incomplete. \\
+            & Correctness if the shared model specification is incomplete. \\
         Two model tiers agree
             & Matched inputs and closures plus a common observation operator.
             & Native-field equivalence or clinical validation. \\

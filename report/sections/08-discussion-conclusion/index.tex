@@ -54,7 +54,9 @@ not evidence for a full transient moving-boundary FSI model.
 
 The third research question asked what limitations remain when resolved scale,
 cost, identifiability, validation status, reproducibility, and uncertainty are
-compared. The answer is that each evidence type supports a different claim.
+compared. The answer is that interpretation depends on the declared equation,
+retained state, discretization, observation operator, and metric, and each
+evidence type checks only part of that chain.
 ASME VVUQ terminology separates verification, validation, and uncertainty
 quantification; Boileau and coauthors provide benchmark comparison evidence;
 Pimentel-Garcia and coauthors show that a well-balanced claim must name the
@@ -63,22 +65,24 @@ depends on measured outputs, boundary-condition class, and design assumptions
 \cite{ASME2022VVUQTerminology,BoileauEtAl2015Benchmark,PimentelGarciaEtAl2023HighOrderWellBalanced,Colebank2025HemodynamicsIdentifiability}.
 
 The worked stenosis example demonstrates the distinction. Its manufactured
-solution supports code-verification claims for a forced operator. Its
-geometry-rest test supports a separate statement about equilibrium preservation
-and exposes the current non-well-balanced limitation. Its 1D--3D comparison is
-interpretable only after physical flow and area-mean velocity are extracted
-through a common observation operator. These checks support a bounded
-diagnostic cross-model comparison, not an external validation result.
-The positive MMS result, negative rest-state result, and final-time comparator
-are useful precisely because they cannot be collapsed into one validation grade.
+solution checks the discrete operator for one forced equation. Its
+geometry-rest test addresses equilibrium preservation for the chosen
+discretization and boundary approximation. Its 1D--3D comparison becomes
+meaningful only after both models are reduced to the same section-mean velocity
+observable and discrepancy metric. These checks support a bounded diagnostic
+cross-model comparison, not an external validation result. The positive MMS
+result, negative rest-state result, and final-time comparator are useful
+precisely because they belong to different parts of the same interpretive
+chain rather than to one validation grade.
 
 \subsection{Contribution and Limitations}
 \label{subsec:discussion-contribution-limitations}
 
 The contribution is a review framework for reading mathematical hemodynamics
-across model tiers. It supplies a contract that connects retained state,
-closures, boundary data, discretization, observation operator, and evidence
-type. It applies that contract once in an idealized stenosis computation.
+across model tiers. It supplies a concise template connecting retained state,
+closures, boundary data, discretization, observation operator, metric, and
+evidence type. It applies that template once in an idealized stenosis
+computation.
 
 The limitations are correspondingly bounded. The review is narrative and
 scoping, not systematic. Some sources remain preprints, software artifacts, or
@@ -91,13 +95,14 @@ clinical prediction evidence or a fully matched transient FSI target.
 \section{Conclusion}
 \label{sec:conclusions-limitations}
 
-This report's main conclusion is that hemodynamic simulation claims support a
-claim only when the equations, retained state, closures, boundary data,
-discretization, evidence standard, and observation operator are declared
-together. Model dimension alone does not determine interpretation, and neither
-a benchmark, a grid study, a cross-model comparison, nor a learned surrogate
-result substitutes for validation against an external target for a specified
-quantity and context.
+This report's main conclusion is that hemodynamic simulation results are
+interpretable only when the equation, retained state, closure assumptions,
+boundary data, discretization, observation operator, and metric are declared
+together and then evaluated with the appropriate evidence standard. Model
+dimension alone does not determine interpretation, and neither a benchmark, a
+grid study, a cross-model comparison, nor a learned surrogate result
+substitutes for validation against an external target for a specified quantity
+and context.
 Likewise, a membrane-wall update, a pressure--area law, and a resolved FSI
 calculation answer different structural questions unless their wall state,
 loads, and observation operators are matched.

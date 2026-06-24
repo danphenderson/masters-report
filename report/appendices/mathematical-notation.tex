@@ -47,8 +47,10 @@ function-space definitions and compactness background are not repeated here.
     \end{minipage}
     \par
 
-\begin{definition}[Numerical contract symbol map]
+\begin{notation}[Numerical Template Symbol Map]
 \label{def:contract-role-symbol-map}
+This table collects the symbols used in the interpretive template introduced in
+Section~\ref{subsec:numerical-contract-stack}.
 
 \noindent\begin{compactacronymtables}
 \begin{tabular}{@{}
@@ -63,7 +65,7 @@ function-space definitions and compactness background are not repeated here.
 \midrule
 $\mathcal L_{\mathcal P}$ & continuous model & continuous residual operator defining
 the selected closure/parameterized equation. \\
-$\mathcal P$ & parameter set & model-data contract, including geometry, closure, and
+$\mathcal P$ & parameter set & model specification, including geometry, closure, and
 physical parameter choices. \\
 $M_{h,\theta_h}$ & semidiscrete map & mesh/operator realization map from
 continuous model state to discrete state. \\
@@ -72,8 +74,8 @@ principal comparison runs. \\
 $\mathcal H_{h,\omega_h}$ & observation & extraction map from discrete state to observables. \\
 $\mathcal R_{\mathrm{metric}}$ & metric map & aggregation to the reported metric vector
 $(\overline d_u,D_{u,1},D_{u,2},D_{u,\infty},D_{u,2}^{\mathrm{rel}},\overline d_Q,D_{Q,1},D_{Q,2})$. \\
-$Y_{h,\Delta t}$ & reported output & output after discrete evolution, observation, and
-metric reduction under the declared numerical template. \\
+$Y_{h,\Delta t}$ & reported output & quantity reported after discrete evolution,
+observation, and metric reduction under the declared numerical template. \\
 $\mathcal B_h^{\mathrm{FA}}$ & boundary realization & fixed-area characteristic approximation. \\
 $\omega_h$ & observation rule & quadrature, section selection, invalid-cut handling, and
 section-coordinate convention. \\
@@ -84,4 +86,4 @@ $\mathcal Y$ & codomain & model residual/constraint space for $\mathcal L_{\math
 \bottomrule
 \end{tabular}
 \end{compactacronymtables}
-\end{definition}
+\end{notation}
