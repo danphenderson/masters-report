@@ -1,4 +1,4 @@
-\section{Software, Reproducibility, and AI-Assisted Work Record}
+\section{Software, Source Artifacts, and AI-Assisted Work Record}
 \label{app:code-and-ai-use}
 
 This report is built from the \LaTeX{} sources rooted at
@@ -11,24 +11,18 @@ report is \path{packages/stenotic-hemodynamics/bin/stenotic-hemodynamics}, which
 \path{packages/stenotic-hemodynamics/}.
 
 \paragraph*{Source-control and archive record.}
-This manuscript refresh was prepared from the local \texttt{main} branch. Under
-the report-side commit discipline used in this repository, the exact source
-tree for a submitted PDF should be identified by the report-source commit
+Under the report-side commit discipline used in this repository, the exact
+source tree for a submitted PDF should be identified by the report-source commit
 immediately preceding any PDF-only refresh commit, or by a release tag that
-points to that source tree. In this checkout, the current branch, the clean
-submission-readiness base for this sweep, and the retained release tag are:
-\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-branch: main
-submission_readiness_base: e304d4045bae
-local_tag_available: masters-report-final-2026-06-19 -> 1a15a52d6e986f08d745c9e40ecbcd04d4475104
-\end{lstlisting}
+points to that source tree. This appendix does not assert that an arbitrary live
+checkout is clean, submission-ready, or identical to a later archived release.
 The local release manifest remains the concrete source-access record rather
 than a final public archive record:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 public/reproducibility/release-manifest.json
 \end{lstlisting}
-This appendix therefore records local reproducibility rather than claiming a
-public archive. No public repository URL, immutable archive URL, or DOI is
+This appendix therefore records local source-artifact traceability rather than
+claiming a public archive. No public repository URL, immutable archive URL, or DOI is
 asserted by this local thesis copy. Unless a later public release adds one of
 those records, access to \texttt{StenoticHemodynamics} is governed by the
 repository owner's source-control policy.
@@ -48,31 +42,17 @@ author, credited as a contributor capable of final approval or accountability,
 or cited as a primary source.
 
 \paragraph*{Computational environment.}
-The checked Julia environment and local hardware record were:
-\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-manifest_julia_version: 1.12.6
-launcher_julia_version: julia version 1.12.6
-operating_system: macOS 26.5.1, Darwin 25.5.0, arm64
-hardware: Apple M1 Max, 10 logical CPUs, 32 GiB memory
-\end{lstlisting}
 The repository README states the intended portable execution surface as a macOS
 or Linux shell with Julia 1.12 or newer, Python/Pipenv for auxiliary tooling,
-and a TeX distribution with \texttt{latexmk} and \texttt{biber}.
+and a TeX distribution with \texttt{latexmk} and \texttt{biber}. Concrete
+launcher versions, dependency versions, and hardware records belong in the
+release manifest or validation logs for the submitted source tree, not as a
+live-checkout claim inside the manuscript.
 
 \paragraph*{Review provenance.}
-The narrative literature-hardening pass was refreshed on 22~June~2026 and
-considered English-language records from 1973--2026. Representative targeted
-queries were ``one-dimensional blood flow benchmark,'' ``well-balanced blood
-flow finite volume,'' ``3D 1D fractional flow reserve comparison,''
-``cardiovascular fluid structure interaction verification,'' and
-``hemodynamics identifiability surrogate.'' The working evidence base consisted
-of 71 BibLaTeX entries, 77 logged source records, a 136-row evidence matrix, and
-a 169-row derived review-depth matrix generated from the repository tooling.
-After triage, 42 source records were treated as current cited evidence, 8 as
-report-adjacent scope checks, 20 as future-work context, 2 as background only,
-and 5 as deferred pending metadata review. Blank \texttt{bib\_key} records were
-not used for citation. The bounded claim register for the main editorial pass
-is stored at:
+The source inventory, claim register, and review-depth records are maintained as
+repository artifacts outside the thesis PDF. The bounded claim register for the
+main editorial pass is stored at:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 public/reproducibility/manuscript-claim-register.tsv
 \end{lstlisting}
@@ -87,7 +67,7 @@ Julia package tests are run through the Python ops validation wrapper:
 pipenv run ops-julia-check
 \end{lstlisting}
 
-\paragraph*{Case-study reproduction commands.}
+\paragraph*{Case-study reconstruction commands.}
 The Section~\ref{sec:case-study} verification tables are regenerated with:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify mms \
@@ -112,8 +92,8 @@ descriptions in the main text. These correspond to local source IDs 77 and 60,
 respectively. The raw 3D fields are optional local inputs rather than archived
 thesis assets; the detailed input root and upstream pointer are recorded below.
 
-\paragraph*{Comparison-asset reproduction commands.}
-When the optional raw 3D inputs are restored locally, the tracked comparison
+\paragraph*{Comparison-asset reconstruction commands.}
+When the optional raw 3D inputs are restored locally, the stored comparison
 assets are regenerated with:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
@@ -149,30 +129,33 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --publish-report-assets \
   --report-assets-dir report/assets/data/stenosis-comparison
 \end{lstlisting}
-These commands reproduce the retained reference-coordinate and
+These commands reconstruct the retained reference-coordinate and
 deformed-coordinate comparison data assets: \path{section-quadrature-*},
 \path{area-audit-*}, \path{production-diagnostics-*},
 \path{node-slab-sensitivity-*}, and \path{radial-profile-audit-*} under
 \path{report/assets/data/stenosis-comparison/}. The legacy unsuffixed files in
 the same directory are compatibility copies of the reference-coordinate report
 assets. The compact coordinate-mode and radial-audit table fragments are
-regenerated from those tracked data assets, without raw 3D inputs, by:
+regenerated from those stored data assets, without raw 3D inputs, by:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 pipenv run ops-render-resolved3d-comparison-tables
 \end{lstlisting}
-A clean public clone can rebuild the manuscript from these tracked derived
-assets and can verify absent raw resolved-3D inputs as an expected skip; it
-cannot regenerate the raw-data-dependent comparison assets until the ignored
-XDMF/HDF5 inputs are restored locally. The remaining timing limitation is
-transient-history matching, not the final timestamp.
+A checkout containing these stored derived assets can rebuild the manuscript
+and can verify absent raw resolved-3D inputs as an expected skip; it cannot
+regenerate the raw-data-dependent comparison assets until the ignored XDMF/HDF5
+inputs are restored locally. The remaining timing limitation is transient-history
+matching, not the final timestamp.
 
-\paragraph*{Canic Section 4.1 replication workflow.}
-The package also provides a separate source-artifact replication workflow for
-the numerical findings of Canic et al.\ Section~4.1. This workflow is distinct
-from the retained 23\%/40\% manuscript comparator above: it covers the 23\%,
-40\%, and 50\% cases, runs both local 1D models, compares velocity and pressure
-section averages against restored upstream 3D bundles, writes a parameter audit,
-and records upstream provenance. The upstream MATLAB code is treated as
+\paragraph*{Canic Section 4.1 source-artifact workflow.}
+The package also provides a separate source-artifact reconstruction and
+diagnostic comparison workflow for Canic et al.\ Section~4.1. This workflow is
+distinct from the retained 23\%/40\% manuscript comparator above: it reconstructs
+local 1D outputs, compares section-mean velocity against restored upstream 3D
+bundles, emits gauge-dependent pressure diagnostics, writes a parameter audit,
+and records upstream provenance. The 50\% upstream bundle is included by the
+same per-case final-time rule; it remains source-artifact comparison evidence
+rather than replication evidence unless parameter, pressure-gauge, and
+observable-tolerance criteria are also satisfied. The upstream MATLAB code is treated as
 external provenance/comparator material only, not copied implementation code.
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
@@ -181,54 +164,74 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication secti
   --coordinate-mode deformed \
   --nx 100 \
   --dt 1e-5 \
-  --tfinal 1.0 \
   --section-count 200 \
   --radial-sample-count 41 \
   --publish-report-assets \
   --report-assets-dir report/assets \
   --overwrite
 \end{lstlisting}
-The promoted workflow emits provenance, parameter-audit, comparison-summary,
+The workflow emits provenance, parameter-audit, comparison-summary,
 section-comparison, radial-velocity, and compact 3D-diagnostic files. Its audit
 intentionally records source inconsistencies, including the PDF Table~1 Young
 modulus versus the upstream MATLAB control value and the upstream 50\% XDMF
 snapshot time.
-Table~\ref{tab:canic-section41-summary} summarizes the promoted
-section-averaged comparison rows, and
+Table~\ref{tab:canic-section41-summary} summarizes the stored
+section-averaged velocity and pressure-diagnostic rows, and
 Table~\ref{tab:canic-section41-parameter-audit} records the non-identical source
-conditions that must accompany any Section~4.1 reproduction claim. Missing raw
+conditions that bound any Section~4.1 reconstruction or comparison claim. Missing raw
 inputs are non-fatal and print:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 canic_replication_status,skipped_missing_data
 \end{lstlisting}
-The reviewed derived outputs from this workflow are tracked in
+Derived outputs from prior reviewed runs are stored in
 \path{report/assets/data/canic-replication/} and
 \path{report/assets/tables/canic-replication/}; the raw XDMF/HDF5 bundles
-remain ignored local inputs.
+remain ignored local inputs. Those stored table fragments predate the current
+time-alignment and pressure-gauge policy and are not input as current evidence
+in this thesis revision. Corrected numerical rows require a separate
+artifact-refresh lane.
 
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Promoted Canic Section~4.1 source-artifact replication summary.
-    The velocity column reports the maximum relative section-mean velocity
-    discrepancy against the restored upstream 3D bundle; the pressure column is
-    the maximum absolute section-mean pressure discrepancy in
-    $\mathrm{dyn}/\mathrm{cm}^2$.}
+    \caption{Current Canic Section~4.1 source-artifact comparison boundary.
+    Imported times are read from the restored XDMF bundles, and the default
+    local target time is the imported time for each case. Explicit global
+    final-time overrides are recorded as intentional time mismatches when they
+    differ outside the \(10^{-6}\,\mathrm{s}\) tolerance. Pressure is withheld
+    as cross-model error evidence until a common gauge is implemented.}
     \label{tab:canic-section41-summary}
     \resizebox{\textwidth}{!}{%
-    \input{report/assets/tables/canic-replication/canic-section41-summary.tex}%
+    \begin{tabular}{@{}lllll@{}}
+        \toprule
+        Case & Imported bundle time & Default local target & Time-alignment role & Pressure role \\
+        \midrule
+        23\% & \(0.9995\,\mathrm{s}\) & \(0.9995\,\mathrm{s}\) & time-aligned source-artifact comparison & non-evidentiary diagnostic \\
+        40\% & \(0.9995\,\mathrm{s}\) & \(0.9995\,\mathrm{s}\) & time-aligned source-artifact comparison & non-evidentiary diagnostic \\
+        50\% & \(1.4995\,\mathrm{s}\) & \(1.4995\,\mathrm{s}\) & time-aligned source-artifact comparison & non-evidentiary diagnostic \\
+        \bottomrule
+    \end{tabular}%
     }
 \end{table}
 
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Promoted Canic Section~4.1 parameter and provenance audit. These
-    rows are retained because they affect how closely the local source-artifact
-    run can be identified with the published article settings.}
+    \caption{Current Canic Section~4.1 parameter and provenance audit boundary.
+    The rows state the conditions that must accompany any later refreshed
+    numerical table.}
     \label{tab:canic-section41-parameter-audit}
     \resizebox{\textwidth}{!}{%
-    \input{report/assets/tables/canic-replication/canic-section41-parameter-audit.tex}%
+    \begin{tabular}{@{}lll@{}}
+        \toprule
+        Item & Current policy & Manuscript role \\
+        \midrule
+        Time alignment & imported, local target, and local completed times must agree within \(10^{-6}\,\mathrm{s}\) & required for replication evidence \\
+        Pressure gauge & no common 1D--3D pressure-gauge operator is implemented here & absolute pressure error withheld \\
+        Parameter alignment & PDF Table~1 Young modulus differs from the upstream MATLAB control value & source-artifact limitation \\
+        Raw bundles & local XDMF/HDF5 inputs are restored under \path{public/var/data/simulations/canic_case3/} & optional regeneration input \\
+        \bottomrule
+    \end{tabular}%
     }
 \end{table}
 
@@ -258,9 +261,10 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics operator-validation \
   --overwrite
 \end{lstlisting}
 This run uses an in-memory tetrahedron with constant and affine axial fields.
-It verifies the synthetic plane-cut reduction used by the cross-section
-quadrature workflow and is independent of the optional HDF5/XDMF velocity
-fields.
+The package tests also include closed-form single-tetrahedron and disjoint
+two-tetrahedron cuts with independently computed areas and affine means. These
+checks are independent of the optional HDF5/XDMF velocity fields; they do not
+validate the available resolved meshes.
 
 When the optional raw 3D inputs are available, the publication-scope grid
 sensitivity is:
@@ -323,15 +327,14 @@ consumed by Section~\ref{subsec:deformed-coordinate-comparison}; wall,
 boundary, material, and earlier transient histories remain unresolved unless a
 later release entry adds those data.
 
-The tracked release manifest is stored outside the thesis PDF:
+The release manifest is stored outside the thesis PDF:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 public/reproducibility/release-manifest.json
 \end{lstlisting}
 That manifest is retained release/provenance metadata, not a full report asset
 inventory. It records the build command, raw-input policy, upstream 3D input
-pointer, comparison-asset reproduction commands, and the absence of a declared
+pointer, comparison-asset reconstruction commands, and the absence of a declared
 public repository URL or archival DOI. The report-facing artifact inventory and
 command matrix are maintained in \path{public/docs/resolved3d-workflows.md}.
-No populated standalone SHA-256 file-hash manifest was present in the tracked
-source tree inspected for this revision; per-run workflow manifests record
-SHA-256 output hashes when those workflows are regenerated.
+Per-run workflow manifests record SHA-256 output hashes when those workflows are
+regenerated.

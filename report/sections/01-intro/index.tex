@@ -33,7 +33,7 @@ does not delimit the scope of the literature.
 The review is narrative and scoping in style rather than systematic. Sources
 were retained for the role they play in interpreting mathematical hemodynamics:
 derivation, taxonomy, numerical evidence, clinical or experimental observables,
-software reproducibility, or learned-model scope. Appendix~\ref{app:code-and-ai-use}
+software traceability, or learned-model scope. Appendix~\ref{app:code-and-ai-use}
 lists the source-inventory metadata; the main text uses those entries only to
 support bounded claims.
 
@@ -58,7 +58,7 @@ support bounded claims.
             & 0D/1D hierarchy and pressure--flow network interpretation
             \cite{ShiEtAl2011BloodFlowModelReview}. \\
         Numerical benchmark or software
-            & Scheme comparison, reproducibility, workflow traceability.
+            & Scheme comparison, source-artifact reconstruction, workflow traceability.
             & 1D benchmark cases and open finite-volume workflows
             \cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}. \\
         Clinical or experimental observable
@@ -83,8 +83,8 @@ one of those questions for the model hierarchy, closures, numerical evidence
 standard, or 1D--3D observation operator. Derivation papers establish equations
 and assumptions; benchmark papers establish comparative numerical behavior;
 clinical and experimental studies address external relevance for specified
-observables; and software or repository materials support reproducibility rather
-than scientific truth of a model claim. The review does not claim exhaustive
+observables; and software or repository materials support source-artifact
+traceability rather than scientific truth of a model claim. The review does not claim exhaustive
 coverage of all clinical or computational hemodynamics.
 
 \subsection{Research Problem and Questions}
@@ -103,7 +103,7 @@ review-oriented questions:
     affect the interpretation of reported hemodynamic quantities?
     \item What limitations remain across the literature when retained state,
     resolved scales, computational cost, practical identifiability, validation
-    status, reproducibility, and uncertainty sources are compared?
+    status, source-artifact traceability, and uncertainty sources are compared?
 \end{enumerate}
 
 \subsection{Literature Review and Report Roadmap}
@@ -116,7 +116,7 @@ clinical validation study. It first establishes the continuum vocabulary,
 then compares model tiers by retained state, closure burden, boundary data, and
 native observables. It next treats numerical methods through evidence
 standards: conservation, stability, positivity, well-balancing, verification,
-validation, reproducibility, and cross-dimensional observation operators. The
+validation, source-artifact traceability, and cross-dimensional observation operators. The
 synthesis chapter turns those ingredients into explicit propositions about
 what can and cannot be inferred from the literature.
 

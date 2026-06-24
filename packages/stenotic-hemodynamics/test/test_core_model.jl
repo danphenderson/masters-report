@@ -96,23 +96,27 @@ end
     K = StenoticHemodynamics.wall_stiffness(params)
     gamma_plus_two = StenoticHemodynamics.gamma_plus_two(params)
     nu_eff = StenoticHemodynamics.effective_kinematic_viscosity(A, Q, r0, params)
+    local_wall_pressure = K / r0^2 * (sqrt(A) - r0)
+    evolution_wall_pressure = K / params.rmax^2 * (sqrt(A) - r0)
+    variable_radius_pressure_correction = gamma_plus_two * params.rho * nu_eff * Q / A * r0z / r0
 
     @test params.wall_law isa CanicKoiterWallLaw
     @test wall_law_name(params) == "canic-koiter-thin-membrane"
     @test StenoticHemodynamics.wall_reference_radius(params) ≈ params.rmax
-    @test StenoticHemodynamics.wall_elastic_pressure(A, z, params) ≈ K / r0^2 * (sqrt(A) - r0)
+    @test !isapprox(r0, params.rmax; rtol=1.0e-8)
+    @test !isapprox(local_wall_pressure, evolution_wall_pressure; rtol=1.0e-8)
+    @test StenoticHemodynamics.wall_elastic_pressure(A, z, params) ≈ local_wall_pressure
     @test StenoticHemodynamics.variable_radius_pressure_correction(A, Q, r0, r0z, nu_eff, gamma_plus_two, params) ≈
-          gamma_plus_two * params.rho * nu_eff * Q / A * r0z / r0
+          variable_radius_pressure_correction
     @test StenoticHemodynamics.diagnostic_pressure([A], [Q], [z], params)[1] ≈
-          StenoticHemodynamics.wall_elastic_pressure(A, z, params) +
-          StenoticHemodynamics.variable_radius_pressure_correction(A, Q, r0, r0z, nu_eff, gamma_plus_two, params)
+          local_wall_pressure + variable_radius_pressure_correction
     @test StenoticHemodynamics.evolution_pressure([A], [Q], [z], params)[1] ≈
-          StenoticHemodynamics.wall_elastic_pressure(A, z, params)
+          evolution_wall_pressure
     @test StenoticHemodynamics.pressure([A], [Q], [z], params) ≈
           StenoticHemodynamics.diagnostic_pressure([A], [Q], [z], params)
     classical_params = Params(initial_condition=GeometryRestIC(), severity=30.0, model="classical-1d-no-slip")
     @test StenoticHemodynamics.diagnostic_pressure([A], [Q], [z], classical_params)[1] ≈
-          StenoticHemodynamics.wall_elastic_pressure(A, z, classical_params)
+          local_wall_pressure
     @test StenoticHemodynamics.wall_elastic_potential(A, z, params) ≈ K / (3.0 * params.rho * params.rmax^2) * A^1.5
     @test StenoticHemodynamics.wall_wave_speed_squared(A, z, params) ≈ K / (2.0 * params.rho * params.rmax^2) * sqrt(A)
     @test StenoticHemodynamics.wall_geometry_source(A, z, r0, r0z, params) ≈ K / (params.rho * params.rmax^2) * A * r0z

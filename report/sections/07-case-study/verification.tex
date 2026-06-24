@@ -29,13 +29,12 @@ Appendix~\ref{app:numerical-methods-details}.
 The observation operator has its own check because the retained 1D--3D
 comparison is only meaningful after the resolved field is mapped to section
 area, physical flow, and mean axial velocity. The synthetic check in
-Table~\ref{tab:t1-cross-section-operator-validation} verifies the declared
-plane--tetrahedron quadrature implementation on a single tetrahedron with
-constant and affine node-centered axial fields. It checks that constant fields
-return $\bar u=c$ and $Q=cA$, that affine triangle means integrate to the
-centroid value up to roundoff, and that shifted planes produce the expected
-area and mean-velocity changes. This is output-operator verification, not a
-matched-data validation of the available 3D cases.
+Table~\ref{tab:t1-cross-section-operator-validation} reports the workflow rows
+for constant and affine node-centered axial fields. The package tests also check
+closed-form single-tetrahedron and disjoint two-tetrahedron cuts with
+independently computed transverse areas and affine means. These tests support
+the plane-cut area, flow, and mean-velocity operator on controlled synthetic
+geometry, not matched-data validation of the available 3D cases.
 
 \begin{table}[!htb]
     \centering
@@ -119,11 +118,13 @@ source realization,
     \pd_z F_q(a^\star,q^\star;z)-S_q(a^\star,q^\star;z), &&
 \end{flalign*}
 where $F_a,F_q$ and $S_q$ are the selected point flux and source functions.
-The forcing consistency check is independent enough to test the declared
-finite-volume operator rather than only replaying a stored output; the table
-reports its maximum absolute mismatch. The run therefore checks the operator
-against a declared manufactured state. It remains implementation-verification
-evidence, not a physical stenosis experiment.
+The forcing consistency check uses separately expanded formulas rather than a
+stored table replay, but it shares the manufactured states, geometry and
+material parameters, and lower-level flux/source utilities used by the selected
+operator. The table reports its maximum absolute mismatch. The run therefore
+checks the implemented forced operator against a declared manufactured state; it
+is implementation-verification evidence, not independent solver validation and
+not a physical stenosis experiment.
 
 The verification table reports cell-center discrete errors
 \begin{flalign*}

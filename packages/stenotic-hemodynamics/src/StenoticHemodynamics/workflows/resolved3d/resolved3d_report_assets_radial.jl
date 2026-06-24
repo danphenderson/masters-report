@@ -1,7 +1,7 @@
 """
     write_report_radial_dat_files(output_dir, rows; overwrite=false)
 
-Write legacy radial `.dat` files for the promoted radial-profile rows, grouped
+Write legacy radial `.dat` files for the principal radial-profile rows, grouped
 only by severity. This helper preserves the historical filename contract used by
 older report consumers.
 """
@@ -118,7 +118,7 @@ function radial_profile_audit_rows(
         end
         case_message = ""
         if isempty(case_primary)
-            case_message = "no promoted current-radius radial rows"
+            case_message = "no principal current-radius radial rows"
         elseif !(isfinite(summary_delta) && summary_delta <= 1.0e-6)
             case_message = "radial summary mismatch"
         end

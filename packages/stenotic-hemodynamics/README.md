@@ -58,7 +58,7 @@ pipenv run ops-experiment simulate --help
 - `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`:
   bounded Section 4.1 generated-artifact and local observation-operator note.
 - `../../public/docs/stenotic-hemodynamics/canic-2024-replication.md`:
-  source-artifact replication workflow for the Canic et al. 2024 Section 4.1
+  source-artifact comparison workflow for the Canic et al. 2024 Section 4.1
   numerical findings.
 
 ## Scope
@@ -76,6 +76,28 @@ surface for this report. They are not a general-purpose CFD environment, a
 native generator for the upstream resolved-3D datasets, or a minimal-dependency
 solver-only package.
 
+## Source Organization and Dependencies
+
+The source tree uses conceptual implementation layers:
+
+- `core/`: package-native parameters, geometry, closures, boundary
+  descriptors, initial-condition descriptors, results, and diagnostics.
+- `numerics/`: spatial methods, state layout, fluxes, kernels, time-stepping,
+  backend dispatch, and solver contracts.
+- `io/`: CSV, JSON, manifest, checksum, overwrite, and table-writing helpers.
+- `adapters/`: SciML problem construction, OpenBF-style YAML translation,
+  Gridap initialization/workflow support, and resolved-3D XDMF/HDF5 I/O.
+- `workflows/`: studies, verification, comparison, visualization, native
+  resolved-FSI control surfaces, and report-asset helpers.
+- `cli/`: command parsing and thin dispatch into typed package APIs.
+
+These are source-organization boundaries, not current load-time dependency
+boundaries. `Project.toml` declares Gridap, HDF5, OrdinaryDiffEq, SciMLBase,
+and YAML as hard dependencies today. The adapter/workflow split records the
+intended boundary for a future weak-dependency or Julia extension refactor.
+The marker types in `src/StenoticHemodynamics/layers.jl` are descriptive
+documentation markers only and do not enforce dependency isolation.
+
 ## Reduced Model
 
 The default forward model is `canic-extended-1d`, the historical manifest token
@@ -89,8 +111,8 @@ The implementation uses the paper's closed conservative `(A,Q)` system as the
 starting point, the smooth asymmetric stenosis profile used as the report's
 idealized-vessel baseline, Riemann-invariant boundary treatment, Rusanov
 fluxes, and third-order SSP Runge-Kutta stepping. The report documents the
-source-to-implementation differences, including the constant `Rmax` pressure
-denominator, parabolic-profile main case, locally frozen-viscosity `p2`
+source-to-implementation differences, including explicit gauge-bound pressure
+conventions, the parabolic-profile main case, locally frozen-viscosity `p2`
 derivative, and non-well-balanced finite-volume rest state. Units follow the
 paper and the authors' MATLAB code: centimeters, grams, seconds, and dynes.
 
@@ -109,9 +131,13 @@ The exported core workflow is:
 3. Run `simulate(params, backend)` to obtain a `SimulationResult`.
 4. Derive diagnostics with exported helpers such as `velocity(result)` and
    `diagnostic_pressure(result, params)`. `evolution_pressure(result, params)`
-   exposes the wall-law pressure used by the evolution convention, while the
-   deprecated compatibility helper `pressure(result, params)` currently aliases
-   `diagnostic_pressure(result, params)`.
+   exposes the wall-law pressure used by the evolution convention.
+   `diagnostic_pressure(result, params)` is the output/comparison convention
+   and adds the variable-radius pressure correction when that model term is
+   enabled. These pressures are explicit, gauge-bound package conventions; use
+   them against imported fields only with a matching observation and gauge
+   convention. The deprecated compatibility helper `pressure(result, params)`
+   currently aliases `diagnostic_pressure(result, params)`.
 
 Study, benchmark, adapter, native resolved-FSI, and report-asset helpers are
 intentionally qualified module internals, for example
@@ -206,8 +232,12 @@ Direct XDMF/HDF5 mode defaults to schema v1; production-directory mode defaults
 to temporal schema v2. The companion browser app lives in
 `../stenotic-hemodynamics-viewer`.
 
-Canic et al. 2024 Section 4.1 source-artifact replication after restoring the
-optional upstream bundles:
+The severity-50 direct-bundle example above is an inspection/export example
+only. It uses the imported `1.4995` s bundle time and does not by itself
+establish Section 4.1 replication evidence.
+
+Canic et al. 2024 Section 4.1 source-artifact comparison when the upstream
+bundles are available:
 
 ```bash
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
@@ -216,7 +246,6 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication secti
   --coordinate-mode deformed \
   --nx 100 \
   --dt 1e-5 \
-  --tfinal 1.0 \
   --section-count 200 \
   --radial-sample-count 41 \
   --overwrite
@@ -224,6 +253,16 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication secti
 
 Without restored raw inputs, the same command family reports an expected
 `canic_replication_status,skipped_missing_data` skip instead of failing.
+By default, the local 1D solve targets the imported final time for each case:
+approximately `0.9995` s for cases `77` and `60`, and `1.4995` s for case
+`50`. Supplying `--tfinal` is an explicit global override; rows whose override
+differs from the imported time outside tolerance are recorded as intentional
+time mismatches and non-replication.
+
+The command name retains the historical `canic-replication` token, but current
+outputs should be described as source-artifact comparison unless a scoped lane
+checks and records reproduction criteria for the relevant time, coordinate,
+gauge, and observation conventions.
 
 ## Methods and Closures
 
@@ -390,5 +429,5 @@ means are emitted only as supplemental sensitivity rows.
   exact boundary-mode support is smoke-scale/operator-readiness evidence only.
 - Stationary Stokes initialization is a projection contract for the 1D state,
   not a transient FSI solve or direct finite-element field projection.
-- The model is a finite-volume reproduction for local experimentation, not a
+- The model is a finite-volume implementation for local experimentation, not a
   clinical validation or a full validation of the source paper's DG solver.

@@ -17,7 +17,7 @@ function print_usage(io::IO = stdout)
           benchmark     Run package benchmark profiles
           export-assets Export stenosis geometry/report CSV assets
           visualization Export browser-ready native resolved-FSI visualization assets
-          canic-replication Reproduce Canic et al. 2024 Section 4.1 numerical comparisons
+          canic-replication Compare Canic et al. 2024 Section 4.1 source artifacts
 
         Run 'packages/stenotic-hemodynamics/bin/stenotic-hemodynamics <command> --help' for command help.
         """,

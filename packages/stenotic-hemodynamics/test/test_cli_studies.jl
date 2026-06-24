@@ -2,6 +2,7 @@ isdefined(@__MODULE__, :read_simple_csv) || include("test_helpers.jl")
 
 const parse_args = StenoticHemodynamics.parse_args
 const study_summary_path = StenoticHemodynamics.study_summary_path
+const CLI_STUDIES_PACKAGE_ROOT = normpath(joinpath(@__DIR__, ".."))
 
 @testset "StenoticHemodynamics CLI parsing" begin
     @test parse_args(["--help"]) === nothing
@@ -244,7 +245,7 @@ const study_summary_path = StenoticHemodynamics.study_summary_path
 end
 
 @testset "StenoticHemodynamics CLI command dispatch" begin
-    help_text = read(`$(joinpath(pwd(), "packages", "stenotic-hemodynamics", "bin", "stenotic-hemodynamics")) --help`, String)
+    help_text = read(`$(joinpath(CLI_STUDIES_PACKAGE_ROOT, "bin", "stenotic-hemodynamics")) --help`, String)
     @test occursin("simulate", help_text)
     @test occursin("benchmark", help_text)
     @test occursin("fsi", help_text)

@@ -10,10 +10,10 @@ Finite-volume Canic extended 1D stenotic artery simulation.
 
 Public protocol:
 
-`Params` plus an optional time backend/`SolveSpec` -> `simulate` ->
+`Params` plus a selected time backend/optional `SolveSpec` -> `simulate` ->
 `SimulationResult` -> diagnostics and core query helpers.
 
-The package is organized into explicit architecture layers:
+The source tree is grouped by implementation role:
 
 - core physical/data model definitions;
 - numerical kernels and backend dispatch;
@@ -22,9 +22,11 @@ The package is organized into explicit architecture layers:
 - reproducible research workflows;
 - a thin command-line interface.
 
-The native backend is the default fixed-step SSP RK3 path. Optional external
-ecosystem support is isolated in adapter and workflow files so the core model
-can remain small, testable, and extension-friendly.
+The native backend is the default fixed-step SSP RK3 path. Adapter and workflow
+files concentrate Gridap, HDF5/XDMF, YAML, and SciML-oriented code, but those
+packages are hard dependencies in the package environment today. This grouping
+documents source organization and future weak-dependency/extension boundaries;
+it is not current load-time dependency isolation.
 """
 module StenoticHemodynamics
 

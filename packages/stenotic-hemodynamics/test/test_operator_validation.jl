@@ -1,3 +1,48 @@
+function operator_validation_closed_form_field(
+    coordinates,
+    topology;
+    axial_velocity,
+    transverse_velocity = _ -> (0.0, 0.0),
+)
+    coordinate_matrix = Matrix{Float64}(coordinates)
+    topology_matrix = Matrix{Int}(topology)
+    velocity = zeros(Float64, size(coordinate_matrix, 1), 3)
+
+    for i in axes(coordinate_matrix, 1)
+        coord = view(coordinate_matrix, i, :)
+        transverse = transverse_velocity(coord)
+        velocity[i, 1] = transverse[1]
+        velocity[i, 2] = transverse[2]
+        velocity[i, 3] = axial_velocity(coord)
+    end
+
+    case = StenoticHemodynamics.Resolved3DCaseSpec(
+        "operator-validation-closed-form",
+        0.0,
+        "synthetic://operator-validation-closed-form";
+        target_time=0.0,
+    )
+    metadata = StenoticHemodynamics.XDMFVelocityMetadata(
+        0.0,
+        "synthetic",
+        "/geometry",
+        size(coordinate_matrix),
+        "synthetic",
+        "/topology",
+        size(topology_matrix),
+        "synthetic",
+        "/velocity",
+        size(velocity),
+    )
+    return StenoticHemodynamics.Resolved3DVelocityField(
+        case,
+        metadata,
+        topology_matrix,
+        coordinate_matrix,
+        velocity,
+    )
+end
+
 @testset "StenoticHemodynamics operator validation workflow" begin
     mktempdir() do dir
         spec = StenoticHemodynamics.OperatorValidationSpec(
@@ -63,4 +108,95 @@
         StenoticHemodynamics.OperatorValidationSpec(sample_z_cm=[1.0]),
     )
     @test_throws ArgumentError StenoticHemodynamics.OperatorValidationSpec(affine_coefficients=[1.0, 2.0, 3.0])
+end
+
+@testset "StenoticHemodynamics operator validation closed-form geometry" begin
+    @testset "single tetrahedron plane cut has analytic transverse area" begin
+        field = operator_validation_closed_form_field(
+            [
+                0.0 0.0 0.0
+                1.0 0.0 0.0
+                0.0 1.0 0.0
+                0.0 0.0 1.0
+            ],
+            [1 2 3 4];
+            axial_velocity=_ -> 6.0,
+            transverse_velocity=coord -> (100.0 + coord[1], -50.0 + coord[2]),
+        )
+
+        cut = StenoticHemodynamics.quadrature_section_observation(field, 0.25)
+        row = StenoticHemodynamics.operator_validation_row(
+            "constant_closed_form_single_tetra",
+            field,
+            (6.0, 0.0, 0.0, 0.0),
+            0.25,
+            0.0,
+            nothing,
+            1.0e-11,
+        )
+
+        @test cut.area_valid
+        @test cut.cut_status == "valid"
+        @test cut.intersection_count == 3
+        @test cut.area_cm2 ≈ 9.0 / 32.0 atol=1.0e-12
+        @test cut.mean_velocity_cm_s ≈ 6.0 atol=1.0e-12
+        @test cut.flow_cm3_s ≈ 27.0 / 16.0 atol=1.0e-12
+        @test row.status == "pass"
+        @test row.area_cm2 ≈ 9.0 / 32.0 atol=1.0e-12
+        @test row.expected_area_cm2 ≈ 9.0 / 32.0 atol=1.0e-12
+        @test row.mean_velocity_cm_s ≈ 6.0 atol=1.0e-12
+        @test row.expected_mean_velocity_cm_s ≈ 6.0 atol=1.0e-12
+        @test row.flow_cm3_s ≈ 27.0 / 16.0 atol=1.0e-12
+        @test row.expected_flow_cm3_s ≈ 27.0 / 16.0 atol=1.0e-12
+    end
+
+    @testset "disjoint tetrahedra aggregate to analytic area and affine mean" begin
+        coefficients = (1.25, 2.0, -0.5, 3.0)
+        affine_axial = coord ->
+            coefficients[1] + coefficients[2] * coord[1] + coefficients[3] * coord[2] + coefficients[4] * coord[3]
+        field = operator_validation_closed_form_field(
+            [
+                0.0 0.0 0.0
+                1.0 0.0 0.0
+                0.0 1.0 0.0
+                0.0 0.0 1.0
+                2.0 0.0 0.0
+                4.0 0.0 0.0
+                2.0 2.0 0.0
+                2.0 0.0 1.0
+            ],
+            [
+                1 2 3 4
+                5 6 7 8
+            ];
+            axial_velocity=affine_axial,
+            transverse_velocity=coord -> (coord[1] - coord[2], coord[1] + coord[2]),
+        )
+
+        cut = StenoticHemodynamics.quadrature_section_observation(field, 0.5)
+        row = StenoticHemodynamics.operator_validation_row(
+            "affine_closed_form_disjoint_tetrahedra",
+            field,
+            coefficients,
+            0.5,
+            0.0,
+            nothing,
+            1.0e-11,
+        )
+
+        @test cut.area_valid
+        @test cut.cut_status == "valid"
+        @test cut.intersection_count == 6
+        @test cut.area_cm2 ≈ 5.0 / 8.0 atol=1.0e-12
+        @test cut.mean_velocity_cm_s ≈ 32.0 / 5.0 atol=1.0e-12
+        @test cut.flow_cm3_s ≈ 4.0 atol=1.0e-12
+        @test row.status == "pass"
+        @test row.area_cm2 ≈ 5.0 / 8.0 atol=1.0e-12
+        @test row.expected_area_cm2 ≈ 5.0 / 8.0 atol=1.0e-12
+        @test row.mean_velocity_cm_s ≈ 32.0 / 5.0 atol=1.0e-12
+        @test row.expected_mean_velocity_cm_s ≈ 32.0 / 5.0 atol=1.0e-12
+        @test row.flow_cm3_s ≈ 4.0 atol=1.0e-12
+        @test row.expected_flow_cm3_s ≈ 4.0 atol=1.0e-12
+        @test row.max_triangle_mean_error_cm_s <= 1.0e-12
+    end
 end

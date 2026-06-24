@@ -116,9 +116,18 @@ using StenoticHemodynamics
     z = [2.75]
     area = [0.035]
     flow = [0.012]
+    r0, r0z, _ = StenoticHemodynamics.stenosis(z[1], params)
+    K = StenoticHemodynamics.wall_stiffness(params)
+    gamma_plus_two = StenoticHemodynamics.gamma_plus_two(params)
+    nu_eff = StenoticHemodynamics.effective_kinematic_viscosity(area[1], flow[1], r0, params)
+    local_wall_pressure = K / r0^2 * (sqrt(area[1]) - r0)
+    evolution_wall_pressure = K / params.rmax^2 * (sqrt(area[1]) - r0)
+    diagnostic_wall_pressure = local_wall_pressure + gamma_plus_two * params.rho * nu_eff * flow[1] / area[1] * r0z / r0
     @test diagnostic_pressure(area, flow, z, params) == pressure(area, flow, z, params)
-    @test evolution_pressure(area, flow, z, params)[1] ≈ StenoticHemodynamics.wall_elastic_pressure(area[1], z[1], params)
-    @test diagnostic_pressure(area, flow, z, params)[1] != evolution_pressure(area, flow, z, params)[1]
+    @test !isapprox(r0, params.rmax; rtol=1.0e-8)
+    @test !isapprox(local_wall_pressure, evolution_wall_pressure; rtol=1.0e-8)
+    @test evolution_pressure(area, flow, z, params)[1] ≈ evolution_wall_pressure
+    @test diagnostic_pressure(area, flow, z, params)[1] ≈ diagnostic_wall_pressure
 
     parabolic = ParabolicVelocityProfile()
     @test reconstructed_axial_velocity(3.0, 0.0, 2.0, parabolic) ≈ 6.0

@@ -15,6 +15,8 @@ const native_resolved_fsi_production_parity_matrix_rows =
     StenoticHemodynamics.native_resolved_fsi_production_parity_matrix_rows
 const native_resolved_fsi_production_parity_plans = StenoticHemodynamics.native_resolved_fsi_production_parity_plans
 const native_resolved_fsi_production_workflow_plans = StenoticHemodynamics.native_resolved_fsi_production_workflow_plans
+const native_resolved_fsi_section41_time_aligned_production_workflow_plans =
+    StenoticHemodynamics.native_resolved_fsi_section41_time_aligned_production_workflow_plans
 const radial_profile_slice_audit = StenoticHemodynamics.radial_profile_slice_audit
 const run_native_resolved_fsi_parity = StenoticHemodynamics.run_native_resolved_fsi_parity
 const write_resolved3d_field_bundle = StenoticHemodynamics.write_resolved3d_field_bundle
@@ -500,7 +502,8 @@ end
     mktempdir() do dir
         write_native_resolved_fsi_parity_fixture(dir, "77")
         write_native_resolved_fsi_parity_fixture(dir, "60")
-        workflow_plans = native_resolved_fsi_production_workflow_plans()
+        write_native_resolved_fsi_parity_fixture(dir, "50"; time_s=1.4994999999998904)
+        workflow_plans = native_resolved_fsi_section41_time_aligned_production_workflow_plans()
         plans = native_resolved_fsi_production_parity_plans(
             workflow_plans=workflow_plans,
             imported_data_root=dir,
@@ -511,9 +514,14 @@ end
         @test [plan.workflow_plan.case_spec.case_id for plan in plans] == [:sev23, :sev40, :sev50]
         @test plans[1].imported_case.case_label == "77"
         @test plans[2].imported_case.case_label == "60"
+        @test plans[3].imported_case.case_label == "50"
+        @test plans[1].imported_case.target_time ≈ 0.99949999999994532
+        @test plans[2].imported_case.target_time ≈ 0.99949999999994532
+        @test plans[3].imported_case.target_time ≈ 1.4994999999998904
         @test plans[1].imported_available
         @test plans[2].imported_available
-        @test !plans[3].imported_available
+        @test plans[3].imported_available
+        @test only(plans[3].workflow_plan.production_spec.snapshot_times_s) ≈ 1.4994999999998904
         @test plans[1].boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke"
         @test plans[1].boundary_mode_class == "local_smoke_loading"
         @test plans[1].section41_boundary_status == "deferred_or_not_selected"
@@ -521,8 +529,27 @@ end
         @test occursin("ready", plans[1].status)
         @test occursin("boundary_equivalence_status=", plans[1].status)
         @test occursin("ready", plans[2].status)
-        @test occursin("expected-skip", plans[3].status)
-        @test occursin("sev50", plans[3].status)
+        @test occursin("ready", plans[3].status)
+        @test occursin("target_time_s=1.4994999999998904", plans[3].status)
+        @test occursin("per_case_imported_time", plans[3].status)
+
+        native_mismatch_plans = native_resolved_fsi_production_parity_plans(
+            workflow_plans=native_resolved_fsi_production_workflow_plans(),
+            imported_data_root=dir,
+        )
+        @test native_mismatch_plans[3].imported_available
+        @test occursin("native production target_time_s=1.0", native_mismatch_plans[3].status)
+        @test occursin("non-replication", native_mismatch_plans[3].status)
+
+        override_plans = native_resolved_fsi_production_parity_plans(
+            workflow_plans=workflow_plans,
+            imported_data_root=dir,
+            imported_target_time=0.99949999999994532,
+        )
+        @test override_plans[3].imported_available
+        @test occursin("expected-skip", override_plans[3].status)
+        @test occursin("global_imported_target_time_override", override_plans[3].status)
+        @test occursin("non-replication", override_plans[3].status)
     end
 end
 
@@ -555,7 +582,8 @@ end
     mktempdir() do dir
         write_native_resolved_fsi_parity_fixture(dir, "77")
         write_native_resolved_fsi_parity_fixture(dir, "60")
-        workflow_plans = native_resolved_fsi_production_workflow_plans(
+        write_native_resolved_fsi_parity_fixture(dir, "50"; time_s=1.4994999999998904)
+        workflow_plans = native_resolved_fsi_section41_time_aligned_production_workflow_plans(
             output_root=joinpath(dir, "production"),
         )
         parity_plans = native_resolved_fsi_production_parity_plans(
@@ -578,7 +606,7 @@ end
         )
         sev50_artifact = run_native_resolved_fsi_parity(
             parity_plans[3],
-            write_native_resolved_fsi_parity_fixture(dir, "native-sev50");
+            write_native_resolved_fsi_parity_fixture(dir, "native-sev50"; time_s=1.4994999999998904);
             output_dir=joinpath(dir, "observations-sev50"),
             sample_z_cm=[0.25, 0.5],
             radial_profile_z_cm=[0.5],
@@ -594,7 +622,7 @@ end
 
         sort_keys = [(row.case_id, row.source, row.quantity) for row in rows]
         @test sort_keys == sort(sort_keys)
-        @test length(rows) == 16
+        @test length(rows) == 18
         @test Set(row.case_id for row in rows) == Set(["sev23", "sev40", "sev50"])
         @test all(row -> row.qualification == "qualified-internal", rows)
         @test all(row -> row.source in ("native", "imported", "parity"), rows)
@@ -605,8 +633,8 @@ end
         @test all(row -> occursin("not_exact_section41_boundary_equivalence", row.boundary_equivalence_status), rows)
         @test count(row -> row.case_id == "sev23", rows) == 6
         @test count(row -> row.case_id == "sev40", rows) == 6
-        @test count(row -> row.case_id == "sev50", rows) == 4
-        @test !any(row -> row.case_id == "sev50" && row.source == "parity", rows)
+        @test count(row -> row.case_id == "sev50", rows) == 6
+        @test any(row -> row.case_id == "sev50" && row.source == "parity", rows)
 
         sev23_velocity = only(row for row in rows if row.case_id == "sev23" && row.source == "parity" && row.quantity == "velocity")
         sev23_pressure = only(row for row in rows if row.case_id == "sev23" && row.source == "parity" && row.quantity == "pressure")
@@ -630,18 +658,18 @@ end
 
         sev50_imported_rows = [row for row in rows if row.case_id == "sev50" && row.source == "imported"]
         @test length(sev50_imported_rows) == 2
-        @test all(row -> row.row_count == 0, sev50_imported_rows)
-        @test all(row -> row.ready_row_count == 0, sev50_imported_rows)
-        @test all(row -> !row.imported_available, sev50_imported_rows)
+        @test all(row -> row.row_count == 2, sev50_imported_rows)
+        @test all(row -> row.ready_row_count == 2, sev50_imported_rows)
+        @test all(row -> row.imported_available, sev50_imported_rows)
         @test all(row -> isnan(row.max_mean_velocity_abs_difference_cm_s), sev50_imported_rows)
         @test all(row -> isnan(row.max_mean_pressure_abs_difference_dyn_cm2), sev50_imported_rows)
-        @test all(row -> occursin("expected-skip", row.status), sev50_imported_rows)
+        @test all(row -> occursin("ready", row.status), sev50_imported_rows)
 
         planned_rows = native_resolved_fsi_production_parity_matrix_rows(
             workflow_plans=workflow_plans,
             imported_data_root=dir,
         )
-        @test length(planned_rows) == 16
+        @test length(planned_rows) == 18
         @test [(row.case_id, row.source, row.quantity) for row in planned_rows] ==
               sort([(row.case_id, row.source, row.quantity) for row in planned_rows])
         @test all(row -> row.row_count == 0, planned_rows)

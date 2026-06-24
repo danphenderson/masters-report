@@ -25,7 +25,7 @@ surface unless the task explicitly includes it.
   stepping, backend dispatch, and solver contracts.
 - `io/` owns CSV, JSON, manifest, checksum, overwrite, and table-writing helpers
   shared by workflows.
-- `adapters/` owns optional external integrations and format translation.
+- `adapters/` owns external ecosystem and data-format translation code.
 - `workflows/` owns reproducible research workflows built from typed specs,
   results, runners, and writers. It is organized by family, including `shared`,
   `studies`, `native_resolved_fsi`, `resolved3d`, `visualization`,
@@ -52,12 +52,15 @@ helpers should usually remain qualified internals.
 
 Prefer small, typed Julia changes that preserve the package's dispatch
 protocols. Add behavior through focused specs, result types, validators, or
-methods that match the owning layer. Keep optional dependencies isolated in
-adapters or workflows, usually behind narrow `require_*` helpers. Keep CLI code
-thin: parse inputs, construct typed package values, call source APIs, register
-commands in `cli/dispatch.jl`, and report outputs. Core and numerics should
-stay independent of command parsing, asset publishing, report policy, and
-external data-format details.
+methods that match the owning layer. Keep external package usage concentrated
+in adapters or workflows, usually behind narrow helper functions. This is a
+source-organization rule today: `Project.toml` still declares Gridap, HDF5,
+OrdinaryDiffEq, SciMLBase, and YAML as hard dependencies until a future
+weak-dependency or extension refactor lands. Keep CLI code thin: parse inputs,
+construct typed package values, call source APIs, register commands in
+`cli/dispatch.jl`, and report outputs. Core and numerics should stay
+independent of command parsing, asset publishing, report policy, and external
+data-format details.
 
 ## Validation
 

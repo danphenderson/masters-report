@@ -5,10 +5,10 @@ This section applies the review framework to one controlled stenosis example.
 The model tier, retained variables, closure choices, boundary approximation,
 finite-volume operator, observation rule, and matching limits are stated before
 any result is interpreted. Dense operator formulas, secondary numerical
-surfaces, and reproducibility commands remain in the appendices unless they are
-needed to understand a main-body claim. The paragraphs below therefore name
-mathematical roles first; implementation labels appear only as traceability
-tags for reproducing the selected runs. The stack map in
+surfaces, and source-artifact reconstruction commands remain in the appendices
+unless they are needed to understand a main-body claim. The paragraphs below
+therefore name mathematical roles first; implementation labels appear only as
+traceability tags for reconstructing the selected runs. The stack map in
 Section~\ref{subsec:numerical-contract-stack} is used throughout this
 methodology, with symbol roles summarized in
 Appendix~\ref{def:contract-role-symbol-map}.
@@ -44,7 +44,7 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             & A controlled idealized stenosis example applies the review
             framework to a selected 1D area--flow model and two resolved
             velocity fields.
-            & The chapter illustrates verification, reproducibility, and
+            & The chapter illustrates verification, equilibrium-preservation testing, and
             diagnostic cross-model velocity comparison; it is not a
             pressure-ratio study or patient-specific interpretation. \\
         Model and closures
@@ -65,9 +65,9 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             $T=0.9995$ s for the 23\% and 40\% stenosis cases.
             & The comparison supports a claim only for these common section
             observables. Radial-profile audit rows are supplemental
-            reproducibility artifacts, not promoted localization evidence. A
-            separate Section~4.1 source-artifact reproduction is tracked in
-            Appendix~\ref{app:code-and-ai-use}. \\
+            diagnostic artifacts, not localization evidence. A
+            separate Section~4.1 source-artifact reconstruction and comparison
+            workflow is documented in Appendix~\ref{app:code-and-ai-use}. \\
         Numerical evidence
             & The main text reports manufactured-solution behavior,
             output-operator verification, geometry-rest drift, subcritical
@@ -129,10 +129,12 @@ follows standard compliant-artery and dimension-reduced modeling arguments
             \int_{S(z,t)} p_{3D,\mathrm g} \, dS, &&
             \text{observed 3D cross-sectional mean gauge pressure}.
     \end{flalign*}
-    Here $p_{3D,\mathrm g}$ is continuum pressure in the wall-law gauge frame.
-    The observed representative $\bar p_{3D,\mathrm g}$ is the declared
-    section-average observation of that field, not a pointwise pressure value.
-    It is distinct from the reduced wall-law pressure variable introduced below.
+    Here $p_{3D,\mathrm g}$ denotes imported continuum pressure in its available
+    gauge convention. The observed representative $\bar p_{3D,\mathrm g}$ is the
+    section-average observation of that field, not a pointwise pressure value. It
+    is distinct from the reduced wall-law pressure variable introduced below, and
+    no absolute 1D--3D pressure-error claim follows unless a common pressure
+    gauge is defined and applied.
 \end{definition}
 
 \begin{definition}[Physical-to-solver map for the implemented 1D state]
@@ -217,7 +219,8 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     terms are included \cite[Abstract; Secs.~1--2]{CanicEtAl2024Extended1DStenosis}.
     Those corrections are included by the Canic-derived extended member
     (implementation label \texttt{canic-extended-1d}); the classical
-    parabolic-profile baseline (implementation label
+    parabolic-profile baseline (canonical report label
+    \texttt{classical-parabolic-1d}; historical implementation label
     \texttt{classical-1d-no-slip}) retains the same selected wall law but
     omits the Canic variable-radius corrections.
 \end{remark}
@@ -231,12 +234,14 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     vessel. The parabolic profile is therefore an independent cross-sectional
     closure with $\alpha_{\mathcal P}=4/3$ and $g_{\mathcal P}=4$. In the
     mathematical discussion this model is the classical parabolic-profile
-    baseline; the implementation label is
-    \texttt{classical-1d-no-slip}. It keeps the same reduced state
-    variables and selected Canic-derived pressure--area wall law as the
-    extended 1D framework, but omits the Canic effective-alpha variable-radius
-    correction. The $R_{\max}$-normalized Canic-derived extended member is
-    labeled \texttt{canic-extended-1d} in implementation manifests.
+    baseline, with canonical report label
+    \texttt{classical-parabolic-1d}. Older manifests and generated source
+    artifacts may retain the historical label \texttt{classical-1d-no-slip}
+    as provenance. The model keeps the same reduced state variables and selected
+    Canic-derived pressure--area wall law as the extended 1D framework, but
+    omits the Canic effective-alpha variable-radius correction. The
+    $R_{\max}$-normalized Canic-derived extended member is labeled
+    \texttt{canic-extended-1d} in implementation manifests.
 \end{definition}
 
 \begin{definition}[Selected Canic--Koiter pressure--area wall law]
@@ -286,11 +291,11 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     $R_{\max}=0.18\,\mathrm{cm}$, and
     $p_{\mathrm{ext}}\equiv0$.
     This is the wall law paired with the implemented elastic potential and
-    wall/geometry source below. Legacy pressure-output helpers in the
-    implementation still report a local-denominator pressure diagnostic
-    $p_{\mathrm{loc},\mathrm g}^{\mathrm{diag}}$; benchmark pressure extrema
-    and pressure-diagnostic bars refer to that legacy diagnostic, not to
-    $p_{\mathcal W,\mathrm g}^{\mathrm{evol}}$. The 1D model identifies
+    wall/geometry source below. The package distinguishes the
+    $R_{\max}$-normalized evolution pressure from a local-denominator pressure
+    diagnostic $p_{\mathrm{loc},\mathrm g}^{\mathrm{diag}}$; benchmark pressure
+    extrema and pressure-diagnostic bars refer to that diagnostic convention, not
+    to $p_{\mathcal W,\mathrm g}^{\mathrm{evol}}$. The 1D model identifies
     $p_{\mathcal W,\mathrm g}^{\mathrm{evol}}$ with
     a cross-sectional pressure representative as a closure assumption. It is a
     reconstructed wall-law representative, not automatically the same object as
@@ -356,7 +361,7 @@ drift.
 \label{subsec:source-to-implementation-variant}
 
 The selected realization is a documented Canic-derived extended model, not
-a literal reproduction of every source-paper parameter and normalization in
+an exact executable copy of every source-paper parameter and normalization in
 \cite{CanicEtAl2024Extended1DStenosis}. The report therefore uses the phrase
 \emph{$R_{\max}$-normalized Canic-derived extended model} when source fidelity
 matters. The main differences are the $R_{\max}^{-2}$ elastic normalization,
@@ -442,7 +447,7 @@ incoming/outgoing wave-direction logic under $\lambda_-<0<\lambda_+$, and
 time-step compatibility with the same subcritical assumption. It does not use
 terms tied to $\partial_A\alpha_{\mathrm{eff}}$ or enforce the full
 variable-radius characteristic coupling at the ghost-state solve, so boundary
-sensitivity enters the numerical discrepancy budget.
+sensitivity can appear in the reported numerical discrepancies.
 The approximation error enters at the boundary-state operator before
 $\Psi_{\Delta t,h,\lambda_h}$, so boundary sensitivity and geometry-rest drift are
 reported as part of the declared boundary approximation rather than attributed
@@ -477,7 +482,7 @@ they are not the principal two-case comparison method.
 The 1D state directly supplies a section mean,
 $\bar u_{1D}(z,t)=q(z,t)/a(z,t)$, and physical flow
 $Q_{1D}(z,t)=\pi q(z,t)$. The implementation can also emit radial-profile
-rows using the same cut triangles, and the package audit now classifies
+rows using the same cut triangles, and workflow diagnostics classify
 same-cut area and flow closure. Those rows are treated as secondary output, and
 no radial-profile figure or localization claim is retained until regenerated
 report evidence is reviewed and accepted.
@@ -491,9 +496,11 @@ Section~\ref{subsec:deformed-coordinate-comparison}. The raw-input policy,
 target-time command contract, and table-fragment regeneration command are
 recorded in Appendix~\ref{app:code-and-ai-use}. The broader Canic
 Section~4.1 source-artifact workflow uses the same pressure and displacement
-loader surfaces for the restored 23\%, 40\%, and 50\% upstream bundles, but it
-is reported as a separate reproduced-asset table rather than as the primary
-two-case localization claim.
+loader surfaces for the restored 23\%, 40\%, and 50\% upstream bundles, with
+the local 1D target time taken from the imported XDMF time for each case. The
+workflow is reported as a separate source-artifact diagnostic table rather than
+as the primary two-case localization claim; pressure discrepancies remain
+non-evidentiary unless a common gauge is implemented.
 
 For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
 cross-section quadrature operator intersects every tetrahedron with $S_j$,
@@ -590,5 +597,5 @@ and relative RMS discrepancy,
     \left(\frac{1}{n}\sum_j d_{Q,j}^2\right)^{1/2}. &&
 \end{flalign*}
 
-The residual interpretation itself is reported in
-Section~\ref{subsec:metric-residual-budget-interpretation}.
+The metric-limit interpretation itself is reported in
+Section~\ref{subsec:metric-interpretive-limits}.

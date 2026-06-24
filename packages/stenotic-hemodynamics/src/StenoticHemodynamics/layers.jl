@@ -3,8 +3,9 @@
 
 Internal documentation marker for the package architecture layers.
 
-Layer marker types do not participate in runtime dispatch. They exist so the
-layer contracts are available to Julia's help system and future generated API
+Layer marker types are descriptive only: they do not participate in runtime
+dispatch and do not enforce dependency isolation. They exist so the layer
+contracts are available to Julia's help system and future generated API
 documentation.
 """
 abstract type AbstractArchitectureLayer end
@@ -15,10 +16,10 @@ abstract type AbstractArchitectureLayer end
 Owns physical parameters, geometry, boundary descriptions, model closures,
 initial-condition descriptors, result data, and diagnostic summaries.
 
-The core layer must remain free of workflow orchestration, CLI parsing, report
-publication, and heavyweight optional integrations such as Gridap, HDF5, YAML,
-or SciML solve adapters. Code in this layer should favor immutable configuration
-objects and small dispatch protocols over process-level state.
+The core layer should remain free of workflow orchestration, CLI parsing,
+report publication, and adapter/workflow integrations such as Gridap, HDF5,
+YAML, or SciML solve construction. Code in this layer should favor immutable
+configuration objects and small dispatch protocols over process-level state.
 """
 struct CoreLayer <: AbstractArchitectureLayer end
 
@@ -61,17 +62,18 @@ struct IOLayer <: AbstractArchitectureLayer end
 """
     AdapterLayer
 
-Owns integrations with external formats and optional numerical ecosystems.
+Owns translations to external formats and non-core numerical ecosystems.
 
 Adapter files translate package-native specs into external inputs or outputs:
 SciML problems, OpenBF-style YAML, Gridap stationary-Stokes initialization, and
-resolved-3D XDMF/HDF5 loading. Long-term, these files are candidates for Julia
-package extensions or weak-dependency modules.
+resolved-3D XDMF/HDF5 loading.
 
-Adapter code is the boundary for optional dependencies. New adapters should
-depend on typed core/workflow specs, isolate package loading behind a narrow
-`require_*` function when possible, and return package-native data or specs
-rather than leaking external object graphs into solver kernels.
+Gridap, HDF5, OrdinaryDiffEq, SciMLBase, and YAML are hard package dependencies
+today through `Project.toml`. Adapter files are nevertheless the intended
+source boundary for a future Julia extension or weak-dependency split. New
+adapters should depend on typed core/workflow specs, keep external package use
+behind narrow helper functions when possible, and return package-native data or
+specs rather than leaking external object graphs into solver kernels.
 """
 struct AdapterLayer <: AbstractArchitectureLayer end
 

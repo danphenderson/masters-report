@@ -3,7 +3,7 @@
 
 Pair one Section 4.1 native workflow plan with the current imported-bundle
 contract for parity work. `imported_available=false` marks expected-skip plans
-for cases whose local external bundle is absent or not wired by default.
+for cases whose local external bundle is absent.
 """
 struct NativeResolvedFSIProductionParityPlan
     workflow_plan::NativeResolvedFSIProductionWorkflowPlan
@@ -24,9 +24,9 @@ Build Section 4.1 native/imported parity plans for `sev23`, `sev40`, and
 best-effort and stays skip-safe when local three-field bundles are missing.
 """
 function native_resolved_fsi_production_parity_plans(;
-    workflow_plans = native_resolved_fsi_production_workflow_plans(),
+    workflow_plans = native_resolved_fsi_section41_time_aligned_production_workflow_plans(),
     imported_data_root::AbstractString = default_resolved3d_data_root(),
-    imported_target_time::Real = 0.9995,
+    imported_target_time::Union{Nothing,Real} = nothing,
     imported_time_atol::Real = 1.0e-3,
 )
     plans = NativeResolvedFSIProductionParityPlan[]
@@ -43,8 +43,20 @@ function native_resolved_fsi_production_parity_plans(;
             inlet_umax_cm_s=workflow_plan.production_spec.inlet_umax_cm_s,
         )
         boundary_equivalence_status = native_resolved_fsi_boundary_equivalence_status(boundary_status)
-        status = if imported_available
-            "ready: native production plan for $(workflow_plan.case_spec.paper_label) is paired with imported case $(imported_case.case_label); boundary_equivalence_status=$(boundary_equivalence_status)"
+        target_policy = native_resolved_fsi_section41_imported_target_policy(imported_target_time)
+        target_offset_s = abs(imported_case.target_time - native_resolved_fsi_section41_imported_time_s(
+            workflow_plan.case_spec.case_id,
+        ))
+        target_aligned = target_offset_s <= Float64(imported_time_atol)
+        native_target_time_s = last(workflow_plan.production_spec.snapshot_times_s)
+        native_target_offset_s = abs(native_target_time_s - imported_case.target_time)
+        native_target_aligned = native_target_offset_s <= Float64(imported_time_atol)
+        status = if imported_available && target_aligned && native_target_aligned
+            "ready: native production plan for $(workflow_plan.case_spec.paper_label) targets native_time_s=$(native_target_time_s) and is paired with imported case $(imported_case.case_label) at target_time_s=$(imported_case.target_time); imported_target_time_policy=$(target_policy); boundary_equivalence_status=$(boundary_equivalence_status)"
+        elseif imported_available
+            !target_aligned ?
+            "expected-skip: imported case $(imported_case.case_label) is present but imported_target_time_policy=$(target_policy) gives target_time_s=$(imported_case.target_time), offset $(target_offset_s) s from the case imported final time; non-replication" :
+            "expected-skip: native production target_time_s=$(native_target_time_s) differs from imported case $(imported_case.case_label) target_time_s=$(imported_case.target_time) by $(native_target_offset_s) s; smoke/operator-readiness only; non-replication"
         elseif isempty(imported_case.velocity_xdmf)
             "expected-skip: no default imported Section 4.1 bundle contract is wired for $(workflow_plan.case_spec.case_id)"
         else
@@ -67,7 +79,7 @@ end
 function native_resolved_fsi_production_imported_case(;
     case_id,
     data_root::String = default_resolved3d_data_root(),
-    target_time::Real = 0.9995,
+    target_time::Union{Nothing,Real} = nothing,
     time_atol::Real = 1.0e-3,
 )
     return native_resolved_fsi_production_imported_case(case_id; data_root, target_time, time_atol)
@@ -76,24 +88,49 @@ end
 function native_resolved_fsi_production_imported_case(
     case_id::Symbol;
     data_root::String = default_resolved3d_data_root(),
-    target_time::Real = 0.9995,
+    target_time::Union{Nothing,Real} = nothing,
     time_atol::Real = 1.0e-3,
 )
+    target_time_value = isnothing(target_time) ? native_resolved_fsi_section41_imported_time_s(case_id) : Float64(target_time)
     if case_id === :sev23
-        return Resolved3DCaseSpec("77", 23.0, joinpath(data_root, "77", "velocity.xdmf"); target_time, time_atol)
+        return Resolved3DCaseSpec("77", 23.0, joinpath(data_root, "77", "velocity.xdmf"); target_time=target_time_value, time_atol)
     elseif case_id === :sev40
-        return Resolved3DCaseSpec("60", 40.0, joinpath(data_root, "60", "velocity.xdmf"); target_time, time_atol)
+        return Resolved3DCaseSpec("60", 40.0, joinpath(data_root, "60", "velocity.xdmf"); target_time=target_time_value, time_atol)
     elseif case_id === :sev50
-        return Resolved3DCaseSpec(
-            "sev50-unavailable",
-            50.0,
-            "";
-            pressure_xdmf="",
-            displacement_xdmf="",
-            target_time,
-            time_atol,
+        return Resolved3DCaseSpec("50", 50.0, joinpath(data_root, "50", "velocity.xdmf"); target_time=target_time_value, time_atol)
+    end
+    throw(ArgumentError("unsupported native Section 4.1 case id $(repr(case_id))"))
+end
+
+function native_resolved_fsi_section41_imported_target_policy(imported_target_time)
+    return isnothing(imported_target_time) ? "per_case_imported_time" : "global_imported_target_time_override"
+end
+
+function native_resolved_fsi_section41_time_aligned_production_workflow_plans(;
+    case_ids = SECTION41_NATIVE_CASE_IDS,
+    kwargs...,
+)
+    plans = NativeResolvedFSIProductionWorkflowPlan[]
+    for case_id in case_ids
+        target_time_s = native_resolved_fsi_section41_imported_time_s(case_id)
+        append!(
+            plans,
+            native_resolved_fsi_production_workflow_plans(;
+                case_ids=(case_id,),
+                output_time_s=target_time_s,
+                tfinal_s=target_time_s,
+                snapshot_times_s=(target_time_s,),
+                kwargs...,
+            ),
         )
     end
+    return plans
+end
+
+function native_resolved_fsi_section41_imported_time_s(case_id::Symbol)
+    case_id === :sev23 && return 0.99949999999994532
+    case_id === :sev40 && return 0.99949999999994532
+    case_id === :sev50 && return 1.4994999999998904
     throw(ArgumentError("unsupported native Section 4.1 case id $(repr(case_id))"))
 end
 

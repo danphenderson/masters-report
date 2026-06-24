@@ -18,9 +18,10 @@ Thus 0D, 1D, and 2D formulations should not be described as weaker versions of
 
 The case study demonstrates this answer by using a distributed 1D
 area--flow state only for quantities it can natively or reconstructively
-support: area, flow, section-mean velocity, wall-law pressure, and a declared
-velocity observation operator. It does not ask that state to produce native WSS,
-secondary flow, wall stress, or clinical pressure-ratio evidence.
+support: area, flow, section-mean velocity, a wall-law pressure representative,
+and a declared velocity observation operator. It does not ask that state to
+produce native WSS, secondary flow, wall stress, or clinical pressure-ratio
+evidence.
 
 \subsection{RQ2: Observables and Closure Choices}
 \label{subsec:discussion-closures-interpretability}
@@ -53,8 +54,8 @@ not evidence for a full transient moving-boundary FSI model.
 \label{subsec:discussion-numerical-evidence-observation}
 
 The third research question asked what limitations remain when resolved scale,
-cost, identifiability, validation status, reproducibility, and uncertainty are
-compared. The answer is that interpretation depends on the declared equation,
+cost, identifiability, validation status, source-artifact traceability, and
+uncertainty are compared. The answer is that interpretation depends on the declared equation,
 retained state, discretization, observation operator, and metric, and each
 evidence type checks only part of that chain.
 ASME VVUQ terminology separates verification, validation, and uncertainty
@@ -65,15 +66,15 @@ depends on measured outputs, boundary-condition class, and design assumptions
 \cite{ASME2022VVUQTerminology,BoileauEtAl2015Benchmark,PimentelGarciaEtAl2023HighOrderWellBalanced,Colebank2025HemodynamicsIdentifiability}.
 
 The worked stenosis example demonstrates the distinction. Its manufactured
-solution checks the discrete operator for one forced equation. Its
-geometry-rest test addresses equilibrium preservation for the chosen
-discretization and boundary approximation. Its 1D--3D comparison becomes
-meaningful only after both models are reduced to the same section-mean velocity
-observable and discrepancy metric. These checks support a bounded diagnostic
-cross-model comparison, not an external validation result. The positive MMS
-result, negative rest-state result, and final-time comparator are useful
-precisely because they belong to different parts of the same interpretive
-chain rather than to one validation grade.
+solution checks one implemented forced operator using shared manufactured
+states and lower-level operator utilities. Its geometry-rest test addresses
+equilibrium-preservation testing for the chosen discretization and boundary
+approximation. Its 1D--3D comparison becomes meaningful only after both models
+are reduced to the same section-mean velocity observable and discrepancy metric.
+These checks support a bounded diagnostic cross-model comparison, not an
+external validation result. The positive MMS result, negative rest-state result,
+and final-time comparator are useful precisely because they belong to different
+parts of the same interpretive chain rather than to one validation grade.
 
 \subsection{Contribution and Limitations}
 \label{subsec:discussion-contribution-limitations}
@@ -88,7 +89,7 @@ The limitations are correspondingly bounded. The review is narrative and
 scoping, not systematic. Some sources remain preprints, software artifacts, or
 metadata entries with roles narrower than peer-reviewed empirical evidence. The
 case geometry, wall law, rheology, and boundary approximation are idealized.
-The numerical evidence distinguishes verification, equilibrium preservation,
+The numerical evidence distinguishes verification, equilibrium-preservation testing,
 and diagnostic comparison, but it does not provide externally validated
 clinical prediction evidence or a fully matched transient FSI target.
 

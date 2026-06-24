@@ -11,7 +11,7 @@ function print_canic_replication_usage(io::IO = stdout)
           --coordinate-mode VALUE   reference or deformed, default deformed
           --nx VALUE                1D cells, default 100
           --dt VALUE                1D time step, default 1e-5
-          --tfinal VALUE            1D final time, default 1.0
+          --tfinal VALUE            Optional global 1D final-time override; default uses each imported case time
           --section-count VALUE     Axial observation count, default 200
           --radial-sample-count VALUE Radial velocity sample count, default 41
           --time-atol VALUE         XDMF time tolerance, default 1e-6
@@ -32,7 +32,7 @@ function canic_section41_spec_from_values(values::Dict{String,String}, flags::Se
         coordinate_mode=get(values, "coordinate-mode", "deformed"),
         nx=parse(Int, get(values, "nx", "100")),
         dt_s=parse(Float64, get(values, "dt", "1.0e-5")),
-        tfinal_s=parse(Float64, get(values, "tfinal", "1.0")),
+        tfinal_s=haskey(values, "tfinal") ? parse(Float64, values["tfinal"]) : nothing,
         section_count=parse(Int, get(values, "section-count", "200")),
         radial_sample_count=parse(Int, get(values, "radial-sample-count", "41")),
         time_atol_s=parse(Float64, get(values, "time-atol", "1.0e-6")),

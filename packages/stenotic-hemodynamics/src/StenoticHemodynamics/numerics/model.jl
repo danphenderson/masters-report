@@ -1,12 +1,27 @@
 positive_area(A::Float64) = max(A, AREA_FLOOR)
 
-function wall_elastic_pressure(::CanicKoiterWallLaw, A::Float64, z::Float64, p::Params)
+function diagnostic_wall_elastic_pressure(::CanicKoiterWallLaw, A::Float64, z::Float64, p::Params)
     r0, _, _ = stenosis(z, p)
     r0_safe = max(r0, sqrt(AREA_LIMITER_FLOOR))
     return wall_elastic_coefficient(p, r0_safe) * (sqrt(positive_area(A)) - r0_safe)
 end
 
-wall_elastic_pressure(A::Float64, z::Float64, p::Params) = wall_elastic_pressure(p.wall_law, A, z, p)
+diagnostic_wall_elastic_pressure(A::Float64, z::Float64, p::Params) =
+    diagnostic_wall_elastic_pressure(p.wall_law, A, z, p)
+
+wall_elastic_pressure(wall_law::CanicKoiterWallLaw, A::Float64, z::Float64, p::Params) =
+    diagnostic_wall_elastic_pressure(wall_law, A, z, p)
+wall_elastic_pressure(A::Float64, z::Float64, p::Params) = diagnostic_wall_elastic_pressure(A, z, p)
+
+function evolution_wall_elastic_pressure(::CanicKoiterWallLaw, A::Float64, z::Float64, p::Params)
+    r0, _, _ = stenosis(z, p)
+    r0_safe = max(r0, sqrt(AREA_LIMITER_FLOOR))
+    reference_radius = max(wall_reference_radius(p), sqrt(AREA_LIMITER_FLOOR))
+    return wall_elastic_coefficient(p, reference_radius) * (sqrt(positive_area(A)) - r0_safe)
+end
+
+evolution_wall_elastic_pressure(A::Float64, z::Float64, p::Params) =
+    evolution_wall_elastic_pressure(p.wall_law, A, z, p)
 
 function variable_radius_pressure_correction(
     A::Float64,
@@ -120,7 +135,7 @@ function evolution_pressure(A::AbstractVector{Float64}, _Q::AbstractVector{Float
 
     for i in eachindex(A)
         Ai = positive_area(A[i])
-        out[i] = wall_elastic_pressure(Ai, z[i], p)
+        out[i] = evolution_wall_elastic_pressure(Ai, z[i], p)
     end
 
     return out
@@ -132,7 +147,7 @@ end
 
 function diagnostic_pressure(A::AbstractVector{Float64}, Q::AbstractVector{Float64}, z::AbstractVector{Float64}, p::Params)
     gp2 = gamma_plus_two(p)
-    out = evolution_pressure(A, Q, z, p)
+    out = similar(A)
 
     for i in eachindex(A)
         Ai = positive_area(A[i])
@@ -142,7 +157,7 @@ function diagnostic_pressure(A::AbstractVector{Float64}, Q::AbstractVector{Float
         correction = variable_radius_terms_enabled(p) ?
                      variable_radius_pressure_correction(Ai, Q[i], r0, r0z, nu_eff, gp2, p) :
                      0.0
-        out[i] += correction
+        out[i] = diagnostic_wall_elastic_pressure(Ai, z[i], p) + correction
     end
 
     return out
