@@ -12,6 +12,28 @@
     @test Ain ≈ target_area atol=1.0e-10
     @test abs(residual) <= 1.0e-8
 
+    controls = StenoticHemodynamics.InletAreaSolveControls(
+        residual_tolerance=1.0e-12,
+        area_tolerance=1.0e-14,
+        max_bisection_iterations=96,
+    )
+    controlled_Ain = StenoticHemodynamics.solve_inlet_area(Qin, w2, 0.02, params; controls)
+    controlled_residual = Qin / controlled_Ain - w2 - 4.0 * c0 * controlled_Ain^0.25
+    @test controlled_Ain ≈ target_area atol=1.0e-11
+    @test abs(controlled_residual) <= 1.0e-9
+
+    Ain32 = StenoticHemodynamics.solve_inlet_area(Float32(Qin), Float32(w2), Float32(0.02), params)
+    @test typeof(Ain32) === Float32
+    @test Ain32 ≈ Float32(target_area) atol=Float32(1.0e-6)
+
+    @test_throws ArgumentError StenoticHemodynamics.solve_inlet_area(
+        Qin,
+        w2,
+        0.02,
+        params;
+        controls=StenoticHemodynamics.InletAreaSolveControls(max_bisection_iterations=0),
+    )
+
     failed_guess = StenoticHemodynamics.AREA_LIMITER_FLOOR / 10.0
     failed = @test_logs (:warn, "inlet area solver failed to bracket; returning limited guess") begin
         StenoticHemodynamics.solve_inlet_area(-0.01, 0.0, failed_guess, params)
