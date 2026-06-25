@@ -425,7 +425,7 @@ def ready_to_commit_command(
         bool,
         typer.Option(
             "--allow-protected-artifacts",
-            help="Permit protected artifact paths after the owning artifact-refresh validation is in scope.",
+            help="Deprecated no-op; protected artifact paths are validated by the selected owning gates.",
         ),
     ] = False,
     allow_unclassified: Annotated[

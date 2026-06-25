@@ -79,8 +79,9 @@ Run `ready-to-commit` as the official orchestrator-side validation gate before
 staging or committing managed lane changes. The command selects focused gates
 from the dirty surfaces: diff checks, docs contract, lightweight pre-commit
 hooks, and the owning Julia, Python, report, or reference gate as needed. Use
-`--all` only for the aggregate patch gate. Protected artifacts require an
-explicit artifact-refresh scope and `--allow-protected-artifacts`.
+`--all` only for the aggregate patch gate. Dirty protected artifacts select the
+owning validation gates; keep the artifact-refresh scope explicit before
+changing protected outputs.
 
 ## Mode Semantics
 

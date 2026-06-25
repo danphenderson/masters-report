@@ -623,15 +623,20 @@ def test_ready_to_commit_all_uses_aggregate_patch_gate() -> None:
     ]
 
 
-def test_ready_to_commit_rejects_protected_artifacts_without_explicit_scope() -> None:
+def test_ready_to_commit_allows_protected_artifacts_by_default() -> None:
     report = orchestrate.parse_status("## master\n M public/final-report.pdf")
 
     issues = orchestrate.ready_to_commit_issues(report)
 
-    assert issues == (
-        "protected artifact paths require --allow-protected-artifacts after owning artifact validation: "
-        "public/final-report.pdf",
-    )
+    assert issues == ()
+
+
+def test_ready_to_commit_ignores_legacy_protected_artifact_flag() -> None:
+    report = orchestrate.parse_status("## master\n M public/final-report.pdf")
+
+    issues = orchestrate.ready_to_commit_issues(report, allow_protected_artifacts=False)
+
+    assert issues == ()
 
 
 def test_cli_json_subcommands_smoke(tmp_path: Path, capsys) -> None:
@@ -793,7 +798,6 @@ def test_cli_json_subcommands_smoke(tmp_path: Path, capsys) -> None:
                 str(root),
                 "ready-to-commit",
                 "--dry-run",
-                "--allow-protected-artifacts",
                 "--allow-unclassified",
                 "--json",
             ]

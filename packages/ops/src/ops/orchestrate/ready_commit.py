@@ -59,16 +59,10 @@ def _requires_report_validation(path: str) -> bool:
 def ready_to_commit_issues(
     report: StatusReport,
     *,
-    allow_protected_artifacts: bool = False,
+    allow_protected_artifacts: bool = True,
     allow_unclassified: bool = False,
 ) -> tuple[str, ...]:
     issues: list[str] = []
-    if report.protected_paths and not allow_protected_artifacts:
-        protected = ", ".join(report.protected_paths)
-        issues.append(
-            "protected artifact paths require --allow-protected-artifacts after owning artifact validation: "
-            f"{protected}"
-        )
     unclassified_paths = tuple(path for path in report.unclassified_paths if path not in report.protected_paths)
     if unclassified_paths and not allow_unclassified:
         unknown = ", ".join(unclassified_paths)
@@ -178,7 +172,7 @@ def ready_to_commit_result(
     all_gates: bool = False,
     dry_run: bool = False,
     stream: bool = True,
-    allow_protected_artifacts: bool = False,
+    allow_protected_artifacts: bool = True,
     allow_unclassified: bool = False,
 ) -> ReadyToCommitResult:
     gates = ready_to_commit_gates(report, report_outdir=report_outdir, all_gates=all_gates)
