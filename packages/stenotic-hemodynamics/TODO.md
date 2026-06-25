@@ -7,8 +7,8 @@ state, claim boundary, active work, and future gates only.
 
 ## Current State
 
-- The open package work is limited to the deferred maintainability tasks below;
-  no new numerical-output refresh or report-evidence promotion is open here.
+- No package task is currently open in this TODO. No numerical-output refresh or
+  report-evidence promotion is open here.
 - Package/report separation remains strict. Package code and tests define the
   computational contract; report prose may only describe that contract.
 - Do not refresh `public/final-report.pdf`, `report/assets/rendered/**`, raw
@@ -31,13 +31,8 @@ state, claim boundary, active work, and future gates only.
 
 ## Active Work
 
-- Keep Canic source-artifact comparison outputs typed at the workflow boundary
-  so column order and row shape are testable without `Any[]` accumulators.
-- Split native resolved-FSI production policy helpers out of the oversized
-  production workflow implementation without changing public APIs or claim
-  strings.
-- Leave broader native-FSI refactors, dependency changes, and new numerical
-  output refreshes to separate lanes.
+- Broader native-FSI refactors, dependency changes, new numerical output
+  refreshes, and report-evidence promotion require separate lanes.
 
 ## Future Gates
 

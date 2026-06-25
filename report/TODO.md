@@ -30,9 +30,9 @@ current state, claim boundary, active work, and future gates only.
 
 ## Active Work
 
-- Future source-only cleanup may compress process language or clarify the
-  source-artifact comparison wording, but claim-affecting edits must start from
-  `NO-SEND`.
+- No report source task is currently open in this TODO. Future source-only
+  cleanup may compress process language or clarify source-artifact comparison
+  wording, but claim-affecting edits must start from `NO-SEND`.
 
 ## Future Gates
 

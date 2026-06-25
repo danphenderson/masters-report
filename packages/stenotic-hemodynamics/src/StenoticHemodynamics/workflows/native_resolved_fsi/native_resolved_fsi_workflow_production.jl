@@ -30,8 +30,6 @@ const NATIVE_RESOLVED_FSI_PRODUCTION_BATCH_CLAIM_BOUNDARY =
     "batch row records native resolved-FSI execution observability only; not production parity, " *
     "imported parity, moving-wall/ALE fidelity, restart/resume support, or paper-grade native resolved-FSI Section 4.1 reproduction"
 
-include("native_resolved_fsi_production_policy.jl")
-
 """
     NativeResolvedFSIPartitionedProductionSpec(; kwargs...)
 
@@ -373,6 +371,8 @@ function native_resolved_fsi_partitioned_production_spec_digest(
     return bytes2hex(sha256(join(parts, "|")))[1:16]
 end
 
+include("native_resolved_fsi_production_policy.jl")
+
 """
     NativeResolvedFSIPartitionedProductionResult
 
@@ -472,52 +472,6 @@ struct NativeResolvedFSIProductionDryRunPlan
     imported_case
     imported_available::Bool
     status::String
-end
-
-function native_resolved_fsi_partitioned_production_default_guard_report(
-    spec::NativeResolvedFSIPartitionedProductionSpec,
-)
-    estimated_field_payload_bytes = native_resolved_fsi_partitioned_production_estimated_field_payload_bytes(spec)
-    snapshot_count_within_default_guard =
-        length(spec.snapshot_times_s) <= NATIVE_RESOLVED_FSI_PRODUCTION_MAX_SNAPSHOT_COUNT
-    estimated_output_payload_within_default_guard =
-        estimated_field_payload_bytes <= NATIVE_RESOLVED_FSI_PRODUCTION_MAX_OUTPUT_BYTES
-    required_override_flags = String[]
-    snapshot_count_within_default_guard || push!(required_override_flags, "allow_many_snapshots")
-    estimated_output_payload_within_default_guard || push!(required_override_flags, "allow_large_output")
-    return (
-        estimated_field_payload_bytes=estimated_field_payload_bytes,
-        snapshot_count_within_default_guard=snapshot_count_within_default_guard,
-        estimated_output_payload_within_default_guard=estimated_output_payload_within_default_guard,
-        required_override_flags=required_override_flags,
-    )
-end
-
-function native_resolved_fsi_partitioned_wall_stability_status(spec::NativeResolvedFSIPartitionedProductionSpec)
-    params = Params(
-        severity=spec.case_spec.severity_percent,
-        tfinal=spec.tfinal_s,
-        initial_condition=GeometryRestIC(),
-    )
-    wall_stiffness_c0_dyn_cm3 = canic_membrane_c0(params; reference_radius=params.rmax)
-    wall_mass_g_cm2 = spec.wall_density_g_cm3 * params.wall_h
-    explicit_dt_limit_s = wall_mass_g_cm2 > 0.0 && wall_stiffness_c0_dyn_cm3 > 0.0 ?
-                          1.9 * sqrt(wall_mass_g_cm2 / wall_stiffness_c0_dyn_cm3) : NaN
-    oscillator_guard = isfinite(explicit_dt_limit_s) && spec.dt_s <= explicit_dt_limit_s ?
-                       "explicit_membrane_oscillator_dt_guard_pass" :
-                       "explicit_membrane_oscillator_dt_guard_fail"
-    common_status =
-        "$(oscillator_guard); dt_s=$(spec.dt_s); explicit_stability_dt_limit_s=$(explicit_dt_limit_s); " *
-        "wall_mass_g_cm2=$(wall_mass_g_cm2); wall_stiffness_c0_dyn_cm3=$(wall_stiffness_c0_dyn_cm3)"
-    if spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
-        known_probe_status =
-            spec.case_spec.case_id === :sev23 &&
-            isapprox(spec.dt_s, 1.0e-4; atol=0.0, rtol=1.0e-12) ?
-            "sev23_development_exact_boundary_artifact_gate_passed_tfinal0p01: finite fields, positive radii, positive tetrahedra, direct wall-pressure sampling, and sidecars observed with stationary wall-on-deformed-geometry handoff; one-iteration coupling remains bounded evidence, not production/preproduction validation" :
-            "pressure_load_stability_requires_execution_gate"
-        return "$(common_status); $(known_probe_status); dry-run does not certify wall-pressure/load stability"
-    end
-    return "$(common_status); local pressure-drop smoke loading, not exact Section 4.1 wall-stability evidence"
 end
 
 function NativeResolvedFSIProductionWorkflowPlan(
@@ -625,11 +579,7 @@ function native_resolved_fsi_production_workflow_plans(;
             production_spec.inlet_outlet_boundary_mode;
             inlet_umax_cm_s=production_spec.inlet_umax_cm_s,
         )
-        status = if production_spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
-            "Section 4.1 native production plan for $(case_spec.paper_label) through T=$(last(production_spec.snapshot_times_s)) s; production runner support advances the exact Poiseuille inlet / zero-outlet-stress boundary mode through the coarse partitioned smoke-scale snapshot harness as smoke-scale/operator-readiness evidence only; boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); this is not a paper-grade reproduction, validated Section 4.1 parity result, or monolithic ALE solve"
-        else
-            "Section 4.1 native production plan for $(case_spec.paper_label) through T=$(last(production_spec.snapshot_times_s)) s; production runner support advances one coarse state-carrying partitioned native FSI snapshot series for the requested schedule using local pressure-drop smoke inlet/outlet loading, while the legacy workflow_spec remains schema-only; boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); this is not a paper-grade reproduction or monolithic ALE solve"
-        end
+        status = native_resolved_fsi_production_plan_status(case_spec, production_spec, boundary_status)
         push!(plans, NativeResolvedFSIProductionWorkflowPlan(case_spec, workflow_spec, status, production_spec))
     end
     return plans
@@ -682,11 +632,15 @@ function native_resolved_fsi_partitioned_production_dry_run(
     layout_status =
         "requested process/thread layout: parallel_workers=$(Int(parallel_workers)), " *
         "threads_per_worker=$(requested_threads_per_worker), force_process=$(force_process)"
-    execution_status =
-        spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41 ?
-        "production execution is available only through explicit production specs and remains smoke-scale/operator-readiness evidence only, not paper-grade native resolved-FSI Section 4.1 reproduction" :
-        "production execution remains opt-in through explicit production specs and output-volume overrides"
-    status = "dry-run ready: no production solver executed and no files written; $(layout_status); $(override_status); $(imported_status); boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); pressure_nullspace_status=$(pressure_nullspace_status); wall_stability_status=$(wall_stability_status); $(execution_status)"
+    status = native_resolved_fsi_partitioned_production_dry_run_status(
+        spec;
+        layout_status=layout_status,
+        override_status=override_status,
+        imported_status=imported_status,
+        boundary_status=boundary_status,
+        pressure_nullspace_status=pressure_nullspace_status,
+        wall_stability_status=wall_stability_status,
+    )
     return NativeResolvedFSIProductionDryRunPlan(
         plan,
         spec.case_spec.case_id,

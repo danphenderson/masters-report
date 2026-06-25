@@ -1,3 +1,7 @@
+if !isdefined(@__MODULE__, :write_custom_tetra_xdmf_hdf5_case)
+    include(joinpath(@__DIR__, "test_helpers.jl"))
+end
+
 function write_section41_pressure_gauge_fsi_xdmf_hdf5_case(
     case_dir::String;
     time::Float64,
@@ -91,13 +95,92 @@ end
         @test isempty(StenoticHemodynamics.canic_section41_missing_files(spec.data_root))
         audit_rows = StenoticHemodynamics.canic_section41_parameter_audit_rows(spec)
         @test eltype(audit_rows) === StenoticHemodynamics.CanicSection41ParameterAuditRow
-        @test propertynames(first(audit_rows)) == (
+        @test fieldnames(StenoticHemodynamics.CanicSection41ParameterAuditRow) == (
             :quantity,
             :source_pair,
             :paper_or_local_value,
             :upstream_or_observed_value,
             :status,
             :note,
+        )
+        @test propertynames(first(audit_rows)) == fieldnames(StenoticHemodynamics.CanicSection41ParameterAuditRow)
+        @test fieldnames(StenoticHemodynamics.CanicSection41ComparisonRow) == (
+            :case_id,
+            :paper_severity_percent,
+            :imported_case,
+            :model,
+            :coordinate_mode,
+            :z_cm,
+            :reference_time_s,
+            :imported_time_s,
+            :paper_time_offset_s,
+            :local_target_time_s,
+            :imported_local_target_time_offset_s,
+            :local_completed_time_s,
+            :imported_local_time_offset_s,
+            :time_alignment_tolerance_s,
+            :local_time_target_policy,
+            :time_alignment_status,
+            :area_cm2,
+            :mean_velocity_3d_cm_s,
+            :mean_velocity_1d_cm_s,
+            :velocity_abs_error_cm_s,
+            :velocity_rel_error,
+            :mean_pressure_3d_dyn_cm2,
+            :pressure_1d_dyn_cm2,
+            :pressure_abs_error_dyn_cm2,
+            :pressure_comparison_status,
+            :intersection_count,
+            :velocity_cut_status,
+            :pressure_cut_status,
+        )
+        @test fieldnames(StenoticHemodynamics.CanicSection41SummaryRow) == (
+            :case_id,
+            :paper_severity_percent,
+            :imported_case,
+            :model,
+            :coordinate_mode,
+            :section_count,
+            :reference_time_s,
+            :imported_time_s,
+            :paper_time_offset_s,
+            :local_target_time_s,
+            :imported_local_target_time_offset_s,
+            :local_completed_time_s,
+            :imported_local_time_offset_s,
+            :time_alignment_tolerance_s,
+            :local_time_target_policy,
+            :time_alignment_status,
+            :max_velocity_abs_error_cm_s,
+            :mean_velocity_abs_error_cm_s,
+            :max_velocity_rel_error,
+            :mean_velocity_rel_error,
+            :max_pressure_abs_error_dyn_cm2,
+            :mean_pressure_abs_error_dyn_cm2,
+            :pressure_comparison_status,
+            :status,
+        )
+        @test fieldnames(StenoticHemodynamics.CanicSection41RadialVelocityRow) == (
+            :case_id,
+            :paper_severity_percent,
+            :model,
+            :z_cm,
+            :section_radius_cm,
+            :r_cm,
+            :radial_velocity_cm_s,
+            :status,
+        )
+        @test fieldnames(StenoticHemodynamics.CanicSection41Figure6DiagnosticsRow) == (
+            :case_id,
+            :paper_severity_percent,
+            :imported_case,
+            :coordinate_mode,
+            :snapshot_time_s,
+            :max_speed_cm_s,
+            :max_axial_velocity_cm_s,
+            :max_radial_speed_cm_s,
+            :min_axial_velocity_cm_s,
+            :status,
         )
         @test any(row -> row[1] == "young_modulus_dyn_cm2" && row[5] == "mismatch_requires_classification", audit_rows)
         @test any(row -> row[1] == "snapshot_time_s_case50" && row[5] == "source_time_differs_from_paper_text", audit_rows)
@@ -141,7 +224,10 @@ end
         @test occursin("canic-extended-1d", read(result.summary_csv, String))
         @test occursin("qualitative_3d_velocity_field_diagnostic", read(result.figure6_diagnostics_csv, String))
 
-        comparison_text = read(result.comparison_csv, String)
+        comparison_lines = split(chomp(read(result.comparison_csv, String)), '\n')
+        comparison_header = split(comparison_lines[1], ',')
+        @test comparison_header == collect(string.(fieldnames(StenoticHemodynamics.CanicSection41ComparisonRow)))
+        comparison_text = join(comparison_lines, '\n')
         @test occursin(
             "reference_time_s,imported_time_s,paper_time_offset_s,local_target_time_s,imported_local_target_time_offset_s,local_completed_time_s,imported_local_time_offset_s,time_alignment_tolerance_s,local_time_target_policy,time_alignment_status",
             comparison_text,
@@ -151,6 +237,11 @@ end
 
         summary_lines = split(chomp(read(result.summary_csv, String)), '\n')
         summary_header = split(summary_lines[1], ',')
+        @test summary_header == collect(string.(fieldnames(StenoticHemodynamics.CanicSection41SummaryRow)))
+        radial_header = split(first(readlines(result.radial_velocity_csv)), ',')
+        @test radial_header == collect(string.(fieldnames(StenoticHemodynamics.CanicSection41RadialVelocityRow)))
+        figure6_header = split(first(readlines(result.figure6_diagnostics_csv)), ',')
+        @test figure6_header == collect(string.(fieldnames(StenoticHemodynamics.CanicSection41Figure6DiagnosticsRow)))
         summary_rows = [split(line, ',') for line in summary_lines[2:end]]
         header_index(name) = something(findfirst(==(name), summary_header), 0)
         case_id_index = header_index("case_id")
