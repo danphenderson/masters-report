@@ -10,8 +10,10 @@ const CANIC_SECTION41_DEFAULT_MODELS = ("canic-extended-1d", "classical-paraboli
 const CANIC_SECTION41_TIME_ALIGNMENT_POLICY =
     "default local_target_time_s is the imported XDMF time for each case; time_aligned iff abs(imported_time_s - local_target_time_s) <= time_alignment_tolerance_s and abs(imported_time_s - local_completed_time_s) <= time_alignment_tolerance_s; explicit global tfinal overrides are non-replication when mismatched"
 const CANIC_SECTION41_PRESSURE_COMPARISON_POLICY =
-    "pressure discrepancy withheld as non-evidentiary until a common pressure gauge operator is applied"
-const CANIC_SECTION41_PRESSURE_STATUS = "non_evidentiary_without_common_pressure_gauge_operator"
+    "pressure discrepancies are finite only after applying the common Section 4.1 outlet-gauge operator: subtract the CrossSectionQuadratureOperator mean imported pressure at z=$(SECTION41_LENGTH_CM) cm and the 1D diagnostic pressure at the outlet"
+const CANIC_SECTION41_PRESSURE_STATUS = NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS
+const CANIC_SECTION41_PRESSURE_GAUGE_UNAVAILABLE_STATUS =
+    NATIVE_RESOLVED_FSI_PARITY_PRESSURE_GAUGE_UNAVAILABLE_STATUS
 const CANIC_SECTION41_EXPECTED_FILENAMES = (
     "velocity.xdmf",
     "velocity.h5",
@@ -357,8 +359,10 @@ function canic_section41_pressure_observation(
     field::Resolved3DVelocityField,
     pressure_values::AbstractVector{<:Real},
     z_cm::Float64,
+    ;
+    gauge = native_resolved_fsi_parity_pressure_gauge(field, pressure_values),
 )
-    return native_resolved_fsi_parity_pressure_section_observation(field, pressure_values, z_cm)
+    return native_resolved_fsi_parity_pressure_section_observation(field, pressure_values, z_cm; gauge)
 end
 
 function canic_section41_time_alignment(
@@ -533,8 +537,8 @@ function canic_section41_parameter_audit_rows(spec::CanicSection41ReplicationSpe
         "local comparison policy",
         CANIC_SECTION41_PRESSURE_COMPARISON_POLICY,
         CANIC_SECTION41_PRESSURE_STATUS,
-        "non_evidentiary_policy",
-        "pressure values are recorded but pressure discrepancies are withheld because the 1D diagnostic pressure and imported pressure do not share a proven gauge",
+        "diagnostic_outlet_gauge_policy",
+        "pressure discrepancies are outlet-gauge diagnostics only; they do not establish clinical validation, FFR, or paper-grade native FSI reproduction",
     ))
     push!(rows, canic_section41_parameter_audit_row(
         "young_modulus_dyn_cm2",
@@ -617,13 +621,14 @@ function run_canic_section41_replication(spec::CanicSection41ReplicationSpec)
         bundle = load_resolved3d_field_bundle(resolved_case; require_pressure=true, require_displacement=true)
         field = resolved3d_velocity_field_from_bundle(bundle, spec.coordinate_mode)
         pressure_values = native_resolved_fsi_parity_required_pressure(bundle)
+        pressure_gauge = native_resolved_fsi_parity_pressure_gauge(field, pressure_values)
         velocity_observations = Dict{Float64,Any}()
         pressure_observations = Dict{Float64,Any}()
 
         for z_value in section_z
             z_cm = Float64(z_value)
             velocity_observations[z_cm] = section_observation(field, z_cm, CrossSectionQuadratureOperator())
-            pressure_observations[z_cm] = canic_section41_pressure_observation(field, pressure_values, z_cm)
+            pressure_observations[z_cm] = canic_section41_pressure_observation(field, pressure_values, z_cm; gauge=pressure_gauge)
         end
 
         for model_value in spec.models
@@ -633,6 +638,7 @@ function run_canic_section41_replication(spec::CanicSection41ReplicationSpec)
             result = simulate(params, NativeRK3Backend(); progress_every=0)
             u1d = velocity(result)
             p1d = diagnostic_pressure(result, params)
+            p1d_gauge = interpolate_linear(result.z, p1d, SECTION41_LENGTH_CM)
             local_completed_time_s = result.completed_time
             time_alignment = canic_section41_time_alignment(
                 imported_time_s,
@@ -643,20 +649,23 @@ function run_canic_section41_replication(spec::CanicSection41ReplicationSpec)
             )
             velocity_abs_errors = Float64[]
             velocity_rel_errors = Float64[]
+            pressure_abs_errors = Float64[]
+            pressure_status = pressure_gauge.ready ? CANIC_SECTION41_PRESSURE_STATUS : CANIC_SECTION41_PRESSURE_GAUGE_UNAVAILABLE_STATUS
 
             for z_value in section_z
                 z_cm = Float64(z_value)
                 velocity_observation = velocity_observations[z_cm]
                 pressure_observation = pressure_observations[z_cm]
                 u_1d = interpolate_linear(result.z, u1d, z_cm)
-                p_1d = interpolate_linear(result.z, p1d, z_cm)
+                p_1d = interpolate_linear(result.z, p1d, z_cm) - p1d_gauge
                 u_3d = velocity_observation.mean_velocity_cm_s
                 p_3d = pressure_observation.mean_pressure_dyn_cm2
                 velocity_abs = abs_or_nan(u_1d, u_3d)
                 velocity_rel = relative_error(velocity_abs, u_3d)
-                pressure_abs = NaN
+                pressure_abs = abs_or_nan(p_1d, p_3d)
                 isfinite(velocity_abs) && push!(velocity_abs_errors, velocity_abs)
                 isfinite(velocity_rel) && push!(velocity_rel_errors, velocity_rel)
+                isfinite(pressure_abs) && push!(pressure_abs_errors, pressure_abs)
                 push!(comparison_rows, (
                     case_id=string(record.case_id),
                     paper_severity_percent=record.paper_severity_percent,
@@ -682,7 +691,7 @@ function run_canic_section41_replication(spec::CanicSection41ReplicationSpec)
                     mean_pressure_3d_dyn_cm2=p_3d,
                     pressure_1d_dyn_cm2=p_1d,
                     pressure_abs_error_dyn_cm2=pressure_abs,
-                    pressure_comparison_status=CANIC_SECTION41_PRESSURE_STATUS,
+                    pressure_comparison_status=pressure_status,
                     intersection_count=velocity_observation.intersection_count,
                     velocity_cut_status=velocity_observation.cut_status,
                     pressure_cut_status=pressure_observation.cut_status,
@@ -712,9 +721,9 @@ function run_canic_section41_replication(spec::CanicSection41ReplicationSpec)
                 mean_velocity_abs_error_cm_s=mean_or_nan(velocity_abs_errors),
                 max_velocity_rel_error=max_velocity_rel,
                 mean_velocity_rel_error=mean_or_nan(velocity_rel_errors),
-                max_pressure_abs_error_dyn_cm2=NaN,
-                mean_pressure_abs_error_dyn_cm2=NaN,
-                pressure_comparison_status=CANIC_SECTION41_PRESSURE_STATUS,
+                max_pressure_abs_error_dyn_cm2=maximum_or_nan(pressure_abs_errors),
+                mean_pressure_abs_error_dyn_cm2=mean_or_nan(pressure_abs_errors),
+                pressure_comparison_status=pressure_status,
                 status=velocity_status,
             ))
 
@@ -938,8 +947,8 @@ function canic_section41_status_tex_label(value)
         "mismatch_requires_classification" => "source mismatch",
         "source_time_differs_from_paper_text" => "snapshot-time offset",
         "explicit_policy" => "explicit policy",
-        "non_evidentiary_policy" => "non-evidentiary policy",
-        CANIC_SECTION41_PRESSURE_STATUS => "pressure non-evidentiary",
+        "diagnostic_outlet_gauge_policy" => "diagnostic outlet-gauge policy",
+        CANIC_SECTION41_PRESSURE_STATUS => "pressure outlet-gauged diagnostic",
     )
     return get(labels, text, replace(text, "_" => " "))
 end

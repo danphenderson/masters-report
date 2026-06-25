@@ -40,7 +40,7 @@ The implemented native resolved-FSI surface is split into these tiers:
 | Production dry-run | `native_resolved_fsi_partitioned_production_dry_run(...)` resolves output, sidecar, restart, and imported-parity paths without running a solver or writing files. | Side-effect-free planning only. |
 | Production sidecars | `run_native_resolved_fsi_partitioned_production(...)` advances one state-carrying partitioned snapshot series within a run and writes importer-compatible snapshot bundles, `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, `restart_metadata.json`, and schema-v3 durable checkpoint sidecars. | P3/P4 production-control and diagnostics harness with in-run state carry and qualified internal split-run resume; monolithic ALE coupling, public/default resume, public native production CLI execution, and paper-grade reproduction remain deferred. |
 | Restart metadata | `native_resolved_fsi_read_restart_metadata(...)` validates current and legacy package-written restart metadata, including versioned `state_payload` audit data and schema-v3 durable checkpoints when present. | Schema-v3 checkpoints support qualified internal split-run resume only; `native_resolved_fsi_resume_partitioned_production(...)` still fails closed for public callers. |
-| Observation artifacts | Production parity writes `section41_observations.csv` and `section41_observation_summary.csv`. | Local velocity/pressure observation rows and optional imported-bundle comparison only; pressure rows are non-evidentiary for pressure discrepancy until a common gauge operator is selected and tested. |
+| Observation artifacts | Production parity writes `section41_observations.csv` and `section41_observation_summary.csv`. | Local velocity/pressure observation rows and optional imported-bundle comparison only; pressure discrepancies use the common Section 4.1 outlet-quadrature gauge and remain diagnostic, not clinical, FFR, or paper-grade native FSI reproduction evidence. |
 
 External importer support is retained. Legacy or explicitly supplied
 XDMF/HDF5 resolved-3D bundles still enter through the existing importer and
@@ -543,10 +543,12 @@ pass/fail production claim:
 - maximum relative error in the longitudinal velocity curve within `10%`.
 
 The current observation artifacts record velocity and pressure section
-averages and differences. Pressure differences remain non-evidentiary until a
-common pressure gauge operator is implemented, tested against imported pressure
-offsets, and selected for the Section 4.1 comparison contract. A paper-grade
-pressure comparison tolerance remains a later local choice.
+averages and differences. Pressure differences use the common Section 4.1
+outlet-quadrature gauge: subtract the `CrossSectionQuadratureOperator` outlet
+mean pressure at `z = 6 cm` before comparing diagnostic pressure rows. The
+operator is offset-tested, but the resulting pressure differences remain local
+diagnostics; a paper-grade pressure comparison tolerance remains a later local
+choice.
 
 ## Reuse and separation
 
@@ -587,8 +589,9 @@ claim:
 
 These items remain open and should not be implied by current documentation:
 
-- whether a later paper-parity stage needs outlet-node mean or
-  outlet-quadrature mean for pressure gauge normalization;
+- whether a later paper-parity stage should retain the current
+  outlet-quadrature pressure gauge or replace it with another pressure
+  convention;
 - whether later paper-parity calibration should replace `R_ref = p.rmax` with a
   different constant `R0*`.
 - public/default process resume from restart metadata;

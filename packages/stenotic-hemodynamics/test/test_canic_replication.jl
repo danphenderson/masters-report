@@ -1,3 +1,31 @@
+function write_section41_pressure_gauge_fsi_xdmf_hdf5_case(
+    case_dir::String;
+    time::Float64,
+)
+    length_cm = StenoticHemodynamics.SECTION41_LENGTH_CM
+    coords = [
+        0.0 0.0 0.0
+        0.10 0.0 length_cm
+        0.0 0.10 length_cm
+        -0.10 0.0 length_cm
+    ]
+    velocity_xdmf, _, velocity_values = write_custom_tetra_xdmf_hdf5_case(
+        case_dir,
+        coords;
+        time=time,
+        velocity_function=coord -> 10.0 + coord[3],
+    )
+    topology = Int32[0 1 2 3]
+    pressure_values = zeros(Float64, size(coords, 1), 1)
+    displacement_values = zeros(Float64, size(coords, 1), 3)
+    for i in axes(coords, 1)
+        pressure_values[i, 1] = 20.0 + coords[i, 3]
+    end
+    write_xdmf_hdf5_field(case_dir, "pressure", coords, topology, pressure_values, "Scalar", time)
+    write_xdmf_hdf5_field(case_dir, "displace", coords, topology, displacement_values, "Vector", time)
+    return velocity_xdmf, coords, velocity_values, pressure_values, displacement_values
+end
+
 @testset "StenoticHemodynamics Canic Section 4.1 source-artifact comparison workflow" begin
     records = StenoticHemodynamics.canic_section41_case_records()
     @test [record.imported_label for record in records] == ["77", "60", "50"]
@@ -47,7 +75,7 @@
             ("60", records[2].expected_upstream_time_s),
             ("50", records[3].expected_upstream_time_s),
         )
-            write_synthetic_fsi_xdmf_hdf5_case(joinpath(data_root, label); time=time)
+            write_section41_pressure_gauge_fsi_xdmf_hdf5_case(joinpath(data_root, label); time=time)
         end
 
         spec = StenoticHemodynamics.CanicSection41ReplicationSpec(
@@ -119,7 +147,7 @@
             comparison_text,
         )
         @test occursin("pressure_comparison_status", comparison_text)
-        @test occursin("non_evidentiary_without_common_pressure_gauge_operator", comparison_text)
+        @test occursin(StenoticHemodynamics.CANIC_SECTION41_PRESSURE_STATUS, comparison_text)
 
         summary_lines = split(chomp(read(result.summary_csv, String)), '\n')
         summary_header = split(summary_lines[1], ',')
@@ -163,7 +191,8 @@
         @test parse(Float64, sev50_summary[time_offset_index]) ≈ 0.0 atol = 1.0e-12
         @test sev50_summary[time_policy_index] == "per_case_imported_time"
         @test sev50_summary[time_status_index] == "source_artifact_reconstruction_comparison_time_aligned"
-        @test sev50_summary[pressure_error_index] == "NaN"
-        @test sev50_summary[pressure_status_index] == "non_evidentiary_without_common_pressure_gauge_operator"
+        @test isfinite(parse(Float64, sev50_summary[pressure_error_index]))
+        @test parse(Float64, sev50_summary[pressure_error_index]) >= 0.0
+        @test sev50_summary[pressure_status_index] == StenoticHemodynamics.CANIC_SECTION41_PRESSURE_STATUS
     end
 end

@@ -183,13 +183,12 @@ inputs are non-fatal and print:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 canic_replication_status,skipped_missing_data
 \end{lstlisting}
-Derived outputs from prior reviewed runs are stored in
+Reviewed Canic derived outputs are stored in
 \path{report/assets/data/canic-replication/} and
 \path{report/assets/tables/canic-replication/}; the raw XDMF/HDF5 bundles
-remain ignored local inputs. Those stored table fragments predate the current
-time-alignment and pressure-gauge policy and are not input as current evidence
-in this thesis revision. Corrected numerical rows require a separate
-artifact-refresh lane.
+remain ignored local inputs. The stored Canic fragments used in this revision
+were regenerated after the imported-time and outlet-gauge pressure policy
+landed, so they are current source-artifact diagnostic assets for this lane.
 
 \begin{table}[!htb]
     \centering
@@ -198,17 +197,20 @@ artifact-refresh lane.
     Imported times are read from the restored XDMF bundles, and the default
     local target time is the imported time for each case. Explicit global
     final-time overrides are recorded as intentional time mismatches when they
-    differ outside the \(10^{-6}\,\mathrm{s}\) tolerance. Pressure is withheld
-    as cross-model error evidence until a common gauge is implemented.}
+    differ outside the \(10^{-6}\,\mathrm{s}\) tolerance. Pressure diagnostics
+    use the common Section~4.1 outlet gauge: the resolved
+    \texttt{CrossSectionQuadratureOperator} mean pressure at
+    \(z=6\,\mathrm{cm}\) and the corresponding 1D diagnostic outlet pressure
+    are subtracted before pressure differences are reported.}
     \label{tab:canic-section41-summary}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}lllll@{}}
         \toprule
         Case & Imported bundle time & Default local target & Time-alignment role & Pressure role \\
         \midrule
-        23\% & \(0.9995\,\mathrm{s}\) & \(0.9995\,\mathrm{s}\) & time-aligned source-artifact comparison & non-evidentiary diagnostic \\
-        40\% & \(0.9995\,\mathrm{s}\) & \(0.9995\,\mathrm{s}\) & time-aligned source-artifact comparison & non-evidentiary diagnostic \\
-        50\% & \(1.4995\,\mathrm{s}\) & \(1.4995\,\mathrm{s}\) & time-aligned source-artifact comparison & non-evidentiary diagnostic \\
+        23\% & \(0.9995\,\mathrm{s}\) & \(0.9995\,\mathrm{s}\) & time-aligned source-artifact comparison & outlet-gauged diagnostic \\
+        40\% & \(0.9995\,\mathrm{s}\) & \(0.9995\,\mathrm{s}\) & time-aligned source-artifact comparison & outlet-gauged diagnostic \\
+        50\% & \(1.4995\,\mathrm{s}\) & \(1.4995\,\mathrm{s}\) & time-aligned source-artifact comparison & outlet-gauged diagnostic \\
         \bottomrule
     \end{tabular}%
     }
@@ -227,7 +229,7 @@ artifact-refresh lane.
         Item & Current policy & Manuscript role \\
         \midrule
         Time alignment & imported, local target, and local completed times must agree within \(10^{-6}\,\mathrm{s}\) & required for replication evidence \\
-        Pressure gauge & no common 1D--3D pressure-gauge operator is implemented here & absolute pressure error withheld \\
+        Pressure gauge & common Section~4.1 outlet-quadrature gauge is offset-tested and applied & diagnostic pressure differences only \\
         Parameter alignment & PDF Table~1 Young modulus differs from the upstream MATLAB control value & source-artifact limitation \\
         Raw bundles & local XDMF/HDF5 inputs are restored under \path{public/var/data/simulations/canic_case3/} & optional regeneration input \\
         \bottomrule

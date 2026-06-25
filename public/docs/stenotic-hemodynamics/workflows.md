@@ -125,7 +125,7 @@ fluid solve.
 Use [Resolved-3D Workflows](../resolved3d-workflows.md) for the data-root
 contract, skip behavior, and report publication boundaries.
 
-## Canic 2024 Section 4.1 Replication
+## Canic 2024 Section 4.1 Source-Artifact Comparison
 
 - Representative files:
   - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/canic_replication/canic_replication.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/canic_replication/canic_replication.jl)
@@ -134,7 +134,7 @@ contract, skip behavior, and report publication boundaries.
   - CLI: `canic-replication section41`
   - Julia: `run_canic_section41_replication(...)`,
     `CanicSection41ReplicationSpec(...)`
-- Surface: `CLI-facing source-artifact replication`
+- Surface: `CLI-facing source-artifact comparison`
 - Expected outputs and artifact class:
   - Ignored scratch outputs under
     `tmp/simulations/output/canic-replication/**`
@@ -151,7 +151,7 @@ contract, skip behavior, and report publication boundaries.
 - Focused validation command:
   - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_helpers.jl"); include("packages/stenotic-hemodynamics/test/test_canic_replication.jl")'`
 
-Use [Canic 2024 Section 4.1 Replication](canic-2024-replication.md) for
+Use [Canic 2024 Section 4.1 Source-Artifact Comparison](canic-2024-replication.md) for
 raw-data restoration commands, output inventory, provenance policy, and
 parameter-audit caveats.
 
@@ -238,8 +238,9 @@ parameter-audit caveats.
   - Parity workflows compare against explicitly supplied bundle paths when
     present, and otherwise produce expected skips for unavailable optional
     imported cases
-  - Pressure observation differences are non-evidentiary until a common
-    pressure gauge operator is implemented and offset-tested
+  - Pressure observation differences use the common Section 4.1
+    outlet-quadrature gauge and remain diagnostic rather than clinical, FFR, or
+    paper-grade native FSI reproduction evidence
 - Focused validation command:
   - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_smoke.jl")'`
 

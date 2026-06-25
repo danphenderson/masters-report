@@ -132,6 +132,14 @@ case: approximately `0.9995 s` for cases `77` and `60`, and `1.4995 s` for case
 differs from the imported source-artifact time outside the declared tolerance
 are recorded as intentional time mismatches and non-replication.
 
+Pressure values are recorded under a common Section 4.1 outlet-gauge diagnostic:
+the workflow subtracts the imported `CrossSectionQuadratureOperator` mean
+pressure at `z = 6 cm` and the corresponding 1D diagnostic outlet pressure
+before reporting pressure discrepancies. These pressure-error values are
+gauge-normalized diagnostics only. They do not establish clinical validation,
+FFR evidence, paper-grade native FSI reproduction, or a full Section 4.1
+replication claim.
+
 ## Required Audit Caveats
 
 The parameter audit intentionally records source inconsistencies instead of

@@ -46,8 +46,11 @@ Default scratch outputs under `/tmp/masters-report-build`:
 - `final-report.fls`: recorder file used for consumed-input tracking.
 - `report-build-summary.json`: wrapper status and evidence summary.
 
-The full build also syncs the validated scratch PDF to the ignored local
-artifact `public/final-report.pdf` after all gates pass.
+The full build also syncs the validated scratch PDF to `public/final-report.pdf`
+after all gates pass. In this checkout that path is a retained tracked legacy
+release artifact, so use the full build only in an explicit publication or
+artifact-refresh lane and do not treat a refreshed PDF as part of ordinary
+source validation.
 
 ## Summary JSON
 

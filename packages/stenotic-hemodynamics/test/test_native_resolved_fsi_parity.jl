@@ -27,6 +27,7 @@ function native_resolved_fsi_parity_fixture(;
     coordinate_shift_cm::Real = 0.0,
     velocity_offset_cm_s::Real = 0.0,
     pressure_offset_dyn_cm2::Real = 0.0,
+    pressure_inlet_offset_dyn_cm2::Real = 0.0,
     displacement_offset_cm::Real = 0.0,
 )
     coordinates = [
@@ -34,28 +35,34 @@ function native_resolved_fsi_parity_fixture(;
         1.0 0.0 0.0
         0.0 1.0 0.0
         0.0 0.0 1.0
+        0.0 0.0 (StenoticHemodynamics.SECTION41_LENGTH_CM - 1.0)
+        1.0 0.0 StenoticHemodynamics.SECTION41_LENGTH_CM
+        0.0 1.0 StenoticHemodynamics.SECTION41_LENGTH_CM
+        -1.0 0.0 StenoticHemodynamics.SECTION41_LENGTH_CM
     ]
     coordinates[2, 1] += Float64(coordinate_shift_cm)
 
     topology = Int[
         1 2 3 4
+        5 6 7 8
     ]
 
-    velocity = [
-        0.0 0.0 10.0
-        0.0 0.0 11.0
-        0.0 0.0 12.0
-        0.0 0.0 13.0
-    ]
+    velocity = zeros(Float64, size(coordinates, 1), 3)
+    velocity[:, 3] .= 10.0 .+ coordinates[:, 3]
     velocity[:, 3] .+= Float64(velocity_offset_cm_s)
 
-    pressure = Float64[20.0, 21.0, 22.0, 23.0] .+ Float64(pressure_offset_dyn_cm2)
+    pressure = Float64[20.0 + coordinates[i, 3] for i in axes(coordinates, 1)] .+ Float64(pressure_offset_dyn_cm2)
+    pressure[1] += Float64(pressure_inlet_offset_dyn_cm2)
 
     displacement = [
         0.0 0.0 0.0
         0.05 0.0 0.0
         0.0 0.05 0.0
         0.0 0.0 0.02
+        0.0 0.0 0.0
+        0.05 0.0 0.0
+        0.0 0.05 0.0
+        -0.05 0.0 0.0
     ]
     displacement[2, 1] += Float64(displacement_offset_cm)
 
@@ -69,12 +76,14 @@ function write_native_resolved_fsi_parity_fixture(
     coordinate_shift_cm::Real = 0.0,
     velocity_offset_cm_s::Real = 0.0,
     pressure_offset_dyn_cm2::Real = 0.0,
+    pressure_inlet_offset_dyn_cm2::Real = 0.0,
     displacement_offset_cm::Real = 0.0,
 )
     coordinates, topology, velocity, pressure, displacement = native_resolved_fsi_parity_fixture(
         coordinate_shift_cm=coordinate_shift_cm,
         velocity_offset_cm_s=velocity_offset_cm_s,
         pressure_offset_dyn_cm2=pressure_offset_dyn_cm2,
+        pressure_inlet_offset_dyn_cm2=pressure_inlet_offset_dyn_cm2,
         displacement_offset_cm=displacement_offset_cm,
     )
     output_dir = joinpath(dir, bundle_name)
@@ -367,7 +376,7 @@ end
         @test result.operator_status.max_abs_difference ≈ 0.0 atol = 1.0e-12
         @test occursin("velocity section/radial/node-slab observations matched", result.velocity_operator_status.status)
         @test occursin("pressure section-average operator diagnostics matched", result.pressure_operator_status.status)
-        @test occursin("non-evidentiary without a common pressure gauge operator", result.pressure_operator_status.status)
+        @test occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, result.pressure_operator_status.status)
     end
 end
 
@@ -380,7 +389,7 @@ end
             time_s=1.25,
             coordinate_shift_cm=0.01,
             velocity_offset_cm_s=0.5,
-            pressure_offset_dyn_cm2=3.0,
+            pressure_inlet_offset_dyn_cm2=3.0,
             displacement_offset_cm=0.01,
         )
         result = run_native_resolved_fsi_parity(native_resolved_fsi_parity_spec(native_case, imported_case))
@@ -396,11 +405,11 @@ end
         @test result.time_status.max_abs_difference ≈ 0.25 atol = 1.0e-12
 
         @test !result.velocity_status.ready
-        @test result.velocity_status.discrepancy_count == 4
+        @test result.velocity_status.discrepancy_count == 8
         @test result.velocity_status.max_abs_difference ≈ 0.5 atol = 1.0e-12
 
         @test !result.pressure_status.ready
-        @test result.pressure_status.discrepancy_count == 4
+        @test result.pressure_status.discrepancy_count == 1
         @test result.pressure_status.max_abs_difference ≈ 3.0 atol = 1.0e-12
 
         @test !result.displacement_status.ready
@@ -488,15 +497,33 @@ end
     end
 end
 
-@testset "StenoticHemodynamics native resolved-FSI pressure operator seam" begin
+@testset "StenoticHemodynamics native resolved-FSI pressure outlet gauge uniform offset invariance" begin
     mktempdir() do dir
         native_case = write_native_resolved_fsi_parity_fixture(dir, "native")
         imported_case = write_native_resolved_fsi_parity_fixture(dir, "imported"; pressure_offset_dyn_cm2=2.0)
         result = run_native_resolved_fsi_parity(native_resolved_fsi_parity_spec(native_case, imported_case))
 
         @test result.velocity_operator_status.ready
+        @test result.pressure_status.ready
+        @test result.pressure_status.max_abs_difference ≈ 0.0 atol = 1.0e-12
+        @test result.pressure_operator_status.ready
+        @test result.pressure_operator_status.max_abs_difference ≈ 0.0 atol = 1.0e-12
+        @test occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, result.pressure_operator_status.status)
+        @test result.operator_status.ready
+    end
+end
+
+@testset "StenoticHemodynamics native resolved-FSI pressure outlet gauge shaped discrepancy" begin
+    mktempdir() do dir
+        native_case = write_native_resolved_fsi_parity_fixture(dir, "native")
+        imported_case = write_native_resolved_fsi_parity_fixture(dir, "imported"; pressure_inlet_offset_dyn_cm2=2.0)
+        result = run_native_resolved_fsi_parity(native_resolved_fsi_parity_spec(native_case, imported_case))
+
+        @test result.velocity_operator_status.ready
+        @test !result.pressure_status.ready
+        @test result.pressure_status.max_abs_difference ≈ 2.0 atol = 1.0e-12
         @test !result.pressure_operator_status.ready
-        @test result.pressure_operator_status.max_abs_difference ≈ 2.0 atol = 1.0e-12
+        @test result.pressure_operator_status.max_abs_difference > 0.0
         @test occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, result.pressure_operator_status.status)
         @test !result.operator_status.ready
     end
@@ -684,7 +711,7 @@ end
         @test isnan(sev23_pressure.max_mean_velocity_abs_difference_cm_s)
         @test sev23_pressure.max_mean_pressure_abs_difference_dyn_cm2 ≈ 0.0 atol = 1.0e-12
         @test occursin("pressure section-average operator diagnostics matched", sev23_pressure.status)
-        @test occursin("non-evidentiary without a common pressure gauge operator", sev23_pressure.status)
+        @test occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, sev23_pressure.status)
 
         sev40_parity_rows = [row for row in rows if row.case_id == "sev40" && row.source == "parity"]
         @test length(sev40_parity_rows) == 2
@@ -837,7 +864,7 @@ end
         @test isnan(parity_pressure_summary.max_mean_velocity_abs_difference_cm_s)
         @test parity_pressure_summary.max_mean_pressure_abs_difference_dyn_cm2 ≈ 0.0 atol = 1.0e-12
         @test occursin("pressure section-average operator diagnostics matched", parity_pressure_summary.status)
-        @test occursin("non-evidentiary without a common pressure gauge operator", parity_pressure_summary.status)
+        @test occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, parity_pressure_summary.status)
 
         summary_lines = readlines(artifact.summary_csv)
         @test length(summary_lines) == 7
@@ -848,7 +875,7 @@ end
     end
 end
 
-@testset "StenoticHemodynamics native resolved-FSI production pressure discrepancy status" begin
+@testset "StenoticHemodynamics native resolved-FSI production pressure outlet gauge uniform offset invariance" begin
     mktempdir() do dir
         native_case = write_native_resolved_fsi_parity_fixture(dir, "native")
         write_native_resolved_fsi_parity_fixture(dir, "77"; pressure_offset_dyn_cm2=2.0)
@@ -869,15 +896,15 @@ end
         )
 
         @test artifact.velocity_operator_status.ready
-        @test !artifact.pressure_operator_status.ready
+        @test artifact.pressure_operator_status.ready
         @test occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, artifact.pressure_operator_status.status)
         parity_row = only(row for row in artifact.observation_rows if row.source == "parity")
-        @test parity_row.status == NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS
-        @test parity_row.mean_pressure_abs_difference_dyn_cm2 ≈ 2.0 atol = 1.0e-12
+        @test parity_row.status == "ready"
+        @test parity_row.mean_pressure_abs_difference_dyn_cm2 ≈ 0.0 atol = 1.0e-12
         pressure_summary = only(row for row in artifact.summary_rows if row.source == "parity" && row.quantity == "pressure")
         velocity_summary = only(row for row in artifact.summary_rows if row.source == "parity" && row.quantity == "velocity")
         @test velocity_summary.ready_row_count == 1
-        @test pressure_summary.ready_row_count == 0
+        @test pressure_summary.ready_row_count == 1
         @test occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, pressure_summary.status)
     end
 end

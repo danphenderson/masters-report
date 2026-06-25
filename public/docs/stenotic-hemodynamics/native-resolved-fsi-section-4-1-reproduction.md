@@ -71,8 +71,9 @@ local operator evidence in separate tiers:
 - Observation artifacts: native/imported/parity rows are written to
   `section41_observations.csv` and summarized in
   `section41_observation_summary.csv`. These rows are local optional-data
-  observation rows; pressure differences are non-evidentiary until a common
-  pressure gauge operator is selected and offset-tested.
+  observation rows; pressure differences use the common Section 4.1
+  outlet-quadrature gauge and remain diagnostic, not paper-grade native FSI
+  reproduction evidence.
 
 External importer support is retained and supported. The optional upstream
 XDMF/HDF5 velocity bundles, and explicitly supplied three-field bundles, remain
@@ -286,8 +287,8 @@ displacement and therefore do not use the velocity-only schema as their target.
 - The only explicit published numeric parity statement is the velocity claim:
   extended 1D maximum error within `10%`.
 - Pressure parity is qualitative in the paper; a local numeric tolerance still
-  needs to be chosen later. Current pressure differences are non-evidentiary
-  until a common pressure gauge operator is implemented and offset-tested.
+  needs to be chosen later. Current pressure differences are outlet-gauged
+  diagnostics only.
 - Radial profile comparisons are local diagnostics and are not the published
   Section 4.1 observables.
 

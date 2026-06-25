@@ -1,9 +1,12 @@
 const NATIVE_RESOLVED_FSI_PARITY_DEFAULT_COORDINATE_MODE = "deformed"
 const NATIVE_RESOLVED_FSI_PARITY_DEFAULT_TIME_S = 1.0
+const NATIVE_RESOLVED_FSI_PARITY_PRESSURE_GAUGE_Z_CM = SECTION41_LENGTH_CM
 const NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS =
-    "non_evidentiary_without_common_pressure_gauge_operator"
+    "common_section41_outlet_pressure_gauge_operator_applied"
+const NATIVE_RESOLVED_FSI_PARITY_PRESSURE_GAUGE_UNAVAILABLE_STATUS =
+    "pressure_gauge_unavailable_without_valid_section41_outlet_cut"
 const NATIVE_RESOLVED_FSI_PARITY_PRESSURE_POLICY =
-    "pressure discrepancy withheld as non-evidentiary until a common pressure gauge operator is applied"
+    "pressure discrepancies use a common Section 4.1 outlet-gauge operator: subtract the CrossSectionQuadratureOperator mean pressure at z=$(SECTION41_LENGTH_CM) cm before comparing diagnostic pressures"
 
 """
     NativeResolvedFSIParitySpec(...; kwargs...)
@@ -227,7 +230,13 @@ function run_native_resolved_fsi_parity(spec::NativeResolvedFSIParitySpec)
     geometry_status = native_resolved_fsi_parity_geometry_status(native_bundle, imported_bundle, spec.geometry_atol_cm)
     time_status = native_resolved_fsi_parity_time_status(native_bundle, imported_bundle, spec.time_atol_s)
     velocity_status = native_resolved_fsi_parity_velocity_status(native_bundle, imported_bundle, spec.velocity_atol_cm_s)
-    pressure_status = native_resolved_fsi_parity_pressure_status(native_bundle, imported_bundle, spec.pressure_atol_dyn_cm2)
+    pressure_status = native_resolved_fsi_parity_pressure_status(
+        native_bundle,
+        imported_bundle,
+        native_operator_field,
+        imported_operator_field,
+        spec.pressure_atol_dyn_cm2,
+    )
     displacement_status = native_resolved_fsi_parity_displacement_status(
         native_bundle,
         imported_bundle,
@@ -451,6 +460,8 @@ end
 function native_resolved_fsi_parity_pressure_status(
     native_bundle::Resolved3DFieldBundle,
     imported_bundle::Resolved3DFieldBundle,
+    native_field::Resolved3DVelocityField,
+    imported_field::Resolved3DVelocityField,
     atol::Float64,
 )
     comparable, reason = native_resolved_fsi_parity_nodewise_comparable(native_bundle, imported_bundle)
@@ -458,11 +469,29 @@ function native_resolved_fsi_parity_pressure_status(
 
     native_pressure = native_resolved_fsi_parity_required_pressure(native_bundle)
     imported_pressure = native_resolved_fsi_parity_required_pressure(imported_bundle)
-    discrepancies, max_difference = native_resolved_fsi_parity_diff_summary(native_pressure, imported_pressure, atol)
+    native_gauge = native_resolved_fsi_parity_pressure_gauge(native_field, native_pressure)
+    imported_gauge = native_resolved_fsi_parity_pressure_gauge(imported_field, imported_pressure)
+    if !native_gauge.ready || !imported_gauge.ready
+        return native_resolved_fsi_parity_status(
+            false,
+            false,
+            1,
+            NaN,
+            "nodewise pressure diagnostic requires finite outlet-gauge cuts for native and imported bundles; native=$(native_gauge.status); imported=$(imported_gauge.status)",
+        )
+    end
+
+    native_gauged_pressure = native_resolved_fsi_parity_apply_pressure_gauge(native_pressure, native_gauge)
+    imported_gauged_pressure = native_resolved_fsi_parity_apply_pressure_gauge(imported_pressure, imported_gauge)
+    discrepancies, max_difference = native_resolved_fsi_parity_diff_summary(
+        native_gauged_pressure,
+        imported_gauged_pressure,
+        atol,
+    )
     ready = discrepancies == 0
     status = ready ?
-        "nodewise pressure operator diagnostic matched within $(atol) dyn/cm^2; cross-model pressure discrepancy remains non-evidentiary without a common pressure gauge operator" :
-        "nodewise pressure discrepancy status=$(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS); found $discrepancies entries above $(atol) dyn/cm^2; $(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_POLICY)"
+        "nodewise pressure diagnostic matched within $(atol) dyn/cm^2 after common Section 4.1 outlet-gauge normalization; status=$(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS)" :
+        "nodewise pressure discrepancy status=$(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS); found $discrepancies outlet-gauged entries above $(atol) dyn/cm^2; $(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_POLICY)"
     return native_resolved_fsi_parity_status(ready, false, discrepancies, max_difference, status)
 end
 
@@ -651,12 +680,34 @@ function native_resolved_fsi_parity_pressure_operator_status(
 
     native_pressure = native_resolved_fsi_parity_required_pressure(native_bundle)
     imported_pressure = native_resolved_fsi_parity_required_pressure(imported_bundle)
+    native_gauge = native_resolved_fsi_parity_pressure_gauge(native_field, native_pressure)
+    imported_gauge = native_resolved_fsi_parity_pressure_gauge(imported_field, imported_pressure)
+    if !native_gauge.ready || !imported_gauge.ready
+        return native_resolved_fsi_parity_status(
+            false,
+            false,
+            1,
+            NaN,
+            "pressure section-average operator diagnostic requires finite Section 4.1 outlet-gauge cuts; native=$(native_gauge.status); imported=$(imported_gauge.status)",
+        )
+    end
+
     discrepancy_count = Ref(0)
     numeric_differences = Float64[]
 
     for z in z_samples
-        native_observation = native_resolved_fsi_parity_pressure_section_observation(native_field, native_pressure, z)
-        imported_observation = native_resolved_fsi_parity_pressure_section_observation(imported_field, imported_pressure, z)
+        native_observation = native_resolved_fsi_parity_pressure_section_observation(
+            native_field,
+            native_pressure,
+            z;
+            gauge=native_gauge,
+        )
+        imported_observation = native_resolved_fsi_parity_pressure_section_observation(
+            imported_field,
+            imported_pressure,
+            z;
+            gauge=imported_gauge,
+        )
         native_resolved_fsi_parity_compare_bool!(discrepancy_count, native_observation.area_valid, imported_observation.area_valid)
         native_resolved_fsi_parity_compare_exact!(discrepancy_count, native_observation.cut_status, imported_observation.cut_status)
         native_resolved_fsi_parity_compare_exact!(discrepancy_count, native_observation.intersection_count, imported_observation.intersection_count)
@@ -679,8 +730,8 @@ function native_resolved_fsi_parity_pressure_operator_status(
     max_difference = isempty(numeric_differences) ? 0.0 : maximum(numeric_differences)
     ready = discrepancy_count[] == 0
     status = ready ?
-        "pressure section-average operator diagnostics matched within $(spec.operator_atol); cross-model pressure discrepancy remains non-evidentiary without a common pressure gauge operator" :
-        "pressure section-average discrepancy status=$(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS); found $(discrepancy_count[]) diagnostics above $(spec.operator_atol); $(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_POLICY)"
+        "pressure section-average operator diagnostics matched within $(spec.operator_atol) after common Section 4.1 outlet-gauge normalization; status=$(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS)" :
+        "pressure section-average discrepancy status=$(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS); found $(discrepancy_count[]) outlet-gauged diagnostics above $(spec.operator_atol); $(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_POLICY)"
     return native_resolved_fsi_parity_status(ready, false, discrepancy_count[], max_difference, status)
 end
 
@@ -702,7 +753,7 @@ function native_resolved_fsi_parity_combined_operator_status(
     status = if skipped
         "skipped: operator parity did not run because $(velocity_status.status)"
     elseif ready
-        "velocity operator parity and non-evidentiary pressure operator diagnostics matched within configured tolerances"
+        "velocity operator parity and outlet-gauged pressure operator diagnostics matched within configured tolerances"
     else
         "operator readiness summary: velocity=$(velocity_status.status); pressure=$(pressure_status.status)"
     end
@@ -710,6 +761,31 @@ function native_resolved_fsi_parity_combined_operator_status(
 end
 
 function native_resolved_fsi_parity_pressure_section_observation(
+    field::Resolved3DVelocityField,
+    pressure::AbstractVector{<:Real},
+    z::Float64,
+    ;
+    gauge = native_resolved_fsi_parity_pressure_gauge(field, pressure),
+)
+    observation = native_resolved_fsi_parity_raw_pressure_section_observation(field, pressure, z)
+    mean_pressure = observation.area_valid && gauge.ready ?
+        observation.mean_pressure_dyn_cm2 - gauge.offset_dyn_cm2 :
+        NaN
+    return (
+        area_cm2=observation.area_cm2,
+        mean_pressure_dyn_cm2=mean_pressure,
+        raw_mean_pressure_dyn_cm2=observation.mean_pressure_dyn_cm2,
+        pressure_gauge_offset_dyn_cm2=gauge.offset_dyn_cm2,
+        pressure_gauge_z_cm=gauge.z_cm,
+        pressure_gauge_status=gauge.status,
+        intersection_count=observation.intersection_count,
+        area_valid=observation.area_valid,
+        cut_status=observation.cut_status,
+        observed_radius_cm=observation.observed_radius_cm,
+    )
+end
+
+function native_resolved_fsi_parity_raw_pressure_section_observation(
     field::Resolved3DVelocityField,
     pressure::AbstractVector{<:Real},
     z::Float64,
@@ -754,6 +830,33 @@ function native_resolved_fsi_parity_pressure_section_observation(
         cut_status=cut_status,
         observed_radius_cm=area_valid ? observed_radius : NaN,
     )
+end
+
+function native_resolved_fsi_parity_pressure_gauge(
+    field::Resolved3DVelocityField,
+    pressure::AbstractVector{<:Real},
+)
+    gauge_z = NATIVE_RESOLVED_FSI_PARITY_PRESSURE_GAUGE_Z_CM
+    observation = native_resolved_fsi_parity_raw_pressure_section_observation(field, pressure, gauge_z)
+    ready = observation.area_valid && isfinite(observation.mean_pressure_dyn_cm2)
+    status = ready ?
+        "$(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS); gauge_z_cm=$(gauge_z)" :
+        "$(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_GAUGE_UNAVAILABLE_STATUS); gauge_z_cm=$(gauge_z); cut_status=$(observation.cut_status)"
+    return (
+        ready=ready,
+        z_cm=gauge_z,
+        offset_dyn_cm2=ready ? observation.mean_pressure_dyn_cm2 : NaN,
+        status=status,
+        observation=observation,
+    )
+end
+
+function native_resolved_fsi_parity_apply_pressure_gauge(
+    pressure::AbstractVector{<:Real},
+    gauge,
+)
+    gauge.ready || return fill(NaN, length(pressure))
+    return Float64[Float64(value) - gauge.offset_dyn_cm2 for value in pressure]
 end
 
 function native_resolved_fsi_parity_tetra_plane_scalar_polygon(

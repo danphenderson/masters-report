@@ -263,6 +263,12 @@ The command name retains the historical `canic-replication` token, but current
 outputs should be described as source-artifact comparison unless a scoped lane
 checks and records reproduction criteria for the relevant time, coordinate,
 gauge, and observation conventions.
+Pressure discrepancy rows use the package's common Section 4.1 outlet-gauge
+operator: the workflow subtracts the imported `CrossSectionQuadratureOperator`
+mean pressure at `z = 6 cm` and the corresponding 1D diagnostic outlet pressure
+before reporting pressure differences. These values are gauge-normalized
+diagnostics only; they do not establish clinical validation, FFR evidence, or
+paper-grade native FSI reproduction.
 
 ## Methods and Closures
 
@@ -369,8 +375,9 @@ The native resolved-FSI surface is intentionally tiered:
 - observation artifacts: production parity can write `section41_observations.csv`
   and `section41_observation_summary.csv` using local velocity and pressure
   section-observation operators. These rows are bounded optional-data operator
-  rows; pressure differences remain non-evidentiary until a common pressure
-  gauge operator is implemented and tested.
+  rows; pressure differences use the common Section 4.1 outlet-gauge operator
+  and remain diagnostic rather than clinical, FFR, or paper-grade native FSI
+  reproduction evidence.
 
 These surfaces are generated-artifact and local-operator evidence. The exact
 boundary mode is P3/P4 smoke-scale/operator-readiness evidence only. They do

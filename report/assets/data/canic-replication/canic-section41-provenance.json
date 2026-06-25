@@ -1,8 +1,11 @@
 {
   "coordinate_mode": "deformed",
   "data_root": "public/var/data/simulations/canic_case3",
-  "models": ["canic-extended-1d", "classical-1d-no-slip"],
+  "global_tfinal_override_s": null,
+  "local_time_target_policy": "per_case_imported_time",
+  "models": ["canic-extended-1d", "classical-parabolic-1d"],
   "paper_time_s": 1.0,
+  "pressure_comparison_policy": "pressure discrepancies are finite only after applying the common Section 4.1 outlet-gauge operator: subtract the CrossSectionQuadratureOperator mean imported pressure at z=6.0 cm and the 1D diagnostic pressure at the outlet",
   "raw_files": {
     "public/var/data/simulations/canic_case3/50/displace.h5": {
       "bytes": 2711072,
@@ -77,10 +80,13 @@
       "sha256": "8cbb61e8d6a8b9fbfe9662bea7544eb89ef58390cdcc93a5d0f68fbb19c110b7"
     }
   },
-  "status": "source-artifact replication",
+  "replication_criteria": "a row may be treated as replication evidence only if local_target_time_s and local_completed_time_s both align with imported_time_s within time_alignment_tolerance_s and each retained quantity has a common evidentiary operator",
+  "status": "source-artifact reconstruction/comparison",
+  "time_alignment_policy": "default local_target_time_s is the imported XDMF time for each case; time_aligned iff abs(imported_time_s - local_target_time_s) <= time_alignment_tolerance_s and abs(imported_time_s - local_completed_time_s) <= time_alignment_tolerance_s; explicit global tfinal overrides are non-replication when mismatched",
+  "time_alignment_tolerance_s": 1.0e-6,
   "upstream_code_policy": "optional external comparator/provenance only; no GPL source copied into package implementation",
   "upstream_commit": "056a9da2b36b480691f18025d242d2c00f6e7180",
   "upstream_license": "GPL-3.0",
   "upstream_url": "https://github.com/qcutexu/Extended-1D-AQ-system.git",
-  "workflow": "canic-2024-section-4-1-replication"
+  "workflow": "canic-2024-section-4-1-source-artifact-comparison"
 }

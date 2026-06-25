@@ -2,9 +2,12 @@
 \toprule
 Quantity & Status & Note \\
 \midrule
-young\_modulus\_dyn\_cm2 & source mismatch & use PDF Table 1 for local Julia replication; do not treat MATLAB scripts as exact executable specification \\
-snapshot\_time\_s\_case77 & snapshot-time offset & comparison loader uses upstream XDMF time for this case and records the paper-time offset \\
-snapshot\_time\_s\_case60 & snapshot-time offset & comparison loader uses upstream XDMF time for this case and records the paper-time offset \\
-snapshot\_time\_s\_case50 & snapshot-time offset & comparison loader uses upstream XDMF time for this case and records the paper-time offset \\
+time\_alignment\_policy & explicit policy & source-artifact reconstruction/comparison rows are not replication evidence unless imported, local target, and local completed times align within tolerance \\
+local\_time\_target\_policy & explicit policy & default local solves use each imported XDMF time; explicit global tfinal overrides are recorded and become non-replication when mismatched \\
+pressure\_comparison\_policy & diagnostic outlet-gauge policy & pressure discrepancies are outlet-gauge diagnostics only; they do not establish clinical validation, FFR, or paper-grade native FSI reproduction \\
+young\_modulus\_dyn\_cm2 & source mismatch & use PDF Table 1 for local Julia reconstruction/comparison; do not treat MATLAB scripts as exact executable specification \\
+snapshot\_time\_s\_case77 & snapshot-time offset & comparison loader uses upstream XDMF time for this case, records the paper-time offset, and uses it as the default local target time \\
+snapshot\_time\_s\_case60 & snapshot-time offset & comparison loader uses upstream XDMF time for this case, records the paper-time offset, and uses it as the default local target time \\
+snapshot\_time\_s\_case50 & snapshot-time offset & comparison loader uses upstream XDMF time for this case, records the paper-time offset, and uses it as the default local target time \\
 \bottomrule
 \end{tabular}

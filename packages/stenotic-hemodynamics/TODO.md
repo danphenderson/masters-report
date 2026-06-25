@@ -2,22 +2,26 @@
 
 Date: 2026-06-24
 
-This file is the live package coordination document for the current
-claim-boundary cleanup. Treat the live checkout as authority.
+This file is the live package coordination document for claim-boundary cleanup.
+Treat the live checkout as authority.
 
 ## Current Status
 
-- The P0/P1/P2 correction batch is validation-complete for `SEND` in the live
-  checkout. Future claim-affecting or numerical-output changes start again from
-  `NO-SEND`.
+- The P0/P1/P2 correction batch is closed in the live checkout. Future
+  claim-affecting or numerical-output changes start again from `NO-SEND`.
 - Package/report separation remains strict. Package code and tests define the
   computational contract; report prose may only describe that contract.
-- This P3/P4 native resolved-FSI lane is source/test/docs internal-evidence
-  work only. Do not refresh `public/final-report.pdf`,
+- The outlet-gauge Step 5/6 handoff is complete in the dirty tree: Julia
+  implementation/tests, accepted Canic-derived source-artifact assets, and
+  source-only report integration have landed together. Do not refresh
+  `public/final-report.pdf`,
   `report/assets/rendered/**`, raw resolved-3D inputs, public logs, public
-  simulation data, generated outputs, or reference PDFs/HTML.
+  simulation data outside the accepted Canic asset refresh, or reference
+  PDFs/HTML.
 
-## P0 Package Tasks
+## Closed Package Corrections
+
+The closed P0/P1/P2 batch established these package-side constraints:
 
 1. Pressure semantics:
    - `evolution_pressure` must expose the `K/R_max^2` evolution convention.
@@ -36,27 +40,29 @@ claim-boundary cleanup. Treat the live checkout as authority.
    - reproduction/replication language is unavailable unless time, parameters,
      gauge, observation, and tolerances are recorded as satisfied.
 3. Pressure gauge policy:
-   - either implement and test a common gauge operator, including invariance to
-     imported pressure offsets, or withhold pressure discrepancy as
-     non-evidentiary.
+   - implement and test the common Section 4.1 outlet-quadrature gauge,
+     including invariance to imported pressure offsets, while keeping pressure
+     discrepancies diagnostic rather than validation evidence.
 
-## P1 Supporting Tasks
+## Supporting Boundaries
 
-- Add independent synthetic operator geometry tests or keep operator claims
+- Independent synthetic operator geometry tests support the current operator
+  claims; otherwise, claims must remain
   narrowed to the actual test strength.
-- Keep architecture cleanup documentary: Gridap, HDF5, OrdinaryDiffEq,
+- Architecture cleanup remains documentary: Gridap, HDF5, OrdinaryDiffEq,
   SciMLBase, and YAML are hard dependencies today; layer marker types are
   descriptive only until a separate weak-dependency/extension refactor lands.
-- Preserve public/default restart and resume boundaries; qualified internal
+- Public/default restart and resume boundaries remain preserved; qualified internal
   split-run resume remains an operator-readiness surface, not public resume or
   CLI support.
-- Coordinate with report prose for residual-budget removal, operator-claim
-  narrowing, area-tolerance limitation, MMS dependency qualification, label
-  cleanup, and provenance cleanup.
+- Report prose must stay coordinated with residual-budget removal,
+  operator-claim narrowing, area-tolerance limitation, MMS dependency
+  qualification, label cleanup, and provenance cleanup.
 
-Corrected numerical outputs, if needed, require a separate derived-asset refresh
-lane. This package batch must not regenerate or publish report data assets, and
-it does not reopen the report-owned `public/final-report.pdf` sync lane.
+Corrected numerical outputs beyond the accepted Canic-derived source-artifact
+assets require a separate derived-asset refresh lane. Future package-only
+batches must not regenerate or publish report data assets, and the closed Step
+5/6 lane did not reopen the report-owned `public/final-report.pdf` sync lane.
 
 ## P3/P4 Native Resolved-FSI Documentation Boundary
 
@@ -72,9 +78,9 @@ P3/P4 native resolved-FSI work is internal smoke/operator-readiness only:
   rows, and schema-v3 checkpoints. These rows are local artifact/operator
   checks only, not production-scale Section 4.1 reproduction or report
   evidence.
-- Pressure observation rows remain non-evidentiary for pressure discrepancy
-  claims until a common gauge operator is implemented, tested for imported
-  pressure offsets, and selected for the Section 4.1 comparison contract.
+- Pressure observation rows use the common Section 4.1 outlet-quadrature gauge
+  for diagnostic pressure differences; they remain local artifact/operator rows,
+  not validation, FFR, or paper-grade reproduction evidence.
 - Qualified internal split-run resume may continue a schema-v3 checkpoint into
   a forked output root. Public/default resume, public native production CLI,
   and production-scale resume validation remain deferred.
@@ -84,11 +90,12 @@ Expected adjacent-agent handoff:
 - Agent A keeps the exact boundary mode explicit and leaves weak smoke as the
   default.
 - Agent B keeps parity/observation rows bounded to local optional-data
-  operator checks, with pressure non-evidentiary unless the gauge is resolved.
+  operator checks, with outlet-gauged pressure differences treated as
+  diagnostics only.
 - Agent C keeps internal split-run resume separate from public/default resume
   and from report-evidence promotion.
 
-## P2 Maintainability Tasks
+## Deferred Maintainability Tasks
 
 - Keep Canic source-artifact comparison outputs typed at the workflow boundary
   so column order and row shape are testable without relying on `Any[]`
@@ -99,53 +106,88 @@ Expected adjacent-agent handoff:
 - Leave broader native-FSI refactors, dependency changes, and numerical output
   refreshes to separate lanes.
 
-## Validation
+## Closed Step 5/6 Handoff
 
-Required before a future `SEND` handback:
+The closed Step 5/6 lane implemented the common Section 4.1 outlet-quadrature
+pressure gauge for Canic/source-artifact diagnostics, proved uniform
+pressure-offset invariance in package tests, regenerated only the accepted
+Canic-derived CSV/TeX report tables, and handed those diagnostic assets to the
+source-only report lane. The package contract remains bounded: outlet-gauged
+pressure differences are diagnostics only, not FFR evidence, clinical
+validation, broader native-FSI validation, or paper-grade pressure validation.
+
+## Closeout Validation Evidence
+
+Recorded for this outlet-gauge implementation/assets/report handback:
 
 ```bash
 git status --short --branch --untracked-files=all
 
 git diff --check -- \
   report/TODO.md \
-  report/frontmatter \
-  report/sections \
-  report/appendices \
-  report/preamble \
   packages/stenotic-hemodynamics/TODO.md \
   packages/stenotic-hemodynamics/README.md \
-  packages/stenotic-hemodynamics/Project.toml \
-  packages/stenotic-hemodynamics/src \
-  packages/stenotic-hemodynamics/test \
-  packages/stenotic-hemodynamics/bin
+  packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/canic_replication/canic_replication.jl \
+  packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity.jl \
+  packages/stenotic-hemodynamics/test/test_canic_replication.jl \
+  packages/stenotic-hemodynamics/test/test_native_resolved_fsi_parity.jl \
+  report/sections/07-case-study/comparison.tex \
+  report/sections/07-case-study/methodology.tex \
+  report/appendices/code-and-ai-use.tex \
+  report/assets/data/canic-replication \
+  report/assets/tables/canic-replication \
+  public/docs/artifact-policy.md \
+  public/docs/julia-cli-workflows.md \
+  public/docs/publication-readiness.md \
+  public/docs/report-assets-and-provenance.md \
+  public/docs/report-builds.md \
+  public/docs/stenotic-hemodynamics/canic-2024-replication.md \
+  public/docs/stenotic-hemodynamics/native-resolved-fsi-design.md \
+  public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md \
+  public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md \
+  public/docs/stenotic-hemodynamics/workflows.md \
+  README.md \
+  public/reproducibility/release-manifest.json
 
-packages/stenotic-hemodynamics/bin/julia-release \
-  -e 'using Pkg; Pkg.test()'
+julia +release --project=packages/stenotic-hemodynamics \
+  -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_helpers.jl"); include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_parity.jl"); include("packages/stenotic-hemodynamics/test/test_canic_replication.jl")'
 
-pipenv run ops-julia-check
-pipenv run ops-audit-report-prose --json
+julia +release --project=packages/stenotic-hemodynamics \
+  packages/stenotic-hemodynamics/test/runtests.jl
+
+julia +release --project=packages/stenotic-hemodynamics \
+  packages/stenotic-hemodynamics/bin/stenotic-hemodynamics.jl canic-replication section41 \
+  --data-root public/var/data/simulations/canic_case3 \
+  --output-dir tmp/simulations/output/canic-replication/section41 \
+  --coordinate-mode deformed \
+  --nx 100 \
+  --dt 1e-5 \
+  --section-count 200 \
+  --radial-sample-count 41 \
+  --publish-report-assets \
+  --report-assets-dir report/assets \
+  --overwrite
+
+pipenv run ops-orchestrate docs-contract
 pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
-pipenv run ops-orchestrate ready-to-commit
-
-# If the live checkout contains pre-existing protected-artifact or scratch
-# dirt outside this source batch, the orchestrator may additionally run the
-# focused gate with explicit allowances after confirming the protected-artifact
-# diff is not part of the staged source change:
-pipenv run ops-orchestrate ready-to-commit --allow-protected-artifacts --allow-unclassified
 ```
 
-Expected results:
+Observed closeout results:
 
-- all commands exit zero;
-- pressure API tests independently distinguish evolution and diagnostic formulas
-  at `R0 != R_max`;
-- Canic tests encode severity-50 default alignment to imported `1.4995` s and
-  non-replication under explicit time mismatch;
-- pressure discrepancy is gauge-normalized and invariant under offset, or
-  explicitly withheld as evidence;
-- operator geometry tests use independent closed-form synthetic references or
-  claims remain narrowed;
-- no blocked artifacts change except the explicitly synced
-  `public/final-report.pdf`.
-- pre-existing protected-artifact or scratch dirt is documented and left
-  unstaged when it is unrelated to the source-only batch.
+- the direct Julia focused shard and full suite exit zero with
+  `julia +release`;
+- `pipenv run ops-julia-check` remains blocked before tests only because the
+  local Julia selector wrapper cannot select Julia 1.12+;
+- pressure-gauge tests prove uniform imported-pressure offset invariance;
+- refreshed Canic source-artifact assets report finite outlet-gauged pressure
+  diagnostics with `common_section41_outlet_pressure_gauge_operator_applied`;
+- report source describes those pressure values as diagnostics only, not
+  clinical validation, FFR evidence, paper-grade native FSI reproduction, or
+  full Section 4.1 replication;
+- release policy docs and the manifest agree on source-first PDF handling and
+  any retained legacy tracked PDF provenance;
+- no blocked artifacts change, including `public/final-report.pdf`.
+
+If a future handoff reopens Julia code, report TeX, or generated assets, add the
+surface-specific gates from `public/docs/artifact-policy.md` and start that lane
+from `NO-SEND`.

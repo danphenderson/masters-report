@@ -37,7 +37,7 @@ assets.
 | `benchmark` | Run package benchmark profiles. | Follow `public/docs/benchmark-pipeline.md`. |
 | `export-assets` | Export stenosis geometry/report CSV assets. | Follow report asset publication rules before rendering or staging outputs. |
 | `visualization export-web` | Convert resolved-FSI/resolved-3D XDMF/HDF5 bundles into static browser assets. | Keep exports in `tmp/simulations/output/visualization/**` unless curating a reviewed viewer demo. |
-| `canic-replication section41` | Reproduce Canic et al. 2024 Section 4.1 velocity, pressure, radial-postprocessing, and 3D diagnostic findings from optional upstream benchmark bundles. | Skip when local raw data is absent; publish assets only in an explicit manuscript lane. |
+| `canic-replication section41` | Compare local 1D outputs with Canic et al. 2024 Section 4.1 source artifacts for velocity, pressure observation rows, radial postprocessing, and 3D diagnostics. | Skip when local raw data is absent; publish assets only in an explicit manuscript lane. |
 
 There is intentionally no native resolved-FSI production, restart, resume, or
 parity execution CLI command in this round. `fsi native-status` is a status-only
@@ -182,11 +182,11 @@ The command prints `manifest_json`, `asset_count`, `frame_count`,
 `public/docs/stenotic-hemodynamics/web-visualization.md` for the schema and
 viewer contract.
 
-## Canic 2024 Section 4.1 Replication
+## Canic 2024 Section 4.1 Source-Artifact Comparison
 
 Use `canic-replication section41` for the article-level Section 4.1
-replication workflow. It runs the local `canic-extended-1d` and
-`classical-1d-no-slip` models, compares them with optional upstream 3D
+source-artifact comparison workflow. It runs the local `canic-extended-1d` and
+`classical-parabolic-1d` models, compares them with optional upstream 3D
 velocity/pressure/displacement bundles for cases `77`, `60`, and `50`, writes a
 parameter audit, and records raw-input provenance.
 
@@ -197,7 +197,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication secti
   --data-root /tmp/missing-canic-section41
 ```
 
-Full source-artifact replication after restoring raw inputs:
+Full source-artifact comparison after restoring raw inputs:
 
 ```sh
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
@@ -206,11 +206,20 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication secti
   --coordinate-mode deformed \
   --nx 100 \
   --dt 1e-5 \
-  --tfinal 1.0 \
   --section-count 200 \
   --radial-sample-count 41 \
   --overwrite
 ```
+
+By default, each local solve targets the imported XDMF time for that case,
+including `1.4995 s` for severity 50. Supplying a mismatched global `--tfinal`,
+such as `1.0` s against the severity-50 bundle, records an intentional
+time-mismatch non-replication row. Pressure discrepancy values use the common
+Section 4.1 outlet-gauge diagnostic: imported
+`CrossSectionQuadratureOperator` mean pressure at `z = 6 cm` and the
+corresponding 1D diagnostic outlet pressure are subtracted before comparison.
+Those pressure values remain diagnostics, not clinical validation, FFR evidence,
+paper-grade native FSI reproduction, or full replication evidence.
 
 See `public/docs/stenotic-hemodynamics/canic-2024-replication.md` for raw-data
 restoration, outputs, provenance, and manuscript claim boundaries.

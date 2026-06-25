@@ -43,11 +43,16 @@ resolved files used for these three questions; the scientific comparison is
 reported by stenosis severity.
 
 Resolved incompressible pressure is gauge-dependent unless a common pressure
-gauge is applied. No such common gauge is established for the reported 1D--3D
-comparison, so absolute pressure discrepancies are not interpreted here as
-cross-model pressure errors. Pressure values carried by imported fields or
-supplemental Canic tables are diagnostics unless the workflow records a shared
-pressure-gauge convention.
+gauge is applied. No such common gauge is established for the primary two-case
+1D--3D velocity comparison, so absolute pressure discrepancies are not
+interpreted there as cross-model pressure errors. The separate Canic
+Section~4.1 source-artifact workflow records a common outlet-gauge convention
+for pressure diagnostics: it subtracts the resolved
+\texttt{CrossSectionQuadratureOperator}
+mean pressure at \(z=6\,\mathrm{cm}\) and the corresponding 1D diagnostic
+outlet pressure before reporting pressure discrepancies. Those rows remain
+source-artifact diagnostics rather than clinical validation, pressure-ratio
+evidence, or full transient FSI reproduction.
 
 \begin{table}[!htb]
     \centering
@@ -456,11 +461,11 @@ verify missing raw resolved-3D inputs as an expected skip;
 raw-data-dependent asset regeneration requires restoring the ignored XDMF/HDF5
 inputs described in Appendix~\ref{app:code-and-ai-use}. After those inputs are
 restored, the Canic Section~4.1 source-artifact comparison workflow reconstructs
-derived velocity, gauge-dependent pressure-diagnostic, radial-postprocessing,
-and 3D-diagnostic assets using the imported final time for each restored case,
-but it still does not regenerate the article's raw transient 3D FSI solution.
-Absolute cross-model pressure error is withheld unless a common pressure gauge
-is implemented. This
+derived velocity, outlet-gauge pressure-diagnostic, radial-postprocessing, and
+3D-diagnostic assets using the imported final time for each restored case, but
+it still does not regenerate the article's raw transient 3D FSI solution. The
+pressure values in that separate workflow are gauge-normalized diagnostics only.
+This
 interpretation remains conditional on the specified equation, state variables,
 discretization, observation rule, and metric summarized in
 Section~\ref{subsec:numerical-contract-stack}. It does not provide externally

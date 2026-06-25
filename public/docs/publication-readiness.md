@@ -5,6 +5,10 @@ reference boundaries pass review. Track Julia package code, tests, report
 source, bibliography metadata, and report-consumed derived assets. Keep
 generated final PDFs, third-party full-text references, local review notes,
 caches, and raw optional 3D inputs out of ordinary source commits.
+This checkout currently retains a legacy tracked `public/final-report.pdf`;
+release-mode hygiene flags tracked final PDFs, so public export must either
+exclude that retained copy from the source tree or document it in a separate
+release-artifact lane.
 
 Use validation-only report builds for ordinary source review. Use the full
 report build only when preparing a release artifact or intentionally refreshing
@@ -26,7 +30,8 @@ resolved-3D input convention.
   every file.
 - Publish `public/final-report.pdf` as a release artifact when a rendered PDF is
   needed. Keep `report/final-report.tex` plus tracked inputs as the source of
-  record.
+  record, and resolve the retained tracked PDF before source-only public
+  export.
 - Keep raw resolved-3D inputs out of Git unless a separate data-release strategy
   with checksums is approved.
 - Keep local raw-input checksum audits in `/tmp` unless that separate

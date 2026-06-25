@@ -6,11 +6,13 @@ report source is rooted at `report/final-report.tex`; the solver package is
 `StenoticHemodynamics` under `packages/stenotic-hemodynamics/src/`.
 
 The project is prepared for public peer review as a source tree. It tracks the
-current report source and a curated `public/final-report.pdf` release artifact,
-but ordinary report builds should write to scratch space unless the task
-explicitly refreshes that PDF. The repository does not track third-party
-full-text reference mirrors, private review notes, local caches, raw optional
-resolved-3D inputs, or ordinary simulation outputs.
+current report source. This checkout also retains a legacy tracked
+`public/final-report.pdf` release artifact; current source-first policy treats
+final PDFs as release artifacts rather than ordinary source changes, so ordinary
+report builds should write to scratch space unless the task explicitly refreshes
+that PDF. The repository does not track third-party full-text reference mirrors,
+private review notes, local caches, raw optional resolved-3D inputs, or ordinary
+simulation outputs.
 
 ## Prerequisites
 

@@ -291,9 +291,8 @@ For each case with imported data:
   summary rows plus parity rows;
 - velocity parity uses a predeclared Section 4.1 observable: cross-sectional
   average axial velocity versus `z`;
-- pressure section rows remain non-evidentiary diagnostics until a common
-  pressure gauge operator is implemented, offset-tested, and selected for the
-  comparison contract;
+- pressure section rows use the common Section 4.1 outlet-quadrature gauge and
+  remain diagnostics, not validation, FFR, or paper-grade reproduction evidence;
 - boundary-equivalence fields must say whether exact Section 4.1 mode was used;
 - summary status must not call artifact readiness "validated reproduction".
 

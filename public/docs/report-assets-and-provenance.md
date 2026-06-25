@@ -16,6 +16,8 @@ PDF identity, not an asset-consumption inventory.
 | `report/assets/tables/verification/**` | Verification LaTeX tables. | Julia verification workflows or renderers. | Owning workflow plus validation-only report build. |
 | `report/assets/data/stenosis-comparison/**` | 1D/resolved-3D comparison data, operator validation, and sensitivity rows. | `compare-3d`, `operator-validation`, and evidence summary tools. | Resolved-3D workflow checks plus validation-only report build. |
 | `report/assets/tables/stenosis-comparison/**` | Comparison and operator-validation LaTeX tables. | `compare-3d` and `operator-validation`. | Owning workflow plus validation-only report build. |
+| `report/assets/data/canic-replication/**` | Canic Section 4.1 source-artifact comparison provenance, parameter audit, summary, section comparison, radial-velocity, and 3D diagnostic rows. | `canic-replication section41 --publish-report-assets`. | Focused Canic workflow tests, owning Julia command, and validation-only report build. |
+| `report/assets/tables/canic-replication/**` | Canic Section 4.1 source-artifact comparison summary and parameter-audit LaTeX fragments. | `canic-replication section41 --publish-report-assets`. | Focused Canic workflow tests, owning Julia command, and validation-only report build. |
 | `report/assets/data/stenosis-geometry/**` | Geometry, mesh, envelope, and resolved velocity node CSVs. | `export-assets` and optional resolved-3D exports. | Owning Julia workflow plus renderer checks. |
 | `report/assets/data/package-benchmark/**` | Published package benchmark CSVs and manifest. | `benchmark --publish-report-assets`. | Benchmark post-run checks plus validation-only report build. |
 | `report/assets/tables/package-benchmark/**` | Package benchmark summary table. | `ops-render-package-benchmark-figures`. | Renderer command plus validation-only report build. |
@@ -32,6 +34,9 @@ Check TeX consumers before changing assets:
 - `report/sections/07-case-study/comparison.tex` consumes
   `resolved-3d-flow-field.pdf`, comparison data, grid-sensitivity tables, and
   section-mean TikZ figures.
+- `report/appendices/code-and-ai-use.tex` documents and may consume the
+  accepted Canic source-artifact comparison table fragments under
+  `report/assets/tables/canic-replication/**`.
 - `report/appendices/numerical-methods-details.tex` consumes package benchmark
   tables and figures, p/h refinement figures, stationary-Stokes refinement
   tables, and full rest-state drift tables.
