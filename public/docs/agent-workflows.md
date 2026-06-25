@@ -124,6 +124,72 @@ Profiled handbacks still include `Status`, `Scope`, `Files`, `Validation`, and
 `Risks`. They also include the profile-specific sections printed by the dispatch
 packet.
 
+## How Profiles Are Applied
+
+Profiles do not change how files are edited; they change how handoff packets are
+framed and validated.
+
+For each command:
+
+- `dispatch` uses `--profile` to generate a task packet with a profile-specific
+  required structure and review vocabulary.
+- `handback-check` uses `--profile` to verify the returned handback includes
+  those required sections.
+- `packet-check` uses `--profile` to verify external packets follow the same
+  template expectations.
+
+If you skip `--profile`, it defaults to `generic` in all three commands.
+
+A practical convention for long-lived sessions:
+
+1. Choose one surface/mode and one profile for the whole task.
+2. Pass the same profile to `dispatch`, then to `handback-check` (or `packet-check`).
+3. Keep required sections and wording to the chosen profile, not to one file’s
+   style alone.
+
+### Examples
+
+```sh
+pipenv run ops-orchestrate dispatch \
+  --surface report \
+  --mode bounded-edit \
+  --profile claim-boundary \
+  --objective "Tighten comparison and validation claims in section 7" \
+  --files report/sections/07-case-study/comparison.tex
+```
+
+```sh
+pipenv run ops-orchestrate dispatch \
+  --surface report \
+  --mode bounded-edit \
+  --profile source-polish \
+  --objective "Improve sentence flow in section 7 intro" \
+  --files report/sections/07-case-study/intro.tex
+```
+
+Use `handback-check` with the same profile:
+
+```sh
+pipenv run ops-orchestrate handback-check \
+  --path /tmp/handback.md \
+  --surface report \
+  --mode bounded-edit \
+  --profile claim-boundary
+```
+
+```sh
+pipenv run ops-orchestrate packet-check \
+  --path /tmp/handoff.md \
+  --profile source-polish
+```
+
+Recommended habit for these profiles:
+
+- `claim-boundary`: keep claim statement, numerical method, cross-model comparison,
+  validation, and limitation boundaries explicit.
+- `source-polish`: keep edits bounded to wording, transitions, and prose quality in
+  explicitly named files; avoid notation renames and numbering churn.
+
 ## Patch Discipline
 
 Keep implementation patches small. Limit each patch to one coherent surface.
