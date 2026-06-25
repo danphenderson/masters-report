@@ -4,8 +4,8 @@
 \subsubsection{Available Resolved Data and Matching Limits}
 \label{subsec:preliminary-cross-model-velocity-comparison}
 
-This section reports the publication-scope resolved-3D comparison: the
-23\% and 40\% stenosis final-time section comparisons at
+This section reports the retained resolved-3D comparison: the 23\% and 40\%
+stenosis final-time section comparisons at
 $T=0.9995\,\mathrm{s}$ under the reference-coordinate and deformed-coordinate
 observation operators. Under the reference-coordinate section observation
 operator, the 23\% case has mean absolute section-velocity discrepancy
@@ -19,6 +19,9 @@ final-time alignment check, not a complete transient-history match.
 Appendix~\ref{app:code-and-ai-use} records the raw-input policy, reconstruction
 commands, and the separate Canic et al.\ Section~4.1 source-artifact workflow,
 which remains supplemental to this chapter's two-case comparator.
+Table~\ref{tab:t1-case-study-contract} states the case-study contract, and
+Figure~\ref{fig:stenosis-fem-fvm-meshes} orients the finite-element and
+finite-volume sampling geometry used by the observation operator.
 The numerical results in this section are interpreted through the numerical
 template in Section~\ref{subsec:numerical-contract-stack}, the
 well-balanced preservation checklist in Definition~\ref{def:well-balanced-checklist},
@@ -43,8 +46,8 @@ velocity comparison, so absolute pressure differences are not interpreted there
 as cross-model pressure errors. The separate Canic Section~4.1 workflow uses
 outlet-gauged pressure diagnostics only, as recorded in
 Appendix~\ref{app:code-and-ai-use}; those rows remain source-artifact
-diagnostics rather than clinical validation, pressure-ratio evidence, or full
-transient FSI reproduction.
+diagnostics interpreted under Section~\ref{subsec:metric-interpretive-limits}
+rather than primary evidence in the two-case comparison.
 
 \begin{table}[!htb]
     \centering
@@ -85,7 +88,7 @@ closure, wall, boundary, or geometry mechanism.
         \includegraphics[width=\textwidth]{report/assets/rendered/resolved-3d-flow-field.pdf}
     }{%
         \fbox{\parbox{0.82\linewidth}{\centering Resolved velocity-field
-        asset not present in the local report asset set.}}
+        asset unavailable in this source snapshot.}}
     }
     \caption{Final-time resolved velocity samples used by the 23\% and 40\%
     stenosis comparisons. The panels show node-centered $u_z$ values; the
@@ -181,7 +184,8 @@ attribution.
     \caption{Reference-coordinate section-mean velocity discrepancy summary at
     the matched final-time sample after applying the common section observation
     operator. Values are in cm/s except for the axial location column in cm; the
-    table reports diagnostic cross-model discrepancy, not clinical validation.}
+    table reports diagnostic cross-model discrepancy under the case-study
+    contract in Table~\ref{tab:t1-case-study-contract}.}
     \label{tab:t1-3d-comparison-summary}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}lrrrrrrrrr@{}}
@@ -395,8 +399,7 @@ This is the Canic-style membrane relation used for the resolved comparator
 \cite[Eq.~(35)]{CanicEtAl2024Extended1DStenosis}. It is separate from the
 selected 1D pressure--area closure used in the reduced model. The retained
 comparator is a quasi-static radial membrane update coupled to repeated Stokes
-solves; it informs wall-motion scale, not full transient moving-boundary FSI
-validation.
+solves; it informs wall-motion scale under the declared comparator.
 
 \begin{table}[!htb]
     \centering
@@ -405,7 +408,8 @@ validation.
     finer mesh. The reported displacement is the radial wall displacement
     $\eta_r$; the minimum radius is the deformed lumen radius
     $R_0+\eta_r$. This comparator informs wall-motion scale only and does not
-    supply evidence for a full transient moving-boundary FSI model.}
+    change the evidence hierarchy stated in
+    Section~\ref{subsec:verification-scope-convergence-stability}.}
     \label{tab:t1-membrane-fsi-summary}
     \input{report/assets/tables/membrane-fsi/summary.tex}
 \end{table}
@@ -443,17 +447,14 @@ localization and discrepancy interpretation.
 \subsubsection{Interpretation Limits}
 \label{subsec:spatial-localization-discrepancies}
 
-This chapter reports a controlled diagnostic cross-model comparison against
-specified resolved comparators: a reference-coordinate velocity comparison, a
-displacement-aware observation comparison, and a quasi-static membrane-wall
-comparator. The results support the section-observation and comparison
-operators and localize final-time velocity discrepancies under the stated
-operators. Appendix~\ref{app:code-and-ai-use} governs the raw-input policy and
-the separate Section~4.1 source-artifact workflow; restoring the ignored
-XDMF/HDF5 inputs permits those supplemental diagnostics but does not regenerate
-the article's raw transient 3D FSI solution. This interpretation remains
-conditional on the specified equation, state variables, discretization,
-observation rule, and metric summarized in
-Section~\ref{subsec:numerical-contract-stack}. It does not provide externally
-validated clinical prediction evidence, pressure-ratio evidence, or equivalence
-to a full transient FSI computation with matched boundary and wall-history data.
+The retained comparisons are diagnostic: they evaluate section-mean velocity
+and quasi-static wall-motion scale under the declared operators. Their
+interpretation is conditional on the numerical contract in
+Section~\ref{subsec:numerical-contract-stack}, the metric limits in
+Table~\ref{tab:t1-metric-interpretive-limits}, and the evidence hierarchy in
+Section~\ref{subsec:verification-scope-convergence-stability}.
+Appendix~\ref{app:code-and-ai-use} records the raw-input policy and separate
+Section~4.1 source-artifact workflow. Because the resolved inputs lack matched
+transient wall and boundary histories, the results should not be read as
+clinical validation, pressure-ratio evidence, or reproduction of a full
+transient FSI calculation.

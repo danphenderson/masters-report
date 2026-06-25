@@ -10,22 +10,19 @@ report is \path{packages/stenotic-hemodynamics/bin/stenotic-hemodynamics}, which
 \path{packages/stenotic-hemodynamics/bin/stenotic-hemodynamics.jl} and the Julia project under
 \path{packages/stenotic-hemodynamics/}.
 
-\paragraph*{Source-control and archive status.}
-Under the report-side commit discipline used in this repository, the exact
-source tree for a submitted PDF should be identified by the report-source commit
-immediately preceding any PDF-only refresh commit, or by a release tag that
-points to that source tree. This appendix does not assert that an arbitrary live
-checkout is clean, submission-ready, or identical to a later archived release.
-The local release manifest is the concrete source-access reference, not a final
-public archive:
+\paragraph*{Source snapshot and archive status.}
+For a submitted version, the thesis source should be identified by a release tag
+or archived source snapshot corresponding to the submitted PDF. This appendix
+records the local reproducibility materials available at source-preparation
+time; it does not assert that any source copy outside that snapshot is clean,
+submission-ready, or identical to a later archived release. The local release
+manifest is a source-preparation record:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 public/reproducibility/release-manifest.json
 \end{lstlisting}
 This appendix therefore describes local source traceability without claiming a
-public archive. No public repository URL, immutable archive URL, or DOI is
-asserted by this local thesis copy. Unless a later public release adds one of
-those records, access to \texttt{StenoticHemodynamics} is governed by the
-repository owner's source-control policy.
+public archive. It does not assert a public repository URL, immutable archive
+URL, or DOI unless such metadata is added in the release record.
 
 \paragraph*{AI-assisted drafting and code work.}
 Substantive AI assistance, including OpenAI ChatGPT and Codex, was used during
@@ -47,7 +44,7 @@ or Linux shell with Julia 1.12 or newer, Python/Pipenv for auxiliary tooling,
 and a TeX distribution with \texttt{latexmk} and \texttt{biber}. Concrete
 launcher versions, dependency versions, and hardware records belong in the
 release manifest or validation logs for the submitted source tree, not as a
-live-checkout claim inside the manuscript.
+standalone manuscript claim.
 
 \paragraph*{Review materials.}
 The source inventory, claim register, and review-depth records are maintained as
@@ -267,7 +264,7 @@ two-tetrahedron cuts with independently computed areas and affine means. These
 checks are independent of the optional HDF5/XDMF velocity fields; they do not
 validate the available resolved meshes.
 
-When the optional raw 3D inputs are available, the publication-scope grid
+When the optional raw 3D inputs are available, the retained grid
 sensitivity is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \

@@ -217,7 +217,7 @@ configuration the modal limiter is disabled, so the fixed-grid p-sweep is read
 as smooth-verification evidence for the DG polynomial representation and
 operator wiring. This does not change the conservative limited DG default used
 outside this verification configuration, and it is not evidence for native
-resolved-FSI production, imported parity, or Section 4.1 source-artifact
+resolved-FSI execution, imported parity, or Section 4.1 source-artifact
 alignment.
 
 \IfFileExists{report/assets/tables/verification/p_h_refinement_demo.tex}{%
@@ -225,7 +225,7 @@ alignment.
 }{%
     \begin{center}
     \small
-    \emph{p/h-refinement table not present in the local report asset set;
+    \emph{p/h-refinement table unavailable in this source snapshot;
     expected location: \path{report/assets/tables/verification/}.}
     \end{center}
 }
@@ -236,7 +236,7 @@ alignment.
         \includegraphics[width=0.86\linewidth]{report/assets/rendered/p-h-refinement-demo.pdf}
     }{%
         \fbox{\parbox{0.82\linewidth}{\centering p/h-refinement demonstration
-        asset not present in the local report asset set.}}
+        asset unavailable in this source snapshot.}}
     }
     \caption{Manufactured-solution p- and h-refinement demonstration for the
     secondary modal-DG surface. The displayed p-sweep uses the explicit
@@ -260,7 +260,7 @@ not selected evolution wall-law pressure observations.
         \includegraphics[width=0.82\linewidth]{report/assets/rendered/package-benchmark-convergence.pdf}
     }{%
         \fbox{\parbox{0.82\linewidth}{\centering Benchmark convergence asset
-        not present in the local report asset set.}}
+        unavailable in this source snapshot.}}
     }
     \caption{Secondary self-convergence summary reported by the benchmark renderer.
     Pressure bars, where present, are legacy local-denominator diagnostics
@@ -275,7 +275,7 @@ not selected evolution wall-law pressure observations.
         \includegraphics[width=0.82\linewidth]{report/assets/rendered/package-benchmark-backend-parity.pdf}
     }{%
         \fbox{\parbox{0.82\linewidth}{\centering Integrator-comparison asset
-        not present in the local report asset set.}}
+        unavailable in this source snapshot.}}
     }
     \caption{Secondary native/integrator discrepancy for compatible
     methods. This is an integrator-comparison check without an admitted reference
@@ -289,7 +289,7 @@ not selected evolution wall-law pressure observations.
         \includegraphics[width=0.70\linewidth]{report/assets/rendered/package-benchmark-resolved3d.pdf}
     }{%
         \fbox{\parbox{0.82\linewidth}{\centering Resolved-velocity benchmark
-        asset not present in the local report asset set.}}
+        asset unavailable in this source snapshot.}}
     }
     \caption{Secondary resolved-velocity output-operator diagnostic for available local cases.}
     \label{fig:package-benchmark-resolved3d}
@@ -357,7 +357,7 @@ and accepted for the report.
         \includegraphics[width=0.82\linewidth]{report/assets/rendered/package-benchmark-rheology-profile.pdf}
     }{%
         \fbox{\parbox{0.82\linewidth}{\centering Rheology/profile benchmark
-        asset not present in the local report asset set.}}
+        asset unavailable in this source snapshot.}}
     }
     \caption{Secondary rheology/profile closure-family wiring stress test for declared
     combinations, not a calibrated physiological sensitivity study.}
@@ -419,22 +419,21 @@ history into Section~\ref{subsec:membrane-fsi-comparator}; the scratch output
 directory and manifest remain provenance records for regenerating the
 report-owned assets.
 
-The native resolved-FSI exact-boundary path is separate package-development
-diagnostic work, not a report-evidence surface. Focused package tests
-now check the density-consistent transient and convection terms,
-symmetric-gradient Cauchy viscous form, boundary-aware pressure-space policy,
-physical wall-pressure forcing convention, exact Canic geometry, and same-cut
-radial-profile closure classifications. That retires the Lane 11 P0
-mathematical-contract blocker only at focused package-test scope. It does not
-establish the severity-23 preproduction execution gate, production parity,
-imported parity, moving-wall/ALE fidelity, durable restart or resume support,
-or radial-profile report evidence for the native Gridap-based solver. The
-manuscript-grade Section~4.1 source-artifact reconstruction and diagnostic
-comparison is instead the separate \texttt{canic-replication section41} workflow
-documented in Appendix~\ref{app:code-and-ai-use}; it compares local 1D outputs
-with restored upstream 3D bundles and lists the parameter comparison. Current Gridap-based
-resolved-flow language is therefore focused package mathematical-contract
-evidence rather than a backend-replacement or production-claim basis.
+The native resolved-FSI exact-boundary path remains outside the evidence used
+in this manuscript. Focused package tests check the density-consistent transient
+and convection terms, symmetric-gradient Cauchy viscous form, boundary-aware
+pressure-space policy, physical wall-pressure forcing convention, exact Canic
+geometry, and same-cut radial-profile closure classifications. Those tests are
+package-level mathematical-contract diagnostics. They do not establish
+production resolved-FSI execution, parity with imported resolved data,
+moving-wall/ALE fidelity, durable restart or resume support, or radial-profile
+report evidence for the native Gridap-based solver. The manuscript-grade
+Section~4.1 source-artifact reconstruction and diagnostic comparison is instead
+the separate \texttt{canic-replication section41} workflow documented in
+Appendix~\ref{app:code-and-ai-use}; it compares local 1D outputs with restored
+upstream 3D bundles and lists the parameter comparison. Accordingly,
+Gridap-based resolved-flow language is limited to mathematical-contract
+diagnostics, not report validation evidence.
 
 The corresponding report-generation entry point is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
@@ -451,10 +450,10 @@ The workflow writes a summary CSV, a \TeX{} table fragment, per-case wall
 profiles, per-case coupling histories, and a JSON manifest under the selected
 output directory, with the retained report assets copied to
 \path{report/assets/data/membrane-fsi/} and
-\path{report/assets/tables/membrane-fsi/}. Dynamic wall mode is a reduced radial membrane time integrator
-coupled to repeated quasi-steady Stokes solves, not a transient moving-boundary
-fluid solve, and its outputs remain diagnostic output unless a later
-artifact-refresh lane explicitly promotes them.
+\path{report/assets/tables/membrane-fsi/}. Dynamic wall mode is a reduced radial
+membrane time integrator coupled to repeated quasi-steady Stokes solves, not a
+transient moving-boundary fluid solve; its outputs remain diagnostic until a
+future manuscript revision admits them as evidence with stated tolerances.
 
 \subsection{Elastic-potential balance-law form}
 \label{app:num-elastic-potential-form}
