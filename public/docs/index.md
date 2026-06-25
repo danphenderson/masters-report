@@ -30,7 +30,7 @@ terms aligned with `public/docs/policy-vocabulary.md`.
   Section 4.1 reproduction contract and package mapping for native
   resolved-FSI lanes.
 - `public/docs/stenotic-hemodynamics/canic-2024-replication.md`: source-artifact
-  replication workflow for Canic et al. 2024 Section 4.1 numerical findings.
+  comparison workflow for Canic et al. 2024 Section 4.1 numerical findings.
 
 ## Artifacts And Data
 

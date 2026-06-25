@@ -13,10 +13,10 @@ claim-boundary cleanup. Treat the live checkout as authority.
 - Report/package separation remains strict: report prose may describe package
   behavior, but package implementation evidence must land through the package
   tree and tests first.
-- This P3/P4 native resolved-FSI documentation lane is source-docs only. Do
-  not refresh `public/final-report.pdf`, `report/assets/rendered/**`, raw
-  resolved-3D inputs, public logs, public simulation data, generated outputs,
-  or reference PDFs/HTML.
+- This P3/P4 native resolved-FSI lane is source/test/docs internal-evidence
+  work only. Do not refresh `public/final-report.pdf`,
+  `report/assets/rendered/**`, raw resolved-3D inputs, public logs, public
+  simulation data, generated outputs, or reference PDFs/HTML.
 
 ## Active Report Tasks
 
@@ -55,8 +55,8 @@ P0 package tasks for the same batch are pressure semantics, Canic time alignment
 and pressure gauge policy. The report must not widen claims beyond what package
 tests encode. Architecture cleanup is documentary unless a separate dependency
 refactor lane is opened. Corrected numerical outputs, if needed, require a
-separate derived-asset refresh lane. This P3/P4 documentation batch does not
-reopen a final-PDF sync or any generated-output promotion lane.
+  separate derived-asset refresh lane. This P3/P4 source/test/docs batch does
+  not reopen a final-PDF sync or any generated-output promotion lane.
 
 P2 package tasks are limited to maintainability changes that preserve public
 behavior: typed Canic workflow output rows and a narrow split of native

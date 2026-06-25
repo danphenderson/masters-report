@@ -15,6 +15,7 @@ COMMANDS = (
     "sessions",
     "dispatch",
     "review",
+    "bundle",
     "handback-check",
     "packet-check",
     "docs-contract",

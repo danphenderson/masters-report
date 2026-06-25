@@ -1,4 +1,6 @@
 import json
+import subprocess
+import tarfile
 from pathlib import Path
 
 from ops import orchestrate
@@ -6,6 +8,12 @@ from ops import orchestrate
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
+
+
+def init_git_repo(path: Path) -> None:
+    subprocess.run(["git", "init"], cwd=path, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=path, check=True)
+    subprocess.run(["git", "config", "user.name", "Test User"], cwd=path, check=True)
 
 
 def test_parse_status_classifies_surfaces_and_protected_artifacts() -> None:
@@ -194,6 +202,101 @@ def test_review_payload_matches_lane_spec(monkeypatch) -> None:
     assert "packages/stenotic-hemodynamics/bin/*" in payload["allowed_files"]
     assert "pipenv run ops-julia-check" in payload["validation"]
     assert "pipenv run ops-python-check" in payload["validation"]
+
+
+def test_dispatch_bundle_writes_harness_and_working_tree_snapshot(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    init_git_repo(repo)
+    (repo / ".gitignore").write_text("tmp/\n", encoding="utf-8")
+    (repo / "README.md").write_text("baseline\n", encoding="utf-8")
+    (repo / "public").mkdir()
+    (repo / "public/final-report.pdf").write_bytes(b"%PDF tracked artifact\n")
+    subprocess.run(["git", "add", ".gitignore", "README.md", "public/final-report.pdf"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-m", "Initial"], cwd=repo, check=True, capture_output=True)
+
+    (repo / "README.md").write_text("modified working tree\n", encoding="utf-8")
+    (repo / "report").mkdir()
+    (repo / "report/TODO.md").write_text("untracked report note\n", encoding="utf-8")
+
+    result = orchestrate.create_dispatch_bundle(
+        repo,
+        objective="Inspect the current dirty tree",
+        outdir=Path("tmp/dispatch-bundles"),
+    )
+
+    assert result.archive_path.exists()
+    assert len(result.archive_sha256) == 64
+    assert result.excluded_files == ("public/final-report.pdf",)
+    assert "I uploaded a `.tar.gz` dispatch bundle" in result.prompt
+
+    with tarfile.open(result.archive_path, "r:gz") as bundle:
+        names = bundle.getnames()
+        manifest_member = next(member for member in bundle.getmembers() if member.name.endswith("BUNDLE_MANIFEST.json"))
+        readme_member = next(member for member in bundle.getmembers() if member.name.endswith("/repo/README.md"))
+        manifest = json.loads(bundle.extractfile(manifest_member).read().decode("utf-8"))  # type: ignore[union-attr]
+        readme = bundle.extractfile(readme_member).read().decode("utf-8")  # type: ignore[union-attr]
+
+    assert any(name.endswith("CHATGPT_PRO_DISPATCH.md") for name in names)
+    assert any(name.endswith("GIT_STATUS.txt") for name in names)
+    assert any(name.endswith("GIT_DIFF.patch") for name in names)
+    assert any(name.endswith("/repo/report/TODO.md") for name in names)
+    assert not any(name.endswith("/repo/public/final-report.pdf") for name in names)
+    assert readme == "modified working tree\n"
+    assert manifest["target"] == "chatgpt-pro"
+    assert manifest["objective"] == "Inspect the current dirty tree"
+    assert manifest["status"]["dirty_by_surface"] == {"release": 1, "report": 1}
+    assert manifest["archive_policy"]["protected_artifacts_included"] is False
+
+
+def test_dispatch_bundle_rejects_dirty_protected_artifacts(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    init_git_repo(repo)
+    (repo / "public").mkdir()
+    (repo / "public/final-report.pdf").write_bytes(b"%PDF baseline\n")
+    subprocess.run(["git", "add", "public/final-report.pdf"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-m", "Initial"], cwd=repo, check=True, capture_output=True)
+    (repo / "public/final-report.pdf").write_bytes(b"%PDF changed\n")
+
+    try:
+        orchestrate.create_dispatch_bundle(repo, objective="Inspect", outdir=Path("tmp/dispatch-bundles"))
+    except ValueError as exc:
+        assert "protected artifact paths require --include-protected-artifacts" in str(exc)
+        assert "public/final-report.pdf" in str(exc)
+    else:
+        raise AssertionError("expected dirty protected artifact to fail bundle creation")
+
+
+def test_dispatch_bundle_cli_json_output(tmp_path: Path, capsys) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    init_git_repo(repo)
+    (repo / "README.md").write_text("baseline\n", encoding="utf-8")
+    subprocess.run(["git", "add", "README.md"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-m", "Initial"], cwd=repo, check=True, capture_output=True)
+
+    assert (
+        orchestrate.main(
+            [
+                "--repo",
+                str(repo),
+                "bundle",
+                "--objective",
+                "Smoke-test the bundle command",
+                "--outdir",
+                str(repo / "tmp/dispatch-bundles"),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert Path(payload["archive_path"]).exists()
+    assert len(payload["archive_sha256"]) == 64
+    assert payload["manifest"]["objective"] == "Smoke-test the bundle command"
+    assert "Use ChatGPT PRO Reasoning as an orchestrator" in payload["prompt"]
 
 
 def test_report_artifact_refresh_allows_final_pdf_sync() -> None:

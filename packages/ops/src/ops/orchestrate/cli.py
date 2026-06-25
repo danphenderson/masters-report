@@ -14,6 +14,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from .bundles import DEFAULT_BUNDLE_OUTDIR, SUPPORTED_BUNDLE_TARGETS, create_dispatch_bundle
 from .docs_contract import docs_contract
 from .handback import check_handback
 from .models import CheckResult, StatusReport
@@ -34,6 +35,11 @@ ReviewLaneChoice = Enum(
     type=str,
 )
 SessionSourceChoice = Enum("SessionSourceChoice", {"codex_jsonl": "codex-jsonl"}, type=str)
+BundleTargetChoice = Enum(
+    "BundleTargetChoice",
+    {value.replace("-", "_"): value for value in SUPPORTED_BUNDLE_TARGETS},
+    type=str,
+)
 
 JsonOption = Annotated[bool, typer.Option("--json", help="Emit machine-readable JSON.")]
 RepoOption = Annotated[
@@ -293,6 +299,66 @@ def review_command(
         dump_json(review_payload(root, commit, lane_value))
     else:
         write_raw(review_packet(root, commit, lane_value))
+    return 0
+
+
+@app.command("bundle", help="Create a ChatGPT PRO dispatch bundle and print the browser prompt.")
+def bundle_command(
+    ctx: typer.Context,
+    objective: Annotated[str, typer.Option("--objective", help="Reasoning objective for the harnessed session.")],
+    target: Annotated[
+        BundleTargetChoice,
+        typer.Option("--target", help="External reasoning target."),
+    ] = BundleTargetChoice.chatgpt_pro,
+    outdir: Annotated[
+        Path,
+        typer.Option("--outdir", help="Ignored scratch output directory under tmp/** or /tmp."),
+    ] = DEFAULT_BUNDLE_OUTDIR,
+    allow_unclassified: Annotated[
+        bool,
+        typer.Option("--allow-unclassified", help="Permit unclassified dirty paths after ownership review."),
+    ] = False,
+    include_protected_artifacts: Annotated[
+        bool,
+        typer.Option(
+            "--include-protected-artifacts",
+            help="Include protected artifacts and permit them to be dirty in the bundle.",
+        ),
+    ] = False,
+    json_output: JsonOption = False,
+) -> int:
+    root = _root_from_context(ctx)
+    try:
+        result = create_dispatch_bundle(
+            root,
+            target=_choice_value(target),
+            objective=objective,
+            outdir=outdir,
+            allow_unclassified=allow_unclassified,
+            include_protected_artifacts=include_protected_artifacts,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    except RuntimeError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    if json_output:
+        dump_json(result.to_payload())
+        return 0
+
+    write_raw(
+        "\n".join(
+            [
+                f"Dispatch bundle: {result.archive_path}",
+                f"SHA256: {result.archive_sha256}",
+                "",
+                "Recommended ChatGPT PRO Reasoning prompt:",
+                "",
+                result.prompt,
+                "",
+            ]
+        )
+    )
     return 0
 
 

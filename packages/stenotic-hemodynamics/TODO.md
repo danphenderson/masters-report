@@ -12,10 +12,10 @@ claim-boundary cleanup. Treat the live checkout as authority.
   `NO-SEND`.
 - Package/report separation remains strict. Package code and tests define the
   computational contract; report prose may only describe that contract.
-- This P3/P4 native resolved-FSI documentation lane is source-docs only. Do
-  not refresh `public/final-report.pdf`, `report/assets/rendered/**`, raw
-  resolved-3D inputs, public logs, public simulation data, generated outputs,
-  or reference PDFs/HTML.
+- This P3/P4 native resolved-FSI lane is source/test/docs internal-evidence
+  work only. Do not refresh `public/final-report.pdf`,
+  `report/assets/rendered/**`, raw resolved-3D inputs, public logs, public
+  simulation data, generated outputs, or reference PDFs/HTML.
 
 ## P0 Package Tasks
 

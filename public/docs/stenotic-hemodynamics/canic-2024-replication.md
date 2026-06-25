@@ -1,9 +1,10 @@
-# Canic 2024 Section 4.1 Replication
+# Canic 2024 Section 4.1 Source-Artifact Comparison
 
-This workflow reproduces the numerical findings from Canic et al. 2024,
-Section 4.1, using original Julia implementations of the two 1D models in this
-package and the authors' upstream 3D XDMF/HDF5 bundles as optional benchmark
-data. It is separate from the narrower `compare-3d` report comparator.
+This workflow compares local 1D model outputs with source-artifact bundles for
+Canic et al. 2024, Section 4.1, using original Julia implementations of the two
+1D models in this package and the authors' upstream 3D XDMF/HDF5 bundles as
+optional benchmark data. It is separate from the narrower `compare-3d` report
+comparator.
 
 The workflow covers:
 
@@ -63,7 +64,7 @@ The pinned upstream commit is:
 
 ## Canonical Commands
 
-Full Section 4.1 source-artifact replication:
+Full Section 4.1 source-artifact comparison:
 
 ```sh
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
@@ -72,7 +73,6 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication secti
   --coordinate-mode deformed \
   --nx 100 \
   --dt 1e-5 \
-  --tfinal 1.0 \
   --section-count 200 \
   --radial-sample-count 41 \
   --overwrite
@@ -88,7 +88,6 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication secti
   --coordinate-mode deformed \
   --nx 100 \
   --dt 1e-5 \
-  --tfinal 1.0 \
   --section-count 200 \
   --radial-sample-count 41 \
   --publish-report-assets \
@@ -127,6 +126,12 @@ With `--publish-report-assets`, CSV/JSON files are copied to
 `report/assets/data/canic-replication/`, and TeX fragments are copied to
 `report/assets/tables/canic-replication/`.
 
+By default, the local 1D solve targets the imported final time recorded for each
+case: approximately `0.9995 s` for cases `77` and `60`, and `1.4995 s` for case
+`50`. Supplying `--tfinal` is an explicit global override; rows whose override
+differs from the imported source-artifact time outside the declared tolerance
+are recorded as intentional time mismatches and non-replication.
+
 ## Required Audit Caveats
 
 The parameter audit intentionally records source inconsistencies instead of
@@ -138,6 +143,7 @@ silently normalizing them:
   bundle is at `1.4995 s`; the paper text describes the 3D benchmark as
   `T = 1 s`.
 
-Manuscript claims may say that the workflow reproduces Section 4.1 numerical
-findings from restored upstream benchmark data only after the comparison
-summary, parameter audit, and provenance outputs have been reviewed.
+Manuscript claims should describe these outputs as source-artifact comparison
+unless a scoped lane checks and records reproduction criteria for the relevant
+time, coordinate, pressure-gauge, parameter, observable, and tolerance
+conventions.

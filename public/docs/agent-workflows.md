@@ -25,6 +25,7 @@ pipenv run ops-orchestrate status
 pipenv run ops-orchestrate sessions --source codex-jsonl --date YYYY-MM-DD --json
 pipenv run ops-orchestrate dispatch --surface report --mode inspect --objective "Review section scope"
 pipenv run ops-orchestrate review --commit 786e8f9 --lane orchestration
+pipenv run ops-orchestrate bundle --target chatgpt-pro --objective "Orchestrate closeout"
 pipenv run ops-orchestrate handback-check --path /tmp/handback.md --surface report --mode inspect
 pipenv run ops-orchestrate packet-check --path /tmp/handoff.md --profile editorial-readiness
 pipenv run ops-orchestrate docs-contract
@@ -51,6 +52,14 @@ Run `review` to print a read-only delegated review packet for one named lane.
 Start reviewers from `git status --short --branch --untracked-files=all`, cite
 the reviewed commit, forbid mutations, list allowed inspection files, and
 require the standard handback sections.
+
+Run `bundle` to create a `.tar.gz` dispatch bundle for a ChatGPT PRO Reasoning
+session. The bundle contains the current tracked plus non-ignored untracked
+working-tree files, an ops status JSON, Git status and diff files, a manifest,
+and a harness markdown file. By default it writes under `tmp/dispatch-bundles`,
+excludes protected/generated artifacts, and refuses protected or unclassified
+dirty paths unless the corresponding explicit flags are supplied. The command
+prints the recommended browser prompt after writing the archive.
 
 Run `handback-check` on worker handbacks. Require `Status`, `Scope`, `Files`,
 `Validation`, and `Risks`. Require the expected validation command, or a

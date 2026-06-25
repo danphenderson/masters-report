@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+from .bundles import (
+    DEFAULT_BUNDLE_OUTDIR,
+    HARNESS_FILES,
+    SUPPORTED_BUNDLE_TARGETS,
+    BundleResult,
+    create_dispatch_bundle,
+    render_chatgpt_pro_prompt,
+)
 from .cli import build_parser, dump_json, main, print_check_result, print_status
 from .docs_contract import docs_contract, is_historical_path, stale_path_issues
 from .handback import (
@@ -90,9 +98,12 @@ def review_payload(*args, **kwargs):
 __all__ = [
     "ALL_HANDBACK_SECTIONS",
     "BOILERPLATE_SECTION_BODIES",
+    "BundleResult",
     "COMMANDS",
+    "DEFAULT_BUNDLE_OUTDIR",
     "DEFAULT_REPORT_OUTDIR",
     "DOC_CONTRACT_PATHS",
+    "HARNESS_FILES",
     "HISTORICAL_PATH_PREFIXES",
     "MODES",
     "OVERBROAD_PACKET_PATTERNS",
@@ -107,6 +118,7 @@ __all__ = [
     "STALE_PATH_CHECK_PATHS",
     "STALE_PATH_PATTERNS",
     "SURFACE_PREFIXES",
+    "SUPPORTED_BUNDLE_TARGETS",
     "SURFACES",
     "VALIDATION_COMMANDS",
     "VALIDATION_MARKERS",
@@ -125,6 +137,7 @@ __all__ = [
     "check_handback",
     "classify_path",
     "commands_for",
+    "create_dispatch_bundle",
     "dispatch_packet",
     "dispatch_payload",
     "docs_contract",
@@ -145,6 +158,7 @@ __all__ = [
     "ready_to_commit_gates",
     "ready_to_commit_issues",
     "ready_to_commit_result",
+    "render_chatgpt_pro_prompt",
     "review_blocked_artifacts",
     "review_packet",
     "review_payload",

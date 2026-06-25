@@ -133,6 +133,8 @@ refresh scope.
   summarize local Codex JSONL sessions for the current repository.
 - `pipenv run ops-orchestrate dispatch`: print bounded task packets.
 - `pipenv run ops-orchestrate review`: print read-only delegated review packets.
+- `pipenv run ops-orchestrate bundle`: create a `.tar.gz` ChatGPT PRO dispatch
+  bundle and print the browser launch prompt.
 - `pipenv run ops-orchestrate handback-check`: validate worker handbacks.
 - `pipenv run ops-orchestrate packet-check`: validate external handoff text.
 - `pipenv run ops-orchestrate docs-contract`: check the documented
