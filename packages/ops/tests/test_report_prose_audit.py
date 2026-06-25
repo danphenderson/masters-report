@@ -198,9 +198,9 @@ def test_topic_owner_comparison_limits_flags_quarantined_radial_limit_outside_ow
     )
     words = audit_report_prose.normalized_words(text)
     chunk = audit_report_prose.ProseChunk(
-        "report/sections/03-conclusions/index.tex",
+        "report/sections/08-discussion-conclusion/index.tex",
         22,
-        "Conclusions",
+        "Integrated Discussion",
         "",
         False,
         text,

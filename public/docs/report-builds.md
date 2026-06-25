@@ -47,10 +47,9 @@ Default scratch outputs under `/tmp/masters-report-build`:
 - `report-build-summary.json`: wrapper status and evidence summary.
 
 The full build also syncs the validated scratch PDF to `public/final-report.pdf`
-after all gates pass. In this checkout that path is a retained tracked legacy
-release artifact, so use the full build only in an explicit publication or
-artifact-refresh lane and do not treat a refreshed PDF as part of ordinary
-source validation.
+after all gates pass. That path is ignored in source-tree candidates, so use the
+full build only in an explicit publication or artifact-refresh lane and do not
+stage a refreshed PDF as part of ordinary source validation.
 
 ## Summary JSON
 

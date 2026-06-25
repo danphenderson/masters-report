@@ -19,11 +19,31 @@ from .status import is_protected_path, status_report
 DEFAULT_BUNDLE_OUTDIR = Path("tmp/dispatch-bundles")
 SUPPORTED_BUNDLE_TARGETS = ("chatgpt-pro",)
 HARNESS_FILES = (
+    "CHATGPT_PRO_PROMPT.md",
     "CHATGPT_PRO_DISPATCH.md",
     "BUNDLE_MANIFEST.json",
     "OPS_STATUS.json",
     "GIT_STATUS.txt",
     "GIT_DIFF.patch",
+)
+REQUIRED_BUNDLE_READING_ORDER = (
+    "BUNDLE_MANIFEST.json",
+    "OPS_STATUS.json",
+    "GIT_STATUS.txt",
+    "GIT_DIFF.patch",
+)
+OPTIONAL_REPO_CONTRACT_FILES = (
+    "repo/AGENTS.md",
+    "repo/public/docs/agent-workflows.md",
+    "repo/public/docs/artifact-policy.md",
+)
+FOLLOW_UP_REPO_READING_HINT = "Objective-relevant files under repo/"
+OUTPUT_CONTRACT_SECTIONS = (
+    "Current State",
+    "Execution Lanes",
+    "Validation Plan",
+    "Blocked Conditions",
+    "Recommended Next Prompt or Handback",
 )
 
 
@@ -147,33 +167,113 @@ def _archive_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def render_chatgpt_pro_prompt(*, archive_name: str, objective: str) -> str:
+def _dirty_surface_lines(manifest: dict[str, Any]) -> list[str]:
+    dirty = manifest["status"]["dirty_by_surface"] or {}
+    if not dirty:
+        return ["- Dirty surfaces: none"]
+    return [f"- Dirty surface `{surface}`: {count} path(s)" for surface, count in sorted(dirty.items())]
+
+
+def _dirty_path_lines(manifest: dict[str, Any]) -> list[str]:
+    entries = manifest["status"]["entries"]
+    if not entries:
+        return ["- Dirty paths: none"]
+    return [f"- {entry['code'].strip() or '<status>'} {entry['path']} ({entry['surface']})" for entry in entries]
+
+
+def _excluded_artifact_lines(manifest: dict[str, Any]) -> list[str]:
+    excluded = manifest["excluded_files"] or []
+    if not excluded:
+        return ["- Excluded protected artifacts: none"]
+    return [f"- Excluded protected artifact: {path}" for path in excluded]
+
+
+def _skipped_file_lines(manifest: dict[str, Any]) -> list[str]:
+    skipped = manifest["skipped_files"] or []
+    if not skipped:
+        return ["- Skipped files: none"]
+    return [f"- Skipped file: {path}" for path in skipped]
+
+
+def _bundle_context_lines(manifest: dict[str, Any]) -> list[str]:
+    entries = manifest["status"]["entries"]
+    status = "dirty" if entries else "clean"
+    return [
+        f"- Branch: `{manifest['git']['branch'] or '<unknown>'}`",
+        f"- HEAD: `{manifest['git']['sha']}`",
+        f"- Working tree status: {status} at bundle creation.",
+        f"- Included working-tree files: {manifest['included_file_count']}",
+        *_dirty_surface_lines(manifest),
+        *_dirty_path_lines(manifest),
+        *_excluded_artifact_lines(manifest),
+        *_skipped_file_lines(manifest),
+    ]
+
+
+def _required_reading_order(included_files: tuple[str, ...]) -> tuple[str, ...]:
+    included = {f"repo/{path}" for path in included_files}
+    optional_contracts = tuple(path for path in OPTIONAL_REPO_CONTRACT_FILES if path in included)
+    return REQUIRED_BUNDLE_READING_ORDER + optional_contracts
+
+
+def _manifest_required_reading_order(manifest: dict[str, Any] | None) -> tuple[str, ...]:
+    if manifest is None:
+        return REQUIRED_BUNDLE_READING_ORDER
+    return tuple(manifest.get("required_reading_order", REQUIRED_BUNDLE_READING_ORDER))
+
+
+def _manifest_follow_up_repo_reading(manifest: dict[str, Any] | None) -> str:
+    if manifest is None:
+        return FOLLOW_UP_REPO_READING_HINT
+    return str(manifest.get("follow_up_repo_reading", FOLLOW_UP_REPO_READING_HINT))
+
+
+def render_chatgpt_pro_prompt(*, archive_name: str, objective: str, manifest: dict[str, Any] | None = None) -> str:
+    context_lines = _bundle_context_lines(manifest) if manifest is not None else []
+    context_block = ["Bundle context:", *context_lines, ""] if context_lines else []
+    required_reading_order = _manifest_required_reading_order(manifest)
+    follow_up_repo_reading = _manifest_follow_up_repo_reading(manifest)
     return "\n".join(
         [
             "I uploaded a `.tar.gz` dispatch bundle named `{archive_name}`.".format(archive_name=archive_name),
             "",
-            "Use ChatGPT PRO Reasoning as an orchestrator over this repository snapshot.",
-            "Extract the bundle, read `CHATGPT_PRO_DISPATCH.md`, then inspect `BUNDLE_MANIFEST.json`, "
-            "`GIT_STATUS.txt`, `GIT_DIFF.patch`, and the `repo/` tree before making claims.",
-            "",
             "Objective:",
             objective,
             "",
-            "Operating rules:",
-            "- Treat the bundle as the latest provided working-tree evidence, not as a clean release.",
-            "- Preserve the source/artifact boundary described by the harness.",
+            *context_block,
+            "Required reading order:",
+            *[f"{index}. `{path}`" for index, path in enumerate(required_reading_order, start=1)],
+            "",
+            "Then inspect:",
+            f"- `{follow_up_repo_reading}`",
+            "",
+            "Evidence hierarchy:",
+            "- Treat `BUNDLE_MANIFEST.json`, `OPS_STATUS.json`, `GIT_STATUS.txt`, and `GIT_DIFF.patch` as primary evidence.",
+            "- Treat files under `repo/` as secondary evidence for implementation details and source contracts.",
+            "- Do not rely on stale summaries, prior chat context, or outside assumptions when they conflict with bundle evidence.",
+            "",
+            "Repo guardrails:",
+            "- Treat the bundle as the latest provided working-tree evidence, not as a clean release unless the context says clean.",
+            "- Preserve the source/artifact boundary described by the harness and repo policy docs.",
             "- Do not assume ignored raw resolved-3D inputs, local caches, or private mirrors are present.",
-            "- Separate observations, risks, and recommended execution lanes.",
-            "- Return a concrete orchestrator plan with file-level scope, validation gates, and blocked conditions.",
+            "- Treat excluded protected artifacts as unavailable for refresh or inspection unless explicitly included in the bundle.",
+            "- Keep artifact-refresh, source-edit, report, Julia, references, and release lanes separate.",
+            "",
+            "Output contract:",
+            *[f"- `{section}`" for section in OUTPUT_CONTRACT_SECTIONS],
+            "",
+            "Blocked-condition rules:",
+            "- Stop and report if any listed required-reading file path is absent from the bundle.",
+            "- Stop and report if the task depends on ignored raw resolved-3D inputs, local caches, or private mirrors.",
+            "- Stop and report if protected artifacts would need refresh without explicit artifact-refresh scope.",
+            "- Stop and report any conflict between metadata/status/diff evidence and repo file evidence.",
         ]
     )
 
 
-def _harness_markdown(*, archive_name: str, objective: str, manifest: dict[str, Any]) -> str:
-    dirty = manifest["status"]["dirty_by_surface"] or {}
-    dirty_lines = [f"- {surface}: {count}" for surface, count in sorted(dirty.items())] or ["- none"]
-    excluded = manifest["excluded_files"] or []
-    excluded_lines = [f"- {path}" for path in excluded] or ["- none"]
+def _harness_markdown(*, archive_name: str, objective: str, manifest: dict[str, Any], prompt: str) -> str:
+    required_reading_order = _manifest_required_reading_order(manifest)
+    follow_up_repo_reading = _manifest_follow_up_repo_reading(manifest)
     return "\n".join(
         [
             "# ChatGPT PRO Dispatch Harness",
@@ -189,18 +289,15 @@ def _harness_markdown(*, archive_name: str, objective: str, manifest: dict[str, 
             "",
             "## Required Reading Order",
             "",
-            "1. `BUNDLE_MANIFEST.json`",
-            "2. `GIT_STATUS.txt`",
-            "3. `GIT_DIFF.patch`",
-            "4. Relevant files under `repo/`",
+            *[f"{index}. `{path}`" for index, path in enumerate(required_reading_order, start=1)],
             "",
-            "## Dirty Surfaces",
+            "## Follow-up Repo Reading",
             "",
-            *dirty_lines,
+            f"- `{follow_up_repo_reading}`",
             "",
-            "## Excluded Protected Artifacts",
+            "## Bundle Context",
             "",
-            *excluded_lines,
+            *_bundle_context_lines(manifest),
             "",
             "## Operating Rules",
             "",
@@ -212,15 +309,11 @@ def _harness_markdown(*, archive_name: str, objective: str, manifest: dict[str, 
             "",
             "## Expected Output",
             "",
-            "- Current-state summary.",
-            "- File-scoped execution lanes.",
-            "- Validation commands per lane.",
-            "- Blocked conditions and missing local evidence.",
-            "- Recommended next dispatch prompt or handback text.",
+            *[f"- {section}" for section in OUTPUT_CONTRACT_SECTIONS],
             "",
             "## Browser Prompt",
             "",
-            render_chatgpt_pro_prompt(archive_name=archive_name, objective=objective),
+            prompt,
             "",
         ]
     )
@@ -261,6 +354,7 @@ def create_dispatch_bundle(
     included_files, excluded_files, skipped_files = _filter_bundle_files(
         root, include_protected_artifacts=include_protected_artifacts
     )
+    required_reading_order = _required_reading_order(included_files)
     status_text = git_status_short(root)
     diff_text = _diff_text(root)
     manifest: dict[str, Any] = {
@@ -286,16 +380,20 @@ def create_dispatch_bundle(
             "protected_artifacts_included": include_protected_artifacts,
         },
         "harness_files": list(HARNESS_FILES),
+        "required_reading_order": list(required_reading_order),
+        "follow_up_repo_reading": FOLLOW_UP_REPO_READING_HINT,
         "included_file_count": len(included_files),
         "excluded_files": list(excluded_files),
         "skipped_files": list(skipped_files),
     }
     ops_status_json = json.dumps(asdict(report), indent=2, sort_keys=True) + "\n"
     manifest_json = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
-    harness = _harness_markdown(archive_name=archive_name, objective=objective, manifest=manifest)
+    prompt = render_chatgpt_pro_prompt(archive_name=archive_name, objective=objective, manifest=manifest)
+    harness = _harness_markdown(archive_name=archive_name, objective=objective, manifest=manifest, prompt=prompt)
 
     mtime = int(generated_at.timestamp())
     with tarfile.open(archive_path, "w:gz") as tar:
+        _tar_text(tar, f"{bundle_root}/CHATGPT_PRO_PROMPT.md", prompt, mtime=mtime)
         _tar_text(tar, f"{bundle_root}/CHATGPT_PRO_DISPATCH.md", harness, mtime=mtime)
         _tar_text(tar, f"{bundle_root}/BUNDLE_MANIFEST.json", manifest_json, mtime=mtime)
         _tar_text(tar, f"{bundle_root}/OPS_STATUS.json", ops_status_json, mtime=mtime)
@@ -304,7 +402,6 @@ def create_dispatch_bundle(
         for relative in included_files:
             tar.add(root / relative, arcname=f"{bundle_root}/repo/{relative}", recursive=False)
 
-    prompt = render_chatgpt_pro_prompt(archive_name=archive_name, objective=objective)
     return BundleResult(
         archive_path=archive_path,
         archive_sha256=_archive_sha256(archive_path),

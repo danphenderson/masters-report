@@ -35,7 +35,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--csv", type=Path, default=DEFAULT_CSV, help="Input p/h refinement CSV.")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Figure output directory.")
     parser.add_argument("--table-dir", type=Path, default=DEFAULT_TABLE_DIR, help="LaTeX table output directory.")
-    parser.add_argument("--formats", nargs="+", default=["pdf", "png"], choices=["pdf", "png"])
+    parser.add_argument("--formats", nargs="+", default=["pdf"], choices=["pdf", "png"])
     return parser.parse_args(argv)
 
 

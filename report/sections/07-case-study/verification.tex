@@ -233,12 +233,11 @@ any comparison run initialized from the same geometry-rest state.
     \end{center}
 }
 
-The corrected rest-state run has zero requested and applied inlet flow, so
-the previously reported $q_{\mathrm{in}}t$ volume signature is not retained.
-The finite-volume balance
+The accepted zero-forcing rest-state run has zero requested and applied inlet
+flow, and the finite-volume balance
 $\Delta\!\int a\,dz+\int(\widehat F^a_{\mathrm{out}}-\widehat F^a_{\mathrm{in}})\,dt$
 closes to near roundoff in the produced CSV. The production comparison-flow
-scale remains
+scale is
 $q_{\mathrm{comp}}\approx2.288/\pi=0.7283\,\mathrm{cm}^3/\mathrm{s}$ in the
 solver coordinate, corresponding to
 $Q_{\mathrm{comp}}\approx2.288\,\mathrm{cm}^3/\mathrm{s}$ in physical circular
@@ -266,10 +265,10 @@ on the production comparison grid.
 
 This geometry-rest result is the principal negative numerical finding of the
 chapter. The selected 23\% and 40\% stenosis comparison runs are initialized
-from the same geometry-rest state and use the same operator. The corrected
-zero-inlet magnitude no longer supports a large through-flow interpretation,
-but the nonzero localized residual means the production comparison is read as a
-diagnostic section-mean velocity comparison, not as a clean production-grid
+from the same geometry-rest state and use the same operator. The zero-inlet
+magnitudes do not support a large through-flow interpretation, but the nonzero
+localized residual means the production comparison is read as a diagnostic
+section-mean velocity comparison, not as a clean production-grid
 discretization-accuracy study.
 
 \subsubsection{Boundary, CFL, Positivity, and Conservation Diagnostics}

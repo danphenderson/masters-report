@@ -232,11 +232,18 @@ def test_dispatch_bundle_writes_harness_and_working_tree_snapshot(tmp_path: Path
 
     with tarfile.open(result.archive_path, "r:gz") as bundle:
         names = bundle.getnames()
+        prompt_member = next(member for member in bundle.getmembers() if member.name.endswith("CHATGPT_PRO_PROMPT.md"))
+        harness_member = next(
+            member for member in bundle.getmembers() if member.name.endswith("CHATGPT_PRO_DISPATCH.md")
+        )
         manifest_member = next(member for member in bundle.getmembers() if member.name.endswith("BUNDLE_MANIFEST.json"))
         readme_member = next(member for member in bundle.getmembers() if member.name.endswith("/repo/README.md"))
+        prompt_text = bundle.extractfile(prompt_member).read().decode("utf-8")  # type: ignore[union-attr]
+        harness_text = bundle.extractfile(harness_member).read().decode("utf-8")  # type: ignore[union-attr]
         manifest = json.loads(bundle.extractfile(manifest_member).read().decode("utf-8"))  # type: ignore[union-attr]
         readme = bundle.extractfile(readme_member).read().decode("utf-8")  # type: ignore[union-attr]
 
+    assert any(name.endswith("CHATGPT_PRO_PROMPT.md") for name in names)
     assert any(name.endswith("CHATGPT_PRO_DISPATCH.md") for name in names)
     assert any(name.endswith("GIT_STATUS.txt") for name in names)
     assert any(name.endswith("GIT_DIFF.patch") for name in names)
@@ -247,6 +254,66 @@ def test_dispatch_bundle_writes_harness_and_working_tree_snapshot(tmp_path: Path
     assert manifest["objective"] == "Inspect the current dirty tree"
     assert manifest["status"]["dirty_by_surface"] == {"release": 1, "report": 1}
     assert manifest["archive_policy"]["protected_artifacts_included"] is False
+    assert manifest["required_reading_order"] == [
+        "BUNDLE_MANIFEST.json",
+        "OPS_STATUS.json",
+        "GIT_STATUS.txt",
+        "GIT_DIFF.patch",
+    ]
+    assert manifest["follow_up_repo_reading"] == "Objective-relevant files under repo/"
+    assert prompt_text == result.prompt
+    assert "Working tree status: dirty at bundle creation." in result.prompt
+    assert "Dirty surface `release`: 1 path(s)" in result.prompt
+    assert "Dirty surface `report`: 1 path(s)" in result.prompt
+    assert "M README.md (release)" in result.prompt
+    assert "?? report/TODO.md (report)" in result.prompt
+    assert "Excluded protected artifact: public/final-report.pdf" in result.prompt
+    assert "Then inspect:" in result.prompt
+    assert "Objective-relevant files under repo/" in result.prompt
+    assert "repo/public/docs/agent-workflows.md" not in result.prompt
+    assert "Current State" in result.prompt
+    assert "Blocked-condition rules:" in result.prompt
+    assert "if any listed required-reading file path is absent from the bundle" in result.prompt
+    assert "## Follow-up Repo Reading" in harness_text
+    assert "Included working-tree files:" in harness_text
+    assert "Excluded protected artifact: public/final-report.pdf" in harness_text
+    assert "Skipped files: none" in harness_text
+
+
+def test_dispatch_bundle_required_reading_includes_repo_contract_files_when_present(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    init_git_repo(repo)
+    (repo / "README.md").write_text("baseline\n", encoding="utf-8")
+    (repo / "AGENTS.md").write_text("repo guide\n", encoding="utf-8")
+    (repo / "public" / "docs").mkdir(parents=True)
+    (repo / "public" / "docs" / "agent-workflows.md").write_text("agent workflow\n", encoding="utf-8")
+    (repo / "public" / "docs" / "artifact-policy.md").write_text("artifact policy\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "README.md", "AGENTS.md", "public/docs/agent-workflows.md", "public/docs/artifact-policy.md"],
+        cwd=repo,
+        check=True,
+    )
+    subprocess.run(["git", "commit", "-m", "Initial"], cwd=repo, check=True, capture_output=True)
+
+    result = orchestrate.create_dispatch_bundle(
+        repo,
+        objective="Inspect the current dirty tree",
+        outdir=Path("tmp/dispatch-bundles"),
+    )
+
+    assert result.manifest["required_reading_order"] == [
+        "BUNDLE_MANIFEST.json",
+        "OPS_STATUS.json",
+        "GIT_STATUS.txt",
+        "GIT_DIFF.patch",
+        "repo/AGENTS.md",
+        "repo/public/docs/agent-workflows.md",
+        "repo/public/docs/artifact-policy.md",
+    ]
+    assert "repo/AGENTS.md" in result.prompt
+    assert "repo/public/docs/agent-workflows.md" in result.prompt
+    assert "repo/public/docs/artifact-policy.md" in result.prompt
 
 
 def test_dispatch_bundle_rejects_dirty_protected_artifacts(tmp_path: Path) -> None:
@@ -296,7 +363,21 @@ def test_dispatch_bundle_cli_json_output(tmp_path: Path, capsys) -> None:
     assert Path(payload["archive_path"]).exists()
     assert len(payload["archive_sha256"]) == 64
     assert payload["manifest"]["objective"] == "Smoke-test the bundle command"
-    assert "Use ChatGPT PRO Reasoning as an orchestrator" in payload["prompt"]
+    assert payload["manifest"]["required_reading_order"] == [
+        "BUNDLE_MANIFEST.json",
+        "OPS_STATUS.json",
+        "GIT_STATUS.txt",
+        "GIT_DIFF.patch",
+    ]
+    assert "Working tree status: clean at bundle creation." in payload["prompt"]
+    assert "Dirty surfaces: none" in payload["prompt"]
+    assert "Required reading order:" in payload["prompt"]
+    assert "Then inspect:" in payload["prompt"]
+    assert "Evidence hierarchy:" in payload["prompt"]
+    assert "Repo guardrails:" in payload["prompt"]
+    assert "Output contract:" in payload["prompt"]
+    assert "Blocked-condition rules:" in payload["prompt"]
+    assert "repo/AGENTS.md" not in payload["prompt"]
 
 
 def test_report_artifact_refresh_allows_final_pdf_sync() -> None:

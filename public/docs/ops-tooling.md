@@ -63,6 +63,9 @@ commit wrapper runs this command immediately before commit.
   `--sync-final-pdf` only when release-PDF refresh is explicitly in scope.
 - `pipenv run ops-audit-tex-preamble`: audit current TeX files for preamble
   boundary violations.
+- `pipenv run ops-audit-report-prose --json`: audit the live tracked
+  `report/**/*.tex` tree for exact duplicates, near duplicates, and
+  topic-owner drift.
 - `pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf`:
   run the validation-only report build gate.
 - `pipenv run ops-build-report --outdir /tmp/masters-report-build`: run the full
@@ -99,10 +102,12 @@ Generated log files under `public/var/logs/*.json` and
 - `pipenv run ops-audit-references`: validate bibliography and
   `public/references/source-inventory.tsv` consistency.
 - `pipenv run ops-extract-reference-claims`: write scratch claim evidence under
-  `tmp/reference-evidence` from the public reference metadata.
+  `tmp/reference-evidence` from the public reference metadata. This produces
+  `claim-evidence-matrix.csv` and `claim-evidence-matrix.md` for the literature
+  depth workflow.
 - `pipenv run ops-build-lit-review-depth`: build scratch literature-depth
-  summaries under `tmp/lit-review-depth`; by default it reads
-  `tmp/reference-evidence/claim-evidence-matrix.csv`.
+  summaries under `tmp/lit-review-depth`; by default it reads the scratch claim
+  matrix written by `ops-extract-reference-claims`.
 
 Follow `public/references/AGENTS.md` before editing `public/references/**`.
 Do not track private full-text PDF or HTML mirrors.
@@ -117,9 +122,11 @@ Do not track private full-text PDF or HTML mirrors.
 - `pipenv run ops-render-package-benchmark-figures --benchmark-dir PATH`: render
   benchmark figures into `report/assets/rendered` and the benchmark summary
   table into `report/assets/tables/package-benchmark`.
-- `pipenv run ops-render-ph-refinement-demo`: render the p/h refinement figure
-  from `report/assets/data/verification/p_h_refinement_demo.csv` into
-  `report/assets/rendered` and `report/assets/tables/verification`.
+- `pipenv run ops-render-ph-refinement-demo`: render the tracked p/h refinement
+  PDF figure from `report/assets/data/verification/p_h_refinement_demo.csv`
+  into `report/assets/rendered` and the companion table into
+  `report/assets/tables/verification`. Use `--formats png --output-dir tmp/...`
+  only for scratch review exports.
 
 Treat renderer outputs as report-consumed assets. Publish them only when the TeX
 source consumes them and the task explicitly opens an artifact-refresh or asset
@@ -134,13 +141,15 @@ refresh scope.
 - `pipenv run ops-orchestrate dispatch`: print bounded task packets.
 - `pipenv run ops-orchestrate review`: print read-only delegated review packets.
 - `pipenv run ops-orchestrate bundle`: create a `.tar.gz` ChatGPT PRO dispatch
-  bundle and print the browser launch prompt.
+  bundle, write the exact prompt as `CHATGPT_PRO_PROMPT.md`, and print the
+  browser launch prompt derived from the archive's actual included evidence.
 - `pipenv run ops-orchestrate handback-check`: validate worker handbacks.
 - `pipenv run ops-orchestrate packet-check`: validate external handoff text.
 - `pipenv run ops-orchestrate docs-contract`: check the documented
   orchestration contract.
 - `pipenv run ops-orchestrate ready-to-commit`: run the centralized
-  commit-readiness gate selected from the current dirty surfaces.
+  commit-readiness gate selected from the current dirty surfaces, including the
+  report prose audit when report surfaces are dirty.
 
 Use `public/docs/agent-workflows.md` for modes, profiles, and guardrails.
 

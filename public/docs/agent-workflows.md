@@ -56,10 +56,14 @@ require the standard handback sections.
 Run `bundle` to create a `.tar.gz` dispatch bundle for a ChatGPT PRO Reasoning
 session. The bundle contains the current tracked plus non-ignored untracked
 working-tree files, an ops status JSON, Git status and diff files, a manifest,
-and a harness markdown file. By default it writes under `tmp/dispatch-bundles`,
+an exact browser prompt in `CHATGPT_PRO_PROMPT.md`, and a fuller harness in
+`CHATGPT_PRO_DISPATCH.md`. The prompt is generated from the objective text and
+live bundle state, including clean/dirty status, excluded protected artifacts,
+and a required reading order derived from files actually present in the
+archive. By default it writes under `tmp/dispatch-bundles`,
 excludes protected/generated artifacts, and refuses protected or unclassified
 dirty paths unless the corresponding explicit flags are supplied. The command
-prints the recommended browser prompt after writing the archive.
+prints the same recommended browser prompt after writing the archive.
 
 Run `handback-check` on worker handbacks. Require `Status`, `Scope`, `Files`,
 `Validation`, and `Risks`. Require the expected validation command, or a

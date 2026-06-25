@@ -51,8 +51,8 @@ terms aligned with `public/docs/policy-vocabulary.md`.
   validation.
 - `public/docs/policy-vocabulary.md`: modal verbs and shared artifact/build
   vocabulary.
-- `public/docs/executive-assessment.md`: dated manuscript assessment; do not
-  treat it as current workflow policy.
+- `public/docs/executive-assessment.md`: dated public-readiness assessment; do
+  not treat it as current workflow policy.
 
 ## References
 

@@ -73,3 +73,32 @@ def test_ph_renderer_generates_figure_and_table(tmp_path: Path) -> None:
     assert "improved" in table_text
     assert "regressed" in table_text
     assert "plateau" in table_text
+
+
+def test_ph_renderer_defaults_to_pdf_only_for_tracked_report_assets(tmp_path: Path) -> None:
+    csv_path = tmp_path / "p_h_refinement_demo.csv"
+    output_dir = tmp_path / "figures"
+    table_dir = tmp_path / "tables"
+    write_ph_fixture(csv_path)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ops.render_ph_refinement_demo",
+            "--csv",
+            str(csv_path),
+            "--output-dir",
+            str(output_dir),
+            "--table-dir",
+            str(table_dir),
+        ],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (output_dir / "p-h-refinement-demo.pdf").exists()
+    assert not (output_dir / "p-h-refinement-demo.png").exists()
+    assert (table_dir / "p_h_refinement_demo.tex").exists()

@@ -11,7 +11,7 @@ therefore name mathematical roles first; implementation labels appear only as
 traceability tags for reconstructing the selected runs. The stack map in
 Section~\ref{subsec:numerical-contract-stack} is used throughout this
 methodology, with symbol roles summarized in
-Appendix~\ref{def:contract-role-symbol-map}.
+Notation~\ref{def:contract-role-symbol-map}.
 
 \begin{center}
 \fbox{\begin{minipage}{0.90\linewidth}
@@ -65,9 +65,8 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             $T=0.9995$ s for the 23\% and 40\% stenosis cases.
             & The comparison supports a claim only for these common section
             observables. Radial-profile diagnostic rows are supplemental
-            diagnostic artifacts, not localization evidence. A
-            separate Section~4.1 source-artifact reconstruction and comparison
-            workflow is documented in Appendix~\ref{app:code-and-ai-use}. \\
+            diagnostic artifacts, not localization evidence; Appendix~\ref{app:code-and-ai-use}
+            documents the separate Section~4.1 source-artifact workflow. \\
         Numerical evidence
             & The main text reports manufactured-solution behavior,
             output-operator verification, geometry-rest drift, subcritical
@@ -218,10 +217,8 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     stenotic pressure and velocity trends unless additional variable-radius
     terms are included \cite[Abstract; Secs.~1--2]{CanicEtAl2024Extended1DStenosis}.
     Those corrections are included by the Canic-derived extended member
-    (implementation label \texttt{canic-extended-1d}); the classical
-    parabolic-profile baseline (canonical report label
-    \texttt{classical-parabolic-1d}; historical implementation label
-    \texttt{classical-1d-no-slip}) retains the same selected wall law but
+    \texttt{canic-extended-1d}; the classical parabolic-profile baseline
+    \texttt{classical-parabolic-1d} retains the same selected wall law but
     omits the Canic variable-radius corrections.
 \end{remark}
 
@@ -234,14 +231,12 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     vessel. The parabolic profile is therefore an independent cross-sectional
     closure with $\alpha_{\mathcal P}=4/3$ and $g_{\mathcal P}=4$. In the
     mathematical discussion this model is the classical parabolic-profile
-    baseline, with canonical report label
-    \texttt{classical-parabolic-1d}. Older manifests and generated source
-    artifacts may retain the historical label \texttt{classical-1d-no-slip}
-    as provenance. The model keeps the same reduced state variables and selected
+    baseline, with canonical report label \texttt{classical-parabolic-1d}.
+    The model keeps the same reduced state variables and selected
     Canic-derived pressure--area wall law as the extended 1D framework, but
     omits the Canic effective-alpha variable-radius correction. The
-    $R_{\max}$-normalized Canic-derived extended member is labeled
-    \texttt{canic-extended-1d} in implementation manifests.
+    $R_{\max}$-normalized Canic-derived extended member is the canonical
+    comparison label \texttt{canic-extended-1d}.
 \end{definition}
 
 \begin{definition}[Selected Canic--Koiter pressure--area wall law]
@@ -318,7 +313,8 @@ The selected continuous law has a rest state that matters for the evidence
 standard. Under constant external pressure and compatible zero-flow boundary
 data, the reference geometry $a(z)=R_0(z)^2$ with $q(z)=0$ should remain at
 rest in the continuous source-balanced model. This property is the target of
-the geometry-rest verification test in Section~\ref{subsec:rest-state-drift}.
+the geometry-rest equilibrium-preservation test in
+Section~\ref{subsec:rest-state-drift}.
 
 \begin{proposition}[Rest-state compatibility of the selected wall source]
     \label{prop:selected-rest-state-compatibility}
@@ -490,18 +486,13 @@ radial-profile results are regenerated and accepted.
 The resolved-data loader also accepts pressure and displacement XDMF/HDF5
 companions for a velocity field. When the comparison is explicitly run in
 deformed-coordinate mode, the observation operator applies the node-centered
-displacement before forming the plane cuts. Both the reference-coordinate and
+displacement before forming the plane cuts. The reference-coordinate and
 deformed-coordinate section comparisons are reported in
-Section~\ref{subsec:deformed-coordinate-comparison}. The raw-input policy,
-target-time command contract, and table-fragment regeneration command are
-recorded in Appendix~\ref{app:code-and-ai-use}. The broader Canic
-Section~4.1 source-artifact comparison uses the same pressure and displacement
-loader surfaces for the restored 23\%, 40\%, and 50\% upstream bundles, with
-the local 1D target time taken from each imported XDMF time. Its output is a
-separate source-artifact diagnostic table, not part of the primary two-case
-localization claim. Pressure discrepancies in that comparison use the common
-Section~4.1 outlet-gauge diagnostic and remain separate from the primary
-velocity-observation result.
+Sections~\ref{subsec:section-mean-velocity-discrepancies}
+and~\ref{subsec:deformed-coordinate-comparison}, respectively.
+Appendix~\ref{app:code-and-ai-use} records the raw-input policy and the
+separate Section~4.1 source-artifact workflow; those diagnostics are not part
+of the primary two-case localization claim.
 
 For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
 cross-section quadrature operator intersects every tetrahedron with $S_j$,

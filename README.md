@@ -1,18 +1,18 @@
 # StenoticHemodynamics
 
-This repository contains the Julia package, simulations, tests, and LaTeX
-source for an idealized stenotic-vessel hemodynamics master's report. The
-report source is rooted at `report/final-report.tex`; the solver package is
+This repository contains the Julia package, simulations,
+tests, and LaTeX source for an idealized stenotic-vessel
+hemodynamics master's report. The report source is rooted
+at `report/final-report.tex`; the solver package is
 `StenoticHemodynamics` under `packages/stenotic-hemodynamics/src/`.
 
 The project is prepared for public peer review as a source tree. It tracks the
-current report source. This checkout also retains a legacy tracked
-`public/final-report.pdf` release artifact; current source-first policy treats
-final PDFs as release artifacts rather than ordinary source changes, so ordinary
-report builds should write to scratch space unless the task explicitly refreshes
-that PDF. The repository does not track third-party full-text reference mirrors,
-private review notes, local caches, raw optional resolved-3D inputs, or ordinary
-simulation outputs.
+current report source and excludes final PDFs from source tracking. A local
+ignored `public/final-report.pdf` may exist as a release-artifact candidate, but
+ordinary report builds should write to scratch space unless the task explicitly
+refreshes that PDF. The repository does not track third-party full-text
+reference mirrors, private review notes, local caches, raw optional resolved-3D
+inputs, or ordinary simulation outputs.
 
 ## Prerequisites
 
@@ -186,8 +186,9 @@ with explicit output ownership and claim-boundary review.
 
 ## Data and References
 
-Tracked report assets under `report/assets/` are derived artifacts used
-by the current TeX source.
+Tracked report assets under `report/assets/` include both live TeX-consumed
+inputs and documented published support/provenance assets. Rendered PDF/PNG
+figure assets remain tracked only when the current TeX source consumes them.
 
 Bibliography metadata lives in `public/references/references.bib`; source provenance lives in
 [`public/references/source-inventory.tsv`](public/references/source-inventory.tsv). Public

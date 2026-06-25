@@ -1,24 +1,26 @@
 {
+    "latex-workshop.latex.autoBuild.run": "never",
     "latex-workshop.latex.build.fromFolder": ".",
-    "latex-workshop.latex.outDir": "%WORKSPACE_FOLDER%",
-    "latex-workshop.latex.recipe.default": "first",
+    "latex-workshop.latex.outDir": "%WORKSPACE_FOLDER%/tmp/vscode-report-build",
+    "latex-workshop.latex.recipe.default": "preview (scratch, source-only)",
     "latex-workshop.latex.recipes": [
         {
-            "name": "build-report",
+            "name": "preview (scratch, source-only)",
             "tools": [
-                "build-report"
+                "ops-build-report-preview"
             ]
         }
     ],
     "latex-workshop.latex.tools": [
         {
-            "name": "build-report",
+            "name": "ops-build-report-preview",
             "command": "/bin/bash",
             "args": [
                 "-lc",
-                "PYTHONPATH=packages/ops/src python3 -m ops.build_report --repo \"$PWD\" --outdir /tmp/masters-report-build"
+                "PIPENV_VENV_IN_PROJECT=1 pipenv run ops-build-report --repo \"$PWD\" --entrypoint report/final-report.tex --outdir tmp/vscode-report-build --no-sync-final-pdf"
             ],
             "env": {}
         }
-    ]
+    ],
+    "latex-workshop.latex.autoBuild.cleanAndRetry.enabled": false
 }

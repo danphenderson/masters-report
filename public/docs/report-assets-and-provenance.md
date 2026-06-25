@@ -5,15 +5,17 @@ documented generation workflow. Do not refresh or delete report-consumed assets
 without checking the current TeX consumer and running the owning validation.
 The report-build summary is the authority for files consumed by the compiled
 PDF; the release manifest is provenance metadata for release handoff and final
-PDF identity, not an asset-consumption inventory.
+PDF identity, not an asset-consumption inventory. This document is also the
+authority for tracked report-asset families that remain published
+support/provenance even when they are absent from `consumed_inputs`.
 
 ## Asset Classes
 
 | Path | Role | Owning workflow | Validation |
 | --- | --- | --- | --- |
 | `report/assets/tikz/**` | Hand-maintained TikZ source consumed through `\figtikz`. | TeX source edits. | Validation-only report build. |
-| `report/assets/data/verification/**` | Verification CSV/DAT data consumed by tables or TikZ. | `stenotic-hemodynamics verify ...` and related Julia workflows. | Owning Julia workflow plus validation-only report build. |
-| `report/assets/tables/verification/**` | Verification LaTeX tables. | Julia verification workflows or renderers. | Owning workflow plus validation-only report build. |
+| `report/assets/data/verification/**` | Verification CSV/DAT data consumed by tables or TikZ, including the live p/h refinement appendix asset family. | `stenotic-hemodynamics verify ...` and related Julia workflows. | Owning Julia workflow plus validation-only report build. |
+| `report/assets/tables/verification/**` | Verification LaTeX tables consumed by the manuscript, including the p/h refinement appendix table. | Julia verification workflows or renderers. | Owning workflow plus validation-only report build. |
 | `report/assets/data/stenosis-comparison/**` | 1D/resolved-3D comparison data, operator validation, and sensitivity rows. | `compare-3d`, `operator-validation`, and evidence summary tools. | Resolved-3D workflow checks plus validation-only report build. |
 | `report/assets/tables/stenosis-comparison/**` | Comparison and operator-validation LaTeX tables. | `compare-3d` and `operator-validation`. | Owning workflow plus validation-only report build. |
 | `report/assets/data/canic-replication/**` | Canic Section 4.1 source-artifact comparison provenance, parameter audit, summary, section comparison, radial-velocity, and 3D diagnostic rows. | `canic-replication section41 --publish-report-assets`. | Focused Canic workflow tests, owning Julia command, and validation-only report build. |
@@ -38,8 +40,8 @@ Check TeX consumers before changing assets:
   accepted Canic source-artifact comparison table fragments under
   `report/assets/tables/canic-replication/**`.
 - `report/appendices/numerical-methods-details.tex` consumes package benchmark
-  tables and figures, p/h refinement figures, stationary-Stokes refinement
-  tables, and full rest-state drift tables.
+  tables and figures, the p/h refinement table and figure, stationary-Stokes
+  refinement tables, and full rest-state drift tables.
 
 Use `rg` against `report/**/*.tex` when a consumer is unclear.
 

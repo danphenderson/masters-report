@@ -220,33 +220,30 @@ outside this verification configuration, and it is not evidence for native
 resolved-FSI production, imported parity, or Section 4.1 source-artifact
 alignment.
 
-\begin{table}[!htb]
-    \centering
+\IfFileExists{report/assets/tables/verification/p_h_refinement_demo.tex}{%
+    \input{report/assets/tables/verification/p_h_refinement_demo.tex}
+}{%
+    \begin{center}
     \small
-    \caption{DG p/h demonstration evidence boundary. The local scratch exports
-    were inspected as diagnostic context, but the generated table and rendered
-    figure are not input as current manuscript evidence in this no-refresh
-    batch.}
-    \label{tab:dg-ph-evidence-boundary}
-    \begin{tabularx}{\textwidth}{@{}p{0.30\textwidth}p{0.22\textwidth}X@{}}
-        \toprule
-        \textbf{Local export} & \textbf{Limiter policy} & \textbf{Manuscript role} \\
-        \midrule
-        \texttt{tmp/masters-report-dg-psweep-limited} &
-        Modal limiter enabled &
-        Diagnostic counterweight for p-convergence claims: the fixed-grid
-        p-sweep plateaus or regresses, so it is not accepted as evidence that
-        the conservative limited DG default has production p-convergence. \\
-        \texttt{tmp/masters-report-dg-psweep-unlimited} and the stored
-        verification asset &
-        Modal limiter disabled &
-        Smooth-MMS implementation context for the modal polynomial
-        representation and operator wiring only; it is not primary case-study
-        evidence, not native resolved-FSI evidence, and not refreshed in this
-        batch. \\
-        \bottomrule
-    \end{tabularx}
-\end{table}
+    \emph{p/h-refinement table not present in the local report asset set;
+    expected location: \path{report/assets/tables/verification/}.}
+    \end{center}
+}
+
+\begin{figure}[!htb]
+    \centering
+    \IfFileExists{report/assets/rendered/p-h-refinement-demo.pdf}{%
+        \includegraphics[width=0.86\linewidth]{report/assets/rendered/p-h-refinement-demo.pdf}
+    }{%
+        \fbox{\parbox{0.82\linewidth}{\centering p/h-refinement demonstration
+        asset not present in the local report asset set.}}
+    }
+    \caption{Manufactured-solution p- and h-refinement demonstration for the
+    secondary modal-DG surface. The displayed p-sweep uses the explicit
+    limiter-disabled smooth MMS policy recorded in the table; it is not a claim
+    that the conservative limited DG default has production p-convergence.}
+    \label{fig:ph-refinement-demo}
+\end{figure}
 
 \paragraph{Self-convergence, integrator comparison, and closure sensitivity.}
 The remaining package-benchmark figures are retained as compact

@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "status": "source_first_with_retained_legacy_pdf",
+  "status": "source_first_pdf_externalized",
   "source_root": "report/final-report.tex",
   "release_tag": "not_declared_for_this_local_copy",
   "report_source_commit": {
     "commit": "32a60dde66c12c736b8854d710813a3a0b7c6a85",
     "commit_date": "2026-06-24T16:13:04-07:00",
-    "description": "last report source/prose commit consumed by the retained final PDF in this checkout"
+    "description": "last report source/prose commit consumed by the local final PDF artifact recorded here"
   },
   "pdf_artifact_commit": {
     "commit": "32a60dde66c12c736b8854d710813a3a0b7c6a85",
     "commit_date": "2026-06-24T16:13:04-07:00",
-    "description": "last tracked public/final-report.pdf refresh currently retained in this checkout"
+    "description": "last public/final-report.pdf refresh recorded before source-tree PDF externalization"
   },
   "manifest_commit_policy": "Do not record the eventual manifest commit hash inside this file; a later release tag or archive record should identify the committed manifest state.",
   "public_repository_url": "not_declared",
@@ -24,9 +24,9 @@
     "sha256": "42e0a6a6f05ac4d937221fc8420333360d1985a1ea4aec5dc640a17f953270d3",
     "generation_command": "pipenv run ops-build-report --outdir /tmp/masters-report-build",
     "validation_command": "pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf",
-    "artifact_policy": "legacy tracked release artifact retained in this checkout; refresh only when release publication or a scoped PDF refresh is explicitly in scope"
+    "artifact_policy": "ignored local release artifact; refresh only when release publication or a scoped PDF refresh is explicitly in scope"
   },
-  "final_pdf_policy": "source-first; publish final PDFs as release artifacts outside ordinary source commits; this checkout retains a legacy tracked public/final-report.pdf pending source-export cleanup",
+  "final_pdf_policy": "source-first; publish final PDFs as release artifacts outside ordinary source commits; public/final-report.pdf is excluded from source tracking",
   "local_raw_input_checksum_audit": {
     "status": "scratch_only_not_tracked",
     "files_list": "/tmp/raw-3d-inputs-files.txt",

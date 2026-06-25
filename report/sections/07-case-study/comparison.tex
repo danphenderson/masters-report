@@ -17,12 +17,8 @@ at $T=0.9995\,\mathrm{s}$; the measured 1D--3D final-time offset is
 $5.47\times10^{-14}\,\mathrm{s}$ in each case. This timestamp agreement is a
 final-time alignment check, not a complete transient-history match.
 Appendix~\ref{app:code-and-ai-use} records the raw-input policy, reconstruction
-commands, and table-fragment renderer for this comparison. It also reports a
-broader Canic et al.\ Section~4.1 source-artifact comparison using the restored
-upstream 3D bundle set. That comparison is supplemental to this chapter's
-two-case comparator: it carries its own parameter, time-alignment, and
-pressure-gauge checks in Tables~\ref{tab:canic-section41-summary} and
-\ref{tab:canic-section41-parameter-audit}.
+commands, and the separate Canic et al.\ Section~4.1 source-artifact workflow,
+which remains supplemental to this chapter's two-case comparator.
 The numerical results in this section are interpreted through the numerical
 template in Section~\ref{subsec:numerical-contract-stack}, the
 well-balanced preservation checklist in Definition~\ref{def:well-balanced-checklist},
@@ -44,13 +40,11 @@ reported by stenosis severity.
 Resolved incompressible pressure is gauge-dependent unless a common pressure
 gauge is applied. No such gauge is established for the primary two-case 1D--3D
 velocity comparison, so absolute pressure differences are not interpreted there
-as cross-model pressure errors. The Canic Section~4.1 source-artifact
-comparison applies a common outlet gauge for pressure diagnostics: it subtracts
-the resolved \texttt{CrossSectionQuadratureOperator} mean pressure at
-\(z=6\,\mathrm{cm}\) and the corresponding 1D diagnostic outlet pressure before
-reporting pressure discrepancies. Those rows remain source-artifact diagnostics
-rather than clinical validation, pressure-ratio evidence, or full transient FSI
-reproduction.
+as cross-model pressure errors. The separate Canic Section~4.1 workflow uses
+outlet-gauged pressure diagnostics only, as recorded in
+Appendix~\ref{app:code-and-ai-use}; those rows remain source-artifact
+diagnostics rather than clinical validation, pressure-ratio evidence, or full
+transient FSI reproduction.
 
 \begin{table}[!htb]
     \centering
@@ -454,17 +448,12 @@ specified resolved comparators: a reference-coordinate velocity comparison, a
 displacement-aware observation comparison, and a quasi-static membrane-wall
 comparator. The results support the section-observation and comparison
 operators and localize final-time velocity discrepancies under the stated
-operators. The derived assets in the source tree can rebuild the manuscript and
-verify missing raw resolved-3D inputs as an expected skip. Regenerating
-raw-data-dependent assets requires restoring the ignored XDMF/HDF5 inputs
-described in Appendix~\ref{app:code-and-ai-use}. With those inputs present, the
-Canic Section~4.1 source-artifact comparison reconstructs derived velocity,
-outlet-gauge pressure-diagnostic, radial-postprocessing, and 3D-diagnostic
-assets at the imported final time for each restored case. It still does not
-regenerate the article's raw transient 3D FSI solution, and its pressure values
-remain gauge-normalized diagnostics only. This interpretation remains
-conditional on the specified equation, state variables,
-discretization, observation rule, and metric summarized in
+operators. Appendix~\ref{app:code-and-ai-use} governs the raw-input policy and
+the separate Section~4.1 source-artifact workflow; restoring the ignored
+XDMF/HDF5 inputs permits those supplemental diagnostics but does not regenerate
+the article's raw transient 3D FSI solution. This interpretation remains
+conditional on the specified equation, state variables, discretization,
+observation rule, and metric summarized in
 Section~\ref{subsec:numerical-contract-stack}. It does not provide externally
 validated clinical prediction evidence, pressure-ratio evidence, or equivalence
 to a full transient FSI computation with matched boundary and wall-history data.
