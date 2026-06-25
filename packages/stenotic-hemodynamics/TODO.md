@@ -1,6 +1,6 @@
 # StenoticHemodynamics Package TODO
 
-Date: 2026-06-24
+Date: 2026-06-25
 
 This file is the live package coordination document. Keep it short: current
 state, claim boundary, active work, and future gates only.

@@ -1,6 +1,6 @@
 # Report Orchestration TODO
 
-Date: 2026-06-24
+Date: 2026-06-25
 
 This file is the live report-side coordination document. Keep it short:
 current state, claim boundary, active work, and future gates only.
@@ -30,9 +30,9 @@ current state, claim boundary, active work, and future gates only.
 
 ## Active Work
 
-- No report source task is currently open in this TODO. Future source-only
-  cleanup may compress process language or clarify source-artifact comparison
-  wording, but claim-affecting edits must start from `NO-SEND`.
+- No report source task is currently open in this TODO. Future package-only
+  helper splits must not change report prose, assets, publication state, or
+  claim strings unless a separate report lane explicitly scopes that work.
 
 ## Future Gates
 
