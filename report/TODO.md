@@ -13,9 +13,10 @@ claim-boundary cleanup. Treat the live checkout as authority.
 - Report/package separation remains strict: report prose may describe package
   behavior, but package implementation evidence must land through the package
   tree and tests first.
-- Final PDF sync is in scope after the explicit 2026-06-24 user request.
-  Do not modify `report/assets/rendered/**`, raw resolved-3D inputs, public
-  logs, public simulation data, or reference PDFs/HTML.
+- This P3/P4 native resolved-FSI documentation lane is source-docs only. Do
+  not refresh `public/final-report.pdf`, `report/assets/rendered/**`, raw
+  resolved-3D inputs, public logs, public simulation data, generated outputs,
+  or reference PDFs/HTML.
 
 ## Active Report Tasks
 
@@ -54,9 +55,8 @@ P0 package tasks for the same batch are pressure semantics, Canic time alignment
 and pressure gauge policy. The report must not widen claims beyond what package
 tests encode. Architecture cleanup is documentary unless a separate dependency
 refactor lane is opened. Corrected numerical outputs, if needed, require a
-separate derived-asset refresh lane. The only artifact refresh in this batch is
-the explicitly requested sync of `public/final-report.pdf` from the current
-report source.
+separate derived-asset refresh lane. This P3/P4 documentation batch does not
+reopen a final-PDF sync or any generated-output promotion lane.
 
 P2 package tasks are limited to maintainability changes that preserve public
 behavior: typed Canic workflow output rows and a narrow split of native
@@ -67,6 +67,21 @@ Native resolved-FSI production execution, imported parity for the native Gridap
 path, public/default restart or resume support, viewer controls, timing
 sidecars, dry-run status rows, and checkpoint metadata remain outside manuscript
 evidence unless a future report-evidence lane explicitly accepts them.
+
+P3/P4 native resolved-FSI wording must stay bounded as follows:
+
+- exact Section 4.1 boundary mode is a qualified internal smoke/operator
+  readiness status, while pressure-drop weak loading remains the default smoke
+  evidence path;
+- parity and observation rows are local optional-data operator rows, not
+  paper-grade Section 4.1 reproduction rows;
+- pressure observation differences are non-evidentiary until a common pressure
+  gauge operator is implemented, offset-tested, and accepted for the report
+  comparison contract;
+- schema-v3 split-run resume is qualified internal resume into a forked output
+  root, not public/default resume and not a public native production CLI;
+- monolithic ALE, clinical/patient validation, production-scale Section 4.1
+  reproduction, and report-evidence promotion remain deferred.
 
 ## Validation
 
@@ -124,5 +139,5 @@ Expected results:
 If corrected numerical outputs are needed, open a separate derived-asset refresh lane:
 regenerate into ignored scratch first, review generated CSV/JSON/TeX for claim
 boundaries, then publish only accepted derived artifacts. Refresh
-`public/final-report.pdf` only in an explicitly scoped publication lane; the
-current PDF sync is such a lane.
+`public/final-report.pdf` only in an explicitly scoped publication lane; this
+P3/P4 documentation lane is not such a lane.

@@ -1,6 +1,11 @@
 const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_AUDIT_METADATA_VERSION = 1
 const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_CHECKPOINT_MANIFEST_VERSION = 2
 const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_DURABLE_CHECKPOINT_VERSION = 3
+const NATIVE_RESOLVED_FSI_RESTART_INTERNAL_RESUME_SCOPE = "qualified_internal_split_run_only"
+const NATIVE_RESOLVED_FSI_RESTART_INTERNAL_RESUME_STATUS = "ready"
+const NATIVE_RESOLVED_FSI_RESTART_PUBLIC_RESUME_STATUS = "unsupported_no_public_or_default_process_resume"
+const NATIVE_RESOLVED_FSI_RESTART_DEFAULT_PROCESS_RESUME_STATUS =
+    "unsupported_use_qualified_internal_split_run_only"
 const NATIVE_RESOLVED_FSI_RESTART_SCHEMA_V2_REQUIRED_CHECKPOINT_ROLES = (
     "wall_state",
     "mesh_identity",
@@ -20,7 +25,9 @@ JSON written by the package's minimal writer, and is parsed through the existing
 lazy YAML loader because JSON is valid YAML. Both legacy independent
 smoke-backed metadata and current state-carrying-in-run partitioned metadata
 are readable. When a versioned `state_payload` block is present it is validated
-as audit metadata only; persisted resume remains unsupported for all forms.
+as audit metadata only. Durable schema-v3 checkpoints are valid only for
+qualified internal split-run resume; public/default process resume remains
+unsupported.
 """
 function native_resolved_fsi_read_restart_metadata(path::AbstractString)
     path_string = String(path)
@@ -41,6 +48,7 @@ function native_resolved_fsi_read_restart_metadata(path::AbstractString)
     if restart_schema_version == NATIVE_RESOLVED_FSI_RESTART_SCHEMA_DURABLE_CHECKPOINT_VERSION
         native_resolved_fsi_require_restart_metadata_value(metadata, "resume_supported", true)
         native_resolved_fsi_require_restart_metadata_value(metadata, "resume_status", "ready")
+        native_resolved_fsi_validate_restart_schema_v3_resume_scope(metadata)
     else
         native_resolved_fsi_require_restart_metadata_value(metadata, "resume_supported", false)
         native_resolved_fsi_require_restart_metadata_value(metadata, "resume_status", "deferred")
@@ -114,8 +122,8 @@ end
 
 Validate restart-identification metadata, including any optional state payload,
 then fail closed for public callers. Durable schema-v3 checkpoints are
-reserved for qualified internal resume runners; default package APIs and CLI
-paths do not expose production resume.
+reserved for qualified internal split-run resume runners; default package APIs
+and CLI paths do not expose production resume.
 """
 function native_resolved_fsi_resume_partitioned_production(path::AbstractString; kwargs...)
     metadata = native_resolved_fsi_read_restart_metadata(path)
@@ -126,9 +134,9 @@ function native_resolved_fsi_resume_partitioned_production(path::AbstractString;
         NATIVE_RESOLVED_FSI_RESTART_SCHEMA_AUDIT_METADATA_VERSION,
     )
     throw(ArgumentError(
-        "native resolved-FSI public persisted resume from restart metadata is unsupported for provenance " *
+        "native resolved-FSI public/default process resume from restart metadata is unsupported for provenance " *
         "$(repr(provenance)) and restart_schema_version $(restart_schema_version); durable schema-v3 checkpoints " *
-        "are limited to qualified internal resume runners and no default CLI resume command is exposed",
+        "are limited to qualified internal split-run resume runners and no default CLI resume command is exposed",
     ))
 end
 
@@ -278,6 +286,96 @@ function native_resolved_fsi_restart_schema_version(metadata::Dict{String,Any})
         "native resolved-FSI restart metadata restart_schema_version must be 1, 2, or 3; got $(repr(version))",
     ))
     return version
+end
+
+function native_resolved_fsi_validate_restart_schema_v3_resume_scope(
+    metadata::Dict{String,Any};
+    context::String = "native resolved-FSI restart metadata",
+)
+    native_resolved_fsi_require_restart_metadata_value(
+        metadata,
+        "resume_scope",
+        NATIVE_RESOLVED_FSI_RESTART_INTERNAL_RESUME_SCOPE;
+        context=context,
+    )
+    native_resolved_fsi_require_restart_metadata_bool(
+        metadata,
+        "internal_split_run_resume_supported",
+        true;
+        context=context,
+    )
+    native_resolved_fsi_require_restart_metadata_value(
+        metadata,
+        "internal_split_run_resume_status",
+        NATIVE_RESOLVED_FSI_RESTART_INTERNAL_RESUME_STATUS;
+        context=context,
+    )
+    native_resolved_fsi_require_restart_metadata_bool(
+        metadata,
+        "public_resume_supported",
+        false;
+        context=context,
+    )
+    native_resolved_fsi_require_restart_metadata_value(
+        metadata,
+        "public_resume_status",
+        NATIVE_RESOLVED_FSI_RESTART_PUBLIC_RESUME_STATUS;
+        context=context,
+    )
+    native_resolved_fsi_require_restart_metadata_bool(
+        metadata,
+        "default_process_resume_supported",
+        false;
+        context=context,
+    )
+    native_resolved_fsi_require_restart_metadata_value(
+        metadata,
+        "default_process_resume_status",
+        NATIVE_RESOLVED_FSI_RESTART_DEFAULT_PROCESS_RESUME_STATUS;
+        context=context,
+    )
+
+    resume_run_role = native_resolved_fsi_require_restart_metadata_string(
+        metadata,
+        "resume_run_role";
+        context=context,
+    )
+    resume_run_role in ("checkpoint_writer", "forked_internal_resume") || throw(ArgumentError(
+        "$(context) resume_run_role must be \"checkpoint_writer\" or \"forked_internal_resume\"; got " *
+        repr(resume_run_role),
+    ))
+    output_ownership_policy = native_resolved_fsi_require_restart_metadata_string(
+        metadata,
+        "output_ownership_policy";
+        context=context,
+    )
+    output_ownership_policy in (
+        "current_run_owns_all_listed_outputs",
+        "forked_resume_references_parent_completed_outputs_and_owns_only_current_resume_output_root",
+    ) || throw(ArgumentError(
+        "$(context) output_ownership_policy is not a recognized internal split-run ownership policy",
+    ))
+    parent_restart_metadata_json = get(metadata, "parent_restart_metadata_json", nothing)
+    if resume_run_role == "checkpoint_writer"
+        parent_restart_metadata_json === nothing || throw(ArgumentError(
+            "$(context) checkpoint_writer must not declare parent_restart_metadata_json",
+        ))
+        output_ownership_policy == "current_run_owns_all_listed_outputs" || throw(ArgumentError(
+            "$(context) checkpoint_writer must own all listed outputs",
+        ))
+    else
+        parent_restart_metadata_json isa AbstractString && !isempty(parent_restart_metadata_json) || throw(ArgumentError(
+            "$(context) forked_internal_resume requires parent_restart_metadata_json",
+        ))
+        forked_output_ownership_policy =
+            "forked_resume_references_parent_completed_outputs_and_owns_only_current_resume_output_root"
+        if output_ownership_policy != forked_output_ownership_policy
+            throw(ArgumentError(
+                "$(context) forked_internal_resume must distinguish parent outputs from the current resume output root",
+            ))
+        end
+    end
+    return nothing
 end
 
 function native_resolved_fsi_validate_restart_schema_contract(

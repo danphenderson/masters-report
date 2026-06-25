@@ -4,6 +4,8 @@ const NativeResolvedFSINavierStokesSmokeSolve = StenoticHemodynamics.NativeResol
 const NativeResolvedFSINavierStokesSmokeSpec = StenoticHemodynamics.NativeResolvedFSINavierStokesSmokeSpec
 const NativeResolvedFSIPartitionedSmokeResult = StenoticHemodynamics.NativeResolvedFSIPartitionedSmokeResult
 const NativeResolvedFSIPartitionedSmokeSpec = StenoticHemodynamics.NativeResolvedFSIPartitionedSmokeSpec
+const NativeResolvedFSIPartitionedProductionSpec =
+    StenoticHemodynamics.NativeResolvedFSIPartitionedProductionSpec
 const NativeResolvedFSISmokeResult = StenoticHemodynamics.NativeResolvedFSISmokeResult
 const NativeResolvedFSISmokeSpec = StenoticHemodynamics.NativeResolvedFSISmokeSpec
 const NativeResolvedFSIWorkflowStatus = StenoticHemodynamics.NativeResolvedFSIWorkflowStatus
@@ -25,6 +27,8 @@ const native_resolved_fsi_partitioned_validate_physical_wall_pressure_profile =
     StenoticHemodynamics.native_resolved_fsi_partitioned_validate_physical_wall_pressure_profile
 const native_resolved_fsi_pressure_space_policy = StenoticHemodynamics.native_resolved_fsi_pressure_space_policy
 const native_resolved_fsi_mesh = StenoticHemodynamics.native_resolved_fsi_mesh
+const native_resolved_fsi_partitioned_production_dry_run =
+    StenoticHemodynamics.native_resolved_fsi_partitioned_production_dry_run
 const native_resolved_fsi_radial_wall_velocity_function =
     StenoticHemodynamics.native_resolved_fsi_radial_wall_velocity_function
 const native_resolved_fsi_sample_smoke_fields = StenoticHemodynamics.native_resolved_fsi_sample_smoke_fields
@@ -32,6 +36,8 @@ const native_resolved_fsi_section41_poiseuille_inlet_velocity_function =
     StenoticHemodynamics.native_resolved_fsi_section41_poiseuille_inlet_velocity_function
 const native_resolved_fsi_solve_navier_stokes = StenoticHemodynamics.native_resolved_fsi_solve_navier_stokes
 const native_resolved_fsi_smoke_spec = StenoticHemodynamics.native_resolved_fsi_smoke_spec
+const native_resolved_fsi_production_workflow_plans =
+    StenoticHemodynamics.native_resolved_fsi_production_workflow_plans
 const run_native_resolved_fsi_navier_stokes_smoke = StenoticHemodynamics.run_native_resolved_fsi_navier_stokes_smoke
 const run_native_resolved_fsi_partitioned_smoke = StenoticHemodynamics.run_native_resolved_fsi_partitioned_smoke
 const run_native_resolved_fsi_smoke = StenoticHemodynamics.run_native_resolved_fsi_smoke
@@ -172,6 +178,86 @@ end
     @test occursin("(-pI + 2mu*epsilon(u))n = 0", exact_boundary_status)
     @test occursin("no Gridap zero-mean pressure constraint", exact_boundary_status)
     @test !occursin("Gridap zero-mean pressure constraint active", exact_boundary_status)
+end
+
+@testset "StenoticHemodynamics native resolved-FSI exact Section 4.1 smoke contract" begin
+    exact_contract = StenoticHemodynamics.native_resolved_fsi_exact_section41_boundary_smoke_contract(
+        inlet_umax_cm_s=45.0,
+    )
+    @test exact_contract.boundary_mode == "poiseuille_inlet_zero_outlet_stress_section41"
+    @test exact_contract.boundary_mode_class == "exact_section41"
+    @test exact_contract.inlet_condition_status == "poiseuille_profile_umax_45_cm_s"
+    @test exact_contract.outlet_condition_status == "zero_outlet_stress_natural_traction"
+    @test exact_contract.pressure_gauge_status ==
+          "post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint"
+    @test occursin("no_gridap_zero_mean_pressure_constraint", exact_contract.pressure_nullspace_status)
+    @test occursin("exact_natural_cauchy_traction_pressure_reference", exact_contract.pressure_nullspace_status)
+    @test occursin("direct_finite_physical_wall_forcing_pressure_sampling_required", exact_contract.wall_pressure_projection_status)
+    @test occursin("pressure_drop_resistance_fallback_disabled", exact_contract.wall_pressure_projection_status)
+    @test occursin("outlet_gauge_normalization_export_only_not_membrane_forcing", exact_contract.wall_pressure_projection_status)
+    @test occursin("physical_wall_forcing_pressure_raw_direct_finite_sampling_required", exact_contract.wall_pressure_forcing_status)
+    @test occursin("post_sampling_outlet_gauge_pressure_export_only", exact_contract.wall_pressure_forcing_status)
+    @test exact_contract.section41_boundary_status == "implemented_smoke_validated"
+    @test occursin("smoke-scale/operator-readiness evidence only", exact_contract.boundary_status)
+    @test occursin("not paper-grade numerical reproduction", exact_contract.boundary_status)
+    @test occursin("exact_section41_boundary_mode_selected_smoke_validated", exact_contract.boundary_equivalence_status)
+    @test occursin("not paper-grade reproduction", exact_contract.boundary_equivalence_status)
+
+    weak_boundary_status = StenoticHemodynamics.native_resolved_fsi_boundary_status_fields(
+        :pressure_drop_weak_inlet_outlet_gauge_smoke,
+    )
+    @test weak_boundary_status.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke"
+    @test weak_boundary_status.boundary_mode_class == "local_smoke_loading"
+    @test weak_boundary_status.section41_boundary_status == "deferred_or_not_selected"
+    @test occursin("not exact Section 4.1", weak_boundary_status.boundary_status)
+
+    @test_throws ArgumentError StenoticHemodynamics.native_resolved_fsi_exact_section41_boundary_smoke_contract(
+        inlet_umax_cm_s=0.0,
+    )
+
+    resolution = NativeResolvedFSIMeshResolution(axial=2, radial=1, angular=6)
+    default_production_spec = NativeResolvedFSIPartitionedProductionSpec(resolution=resolution)
+    @test default_production_spec.inlet_outlet_boundary_mode === :pressure_drop_weak_inlet_outlet_gauge_smoke
+    @test default_production_spec.pressure_drop_dyn_cm2 > 0.0
+
+    mktempdir() do dir
+        exact_plan = only(native_resolved_fsi_production_workflow_plans(
+            case_ids=(:sev23,),
+            resolution=resolution,
+            output_root=joinpath(dir, "exact-production"),
+            dt_s=1.0e-4,
+            tfinal_s=1.0e-4,
+            snapshot_times_s=[1.0e-4],
+            inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+            inlet_umax_cm_s=45.0,
+            pressure_drop_dyn_cm2=0.0,
+        ))
+        @test exact_plan.production_spec.inlet_outlet_boundary_mode ===
+              :poiseuille_inlet_zero_outlet_stress_section41
+        @test exact_plan.production_spec.pressure_drop_dyn_cm2 == 0.0
+        @test occursin("exact Poiseuille inlet / zero-outlet-stress boundary mode", exact_plan.status)
+        @test occursin("smoke-scale/operator-readiness evidence only", exact_plan.status)
+        @test occursin("not a paper-grade reproduction", exact_plan.status)
+
+        exact_dry_run = native_resolved_fsi_partitioned_production_dry_run(
+            exact_plan;
+            imported_data_root=joinpath(dir, "missing-imported"),
+        )
+        @test exact_dry_run.boundary_mode == "poiseuille_inlet_zero_outlet_stress_section41"
+        @test exact_dry_run.boundary_mode_class == "exact_section41"
+        @test exact_dry_run.inlet_condition_status == "poiseuille_profile_umax_45_cm_s"
+        @test exact_dry_run.outlet_condition_status == "zero_outlet_stress_natural_traction"
+        @test exact_dry_run.pressure_gauge_status ==
+              "post_sampling_outlet_mean_normalization_not_gridap_nullspace_constraint"
+        @test occursin("no_gridap_zero_mean_pressure_constraint", exact_dry_run.pressure_nullspace_status)
+        @test exact_dry_run.section41_boundary_status == "implemented_smoke_validated"
+        @test occursin("smoke-scale/operator-readiness evidence only", exact_dry_run.boundary_status)
+        @test occursin("not paper-grade numerical reproduction", exact_dry_run.boundary_status)
+        @test occursin("exact_section41_boundary_mode_selected_smoke_validated", exact_dry_run.boundary_equivalence_status)
+        @test occursin("production execution is available only through explicit production specs", exact_dry_run.status)
+        @test occursin("not paper-grade native resolved-FSI Section 4.1 reproduction", exact_dry_run.status)
+        @test !ispath(exact_dry_run.output_dir)
+    end
 end
 
 @testset "StenoticHemodynamics native resolved-FSI radial wall velocity helper" begin
@@ -668,8 +754,10 @@ end
         @test !occursin("Gridap zero-mean pressure constraint active", exact_result.section41_boundary_status.status)
         @test occursin("no pressure-drop weak inlet/outlet loading", exact_result.section41_boundary_status.status)
         @test exact_result.pressure_projection_fallback_count == 0
+        @test isfinite(exact_result.pressure_gauge_offset_dyn_cm2)
         @test exact_result.fluid_wall_boundary_mode == :stationary_wall_on_deformed_geometry
         @test occursin("stationary no-slip wall", exact_result.field_status.status)
+        @test occursin("wall-pressure projection fallbacks: 0", exact_result.field_status.status)
         @test all(isfinite, exact_result.loaded_velocity)
         @test all(isfinite, exact_result.loaded_pressure)
         @test all(isfinite, exact_result.loaded_displacement)

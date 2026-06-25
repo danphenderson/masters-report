@@ -552,13 +552,73 @@ end
         )
         @test occursin("one-iteration coupling remains bounded evidence", exact_dry_run.wall_stability_status)
         @test occursin("dry-run does not certify wall-pressure/load stability", exact_dry_run.wall_stability_status)
-        @test occursin("production runner support advances the exact inlet/outlet boundary mode", exact_plan.status)
+        @test occursin(
+            "production runner support advances the exact Poiseuille inlet / zero-outlet-stress boundary mode",
+            exact_plan.status,
+        )
         @test occursin("section41_boundary_status=implemented_smoke_validated", exact_plan.status)
         @test occursin("boundary_mode=poiseuille_inlet_zero_outlet_stress_section41", exact_dry_run.status)
         @test occursin("section41_boundary_status=implemented_smoke_validated", exact_dry_run.status)
         @test occursin("pressure_nullspace_status=no_gridap_zero_mean_pressure_constraint", exact_dry_run.status)
         @test occursin("sev23_development_exact_boundary_artifact_gate_passed_tfinal0p01", exact_dry_run.status)
         @test occursin("production execution is available only through explicit production specs", exact_dry_run.status)
+
+        native_status_root = joinpath(dir, "native-status-cli")
+        native_status_stdout = joinpath(dir, "native-status-stdout.txt")
+        native_status_result = open(native_status_stdout, "w") do io
+            redirect_stdout(io) do
+                StenoticHemodynamics.run_fsi_cli([
+                    "native-status",
+                    "--case-id",
+                    "sev23",
+                    "--mesh",
+                    "2x1x6",
+                    "--snapshot-times",
+                    "1e-4",
+                    "--output-root",
+                    native_status_root,
+                    "--imported-data-root",
+                    joinpath(dir, "missing-imported"),
+                ])
+            end
+        end
+        native_status_text = read(native_status_stdout, String)
+        @test native_status_result isa NativeResolvedFSIProductionDryRunPlan
+        @test occursin("native_resolved_fsi_status,dry_run", native_status_text)
+        @test occursin("no production solver executed", native_status_result.status)
+        @test occursin("no files written", native_status_result.status)
+        @test !ispath(native_status_root)
+        @test !ispath(native_status_result.output_dir)
+        @test !isfile(native_status_result.manifest_csv)
+        @test !isfile(native_status_result.diagnostics_csv)
+        @test !isfile(native_status_result.restart_metadata_json)
+        @test !isfile(native_status_result.batch_status_jsonl)
+        @test !isfile(native_status_result.batch_status_csv)
+        @test !isfile(native_status_result.batch_benchmark_json)
+        @test !isfile(native_status_result.batch_failure_json)
+
+        native_status_resume_cli_root = joinpath(dir, "native-status-resume-cli")
+        native_status_resume_cli_error = try
+            StenoticHemodynamics.run_fsi_cli([
+                "native-status",
+                "--case-id",
+                "sev23",
+                "--mesh",
+                "2x1x6",
+                "--snapshot-times",
+                "1e-4",
+                "--output-root",
+                native_status_resume_cli_root,
+                "--resume-checkpoint",
+                joinpath(dir, "restart_metadata.json"),
+            ])
+            nothing
+        catch err
+            err
+        end
+        @test native_status_resume_cli_error isa ErrorException
+        @test occursin("unknown option --resume-checkpoint", sprint(showerror, native_status_resume_cli_error))
+        @test !ispath(native_status_resume_cli_root)
     end
 end
 
@@ -675,7 +735,8 @@ end
         @test result.diagnostics_status.ready
         @test result.restart_status.ready
         @test occursin("schema-v3 checkpoint sidecars", result.restart_status.status)
-        @test occursin("qualified internal resume", result.restart_status.status)
+        @test occursin("qualified internal split-run resume", result.restart_status.status)
+        @test occursin("public/default process resume remains unsupported", result.restart_status.status)
         manifest_lines = readlines(result.manifest_csv)
         @test length(manifest_lines) == 2
         @test startswith(
@@ -934,10 +995,20 @@ end
               length(result.smoke_result.coupling_residual_history)
         @test result.restart_metadata["resume_supported"] == true
         @test result.restart_metadata["resume_status"] == "ready"
+        @test result.restart_metadata["resume_scope"] == "qualified_internal_split_run_only"
+        @test result.restart_metadata["internal_split_run_resume_supported"] == true
+        @test result.restart_metadata["internal_split_run_resume_status"] == "ready"
+        @test result.restart_metadata["public_resume_supported"] == false
+        @test result.restart_metadata["public_resume_status"] ==
+              "unsupported_no_public_or_default_process_resume"
+        @test result.restart_metadata["default_process_resume_supported"] == false
+        @test result.restart_metadata["default_process_resume_status"] ==
+              "unsupported_use_qualified_internal_split_run_only"
         @test result.restart_metadata["restart_schema_version"] == 3
         @test result.restart_metadata["restart_schema_status"] == "schema_v3_durable_checkpoint"
         @test result.restart_metadata["checkpoint_schema_status"] == "durable_checkpoint_ready"
-        @test occursin("Public CLI resume remains intentionally unexposed", result.restart_metadata["resume_note"])
+        @test occursin("qualified internal split-run resume only", result.restart_metadata["resume_note"])
+        @test occursin("Public/default process resume", result.restart_metadata["resume_note"])
         @test length(result.restart_metadata["checkpoint_manifest"]) == 5
         @test Set(entry["role"] for entry in result.restart_metadata["checkpoint_manifest"]) ==
               Set(["wall_state", "mesh_identity", "fluid_state", "coupling_state", "output_linkage"])
@@ -976,6 +1047,9 @@ end
         @test state_payload["resume_status"] == "deferred"
         restart_metadata_text = read(result.restart_metadata_json, String)
         @test occursin("\"resume_supported\": true", restart_metadata_text)
+        @test occursin("\"resume_scope\": \"qualified_internal_split_run_only\"", restart_metadata_text)
+        @test occursin("\"public_resume_supported\": false", restart_metadata_text)
+        @test occursin("\"default_process_resume_supported\": false", restart_metadata_text)
         @test occursin("\"restart_schema_version\": 3", restart_metadata_text)
         @test occursin("\"restart_schema_status\": \"schema_v3_durable_checkpoint\"", restart_metadata_text)
         @test occursin("\"checkpoint_schema_status\": \"durable_checkpoint_ready\"", restart_metadata_text)
@@ -1007,6 +1081,10 @@ end
         @test parsed_restart_metadata["state_carrying_restart"] == true
         @test parsed_restart_metadata["resume_supported"] == true
         @test parsed_restart_metadata["resume_status"] == "ready"
+        @test parsed_restart_metadata["resume_scope"] == "qualified_internal_split_run_only"
+        @test parsed_restart_metadata["internal_split_run_resume_supported"] == true
+        @test parsed_restart_metadata["public_resume_supported"] == false
+        @test parsed_restart_metadata["default_process_resume_supported"] == false
         @test parsed_restart_metadata["restart_schema_version"] == 3
         @test parsed_restart_metadata["restart_schema_status"] == "schema_v3_durable_checkpoint"
         @test parsed_restart_metadata["checkpoint_schema_status"] == "durable_checkpoint_ready"
@@ -1055,10 +1133,10 @@ end
             err
         end
         @test resume_error isa ArgumentError
-        @test occursin("persisted resume from restart metadata is unsupported", sprint(showerror, resume_error))
+        @test occursin("public/default process resume from restart metadata is unsupported", sprint(showerror, resume_error))
         @test occursin("state_carrying_partitioned", sprint(showerror, resume_error))
         @test occursin("restart_schema_version 3", sprint(showerror, resume_error))
-        @test occursin("qualified internal resume runners", sprint(showerror, resume_error))
+        @test occursin("qualified internal split-run resume runners", sprint(showerror, resume_error))
         @test occursin("no default CLI resume command", sprint(showerror, resume_error))
 
         legacy_schema_v1_metadata = deepcopy(result.restart_metadata)
@@ -1181,6 +1259,54 @@ end
         @test invalid_schema_v2_error isa ArgumentError
         @test occursin("resume_supported == false", sprint(showerror, invalid_schema_v2_error))
 
+        public_resume_metadata = deepcopy(result.restart_metadata)
+        public_resume_metadata["public_resume_supported"] = true
+        public_resume_metadata_path = restart_metadata_fixture_path("public-resume-schema-v3-restart-metadata.json")
+        StenoticHemodynamics.write_json(public_resume_metadata_path, public_resume_metadata; overwrite=true)
+        public_resume_metadata_error = try
+            native_resolved_fsi_read_restart_metadata(public_resume_metadata_path)
+            nothing
+        catch err
+            err
+        end
+        @test public_resume_metadata_error isa ArgumentError
+        @test occursin("public_resume_supported == false", sprint(showerror, public_resume_metadata_error))
+
+        default_resume_metadata = deepcopy(result.restart_metadata)
+        default_resume_metadata["default_process_resume_supported"] = true
+        default_resume_metadata_path =
+            restart_metadata_fixture_path("default-resume-schema-v3-restart-metadata.json")
+        StenoticHemodynamics.write_json(default_resume_metadata_path, default_resume_metadata; overwrite=true)
+        default_resume_metadata_error = try
+            native_resolved_fsi_read_restart_metadata(default_resume_metadata_path)
+            nothing
+        catch err
+            err
+        end
+        @test default_resume_metadata_error isa ArgumentError
+        @test occursin(
+            "default_process_resume_supported == false",
+            sprint(showerror, default_resume_metadata_error),
+        )
+
+        missing_resume_scope_metadata = deepcopy(result.restart_metadata)
+        delete!(missing_resume_scope_metadata, "resume_scope")
+        missing_resume_scope_metadata_path =
+            restart_metadata_fixture_path("missing-resume-scope-schema-v3-restart-metadata.json")
+        StenoticHemodynamics.write_json(
+            missing_resume_scope_metadata_path,
+            missing_resume_scope_metadata;
+            overwrite=true,
+        )
+        missing_resume_scope_error = try
+            native_resolved_fsi_read_restart_metadata(missing_resume_scope_metadata_path)
+            nothing
+        catch err
+            err
+        end
+        @test missing_resume_scope_error isa ArgumentError
+        @test occursin("requires 'resume_scope'", sprint(showerror, missing_resume_scope_error))
+
         payloadless_metadata = deepcopy(result.restart_metadata)
         delete!(payloadless_metadata, "state_payload")
         payloadless_metadata_path = restart_metadata_fixture_path("payloadless-state-carrying-restart-metadata.json")
@@ -1276,7 +1402,8 @@ end
         @test occursin("not production parity", batch_row.claim_boundary)
         @test occursin("restart/resume support", batch_row.claim_boundary)
         @test occursin("paper-grade native resolved-FSI Section 4.1 reproduction", batch_row.claim_boundary)
-        @test occursin("persisted resume", batch_row.method_status)
+        @test occursin("qualified-internal split-run", batch_row.method_status)
+        @test occursin("public/default process resume", batch_row.method_status)
         @test isempty(batch_row.failure_message)
         @test batch_row.saved_time_s ≈ 1.0e-4
         @test batch_row.snapshot_times_s == [1.0e-4]
@@ -1361,6 +1488,10 @@ end
         @test multi_result.restart_metadata["state_carrying_restart"] == true
         @test multi_result.restart_metadata["resume_supported"] == true
         @test multi_result.restart_metadata["resume_status"] == "ready"
+        @test multi_result.restart_metadata["resume_scope"] == "qualified_internal_split_run_only"
+        @test multi_result.restart_metadata["internal_split_run_resume_supported"] == true
+        @test multi_result.restart_metadata["public_resume_supported"] == false
+        @test multi_result.restart_metadata["default_process_resume_supported"] == false
         @test multi_result.restart_metadata["restart_schema_version"] == 3
         @test multi_result.restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
         @test multi_result.restart_metadata["section41_boundary_status"] == "deferred_or_not_selected"
@@ -1386,6 +1517,8 @@ end
         parsed_multi_restart_metadata = native_resolved_fsi_read_restart_metadata(multi_result.restart_metadata_json)
         @test parsed_multi_restart_metadata["restart_provenance"] == "state_carrying_partitioned"
         @test parsed_multi_restart_metadata["state_carrying_restart"] == true
+        @test parsed_multi_restart_metadata["resume_scope"] == "qualified_internal_split_run_only"
+        @test parsed_multi_restart_metadata["public_resume_supported"] == false
         @test [snapshot["time_step_count"] for snapshot in parsed_multi_restart_metadata["snapshot_outputs"]] == [1, 2]
         @test parsed_multi_restart_metadata["boundary_mode"] == "pressure_drop_weak_inlet_outlet_gauge_smoke"
         @test parsed_multi_restart_metadata["state_payload"]["last_snapshot_index"] == 2
@@ -1411,6 +1544,9 @@ end
         @test prefix_result.restart_metadata["current_snapshot_index"] == 1
         @test prefix_result.restart_metadata["next_pending_snapshot_index"] == 2
         @test prefix_result.restart_metadata["resume_supported"] == true
+        @test prefix_result.restart_metadata["resume_scope"] == "qualified_internal_split_run_only"
+        @test prefix_result.restart_metadata["public_resume_supported"] == false
+        @test prefix_result.restart_metadata["default_process_resume_supported"] == false
 
         public_resume_error = try
             native_resolved_fsi_resume_partitioned_production(prefix_result.restart_metadata_json)
@@ -1420,6 +1556,19 @@ end
         end
         @test public_resume_error isa ArgumentError
         @test occursin("no default CLI resume command", sprint(showerror, public_resume_error))
+        @test occursin("public/default process resume", sprint(showerror, public_resume_error))
+
+        public_resume_with_internal_kwarg_error = try
+            native_resolved_fsi_resume_partitioned_production(
+                prefix_result.restart_metadata_json;
+                _qualified_internal_resume=true,
+            )
+            nothing
+        catch err
+            err
+        end
+        @test public_resume_with_internal_kwarg_error isa ArgumentError
+        @test occursin("public/default process resume", sprint(showerror, public_resume_with_internal_kwarg_error))
 
         resume_spec = NativeResolvedFSIPartitionedProductionSpec(
             resolution=resolution,
@@ -1429,6 +1578,19 @@ end
             snapshot_times_s=[1.0e-4, 2.0e-4],
             time_atol=1.0e-12,
         )
+        default_resume_error = try
+            run_native_resolved_fsi_partitioned_production(
+                resume_spec;
+                _resume_checkpoint_path=prefix_result.restart_metadata_json,
+            )
+            nothing
+        catch err
+            err
+        end
+        @test default_resume_error isa ArgumentError
+        @test occursin("qualified internal split-run resume approval", sprint(showerror, default_resume_error))
+        @test !ispath(default_native_resolved_fsi_partitioned_production_output_dir(resume_spec))
+
         resume_result = run_native_resolved_fsi_partitioned_production(
             resume_spec;
             _qualified_internal_resume=true,
@@ -1460,6 +1622,9 @@ end
         @test resume_result.restart_metadata["snapshot_outputs"][2]["ownership"] == "current_resume_output_root"
         parsed_resume_metadata = native_resolved_fsi_read_restart_metadata(resume_result.restart_metadata_json)
         @test parsed_resume_metadata["resume_supported"] == true
+        @test parsed_resume_metadata["resume_scope"] == "qualified_internal_split_run_only"
+        @test parsed_resume_metadata["public_resume_supported"] == false
+        @test parsed_resume_metadata["default_process_resume_supported"] == false
         @test parsed_resume_metadata["restart_schema_version"] == 3
         @test parsed_resume_metadata["current_snapshot_index"] == 2
     end
@@ -1572,7 +1737,10 @@ end
         @test occursin("stationary no-slip wall", exact_production_result.method_status.status)
         @test occursin("repeated deformed-domain fluid solves", exact_production_result.method_status.status)
         @test occursin("reduced radial membrane update", exact_production_result.method_status.status)
-        @test occursin("exact Section 4.1 inlet/outlet boundary mode", exact_production_result.method_status.status)
+        @test occursin(
+            "exact Section 4.1 Poiseuille inlet / zero-outlet-stress boundary mode",
+            exact_production_result.method_status.status,
+        )
         @test occursin("physical wall-forcing pressure", exact_production_result.method_status.status)
         @test occursin("pressure-drop fallback disabled", exact_production_result.method_status.status)
         @test occursin("outlet-gauge pressure normalization is export-only", exact_production_result.method_status.status)

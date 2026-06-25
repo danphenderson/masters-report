@@ -1,5 +1,9 @@
 const NATIVE_RESOLVED_FSI_PARITY_DEFAULT_COORDINATE_MODE = "deformed"
 const NATIVE_RESOLVED_FSI_PARITY_DEFAULT_TIME_S = 1.0
+const NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS =
+    "non_evidentiary_without_common_pressure_gauge_operator"
+const NATIVE_RESOLVED_FSI_PARITY_PRESSURE_POLICY =
+    "pressure discrepancy withheld as non-evidentiary until a common pressure gauge operator is applied"
 
 """
     NativeResolvedFSIParitySpec(...; kwargs...)
@@ -450,15 +454,15 @@ function native_resolved_fsi_parity_pressure_status(
     atol::Float64,
 )
     comparable, reason = native_resolved_fsi_parity_nodewise_comparable(native_bundle, imported_bundle)
-    comparable || return native_resolved_fsi_parity_status(false, false, 1, NaN, "pressure parity did not run because $reason")
+    comparable || return native_resolved_fsi_parity_status(false, false, 1, NaN, "pressure diagnostic did not run because $reason")
 
     native_pressure = native_resolved_fsi_parity_required_pressure(native_bundle)
     imported_pressure = native_resolved_fsi_parity_required_pressure(imported_bundle)
     discrepancies, max_difference = native_resolved_fsi_parity_diff_summary(native_pressure, imported_pressure, atol)
     ready = discrepancies == 0
     status = ready ?
-        "nodewise pressure parity matched within $(atol) dyn/cm^2" :
-        "nodewise pressure parity found $discrepancies entries above $(atol) dyn/cm^2"
+        "nodewise pressure operator diagnostic matched within $(atol) dyn/cm^2; cross-model pressure discrepancy remains non-evidentiary without a common pressure gauge operator" :
+        "nodewise pressure discrepancy status=$(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS); found $discrepancies entries above $(atol) dyn/cm^2; $(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_POLICY)"
     return native_resolved_fsi_parity_status(ready, false, discrepancies, max_difference, status)
 end
 
@@ -642,7 +646,7 @@ function native_resolved_fsi_parity_pressure_operator_status(
         false,
         1,
         NaN,
-        "pressure operator parity requires an overlapping z-range between the native and imported fields",
+        "pressure operator diagnostic requires an overlapping z-range between the native and imported fields",
     )
 
     native_pressure = native_resolved_fsi_parity_required_pressure(native_bundle)
@@ -675,8 +679,8 @@ function native_resolved_fsi_parity_pressure_operator_status(
     max_difference = isempty(numeric_differences) ? 0.0 : maximum(numeric_differences)
     ready = discrepancy_count[] == 0
     status = ready ?
-        "pressure section-average observations matched within $(spec.operator_atol)" :
-        "pressure section-average parity found $(discrepancy_count[]) discrepancies above $(spec.operator_atol)"
+        "pressure section-average operator diagnostics matched within $(spec.operator_atol); cross-model pressure discrepancy remains non-evidentiary without a common pressure gauge operator" :
+        "pressure section-average discrepancy status=$(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS); found $(discrepancy_count[]) diagnostics above $(spec.operator_atol); $(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_POLICY)"
     return native_resolved_fsi_parity_status(ready, false, discrepancy_count[], max_difference, status)
 end
 
@@ -698,9 +702,9 @@ function native_resolved_fsi_parity_combined_operator_status(
     status = if skipped
         "skipped: operator parity did not run because $(velocity_status.status)"
     elseif ready
-        "velocity and pressure operator parity matched within configured tolerances"
+        "velocity operator parity and non-evidentiary pressure operator diagnostics matched within configured tolerances"
     else
-        "operator parity summary: velocity=$(velocity_status.status); pressure=$(pressure_status.status)"
+        "operator readiness summary: velocity=$(velocity_status.status); pressure=$(pressure_status.status)"
     end
     return native_resolved_fsi_parity_status(ready, skipped, discrepancy_count, max_difference, status)
 end

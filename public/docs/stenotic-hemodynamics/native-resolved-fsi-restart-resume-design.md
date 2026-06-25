@@ -26,6 +26,17 @@ Schema-v3 metadata requires:
 - `restart_provenance = "state_carrying_partitioned"`;
 - `resume_supported = true`;
 - `resume_status = "ready"`;
+- `resume_scope = "qualified_internal_split_run_only"`;
+- `internal_split_run_resume_supported = true`;
+- `internal_split_run_resume_status = "ready"`;
+- `public_resume_supported = false`;
+- `public_resume_status = "unsupported_no_public_or_default_process_resume"`;
+- `default_process_resume_supported = false`;
+- `default_process_resume_status = "unsupported_use_qualified_internal_split_run_only"`;
+- `resume_run_role` equal to either `checkpoint_writer` or
+  `forked_internal_resume`;
+- `output_ownership_policy` stating whether the run owns all listed outputs or
+  references parent rows while owning only the forked resume output root;
 - `checkpoint_schema_status = "durable_checkpoint_ready"`;
 - nonempty `checkpoint_manifest` entries for `wall_state`, `mesh_identity`,
   `fluid_state`, `coupling_state`, and `output_linkage`;
@@ -190,7 +201,9 @@ Implemented validation covers:
 - schema-v2 checkpoint-manifest metadata validates required
   role/path/checksum/size fields and remains fail-closed;
 - schema-v3 metadata requires durable-checkpoint status, nonempty required
-  sidecar roles, checksums, and byte sizes;
+  sidecar roles, checksums, byte sizes, internal-only resume scope, explicit
+  public/default resume rejection fields, and split-run output-ownership
+  policy;
 - missing state files, bad checksums, inconsistent paths, invalid mesh/spec
   controls, and non-forked output roots fail closed;
 - exact boundary metadata still requires positive `inlet_umax_cm_s`;

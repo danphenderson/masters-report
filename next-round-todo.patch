@@ -1,0 +1,949 @@
+--- a/report/TODO.md
++++ b/report/TODO.md
+@@ -1,168 +1,317 @@
+-# Report Orchestration TODO
++# Report Next-Round Revision Plan
+ 
+ Date: 2026-06-24
++Audit status: **NO-SEND**
++Surface owner: report/manuscript
++Profile: claim boundary, academic prose, and AI-slop removal
++
++## Audit Basis and Scope
++
++- The reviewed tracked-only archive has SHA-256
++  `27f1ff7c9dceda468604ad4d4b1d946597f73c6bdef8c13de419403e79bfc167`.
++- The dispatch packet reports `main...origin/main [ahead 6]`. The archive does
++  not contain `.git`, so branch cleanliness, the current commit, tags, and the
++  previous TODO claim `ahead 5, clean` are not independently verifiable here.
++  Re-anchor in the live checkout before editing or closing any task.
++- This lane may edit report source and this TODO. It must not regenerate or
++  update `public/final-report.pdf`, `report/assets/rendered/**`, or generated
++  report assets.
++- Package correctness changes belong to
++  `packages/stenotic-hemodynamics/**`. Report wording must follow the accepted
++  package contract; it must not pre-empt that contract.
++
++## Decision Boundary
++
++The manuscript is not advisor-ready while either condition remains true:
++
++1. the report defines `evolution_pressure` with an `R_max^{-2}` denominator
++   while the current package implementation returns the local-`R_0^{-2}`
++   pressure; or
++2. the Canic Section 4.1 surface is called a replication/reproduction despite
++   unmatched case times, no common pressure-gauge transform, and no numerical
++   acceptance criterion.
++
++The retained 23%/40% final-time velocity comparison may remain a **bounded
++internal cross-model comparison**. It is not external physical or clinical
++validation.
++
++## Merged Execution Order
++
++1. Close package tasks `J-P0-1` through `J-P0-3` in the package TODO.
++2. Apply report tasks `R-P0-1` through `R-P0-3` without refreshing artifacts.
++3. Complete the P1 mathematical/evidence hardening.
++4. Complete the P2 prose pass and source-only validation.
++5. Run the orchestrator gates in the live checkout; only then reconsider
++   `SEND` status or open a separate artifact-refresh lane.
++
++## P0 — Must Fix Before Advisor Submission
++
++### [ ] R-P0-1 Align the pressure contract with the corrected package API
++
++**Locations:**
++
++- `report/sections/07-case-study/methodology.tex`, especially the selected wall
++  law and pressure-diagnostic discussion;
++- `report/appendices/domain-notation.tex`;
++- `report/appendices/numerical-methods-details.tex`;
++- pressure captions, tables, and appendix commands that expose package output.
++
++**Required edit:**
++
++- State one unambiguous evolution pressure,
++  \(p_{\mathrm{evol}}=p_{\mathrm{ext}}+K R_{\max}^{-2}(\sqrt a-R_0)\),
++  only after package task `J-P0-1` implements and tests that API.
++- State the local-radius diagnostic separately, including the variable-radius
++  correction when present. Do not call a local-denominator quantity the
++  pressure used by the evolution.
++- Name the pressure convention in every reader-facing output description. A
++  generic label such as “pressure” is insufficient where both conventions
++  exist.
++- Update the implementation label to the canonical
++  `classical-parabolic-1d`; retain `classical-1d-no-slip` only as an explicitly
++  historical/deprecated asset token where needed for provenance.
++
++**Acceptance criteria:**
++
++- The continuous equation, Julia API names, tests, CSV/summary metadata, and
++  manuscript notation describe the same denominator and correction terms.
++- A report-wide search finds no ambiguous statement that
++  `evolution_pressure` is local-denominator pressure.
++- No pressure table is described as evolution pressure unless its generating
++  path actually uses that convention.
++
++### [ ] R-P0-2 Withdraw or reclassify the current Canic Section 4.1 claim
++
++**Locations:**
++
++- `report/appendices/code-and-ai-use.tex`, Canic workflow and table captions;
++- `report/sections/07-case-study/comparison.tex`, opening scope statement and
++  interpretation limits;
++- `report/sections/07-case-study/methodology.tex`, references to the separate
++  Section 4.1 surface.
++
++**Required edit:**
++
++- Replace “replication,” “reproduction of the numerical findings,” “promoted,”
++  and “reproduces the comparison surfaces” with
++  **source-artifact reconstruction/comparison** unless package task `J-P0-3`
++  establishes explicit, passed reproduction criteria.
++- State that the tracked severity-50 row compares the imported snapshot at
++  approximately `1.4995 s` with a local run configured to `1.0 s`; therefore
++  that row is not admissible replication evidence.
++- Mark the existing Canic summary table as non-evidentiary for replication, or
++  remove it from the reader-facing claim surface pending a later,
++  time-aligned artifact lane.
++- Report the observed velocity discrepancies as discrepancies, not as evidence
++  of successful reproduction. Workflow completion and file creation are not
++  reproduction criteria.
++- Preserve the Young-modulus source mismatch as a model/configuration
++  difference, not a minor provenance footnote.
++
++**Acceptance criteria:**
++
++- Severity 50 is excluded or explicitly failed until the 1D and 3D comparison
++  times agree within a declared tolerance.
++- No success language is inferred from a workflow status of `ok`.
++- Any retained “replication” term is paired with a declared target quantity,
++  tolerance, reference, and passed result.
++
++### [ ] R-P0-3 Define the cross-model pressure gauge or remove pressure-error claims
++
++**Locations:**
++
++- `report/sections/07-case-study/methodology.tex`, definition of
++  \(\bar p_{3D,\mathrm g}\);
++- `report/appendices/code-and-ai-use.tex`, Canic summary caption and parameter
++  audit;
++- any prose that interprets the Canic pressure-discrepancy column.
++
++**Required edit:**
++
++- Define the exact map that places imported 3D pressure and the selected 1D
++  pressure diagnostic in a common gauge, including the reference location or
++  mean-subtraction operator.
++- Identify whether the compared 1D quantity is the evolution pressure or the
++  local-radius diagnostic plus correction.
++- If package task `J-P0-3` does not implement a common gauge, remove the
++  pressure-error column from the evidentiary comparison or label it as an
++  uncalibrated raw-offset diagnostic that cannot be interpreted as pressure
++  error.
++
++**Acceptance criteria:**
++
++- The pressure comparison is invariant to an arbitrary additive offset in the
++  imported incompressible pressure field, or pressure discrepancy is removed
++  from the claim surface.
++- The caption, notation, and package metadata identify the same gauge and 1D
++  pressure convention.
++
++## P1 — Mathematical and Evidence Hardening
++
++### [ ] R-P1-1 Replace the non-identifiable residual equalities
++
++**Location:** `report/sections/07-case-study/comparison.tex`, residual-budget
++paragraph and table.
++
++Replace the exact additive equations for
++\(d_{u,j}\) and \(d_{Q,j}\) with either:
++
++- a dependency map listing possible discrepancy sources; or
++- a telescoping decomposition whose intermediate models/operators are defined
++  and computed.
++
++Do not write an equality between undefined, non-identifiable components.
++
++**Acceptance criterion:** every displayed equality has mathematically defined
++terms; the text does not present interpretive categories as measured additive
++components.
++
++### [ ] R-P1-2 Narrow the observation-operator verification claim
++
++**Locations:**
++
++- `report/sections/07-case-study/verification.tex`;
++- `report/appendices/code-and-ai-use.tex`, operator-validation paragraph.
++
++State that the current synthetic test checks constant/affine quadrature on the
++polygon returned by the implementation. It is not an independent validation of
++plane–tetrahedron intersection or polygonization because the reference path
++reuses those routines. Widen the claim only after package task `J-P1-1` adds
++independent analytic geometry references and a multi-tetrahedron case.
++
++**Acceptance criterion:** “independent” is used only for code paths or data that
++are demonstrably independent of the implementation under test.
++
++### [ ] R-P1-3 Replace the qualitative cut-area acceptance statement
++
++**Location:** `report/sections/07-case-study/comparison.tex`, cut-area
++interpretation and Table `t1-area-check`.
++
++- Replace “closely enough” with a predeclared acceptance rule.
++- Explain the relevance of the reported maximum area differences (up to about
++  4.6%) relative to velocity/flow discrepancies, or add a sensitivity check.
++- Use “available section samples” rather than “available matched data” where
++  boundary and wall histories are not matched.
++
++**Acceptance criterion:** the manuscript either supplies a justified tolerance
++and passes it or treats cut-area mismatch as a quantified limitation.
++
++### [ ] R-P1-4 Remove unverifiable live-checkout assertions from the manuscript
++
++**Location:** `report/appendices/code-and-ai-use.tex`, source-control,
++computational-environment, and review-provenance records.
++
++- Replace volatile branch cleanliness, local-tag, hardware, and refresh-state
++  prose with a release-manifest record tied to an immutable source identifier,
++  or label each value explicitly as historical snapshot metadata.
++- Do not say “in this checkout” unless the value is generated and checked in
++  the release lane.
++- Keep operational orchestration terms out of the scientific narrative unless
++  they are needed for reproducibility.
++
++**Acceptance criterion:** every source-state assertion is derivable from a
++tracked manifest or from a command recorded in the final release handoff.
++
++### [ ] R-P1-5 Bound the MMS independence wording
++
++**Location:** `report/sections/07-case-study/verification.tex`.
++
++Replace “independent enough” with an exact statement: the audit expression
++expands the flux/source formulas separately from the production helper calls,
++but shares manufactured states, geometry, constitutive parameters, and
++low-level primitives. Preserve the positive result as implementation
++verification, not independent validation.
++
++## P2 — Prose, Presentation, and AI-Slop Removal
++
++### [ ] R-P2-1 Perform a local metadiscourse compression pass
++
++Prioritize repeated terms and noun stacks such as “declared,” “retained,”
++“bounded,” “promoted,” “tracked,” “package audit,” and repeated lists of model,
++discretization, observation, boundary, and metric layers.
++
++- Keep each material limitation once at its point of use and once in the final
++  synthesis; remove nearby repetitions.
++- Replace internal workflow/status language with direct scientific prose.
++- Preserve the report’s careful verification/validation distinction; do not
++  delete necessary claim boundaries.
++
++**Acceptance criterion:** each paragraph advances a mathematical, numerical,
++or evidentiary point rather than restating process status.
++
++### [ ] R-P2-2 Correct local wording and hierarchy defects
++
++- In the abstract, replace “equilibrium preservation” with
++  “equilibrium-preservation testing,” because the test exposes non-well-balanced
++  drift.
++- Correct the section hierarchy that produces the numerical-methods bookmark
++  warning (`\subsubsection` directly under `\section`).
++- Resolve the overfull display reported near the continuum weak-form block.
++- Remove “clean public source tree” wording unless verified at release time.
++
++## Report Acceptance Criteria
++
++The report lane is complete only when all of the following are true:
++
++- P0 tasks are closed against an already accepted package contract.
++- Canic time and pressure-gauge provenance are explicit and machine-readable.
++- No external validation or clinical claim is inferred from internal
++  cross-model comparison.
++- The report source builds in a temporary output directory.
++- No tracked PDF, rendered asset, generated data table, or raw simulation input
++  changes in this lane.
++- The live checkout is re-anchored and all required validation commands exit
++  zero.
+ 
+-This file is the live report-side coordination document. Completed package and
+-report lanes were removed from the active queue during this refresh; use git
+-history for detailed closed-lane records.
+-
+-## Live State
+-
+-- Current branch state at refresh start: `main...origin/main [ahead 5]`, clean.
+-- Latest package coordination commit:
+-  `20f487a Refresh native FSI contract and resume stewardship`.
+-- The manuscript remains in final-freeze territory unless committee/advisor
+-  feedback opens a bounded source lane.
+-- The latest package handoff is package/operator evidence only: canonical API
+-  naming, native diagnostics, timing decisions, viewer controls, and schema-v3
+-  internal restart/resume support do not require report assets or PDF refresh.
+-
+-## Current Report TODOs
+-
+-No report-source, report-asset, or tracked-PDF work is open from the current
+-package handoff.
+-
+-The next report round should be one of:
+-
+-- a committee/advisor correction with explicit file scope;
+-- a final archival/release lane that records the accepted source commit or
+-  release tag for the committee-submitted PDF;
+-- a no-op verification handback confirming that source, tracked PDF, and
+-  release metadata remain aligned.
+-
+-Do not reopen broad editorial work without a concrete manuscript finding.
+-
+-## Package Coordination Boundary
+-
+-- Manuscript-grade Canic Section 4.1 source-artifact reproduction is tracked
+-  through `canic-replication section41`, not through the native Gridap
+-  resolved-FSI production path.
+-- Native resolved-FSI preproduction/production execution, imported parity,
+-  moving-wall/ALE fidelity, public/default restart/resume, and
+-  production-scale restart/resume claims remain unpromoted from the report
+-  side.
+-- Native resolved-FSI timing/fingerprint work is execution-readiness metadata
+-  only. The warmed `12x2x12` timing review found repeated affine-operator
+-  assembly cost with stable sparsity but changing matrix and RHS values, so no
+-  factorization-reuse or Gridap-context reuse patch was accepted.
+-- Schema-v3 checkpoint sidecars and the qualified internal split-run resume
+-  path are package/operator controls only. They do not change manuscript
+-  claims, do not justify public/default restart wording, and do not require
+-  report assets or PDF refresh.
+-- Viewer scalar toggles, colorbar ranges, evidence badges, missing-field
+-  disabled states, and surface slice diagnostics are inspection aids only.
+-  They are not cross-section integration, production validation, imported
+-  parity, or native moving-wall/ALE evidence.
+-
+-Refresh this TODO before changing manuscript claims if a future package handoff
+-changes any boundary above.
+-
+-## Asset Regeneration And Promotion Plan
+-
+-No manuscript asset regeneration is required for the current package changes.
+-Do not promote viewer screenshots, browser bundles, timing sidecars,
+-reuse/fingerprint metadata, restart checkpoint sidecars, or dry-run status rows
+-into figures, tables, or claims without a separate accepted report-evidence
+-lane.
+-
+-If a future package handoff supplies accepted report evidence:
+-
+-1. Identify the source workflow and artifact class. The accepted Section 4.1
+-   manuscript assets still come from
+-   `canic-replication section41 --publish-report-assets`, not from native
+-   Gridap production timing or viewer exports.
+-2. Regenerate into ignored scratch first.
+-3. Publish only reviewed derived artifacts into `report/assets/**` with the
+-   workflow's explicit `--publish-report-assets` or documented report-output
+-   flags.
+-4. Review generated CSV/JSON/TeX fragments for provenance, optional-input
+-   skips, source inconsistencies, and claim-boundary language before touching
+-   `report/sections/**` or `report/appendices/**`.
+-5. If regeneration crosses package naming changes, update generated assets and
+-   consuming TeX/TikZ together. Current package code emits canonical
+-   `classical-parabolic-1d` and axial-observation labels, while some accepted
+-   tracked report assets still carry historical `classical-1d-no-slip`,
+-   `u1d`, and `u3d` labels from the source-artifact lane.
+-6. Build source-only first:
+-
+-   ```bash
+-   pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
+-   ```
+-
+-7. Refresh `public/final-report.pdf` only after reader-facing source/assets are
+-   accepted:
+-
+-   ```bash
+-   pipenv run ops-build-report --outdir /tmp/masters-report-build
+-   shasum -a 256 public/final-report.pdf /tmp/masters-report-build/final-report.pdf
+-   ```
++## Validation and Expected Results
+ 
+-Current Section 4.1 promotion command, retained for reference:
+-
+-```bash
+-packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
+-  --data-root public/var/data/simulations/canic_case3 \
+-  --output-dir tmp/simulations/output/canic-replication/section41 \
+-  --coordinate-mode deformed \
+-  --nx 100 \
+-  --dt 1e-5 \
+-  --tfinal 1.0 \
+-  --section-count 200 \
+-  --radial-sample-count 41 \
+-  --publish-report-assets \
+-  --report-assets-dir report/assets \
+-  --overwrite
+-```
+-
+-For future native resolved-FSI preproduction or imported-parity evidence, keep
+-raw bundles, observation CSVs, parity summaries, restart/checkpoint sidecars,
+-and status files in scratch until a report-evidence lane explicitly approves a
+-reader-facing figure/table. Only then should reviewed derived artifacts enter
+-`report/assets/**` and the manuscript.
+-
+-## Standard Report Closeout
+-
+-For report-source lanes, source-only validation is:
++Run from the live repository root after the edits:
+ 
+ ```bash
++git status --short --branch --untracked-files=all
++git diff --check -- \
++  report/TODO.md \
++  report/frontmatter \
++  report/sections \
++  report/appendices \
++  report/preamble
++rg -n "replication|reproduces|promoted" \
++  report/sections/07-case-study report/appendices/code-and-ai-use.tex
++rg -n "classical-1d-no-slip" report
+ pipenv run ops-audit-report-prose --json
+-pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
+-```
+-
+-For reader-facing source changes that are accepted for publication, refresh the
+-tracked PDF:
+-
+-```bash
+-pipenv run ops-build-report --outdir /tmp/masters-report-build
+-shasum -a 256 public/final-report.pdf /tmp/masters-report-build/final-report.pdf
++pipenv run ops-build-report \
++  --outdir /tmp/masters-report-build \
++  --no-sync-final-pdf
++pipenv run ops-orchestrate ready-to-commit
+ ```
+ 
+-## Validation
+-
+-For this TODO-only refresh:
++Expected results:
+ 
+-```bash
+-git diff --check -- packages/stenotic-hemodynamics/TODO.md report/TODO.md
+-pipenv run ops-orchestrate docs-contract
+-```
++- `git status` reports the actual live branch and preserves unrelated work.
++- `git diff --check` exits `0`.
++- High-risk claim terms occur only in explicitly bounded or historical
++  contexts.
++- The deprecated model token occurs only where historical asset provenance
++  requires it.
++- Prose audit and source-only report build exit `0`.
++- The official gate exits `0`.
++- `git diff -- public/final-report.pdf report/assets/rendered` is empty.
+ 
+-For future report-source lanes:
++**Orchestrator validation scope:**
+ 
+ ```bash
+-git diff --check -- report/TODO.md report/sections report/appendices
+-pipenv run ops-audit-report-prose --json
+ pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf
+ ```
+ 
+-## Live Layout Guardrails
+-
+-- manuscript entrypoint: `report/final-report.tex`
+-- prose: `report/sections/**`
+-- appendices: `report/appendices/**`
+-- shared setup: `report/preamble/**`
+-- bibliography: `public/references/references.bib`
+-- report assets: `report/assets/**`
+-- repo documentation: `public/docs/**`
++## Risks to Carry Forward
+ 
+-Do not reference stale root `docs/**` paths or
+-`report/sections/03-conclusions/index.tex`.
++- Existing Canic generated tables remain stale relative to the required
++  time/gauge corrections; they must not be silently treated as refreshed
++  evidence.
++- Fixing the package pressure API may change numerical pressure outputs and
++  downstream table values. That change requires a separate, reviewed
++  artifact-refresh lane.
++- The raw 3D inputs are not part of this tracked-only review environment, so
++  raw-data-dependent claims cannot be revalidated here.
++- A source-only build does not validate the Julia computations that generated
++  tracked numerical assets.
+--- a/packages/stenotic-hemodynamics/TODO.md
++++ b/packages/stenotic-hemodynamics/TODO.md
+@@ -1,135 +1,351 @@
+-# StenoticHemodynamics Authoritative Fleet TODO
++# StenoticHemodynamics Next-Round Revision Plan
+ 
+ Date: 2026-06-24
++Audit status: **NO-SEND**
++Surface owner: Julia package
++Profile: numerical contract, claim boundary, architecture, and AI-slop removal
++
++## Audit Basis and Scope
++
++- The reviewed tracked-only archive has SHA-256
++  `27f1ff7c9dceda468604ad4d4b1d946597f73c6bdef8c13de419403e79bfc167`.
++- The dispatch packet reports `main...origin/main [ahead 6]`. The archive omits
++  `.git`, so branch cleanliness, the current commit, and the previous TODO
++  assertions about `20f487a` and passed readiness gates are not independently
++  verifiable in this audit environment.
++- Julia and Pipenv were unavailable in the audit environment. The findings
++  below are based on tracked source, tests, generated text/CSV assets, and
++  static local checks; they are not a claim that the Julia test suite passes.
++- This package lane must not edit manuscript source, regenerate report assets,
++  update `public/final-report.pdf`, or launch the long-running preproduction
++  batch.
++
++## Decision Boundary
++
++The package is not ready for a report handoff while any P0 item is open. In
++particular, internal workflow completion is not physical validation and is not
++successful replication without a declared target, tolerance, time alignment,
++and pressure-gauge convention.
++
++## Merged Execution Order
++
++1. Implement and test `J-P0-1` pressure semantics.
++2. Implement `J-P0-2` time alignment and `J-P0-3` comparison/gauge criteria.
++3. Run the full package check and inspect changed output schemas.
++4. Hand the accepted API and evidence contract to the report owner for
++   `R-P0-1` through `R-P0-3`.
++5. Complete P1/P2 architecture and maintainability tasks.
++6. Reopen the existing severity-23 preproduction lane only after all P0 gates
++   and the official package validation pass.
++
++## P0 — Must Fix Before Report or Advisor Handoff
++
++### [ ] J-P0-1 Repair the evolution/diagnostic pressure API contract
++
++**Evidence locations:**
++
++- `src/StenoticHemodynamics/numerics/model.jl`;
++- `src/StenoticHemodynamics/core/geometry.jl`;
++- `test/test_core_model.jl` and `test/test_public_api.jl`;
++- `README.md`;
++- `src/StenoticHemodynamics/io/outputs.jl` and study/benchmark summaries.
++
++**Required implementation:**
++
++- Introduce an explicit evolution wall-pressure helper using
++  \(K/R_{\max}^{2}\), consistent with the elastic potential, wave speed, and
++  geometry source.
++- Keep the local-radius \(K/R_0(z)^2\) wall pressure under an explicitly
++  diagnostic name.
++- Make `evolution_pressure(...)` call only the evolution helper.
++- Make `diagnostic_pressure(...)` start from the local-radius diagnostic and
++  then add the variable-radius `p2` correction when enabled. It must not inherit
++  its base value from `evolution_pressure(...)`.
++- Keep deprecated `pressure(...)` behavior explicit; if it remains an alias for
++  `diagnostic_pressure(...)`, document and test that compatibility contract.
++- Rename generic output columns/summary fields or add a schema-level
++  `pressure_convention` field so stored values cannot be mistaken for evolution
++  pressure.
++
++**Required tests:**
++
++- Select a stenotic location where `R0(z) != Rmax` and assert the two pressures
++  against independent closed-form expressions.
++- Test zero and nonzero flow, with variable-radius corrections both enabled and
++  disabled.
++- Assert that evolution pressure, elastic potential, wave speed, and geometry
++  source use the same `Rmax` normalization.
++- Assert that diagnostic output metadata identifies the local-radius-plus-`p2`
++  convention.
++- Retain a regression test for the deprecated `pressure(...)` alias.
++
++**Acceptance criteria:**
++
++- Public API, implementation, tests, README, output metadata, and report handoff
++  use one consistent definition for each pressure quantity.
++- No test defines correctness by comparing `evolution_pressure` only to the
++  same mislabeled helper.
++- Package tests pass before any report wording or assets are updated.
++
++### [ ] J-P0-2 Enforce case-specific comparison-time alignment
++
++**Evidence location:**
++`src/StenoticHemodynamics/workflows/canic_replication/canic_replication.jl`.
++
++**Required implementation:**
++
++- Derive each local 1D final time from the accepted comparison target for that
++  case, or require an explicit per-case map. A single global `tfinal_s` must not
++  silently compare severity 50 at `1.0 s` against an imported snapshot near
++  `1.4995 s`.
++- Record `time_1d_s`, `time_3d_s`, and `abs_time_offset_s` in comparison and
++  summary outputs.
++- Apply a declared comparison-time tolerance. Fail closed or mark the case
++  `skipped_time_mismatch` when the tolerance is exceeded.
++- Validate velocity, pressure, and displacement metadata against the same case
++  time before computing discrepancies.
++
++**Required tests:**
++
++- A severity-50 fixture with imported time `1.4995 s` and local time `1.0 s`
++  must not return status `ok` or a paper-model summary.
++- Aligned cases must record both times and a passing offset.
++- A deliberate per-case override must be visible in provenance and output
++  schema.
++
++**Acceptance criteria:** no discrepancy row is emitted as admissible comparison
++or replication evidence unless the compared times pass the declared tolerance.
++
++### [ ] J-P0-3 Define comparison success, pressure gauge, and workflow naming
++
++**Evidence locations:**
++
++- `src/StenoticHemodynamics/workflows/canic_replication/**`;
++- `src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity.jl`;
++- `src/StenoticHemodynamics/adapters/resolved3d_io.jl`;
++- `test/test_canic_replication.jl`.
++
++**Required implementation:**
++
++- Rename the workflow and provenance status to
++  `source-artifact-comparison`/`reconstruction` unless a true replication
++  criterion is implemented and passed.
++- Replace unconditional result status `ok` with statuses derived from explicit
++  gates: input completeness, metadata consistency, time alignment, finite
++  observations, gauge compatibility, and predeclared numerical tolerances.
++- Define a common pressure-gauge operator for imported 3D and 1D pressure, such
++  as subtraction of a declared outlet-section mean. Record the operator and
++  reference location in output metadata.
++- Demonstrate gauge invariance in tests by adding a constant to imported
++  pressure and obtaining unchanged pressure discrepancies after normalization.
++- If no defensible common gauge is selected, do not compute or publish pressure
++  error; emit a bounded `not_comparable_gauge_undefined` status instead.
++- Treat the PDF/upstream Young-modulus mismatch as distinct configurations. Do
++  not label a run with non-identical constitutive data as reproduction of the
++  same numerical experiment without a sensitivity or dual-configuration audit.
++- Define acceptance criteria for any retained replication claim. File creation
++  and finite discrepancies are necessary but not sufficient.
++
++**Required tests:**
++
++- Workflow success must fail when any gate fails.
++- Pressure discrepancy must be invariant to an imported constant pressure
++  offset after gauge normalization.
++- Existing synthetic file-generation tests must assert semantic statuses and
++  tolerances, not only file existence and strings.
++
++**Acceptance criteria:** every summary status has a machine-checkable meaning,
++and no “paper model” or “replication” role is assigned solely because a model
++name was selected and output files were written.
++
++## P1 — Numerical Verification and Architecture Hardening
++
++### [ ] J-P1-1 Add an independent observation-operator geometry reference
++
++**Evidence locations:**
++
++- `src/StenoticHemodynamics/workflows/operator_validation/operator_validation_metrics.jl`;
++- `src/StenoticHemodynamics/workflows/operator_validation/operator_validation_synthetic.jl`;
++- `test/test_operator_validation.jl`.
++
++The current reference reuses `tetra_plane_polygon`, `polygon_center`, and
++`triangle_area_xy`, so it independently checks affine triangle averaging but
++not the cut geometry.
++
++**Required work:**
++
++- Add closed-form area, centroid, flow, and mean-velocity references for all
++  sampled planes in the reference tetrahedron without calling the production
++  polygonization path.
++- Add at least one multi-tetrahedron mesh with shared-face and near-vertex/edge
++  cuts to test duplicate handling and topology aggregation.
++- Separate statuses for intersection geometry, area integration, and field
++  quadrature.
++
++**Acceptance criterion:** deliberately perturbing the production
++intersection/polygonization path causes the independent geometry test to fail.
++
++### [ ] J-P1-2 Make the dependency/architecture documentation truthful
++
++**Evidence locations:**
++
++- `Project.toml`;
++- `src/StenoticHemodynamics.jl`;
++- `src/StenoticHemodynamics/layers.jl`;
++- `src/StenoticHemodynamics/adapters/stokes_ic.jl` and
++  `adapters/native_resolved_fsi.jl`;
++- `README.md`.
++
++Gridap, HDF5, OrdinaryDiffEq, SciMLBase, and YAML are current hard dependencies,
++and adapter/workflow files are included unconditionally. Therefore “optional
++external ecosystem support” describes source organization, not package-load
++optionality.
++
++**Required work:**
++
++- Immediate: revise module and layer documentation to state the current hard
++  dependency/load contract.
++- Later, only if needed: move integrations to Julia extensions/weak dependencies
++  and test both minimal and extended load paths.
++- Do not retain empty architecture marker types as evidence of enforced
++  boundaries. Either use enforceable module/dependency checks or reduce the
++  file to concise documentation.
++
++**Acceptance criterion:** documentation and `Project.toml` describe the same
++load-time dependency model.
++
++### [ ] J-P1-3 Bound the MMS “independence” claim in code-facing documentation
++
++The forcing audit expands formulas separately from production `flux` and
++`source_point` calls but shares manufactured states, geometry, constitutive
++parameters, and lower-level utilities.
++
++- Document those shared primitives.
++- Add mutation/perturbation tests where practical to show which production
++  defects the audit can and cannot detect.
++- Hand back exact wording to the report owner; avoid “independent enough.”
++
++### [ ] J-P1-4 Canonicalize model labels in new outputs
++
++- Emit `classical-parabolic-1d` in all newly generated rows and manifests.
++- Accept `classical-1d-no-slip` only as a deprecated input alias or historical
++  tracked-asset token.
++- Add explicit schema/provenance handling so old and new rows are not silently
++  mixed.
++
++## P2 — Maintainability and AI-Slop Removal
++
++### [ ] J-P2-1 Replace untyped computation rows at workflow boundaries
++
++Use typed result rows for Canic comparison, parameter audit, native parity,
++restart metadata construction, and other numerical computation stages. Convert
++to `Dict{String,Any}` or heterogeneous rows only at serialization boundaries.
++Do not perform broad type churn before the P0 semantics are fixed.
++
++### [ ] J-P2-2 Split oversized native-FSI implementation files by responsibility
++
++After correctness gates pass, separate production planning, stepping,
++diagnostics, serialization, and restart logic. Preserve public API and file
++schemas. Require focused tests for each extracted unit before accepting the
++refactor.
++
++### [ ] J-P2-3 Remove operationally persuasive but non-semantic status prose
++
++Replace long status strings and labels such as “promoted,” “paper-grade,” or
++“ready” with enumerated statuses tied to explicit predicates. Human-readable
++messages may explain a status but must not substitute for a gate.
++
++## Existing Long-Running Lane
++
++### [ ] Lane 10C — Severity-23 preproduction batch execution
++
++**Status: BLOCKED by `J-P0-1` through `J-P0-3` and package validation.**
++
++Do not launch the long-running preproduction batch from this revision round.
++Reopen it only after:
++
++- pressure semantics and output metadata are accepted;
++- Canic time/gauge/success gates pass;
++- `pipenv run ops-julia-check` exits zero;
++- the live checkout is re-anchored;
++- the package/report handoff explicitly confirms that the run will not be used
++  as physical or clinical validation.
++
++When reopened, keep raw outputs under ignored scratch paths and preserve the
++existing report-ownership boundary.
++
++## Package Acceptance Criteria
++
++The package lane is complete only when all of the following are true:
++
++- P0 tests fail against the audited implementation and pass after the fixes.
++- Evolution and diagnostic pressure conventions are distinct in API, tests,
++  outputs, and documentation.
++- No Canic comparison row passes with unmatched times or undefined gauge.
++- Replication/reproduction status is based on declared numerical criteria.
++- The complete Julia test/check surface passes in the live environment.
++- No report source, tracked PDF, rendered asset, generated report table, or raw
++  simulation input is changed in this package lane.
+ 
+-This file is the live package dispatch document. Historical completed lanes
+-were removed from the active queue during this refresh; use git history and
+-`public/docs/stenotic-hemodynamics/**` for detailed implementation records.
+-
+-## Live State
+-
+-- Current branch state at refresh start: `main...origin/main [ahead 5]`, clean.
+-- Latest package integration commit: `20f487a Refresh native FSI contract and
+-  resume stewardship`.
+-- `20f487a` landed the current code wave: canonical
+-  `ClassicalParabolicOneDModel`, canonical axial/reconstructed-axial
+-  observation terminology, `diagnostic_pressure(...)` /
+-  `evolution_pressure(...)`, Gridap quadrature/backflow diagnostics, repeated
+-  deformed-domain native-FSI classification, schema-v3 durable checkpoint
+-  sidecars, and qualified internal split-run resume.
+-- Commit-readiness validation for `20f487a` passed:
+-  `pipenv run ops-orchestrate ready-to-commit --allow-unclassified`.
+-
+-## Claim Boundary
+-
+-- Exact Section 4.1 boundary-mode support exists in the low-level Gridap path
+-  and tiny partitioned production smoke-scale harness.
+-- `:poiseuille_inlet_zero_outlet_stress_section41` remains
+-  smoke-scale/operator-readiness evidence until production-scale execution and
+-  imported-data parity pass.
+-- Paper-grade native resolved-FSI reproduction, imported parity for the Gridap
+-  production path, monolithic ALE FSI, and strong moving-wall fluid-boundary
+-  fidelity remain unestablished.
+-- The separate `canic-replication section41` source-artifact workflow owns the
+-  promoted manuscript Section 4.1 comparison against restored upstream bundles.
+-- Post-sampling outlet pressure normalization is diagnostic/export-only and is
+-  not a Gridap pressure nullspace constraint.
+-- Native resolved-FSI production/Gridap arrays remain `Float64`-oriented.
+-- Schema-v3 durable checkpoints support qualified internal split-run resume for
+-  package/operator validation only. Public/default restart/resume and CLI
+-  resume remain unsupported and fail closed.
+-- Timing sidecars, matrix/RHS fingerprints, viewer controls, and restart
+-  checkpoint sidecars are execution/inspection metadata. They do not promote
+-  native resolved-FSI claims or manuscript evidence.
+-
+-## Active Dispatch
+-
+-### Lane 10C: Sev23 Preproduction Batch Execution
+-
+-Status: open as a deliberate long-running compute lane. Current-source
+-dry-run/status evidence is refreshed; actual preproduction execution and
+-imported parity remain unrun.
+-
+-Objective: execute the exact-boundary `sev23` preproduction gate from
+-`public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`
+-without changing numerical semantics or widening claims.
+-
+-Current dry-run evidence:
+-
+-- case/resolution: `sev23`, `(axial=80, radial=4, angular=24)`;
+-- controls: `dt_s=1e-4`, `T=0.1`, final snapshot only,
+-  `u_max=45 cm/s`, exact Section 4.1 inlet/outlet mode;
+-- production spec digest: `9d1cfb96eb525113`;
+-- estimated time steps: `1000`;
+-- expected fluid-solve upper bound: `1001`;
+-- estimated runtime: `63000 s`;
+-- required override flags: none;
+-- snapshot/payload guards: passing;
+-- imported bundle: case `77` available.
+-
+-Dispatch rules:
+-
+-1. Start only in a deliberate long-running compute session. Do not launch this
+-   from opportunistic package-worker or TODO-cleanup rounds.
+-2. Reconfirm the dry-run immediately before execution if case parameters,
+-   guard policy, imported-data roots, or output schedules changed.
+-3. Write outputs to ignored scratch paths under `tmp/simulations/output/**`.
+-4. Parse and review `batch_status.jsonl`, `batch_status.csv`,
+-   `batch_benchmark.json`, `snapshot_manifest.csv`,
+-   `snapshot_diagnostics.csv`, and `restart_metadata.json`.
+-5. Validate finite fields, positive radii/cell orientation, wall displacement,
+-   pressure normalization, importer round trip, checkpoint metadata, and
+-   bounded coupling status.
+-6. Run imported-data parity as a separate skip-safe lane. `sev23` maps to
+-   imported case `77`, `sev40` maps to `60`, and `sev50` remains expected-skip
+-   unless a bundle is explicitly supplied.
+-7. Send a report-owner handoff only after production execution and parity gates
+-   pass. Do not edit manuscript source, `report/assets/**`, or
+-   `public/final-report.pdf` from this package lane.
+-
+-### Conditional Future Work
+-
+-These are not active TODOs for the next package round:
+-
+-- Assembly optimization: only reopen after a concrete design identifies which
+-  parts of Gridap affine-operator construction are invariant under changing
+-  geometry, Picard/advection state, boundary values, pressure policy, mesh
+-  topology, and constrained DOF maps. Numeric factorization reuse is currently
+-  blocked by changing matrix values.
+-- Public/default resume or CLI resume: only reopen after production-scale
+-  resume validation, broader split-run equivalence, and imported-parity resume
+-  coverage justify a public contract change.
+-- Viewer/report promotion: only reopen from the report side after accepted
+-  production/parity evidence creates a reader-facing figure/table objective.
+-
+-## Orchestration Rules
+-
+-- Start substantial package work with:
+-
+-  ```bash
+-  pipenv run ops-orchestrate status --json
+-  ```
+-
+-- Treat the live checkout as authority.
+-- Keep one writer per disjoint file set.
+-- Preserve public exports, CLI semantics, artifact filenames, importer
+-  schemas, and restart metadata compatibility unless a lane explicitly widens
+-  scope.
+-- Keep report/manuscript files under report ownership. Package lanes may update
+-  this TODO and public package docs, but should not promote claims directly.
++## Validation and Expected Results
+ 
+-## Validation
+-
+-For this TODO-only refresh:
++Run from the live repository root:
+ 
+ ```bash
+-git diff --check -- packages/stenotic-hemodynamics/TODO.md report/TODO.md
+-pipenv run ops-orchestrate docs-contract
++git status --short --branch --untracked-files=all
++git diff --check -- \
++  packages/stenotic-hemodynamics/TODO.md \
++  packages/stenotic-hemodynamics/README.md \
++  packages/stenotic-hemodynamics/Project.toml \
++  packages/stenotic-hemodynamics/src \
++  packages/stenotic-hemodynamics/test \
++  packages/stenotic-hemodynamics/bin
++packages/stenotic-hemodynamics/bin/julia-release \
++  -e 'using Pkg; Pkg.test()'
++pipenv run ops-julia-check
++pipenv run ops-orchestrate ready-to-commit
++```
++
++Required focused assertions within the test suite:
++
++```text
++R0(z) != Rmax:
++  evolution_pressure == K/Rmax^2 * (sqrt(A) - R0)
++  diagnostic_pressure == K/R0^2 * (sqrt(A) - R0) + p2
++severity 50, time_1d=1.0, time_3d=1.4995:
++  status != ok
++  no admissible replication summary row
++imported pressure p and p + C after common-gauge normalization:
++  identical pressure-discrepancy metrics
++independent analytic tetrahedron reference:
++  area, centroid, flow, and mean pass without production polygonization reuse
+ ```
+ 
+-For future package implementation lanes, run the focused validation selected by
+-the touched surfaces and close with:
++Expected results:
++
++- `git diff --check` exits `0`.
++- Direct `Pkg.test()`, `ops-julia-check`, and the official orchestrator gate
++  exit `0`.
++- Tests exercise semantic failure modes, not only output creation.
++- `git diff -- report/frontmatter report/sections report/appendices report/preamble report/assets public/final-report.pdf` is empty.
++
++**Orchestrator validation scope:**
+ 
+ ```bash
+-pipenv run ops-orchestrate ready-to-commit --allow-unclassified
++pipenv run ops-julia-check
+ ```
++
++## Risks to Carry Forward
++
++- Correcting pressure semantics may change diagnostic/evolution outputs,
++  benchmark summaries, and report tables; do not hide that change behind a
++  compatibility alias.
++- Existing generated Canic assets are not trustworthy replication evidence
++  after the time/gauge findings; regeneration belongs to a later reviewed
++  artifact lane.
++- The Young-modulus mismatch prevents a simple same-configuration replication
++  claim unless both configurations are explicitly analyzed.
++- Hard-dependency restructuring can destabilize load order and extension tests;
++  keep it behind the P0 correctness work.
++- The native-FSI surface is large and weakly modularized. Broad refactoring
++  before semantic fixes would increase regression risk.

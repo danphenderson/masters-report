@@ -3,6 +3,8 @@ const NativeResolvedFSIParitySpec = StenoticHemodynamics.NativeResolvedFSIParity
 const NativeResolvedFSIParityStatus = StenoticHemodynamics.NativeResolvedFSIParityStatus
 const NativeResolvedFSIProductionDryRunPlan = StenoticHemodynamics.NativeResolvedFSIProductionDryRunPlan
 const NativeResolvedFSIProductionParityPlan = StenoticHemodynamics.NativeResolvedFSIProductionParityPlan
+const NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS =
+    StenoticHemodynamics.NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS
 const RadialProfileRow = StenoticHemodynamics.RadialProfileRow
 const Resolved3DCaseSpec = StenoticHemodynamics.Resolved3DCaseSpec
 const SectionComparisonRow = StenoticHemodynamics.SectionComparisonRow
@@ -364,7 +366,8 @@ end
         @test result.operator_status.discrepancy_count == 0
         @test result.operator_status.max_abs_difference ≈ 0.0 atol = 1.0e-12
         @test occursin("velocity section/radial/node-slab observations matched", result.velocity_operator_status.status)
-        @test occursin("pressure section-average observations matched", result.pressure_operator_status.status)
+        @test occursin("pressure section-average operator diagnostics matched", result.pressure_operator_status.status)
+        @test occursin("non-evidentiary without a common pressure gauge operator", result.pressure_operator_status.status)
     end
 end
 
@@ -412,13 +415,13 @@ end
         @test !result.pressure_operator_status.ready
         @test result.pressure_operator_status.discrepancy_count > 0
         @test result.pressure_operator_status.max_abs_difference > 0.0
-        @test occursin("pressure section-average parity", result.pressure_operator_status.status)
+        @test occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, result.pressure_operator_status.status)
 
         @test !result.operator_status.ready
         @test !result.operator_status.skipped
         @test result.operator_status.discrepancy_count > 0
         @test result.operator_status.max_abs_difference > 0.0
-        @test occursin("operator parity summary", result.operator_status.status)
+        @test occursin("operator readiness summary", result.operator_status.status)
     end
 end
 
@@ -494,6 +497,7 @@ end
         @test result.velocity_operator_status.ready
         @test !result.pressure_operator_status.ready
         @test result.pressure_operator_status.max_abs_difference ≈ 2.0 atol = 1.0e-12
+        @test occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, result.pressure_operator_status.status)
         @test !result.operator_status.ready
     end
 end
@@ -518,6 +522,15 @@ end
         @test plans[1].imported_case.target_time ≈ 0.99949999999994532
         @test plans[2].imported_case.target_time ≈ 0.99949999999994532
         @test plans[3].imported_case.target_time ≈ 1.4994999999998904
+        @test plans[1].native_target_time_s ≈ 0.99949999999994532
+        @test plans[2].native_target_time_s ≈ 0.99949999999994532
+        @test plans[3].native_target_time_s ≈ 1.4994999999998904
+        @test plans[1].imported_target_time_s ≈ 0.99949999999994532
+        @test plans[2].imported_target_time_s ≈ 0.99949999999994532
+        @test plans[3].imported_target_time_s ≈ 1.4994999999998904
+        @test all(plan -> plan.time_alignment_status == "time_aligned", plans)
+        @test all(plan -> occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, plan.pressure_gauge_status), plans)
+        @test all(plan -> plan.evidence_tier == "internal_weak_smoke_operator_readiness", plans)
         @test plans[1].imported_available
         @test plans[2].imported_available
         @test plans[3].imported_available
@@ -532,14 +545,17 @@ end
         @test occursin("ready", plans[3].status)
         @test occursin("target_time_s=1.4994999999998904", plans[3].status)
         @test occursin("per_case_imported_time", plans[3].status)
+        @test occursin("time_alignment_status=time_aligned", plans[3].status)
+        @test occursin("evidence_tier=internal_weak_smoke_operator_readiness", plans[3].status)
 
         native_mismatch_plans = native_resolved_fsi_production_parity_plans(
             workflow_plans=native_resolved_fsi_production_workflow_plans(),
             imported_data_root=dir,
         )
         @test native_mismatch_plans[3].imported_available
+        @test native_mismatch_plans[3].time_alignment_status == "not_time_aligned_native_target"
         @test occursin("native production target_time_s=1.0", native_mismatch_plans[3].status)
-        @test occursin("non-replication", native_mismatch_plans[3].status)
+        @test occursin("internal smoke/operator-readiness only", native_mismatch_plans[3].status)
 
         override_plans = native_resolved_fsi_production_parity_plans(
             workflow_plans=workflow_plans,
@@ -547,9 +563,26 @@ end
             imported_target_time=0.99949999999994532,
         )
         @test override_plans[3].imported_available
+        @test override_plans[3].time_alignment_status == "not_time_aligned_imported_target"
         @test occursin("expected-skip", override_plans[3].status)
         @test occursin("global_imported_target_time_override", override_plans[3].status)
-        @test occursin("non-replication", override_plans[3].status)
+        @test occursin("internal smoke/operator-readiness only", override_plans[3].status)
+
+        exact_workflow_plans = native_resolved_fsi_section41_time_aligned_production_workflow_plans(
+            output_root=joinpath(dir, "exact-production"),
+            inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+            pressure_drop_dyn_cm2=0.0,
+        )
+        exact_plans = native_resolved_fsi_production_parity_plans(
+            workflow_plans=exact_workflow_plans,
+            imported_data_root=dir,
+        )
+        @test [plan.workflow_plan.case_spec.case_id for plan in exact_plans] == [:sev23, :sev40, :sev50]
+        @test all(plan -> plan.boundary_mode_class == "exact_section41", exact_plans)
+        @test all(plan -> plan.time_alignment_status == "time_aligned", exact_plans)
+        @test all(plan -> plan.evidence_tier == "internal_exact_boundary_smoke_operator_readiness", exact_plans)
+        @test exact_plans[3].native_target_time_s ≈ 1.4994999999998904
+        @test exact_plans[3].imported_target_time_s ≈ 1.4994999999998904
     end
 end
 
@@ -627,6 +660,9 @@ end
         @test all(row -> row.qualification == "qualified-internal", rows)
         @test all(row -> row.source in ("native", "imported", "parity"), rows)
         @test all(row -> row.quantity in ("velocity", "pressure"), rows)
+        @test all(row -> row.time_alignment_status == "time_aligned", rows)
+        @test all(row -> occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, row.pressure_gauge_status), rows)
+        @test all(row -> row.evidence_tier == "internal_weak_smoke_operator_readiness", rows)
         @test all(row -> row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke", rows)
         @test all(row -> row.boundary_mode_class == "local_smoke_loading", rows)
         @test all(row -> row.section41_boundary_status == "deferred_or_not_selected", rows)
@@ -647,14 +683,15 @@ end
         @test sev23_pressure.ready_row_count == 3
         @test isnan(sev23_pressure.max_mean_velocity_abs_difference_cm_s)
         @test sev23_pressure.max_mean_pressure_abs_difference_dyn_cm2 ≈ 0.0 atol = 1.0e-12
-        @test occursin("pressure section-average observations matched", sev23_pressure.status)
+        @test occursin("pressure section-average operator diagnostics matched", sev23_pressure.status)
+        @test occursin("non-evidentiary without a common pressure gauge operator", sev23_pressure.status)
 
         sev40_parity_rows = [row for row in rows if row.case_id == "sev40" && row.source == "parity"]
         @test length(sev40_parity_rows) == 2
         @test all(row -> row.row_count == 0, sev40_parity_rows)
         @test all(row -> row.ready_row_count == 0, sev40_parity_rows)
         @test all(row -> row.imported_available, sev40_parity_rows)
-        @test all(row -> occursin("ready: native production plan", row.status), sev40_parity_rows)
+        @test all(row -> occursin("ready: internal operator-readiness plan", row.status), sev40_parity_rows)
 
         sev50_imported_rows = [row for row in rows if row.case_id == "sev50" && row.source == "imported"]
         @test length(sev50_imported_rows) == 2
@@ -674,6 +711,8 @@ end
               sort([(row.case_id, row.source, row.quantity) for row in planned_rows])
         @test all(row -> row.row_count == 0, planned_rows)
         @test all(row -> row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke", planned_rows)
+        @test all(row -> row.time_alignment_status == "time_aligned", planned_rows)
+        @test all(row -> row.evidence_tier == "internal_weak_smoke_operator_readiness", planned_rows)
         @test !ispath(dry_runs[1].output_dir)
 
         exact_workflow_plan = only(native_resolved_fsi_production_workflow_plans(
@@ -691,8 +730,10 @@ end
         @test all(row -> row.section41_boundary_status == "implemented_smoke_validated", exact_rows)
         @test all(row -> occursin("exact_section41_boundary_mode_selected_smoke_validated", row.boundary_equivalence_status), exact_rows)
         @test all(row -> occursin("parity ready is still artifact/operator readiness", row.boundary_equivalence_status), exact_rows)
+        @test all(row -> row.evidence_tier == "internal_exact_boundary_smoke_operator_readiness", exact_rows)
+        @test all(row -> occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, row.pressure_gauge_status), exact_rows)
         @test all(row -> occursin("parity status is artifact/operator readiness only", row.status), exact_rows)
-        @test all(row -> occursin("not paper-grade reproduction", row.status), exact_rows)
+        @test all(row -> occursin("internal smoke/operator-readiness evidence", row.status), exact_rows)
     end
 end
 
@@ -737,6 +778,11 @@ end
         @test all(row -> row.operator_name == "CrossSectionQuadratureOperator", artifact.observation_rows)
         @test all(row -> row.coordinate_mode == "deformed", artifact.observation_rows)
         @test all(row -> row.area_valid, artifact.observation_rows)
+        @test all(row -> row.native_target_time_s ≈ plan.native_target_time_s, artifact.observation_rows)
+        @test all(row -> row.imported_target_time_s ≈ plan.imported_target_time_s, artifact.observation_rows)
+        @test all(row -> row.time_alignment_status == "time_aligned", artifact.observation_rows)
+        @test all(row -> occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, row.pressure_gauge_status), artifact.observation_rows)
+        @test all(row -> row.evidence_tier == "internal_weak_smoke_operator_readiness", artifact.observation_rows)
         @test all(row -> row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke", artifact.observation_rows)
         @test all(row -> row.boundary_mode_class == "local_smoke_loading", artifact.observation_rows)
         @test all(row -> row.section41_boundary_status == "deferred_or_not_selected", artifact.observation_rows)
@@ -751,8 +797,13 @@ end
         @test startswith(lines[2], "sev23,77,imported,pressure,")
         @test startswith(
             lines[1],
-            "case_id,case_label,source,quantity,snapshot_time_s,z_cm,operator_name,coordinate_mode,area_cm2,flow_cm3_s,mean_velocity_cm_s,mean_pressure_dyn_cm2",
+            "case_id,case_label,source,quantity,native_target_time_s,imported_target_time_s,time_alignment_status,pressure_gauge_status,evidence_tier,snapshot_time_s,z_cm,operator_name,coordinate_mode,area_cm2,flow_cm3_s,mean_velocity_cm_s,mean_pressure_dyn_cm2",
         )
+        @test occursin("native_target_time_s", lines[1])
+        @test occursin("imported_target_time_s", lines[1])
+        @test occursin("time_alignment_status", lines[1])
+        @test occursin("pressure_gauge_status", lines[1])
+        @test occursin("evidence_tier", lines[1])
         @test occursin("mean_velocity_abs_difference_cm_s", lines[1])
         @test occursin("mean_pressure_abs_difference_dyn_cm2", lines[1])
         @test occursin("boundary_mode", lines[1])
@@ -769,6 +820,9 @@ end
         @test count(row -> row.source == "imported", artifact.summary_rows) == 2
         @test count(row -> row.source == "parity", artifact.summary_rows) == 2
         @test all(row -> row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke", artifact.summary_rows)
+        @test all(row -> row.time_alignment_status == "time_aligned", artifact.summary_rows)
+        @test all(row -> occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, row.pressure_gauge_status), artifact.summary_rows)
+        @test all(row -> row.evidence_tier == "internal_weak_smoke_operator_readiness", artifact.summary_rows)
         @test all(row -> row.boundary_mode_class == "local_smoke_loading", artifact.summary_rows)
         @test all(row -> row.section41_boundary_status == "deferred_or_not_selected", artifact.summary_rows)
         parity_velocity_summary = only(row for row in artifact.summary_rows if row.source == "parity" && row.quantity == "velocity")
@@ -782,14 +836,49 @@ end
         @test parity_pressure_summary.ready_row_count == 3
         @test isnan(parity_pressure_summary.max_mean_velocity_abs_difference_cm_s)
         @test parity_pressure_summary.max_mean_pressure_abs_difference_dyn_cm2 ≈ 0.0 atol = 1.0e-12
-        @test occursin("pressure section-average observations matched", parity_pressure_summary.status)
+        @test occursin("pressure section-average operator diagnostics matched", parity_pressure_summary.status)
+        @test occursin("non-evidentiary without a common pressure gauge operator", parity_pressure_summary.status)
 
         summary_lines = readlines(artifact.summary_csv)
         @test length(summary_lines) == 7
         @test summary_lines[1] ==
-            "case_id,source,quantity,row_count,ready_row_count,max_mean_velocity_abs_difference_cm_s,max_mean_pressure_abs_difference_dyn_cm2,boundary_mode,boundary_mode_class,section41_boundary_status,boundary_equivalence_status,status"
-        @test any(occursin(",parity,velocity,3,3,0.0,NaN,pressure_drop_weak_inlet_outlet_gauge_smoke,", line) for line in summary_lines[2:end])
-        @test any(occursin(",parity,pressure,3,3,NaN,0.0,pressure_drop_weak_inlet_outlet_gauge_smoke,", line) for line in summary_lines[2:end])
+            "case_id,source,quantity,native_target_time_s,imported_target_time_s,time_alignment_status,pressure_gauge_status,evidence_tier,row_count,ready_row_count,max_mean_velocity_abs_difference_cm_s,max_mean_pressure_abs_difference_dyn_cm2,boundary_mode,boundary_mode_class,section41_boundary_status,boundary_equivalence_status,status"
+        @test any(occursin(",parity,velocity,", line) && occursin(",time_aligned,", line) && occursin(",3,3,0.0,NaN,pressure_drop_weak_inlet_outlet_gauge_smoke,", line) for line in summary_lines[2:end])
+        @test any(occursin(",parity,pressure,", line) && occursin(",time_aligned,", line) && occursin(",3,3,NaN,0.0,pressure_drop_weak_inlet_outlet_gauge_smoke,", line) for line in summary_lines[2:end])
+    end
+end
+
+@testset "StenoticHemodynamics native resolved-FSI production pressure discrepancy status" begin
+    mktempdir() do dir
+        native_case = write_native_resolved_fsi_parity_fixture(dir, "native")
+        write_native_resolved_fsi_parity_fixture(dir, "77"; pressure_offset_dyn_cm2=2.0)
+        workflow_plan = only(native_resolved_fsi_production_workflow_plans(case_ids=(:sev23,)))
+        plan = only(native_resolved_fsi_production_parity_plans(
+            workflow_plans=[workflow_plan],
+            imported_data_root=dir,
+        ))
+
+        artifact = run_native_resolved_fsi_parity(
+            plan,
+            native_case;
+            output_dir=joinpath(dir, "observations-pressure"),
+            sample_z_cm=[0.5],
+            radial_profile_z_cm=[0.5],
+            radial_bin_count=3,
+            node_slab_half_widths_cm=[0.6],
+        )
+
+        @test artifact.velocity_operator_status.ready
+        @test !artifact.pressure_operator_status.ready
+        @test occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, artifact.pressure_operator_status.status)
+        parity_row = only(row for row in artifact.observation_rows if row.source == "parity")
+        @test parity_row.status == NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS
+        @test parity_row.mean_pressure_abs_difference_dyn_cm2 ≈ 2.0 atol = 1.0e-12
+        pressure_summary = only(row for row in artifact.summary_rows if row.source == "parity" && row.quantity == "pressure")
+        velocity_summary = only(row for row in artifact.summary_rows if row.source == "parity" && row.quantity == "velocity")
+        @test velocity_summary.ready_row_count == 1
+        @test pressure_summary.ready_row_count == 0
+        @test occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, pressure_summary.status)
     end
 end
 
@@ -825,6 +914,9 @@ end
         ]
         @test observation_sort_keys == sort(observation_sort_keys)
         @test all(row -> row.source == "native", artifact.observation_rows)
+        @test all(row -> row.time_alignment_status == "time_aligned", artifact.observation_rows)
+        @test all(row -> occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, row.pressure_gauge_status), artifact.observation_rows)
+        @test all(row -> row.evidence_tier == "internal_weak_smoke_operator_readiness", artifact.observation_rows)
         @test all(row -> row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke", artifact.observation_rows)
         @test count(row -> row.quantity == "velocity", artifact.observation_rows) == 2
         @test count(row -> row.quantity == "pressure", artifact.observation_rows) == 2
@@ -840,6 +932,9 @@ end
         @test all(row -> row.ready_row_count == 2, native_summary_rows)
         @test all(row -> row.status == "ready", native_summary_rows)
         @test all(row -> row.boundary_mode == "pressure_drop_weak_inlet_outlet_gauge_smoke", artifact.summary_rows)
+        @test all(row -> row.time_alignment_status == "time_aligned", artifact.summary_rows)
+        @test all(row -> occursin(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS, row.pressure_gauge_status), artifact.summary_rows)
+        @test all(row -> row.evidence_tier == "internal_weak_smoke_operator_readiness", artifact.summary_rows)
         @test Set(row.quantity for row in imported_summary_rows) == Set(["velocity", "pressure"])
         @test all(row -> row.row_count == 0, imported_summary_rows)
         @test all(row -> row.ready_row_count == 0, imported_summary_rows)
@@ -849,8 +944,8 @@ end
         @test all(row -> occursin("missing required three-field XDMF inputs", row.status), imported_summary_rows)
         summary_lines = readlines(artifact.summary_csv)
         @test length(summary_lines) == 5
-        @test any(occursin(",imported,velocity,0,0,NaN,NaN,pressure_drop_weak_inlet_outlet_gauge_smoke,", line) for line in summary_lines[2:end])
-        @test any(occursin(",imported,pressure,0,0,NaN,NaN,pressure_drop_weak_inlet_outlet_gauge_smoke,", line) for line in summary_lines[2:end])
+        @test any(occursin(",imported,velocity,", line) && occursin(",time_aligned,", line) && occursin(",0,0,NaN,NaN,pressure_drop_weak_inlet_outlet_gauge_smoke,", line) for line in summary_lines[2:end])
+        @test any(occursin(",imported,pressure,", line) && occursin(",time_aligned,", line) && occursin(",0,0,NaN,NaN,pressure_drop_weak_inlet_outlet_gauge_smoke,", line) for line in summary_lines[2:end])
         @test any(occursin("expected-skip", line) for line in summary_lines[2:end])
     end
 end

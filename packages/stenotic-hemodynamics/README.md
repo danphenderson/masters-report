@@ -354,23 +354,29 @@ The native resolved-FSI surface is intentionally tiered:
 - boundary-mode status: the low-level Gridap
   `poiseuille_inlet_zero_outlet_stress_section41` mode is threaded through the
   tiny partitioned production harness and reported as smoke-scale/operator-readiness
-  evidence only;
+  evidence only; weak pressure-drop loading remains the default smoke evidence
+  path;
 - production sidecars: state-carrying partitioned snapshot runs write
   `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, and
-  `restart_metadata.json`;
+  `restart_metadata.json` for internal production-control inspection, not
+  public native production CLI execution;
 - restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
   package-written legacy and current metadata, including versioned
-  `state_payload` audit data when present, while
+  `state_payload` audit data when present; schema-v3 checkpoints can support
+  qualified internal split-run resume into a forked output root, while
   `native_resolved_fsi_resume_partitioned_production(...)` fails closed because
-  persisted state-carrying resume is deferred;
+  public/default persisted state-carrying resume is deferred;
 - observation artifacts: production parity can write `section41_observations.csv`
   and `section41_observation_summary.csv` using local velocity and pressure
-  section-observation operators.
+  section-observation operators. These rows are bounded optional-data operator
+  rows; pressure differences remain non-evidentiary until a common pressure
+  gauge operator is implemented and tested.
 
 These surfaces are generated-artifact and local-operator evidence. The exact
-boundary mode is smoke-scale/operator-readiness evidence only. They do not
-claim paper-grade native resolved-FSI Section 4.1 reproduction, persisted
-restart, or monolithic ALE FSI.
+boundary mode is P3/P4 smoke-scale/operator-readiness evidence only. They do
+not claim paper-grade native resolved-FSI Section 4.1 reproduction, production
+scale execution, public restart/resume, report-evidence promotion, clinical
+validation, or monolithic ALE FSI.
 
 ## Resolved-3D Comparison Data
 
@@ -424,9 +430,11 @@ means are emitted only as supplemental sensitivity rows.
   observation-artifact surfaces are qualified Julia internals. The CLI exposes
   only `fsi native-status` for dry-run/status reporting.
 - Native resolved-FSI production metadata records state-carrying partitioned
-  snapshots and a versioned `state_payload` audit block. Persisted resume and
-  paper-grade native resolved-FSI Section 4.1 reproduction remain deferred;
-  exact boundary-mode support is smoke-scale/operator-readiness evidence only.
+  snapshots, schema-v3 checkpoint sidecars, and a versioned `state_payload`
+  audit block. Qualified internal split-run resume is not public/default
+  resume. Paper-grade native resolved-FSI Section 4.1 reproduction, public
+  native production CLI execution, and exact boundary-mode claim promotion
+  remain deferred.
 - Stationary Stokes initialization is a projection contract for the 1D state,
   not a transient FSI solve or direct finite-element field projection.
 - The model is a finite-volume implementation for local experimentation, not a

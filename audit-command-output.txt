@@ -1,0 +1,93 @@
+Masters Report tracked-only audit — local command evidence
+Date: 2026-06-24
+
+1. Archive identity
+Command:
+  sha256sum /mnt/data/masters-report-chatgpt-pro-audit.tar.gz
+Output:
+  27f1ff7c9dceda468604ad4d4b1d946597f73c6bdef8c13de419403e79bfc167  /mnt/data/masters-report-chatgpt-pro-audit.tar.gz
+
+2. Archive safety/contents scan
+Output:
+  members=878
+  unsafe_paths=0
+  links=0
+  appledouble=439
+  tracked_regular_files_excluding_appledouble=439
+  contains_dotgit=False
+  contains_public_final_pdf=True
+Action:
+  Extracted path-safely while excluding AppleDouble entries. The tracked PDF was not inspected or refreshed.
+
+3. Required repository re-anchor
+Command:
+  git status --short --branch --untracked-files=all
+Output:
+  fatal: not a git repository (or any of the parent directories): .git
+  exit=128
+Interpretation:
+  The archive cannot establish live branch, cleanliness, commit, or tag state.
+
+4. Tool availability
+Output:
+  git=git version 2.47.3
+  julia=MISSING
+  pipenv=MISSING
+  latexmk=Latexmk 4.86
+  pdflatex=pdfTeX 1.40.26
+  biber=2.20
+  python3=Python 3.13.5
+Interpretation:
+  ops-julia-check, the official orchestrator gate, and the dispatched report wrapper were not executable here.
+
+5. Focused static checks
+Output:
+  packages/stenotic-hemodynamics/Project.toml: OK
+  packages/stenotic-hemodynamics/Manifest.toml: OK
+  package_bin_bash_n_exit=0
+  tracked report JSON: json_files=1 failures=0
+  updated TODO files: todo_static_errors=0
+  updated TODO checkboxes=21
+
+6. Direct temporary TeX probe
+Command:
+  latexmk -pdf -interaction=nonstopmode -halt-on-error -file-line-error \
+    -outdir=/tmp/masters-report-audit-build report/final-report.tex
+Result:
+  Terminated by the 240-second execution limit during page 51 while processing
+  report/assets/tikz/rest-state-flow-profiles.tex. No complete build result was obtained.
+  Before termination, the log reported an overfull hbox near
+  report/sections/02-continuum/index.tex:290 and a hyperref bookmark-level warning
+  at report/sections/05-numerical-methods/index.tex:16.
+Interpretation:
+  This is not a successful build validation and does not replace the dispatched source-only wrapper.
+
+7. Static architecture measurements
+Output:
+  Julia source+test lines=39188
+  largest source file=2612 lines (native_resolved_fsi_workflow_production.jl)
+  Dict{String,Any} occurrences=103
+  Any[] occurrences=13
+  Vector{Any} occurrences=7
+  architecture marker type references outside layers.jl=0
+Interpretation:
+  These are maintainability indicators, not correctness failures by themselves.
+
+8. Manuscript lexical pattern scan
+Scope:
+  23 TeX files under report/frontmatter, report/sections, and report/appendices
+Output:
+  lexical_words=33407
+  declared=69
+  retained=68
+  bounded=13
+  evidence=121
+  diagnostic=42
+  comparison=144
+  rather than=39
+  does not=37
+  promoted=9
+  tracked=11
+  package audit=2
+Interpretation:
+  Counts support a targeted metadiscourse/AI-slop pass; they do not establish authorship or scientific error.

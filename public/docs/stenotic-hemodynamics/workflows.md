@@ -189,7 +189,7 @@ parameter-audit caveats.
 - Focused validation command:
   - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_package_benchmark.jl")'`
 
-## Native Resolved-FSI Mesh, Smoke, Production Sidecars, And Parity
+## Native Resolved-FSI Mesh, Smoke, P3/P4 Sidecars, And Bounded Observation Rows
 
 - Representative files:
   - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_mesh.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_mesh.jl)
@@ -215,7 +215,7 @@ parameter-audit caveats.
     checks, boundary mode, output paths, and optional imported-bundle status.
     Production execution, restart reading/resume, parity execution, and
     observation-artifact generation remain qualified Julia-internal and are not
-    CLI commands.
+    CLI commands. There is no public native production CLI.
 - Surface: `qualified-internal`
 - Expected outputs and artifact class:
   - Ignored scratch schema-workflow outputs under `tmp/simulations/output/native-resolved-fsi/**`
@@ -225,6 +225,9 @@ parameter-audit caveats.
     `snapshot_diagnostics.csv`, `restart_metadata.json`, and optional
     Section 4.1 observation artifacts such as
     `section41_observation_summary.csv`
+  - These outputs are ignored scratch artifacts for internal
+    smoke/operator-readiness; they are not report assets and are not promoted
+    to public generated outputs by this workflow.
   - High-output generation remains guarded by explicit
     `NativeResolvedFSIPartitionedProductionSpec` values, production workflow
     plans, and dry-run checks
@@ -235,6 +238,8 @@ parameter-audit caveats.
   - Parity workflows compare against explicitly supplied bundle paths when
     present, and otherwise produce expected skips for unavailable optional
     imported cases
+  - Pressure observation differences are non-evidentiary until a common
+    pressure gauge operator is implemented and offset-tested
 - Focused validation command:
   - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_native_resolved_fsi_smoke.jl")'`
 
@@ -253,15 +258,18 @@ Current tiers are intentionally separate:
   exposes this status boundary without exposing production execution.
 - Production sidecars: `run_native_resolved_fsi_partitioned_production(...)`
   runs one state-carrying partitioned snapshot series and writes manifest,
-  diagnostics, and restart metadata.
+  diagnostics, and restart metadata for P3/P4 internal production-control
+  inspection only.
 - Restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
   legacy and current package-written metadata, including versioned
-  `state_payload` audit metadata when present, while
+  `state_payload` audit metadata when present. Qualified internal split-run
+  resume can continue schema-v3 checkpoints into a forked output root, while
   `native_resolved_fsi_resume_partitioned_production(...)` fails closed because
-  persisted state-carrying resume is deferred.
+  public/default persisted state-carrying resume is deferred.
 - Observation artifacts: production parity writes native/imported/parity
   observation rows and `section41_observation_summary.csv` through the local
-  cross-section velocity and pressure observation operators.
+  cross-section velocity and pressure observation operators. These are bounded
+  local optional-data rows, not paper-grade Section 4.1 parity rows.
 - Boundary-mode status: fixed-wall and partitioned native runs exercise
   package-owned boundary modes. The low-level Gridap
   `poiseuille_inlet_zero_outlet_stress_section41` mode is also threaded through
@@ -270,9 +278,11 @@ Current tiers are intentionally separate:
   resolved-FSI Section 4.1 reproduction.
 
 The current family documents generated artifacts, local operator evidence, and
-production-control sidecars. Persisted restart, production execution from CLI,
-and paper-grade native resolved-FSI Section 4.1 reproduction claims remain
-deferred. The separate `canic-replication section41` workflow owns the
+P3/P4 internal production-control sidecars. Public/default restart or resume,
+public native production CLI execution, production-scale Section 4.1
+reproduction, monolithic ALE, clinical/patient validation, report-evidence
+promotion, and paper-grade native resolved-FSI Section 4.1 reproduction claims
+remain deferred. The separate `canic-replication section41` workflow owns the
 source-artifact Section 4.1 comparison against restored upstream bundles.
 
 ## Native Resolved-FSI Web Visualization Export

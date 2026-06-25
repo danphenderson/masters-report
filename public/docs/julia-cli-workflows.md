@@ -49,12 +49,14 @@ and
 `StenoticHemodynamics.native_resolved_fsi_partitioned_production_default_guard_report(...)`.
 High-output generation is still guarded by spec objects, workflow plans, and
 dry-run checks, and no CLI default reaches the expensive production runner.
-Restart metadata may include a versioned `state_payload` audit block, but
-persisted restart/resume remains fail-closed. The internal exact Section 4.1
-boundary mode (`poiseuille_inlet_zero_outlet_stress_section41`) is wired
-through the low-level Gridap/native production harness and surfaced here only
-as status output; it remains smoke-scale/operator-readiness evidence, not
-paper-grade native resolved-FSI Section 4.1 reproduction. Use
+Restart metadata may include schema-v3 checkpoint sidecars and a versioned
+`state_payload` audit block. Qualified internal split-run resume is available
+only through Julia internals and forked output roots; public/default
+restart/resume remains fail-closed. The internal exact Section 4.1 boundary
+mode (`poiseuille_inlet_zero_outlet_stress_section41`) is wired through the
+low-level Gridap/native production harness and surfaced here only as status
+output; it remains smoke-scale/operator-readiness evidence, not paper-grade
+native resolved-FSI Section 4.1 reproduction. Use
 `canic-replication section41` for the separate source-artifact Section 4.1
 comparison workflow.
 

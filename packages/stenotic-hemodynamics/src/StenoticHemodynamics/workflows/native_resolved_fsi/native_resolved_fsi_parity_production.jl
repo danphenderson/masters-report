@@ -9,6 +9,11 @@ struct NativeResolvedFSIProductionParityPlan
     workflow_plan::NativeResolvedFSIProductionWorkflowPlan
     imported_case::Resolved3DCaseSpec
     imported_available::Bool
+    native_target_time_s::Float64
+    imported_target_time_s::Float64
+    time_alignment_status::String
+    pressure_gauge_status::String
+    evidence_tier::String
     boundary_mode::String
     boundary_mode_class::String
     section41_boundary_status::String
@@ -44,28 +49,42 @@ function native_resolved_fsi_production_parity_plans(;
         )
         boundary_equivalence_status = native_resolved_fsi_boundary_equivalence_status(boundary_status)
         target_policy = native_resolved_fsi_section41_imported_target_policy(imported_target_time)
-        target_offset_s = abs(imported_case.target_time - native_resolved_fsi_section41_imported_time_s(
+        imported_reference_time_s = native_resolved_fsi_section41_imported_time_s(
             workflow_plan.case_spec.case_id,
-        ))
+        )
+        target_offset_s = abs(imported_case.target_time - imported_reference_time_s)
         target_aligned = target_offset_s <= Float64(imported_time_atol)
         native_target_time_s = last(workflow_plan.production_spec.snapshot_times_s)
         native_target_offset_s = abs(native_target_time_s - imported_case.target_time)
         native_target_aligned = native_target_offset_s <= Float64(imported_time_atol)
+        time_alignment_status = native_resolved_fsi_production_parity_time_alignment_status(
+            native_target_time_s,
+            imported_case.target_time,
+            imported_reference_time_s,
+            imported_time_atol,
+        )
+        pressure_gauge_status = native_resolved_fsi_production_parity_pressure_gauge_status(boundary_status)
+        evidence_tier = native_resolved_fsi_production_parity_evidence_tier(boundary_status)
         status = if imported_available && target_aligned && native_target_aligned
-            "ready: native production plan for $(workflow_plan.case_spec.paper_label) targets native_time_s=$(native_target_time_s) and is paired with imported case $(imported_case.case_label) at target_time_s=$(imported_case.target_time); imported_target_time_policy=$(target_policy); boundary_equivalence_status=$(boundary_equivalence_status)"
+            "ready: internal operator-readiness plan for $(workflow_plan.case_spec.paper_label) targets native_time_s=$(native_target_time_s) and is paired with imported case $(imported_case.case_label) at target_time_s=$(imported_case.target_time); imported_target_time_policy=$(target_policy); time_alignment_status=$(time_alignment_status); pressure_gauge_status=$(pressure_gauge_status); evidence_tier=$(evidence_tier); boundary_equivalence_status=$(boundary_equivalence_status)"
         elseif imported_available
             !target_aligned ?
-            "expected-skip: imported case $(imported_case.case_label) is present but imported_target_time_policy=$(target_policy) gives target_time_s=$(imported_case.target_time), offset $(target_offset_s) s from the case imported final time; non-replication" :
-            "expected-skip: native production target_time_s=$(native_target_time_s) differs from imported case $(imported_case.case_label) target_time_s=$(imported_case.target_time) by $(native_target_offset_s) s; smoke/operator-readiness only; non-replication"
+            "expected-skip: imported case $(imported_case.case_label) is present but imported_target_time_policy=$(target_policy) gives target_time_s=$(imported_case.target_time), offset $(target_offset_s) s from the case imported final time; time_alignment_status=$(time_alignment_status); internal smoke/operator-readiness only" :
+            "expected-skip: native production target_time_s=$(native_target_time_s) differs from imported case $(imported_case.case_label) target_time_s=$(imported_case.target_time) by $(native_target_offset_s) s; time_alignment_status=$(time_alignment_status); internal smoke/operator-readiness only"
         elseif isempty(imported_case.velocity_xdmf)
-            "expected-skip: no default imported Section 4.1 bundle contract is wired for $(workflow_plan.case_spec.case_id)"
+            "expected-skip: no default imported Section 4.1 bundle contract is wired for $(workflow_plan.case_spec.case_id); time_alignment_status=$(time_alignment_status); evidence_tier=$(evidence_tier)"
         else
-            "expected-skip: imported bundle $(imported_case.case_label) is not present locally"
+            "expected-skip: imported bundle $(imported_case.case_label) is not present locally; time_alignment_status=$(time_alignment_status); evidence_tier=$(evidence_tier)"
         end
         push!(plans, NativeResolvedFSIProductionParityPlan(
             workflow_plan,
             imported_case,
             imported_available,
+            native_target_time_s,
+            imported_case.target_time,
+            time_alignment_status,
+            pressure_gauge_status,
+            evidence_tier,
             boundary_status.boundary_mode,
             boundary_status.boundary_mode_class,
             boundary_status.section41_boundary_status,
@@ -104,6 +123,36 @@ end
 
 function native_resolved_fsi_section41_imported_target_policy(imported_target_time)
     return isnothing(imported_target_time) ? "per_case_imported_time" : "global_imported_target_time_override"
+end
+
+function native_resolved_fsi_production_parity_time_alignment_status(
+    native_target_time_s::Real,
+    imported_target_time_s::Real,
+    imported_reference_time_s::Real,
+    time_atol_s::Real,
+)
+    tolerance = Float64(time_atol_s)
+    imported_reference_offset_s = abs(Float64(imported_target_time_s) - Float64(imported_reference_time_s))
+    native_imported_offset_s = abs(Float64(native_target_time_s) - Float64(imported_target_time_s))
+    if imported_reference_offset_s <= tolerance && native_imported_offset_s <= tolerance
+        return "time_aligned"
+    elseif imported_reference_offset_s > tolerance
+        return "not_time_aligned_imported_target"
+    end
+    return "not_time_aligned_native_target"
+end
+
+function native_resolved_fsi_production_parity_pressure_gauge_status(boundary_status::NamedTuple)
+    return "$(boundary_status.pressure_gauge_status); common_imported_pressure_gauge_operator_unverified; pressure_discrepancy_status=$(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS)"
+end
+
+function native_resolved_fsi_production_parity_evidence_tier(boundary_status::NamedTuple)
+    return native_resolved_fsi_production_parity_evidence_tier(boundary_status.boundary_mode_class)
+end
+
+function native_resolved_fsi_production_parity_evidence_tier(boundary_mode_class::AbstractString)
+    boundary_mode_class == "exact_section41" && return "internal_exact_boundary_smoke_operator_readiness"
+    return "internal_weak_smoke_operator_readiness"
 end
 
 function native_resolved_fsi_section41_time_aligned_production_workflow_plans(;
@@ -245,6 +294,11 @@ function native_resolved_fsi_production_parity_matrix_artifact_rows(
             ready_row_count=summary_row.ready_row_count,
             max_mean_velocity_abs_difference_cm_s=summary_row.max_mean_velocity_abs_difference_cm_s,
             max_mean_pressure_abs_difference_dyn_cm2=summary_row.max_mean_pressure_abs_difference_dyn_cm2,
+            native_target_time_s=summary_row.native_target_time_s,
+            imported_target_time_s=summary_row.imported_target_time_s,
+            time_alignment_status=summary_row.time_alignment_status,
+            pressure_gauge_status=summary_row.pressure_gauge_status,
+            evidence_tier=summary_row.evidence_tier,
             status=summary_row.status,
         )
         for summary_row in artifact.summary_rows
@@ -257,27 +311,89 @@ function native_resolved_fsi_production_parity_matrix_planned_rows(
 )
     rows = NamedTuple[]
     plan_status = parity_plan === nothing ? dry_run.status : parity_plan.status
+    native_target_time_s = parity_plan === nothing ?
+        native_resolved_fsi_production_parity_dry_run_native_target_time_s(dry_run) :
+        parity_plan.native_target_time_s
+    imported_target_time_s = parity_plan === nothing ?
+        native_resolved_fsi_production_parity_dry_run_imported_target_time_s(dry_run) :
+        parity_plan.imported_target_time_s
+    time_alignment_status = parity_plan === nothing ?
+        native_resolved_fsi_production_parity_dry_run_time_alignment_status(dry_run) :
+        parity_plan.time_alignment_status
+    pressure_gauge_status = parity_plan === nothing ?
+        native_resolved_fsi_production_parity_dry_run_pressure_gauge_status(dry_run) :
+        parity_plan.pressure_gauge_status
+    evidence_tier = parity_plan === nothing ?
+        native_resolved_fsi_production_parity_evidence_tier(dry_run.boundary_mode_class) :
+        parity_plan.evidence_tier
     for quantity in ("pressure", "velocity")
         push!(rows, native_resolved_fsi_production_parity_matrix_row(
             dry_run,
             "native",
             quantity;
+            native_target_time_s,
+            imported_target_time_s,
+            time_alignment_status,
+            pressure_gauge_status,
+            evidence_tier,
             status=dry_run.status,
         ))
         push!(rows, native_resolved_fsi_production_parity_matrix_row(
             dry_run,
             "imported",
             quantity;
+            native_target_time_s,
+            imported_target_time_s,
+            time_alignment_status,
+            pressure_gauge_status,
+            evidence_tier,
             status=plan_status,
         ))
         dry_run.imported_available && push!(rows, native_resolved_fsi_production_parity_matrix_row(
             dry_run,
             "parity",
             quantity;
+            native_target_time_s,
+            imported_target_time_s,
+            time_alignment_status,
+            pressure_gauge_status,
+            evidence_tier,
             status=plan_status,
         ))
     end
     return rows
+end
+
+function native_resolved_fsi_production_parity_dry_run_native_target_time_s(
+    dry_run::NativeResolvedFSIProductionDryRunPlan,
+)
+    isempty(dry_run.snapshot_times_s) && return NaN
+    return Float64(last(dry_run.snapshot_times_s))
+end
+
+function native_resolved_fsi_production_parity_dry_run_imported_target_time_s(
+    dry_run::NativeResolvedFSIProductionDryRunPlan,
+)
+    hasproperty(dry_run.imported_case, :target_time) || return NaN
+    return Float64(dry_run.imported_case.target_time)
+end
+
+function native_resolved_fsi_production_parity_dry_run_time_alignment_status(
+    dry_run::NativeResolvedFSIProductionDryRunPlan,
+)
+    native_target_time_s = native_resolved_fsi_production_parity_dry_run_native_target_time_s(dry_run)
+    imported_target_time_s = native_resolved_fsi_production_parity_dry_run_imported_target_time_s(dry_run)
+    if !isfinite(native_target_time_s) || !isfinite(imported_target_time_s)
+        return "time_alignment_unavailable"
+    end
+    abs(native_target_time_s - imported_target_time_s) <= 1.0e-3 && return "time_aligned"
+    return "not_time_aligned_native_target"
+end
+
+function native_resolved_fsi_production_parity_dry_run_pressure_gauge_status(
+    dry_run::NativeResolvedFSIProductionDryRunPlan,
+)
+    return "$(dry_run.pressure_gauge_status); common_imported_pressure_gauge_operator_unverified; pressure_discrepancy_status=$(NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS)"
 end
 
 function native_resolved_fsi_production_parity_matrix_row(
@@ -288,6 +404,11 @@ function native_resolved_fsi_production_parity_matrix_row(
     ready_row_count::Integer = 0,
     max_mean_velocity_abs_difference_cm_s::Real = NaN,
     max_mean_pressure_abs_difference_dyn_cm2::Real = NaN,
+    native_target_time_s::Real = native_resolved_fsi_production_parity_dry_run_native_target_time_s(dry_run),
+    imported_target_time_s::Real = native_resolved_fsi_production_parity_dry_run_imported_target_time_s(dry_run),
+    time_alignment_status::AbstractString = native_resolved_fsi_production_parity_dry_run_time_alignment_status(dry_run),
+    pressure_gauge_status::AbstractString = native_resolved_fsi_production_parity_dry_run_pressure_gauge_status(dry_run),
+    evidence_tier::AbstractString = native_resolved_fsi_production_parity_evidence_tier(dry_run.boundary_mode_class),
     status::AbstractString,
 )
     return (
@@ -296,6 +417,11 @@ function native_resolved_fsi_production_parity_matrix_row(
         quantity=String(quantity),
         qualification="qualified-internal",
         source_label=native_resolved_fsi_production_parity_matrix_source_label(dry_run, source),
+        native_target_time_s=Float64(native_target_time_s),
+        imported_target_time_s=Float64(imported_target_time_s),
+        time_alignment_status=String(time_alignment_status),
+        pressure_gauge_status=String(pressure_gauge_status),
+        evidence_tier=String(evidence_tier),
         imported_available=dry_run.imported_available,
         observations_csv=dry_run.parity_observations_csv,
         summary_csv=dry_run.parity_summary_csv,
@@ -319,7 +445,7 @@ function native_resolved_fsi_production_parity_matrix_status(
     dry_run.boundary_mode == string(:poiseuille_inlet_zero_outlet_stress_section41) || return row_status
     occursin("parity status is artifact/operator readiness only", row_status) && return row_status
     return row_status *
-           "; parity status is artifact/operator readiness only, not paper-grade reproduction or validated Section 4.1 parity"
+           "; parity status is artifact/operator readiness only, internal smoke/operator-readiness evidence, not validated Section 4.1 parity"
 end
 
 function native_resolved_fsi_production_parity_matrix_source_label(
@@ -413,6 +539,11 @@ function run_native_resolved_fsi_parity(
             case_label=case_label,
             source=source,
             quantity=quantity,
+            native_target_time_s=plan.native_target_time_s,
+            imported_target_time_s=plan.imported_target_time_s,
+            time_alignment_status=plan.time_alignment_status,
+            pressure_gauge_status=plan.pressure_gauge_status,
+            evidence_tier=plan.evidence_tier,
             snapshot_time_s=snapshot_time_s,
             z_cm=z_cm,
             operator_name=operator_name(CrossSectionQuadratureOperator()),
@@ -487,7 +618,29 @@ function run_native_resolved_fsi_parity(
     )
         cut_status = "$(native_velocity_observation.cut_status):$(imported_velocity_observation.cut_status)"
         area_valid = native_velocity_observation.area_valid && imported_velocity_observation.area_valid
-        status = area_valid ? "ready" : "invalid-cut"
+        area_abs_difference = difference_or_nan(
+            native_velocity_observation.area_cm2,
+            imported_velocity_observation.area_cm2,
+        )
+        flow_abs_difference = difference_or_nan(
+            native_velocity_observation.flow_cm3_s,
+            imported_velocity_observation.flow_cm3_s,
+        )
+        mean_velocity_abs_difference = difference_or_nan(
+            native_velocity_observation.mean_velocity_cm_s,
+            imported_velocity_observation.mean_velocity_cm_s,
+        )
+        mean_pressure_abs_difference = difference_or_nan(
+            native_pressure_observation.mean_pressure_dyn_cm2,
+            imported_pressure_observation.mean_pressure_dyn_cm2,
+        )
+        status = if !area_valid
+            "invalid-cut"
+        elseif isfinite(mean_pressure_abs_difference) && mean_pressure_abs_difference > parity_spec.operator_atol
+            NATIVE_RESOLVED_FSI_PARITY_PRESSURE_STATUS
+        else
+            "ready"
+        end
         push!(rows, observation_row(
             source="parity",
             quantity="velocity_pressure",
@@ -502,22 +655,10 @@ function run_native_resolved_fsi_parity(
             area_valid=area_valid,
             cut_status=cut_status,
             paired_source="native:imported",
-            area_abs_difference_cm2=difference_or_nan(
-                native_velocity_observation.area_cm2,
-                imported_velocity_observation.area_cm2,
-            ),
-            flow_abs_difference_cm3_s=difference_or_nan(
-                native_velocity_observation.flow_cm3_s,
-                imported_velocity_observation.flow_cm3_s,
-            ),
-            mean_velocity_abs_difference_cm_s=difference_or_nan(
-                native_velocity_observation.mean_velocity_cm_s,
-                imported_velocity_observation.mean_velocity_cm_s,
-            ),
-            mean_pressure_abs_difference_dyn_cm2=difference_or_nan(
-                native_pressure_observation.mean_pressure_dyn_cm2,
-                imported_pressure_observation.mean_pressure_dyn_cm2,
-            ),
+            area_abs_difference_cm2=area_abs_difference,
+            flow_abs_difference_cm3_s=flow_abs_difference,
+            mean_velocity_abs_difference_cm_s=mean_velocity_abs_difference,
+            mean_pressure_abs_difference_dyn_cm2=mean_pressure_abs_difference,
             status=status,
         ))
         return rows
@@ -584,6 +725,11 @@ function run_native_resolved_fsi_parity(
             case_id=case_id,
             source=source,
             quantity=quantity,
+            native_target_time_s=plan.native_target_time_s,
+            imported_target_time_s=plan.imported_target_time_s,
+            time_alignment_status=plan.time_alignment_status,
+            pressure_gauge_status=plan.pressure_gauge_status,
+            evidence_tier=plan.evidence_tier,
             row_count=row_count,
             ready_row_count=ready_row_count,
             max_mean_velocity_abs_difference_cm_s=max_mean_velocity_abs_difference_cm_s,
@@ -635,14 +781,13 @@ function run_native_resolved_fsi_parity(
         rows_for_parity = [row for row in rows if row.source == "parity"]
         isempty(rows_for_parity) && return NamedTuple[]
         case_id = first(rows_for_parity).case_id
-        ready_row_count = count(row -> row.status == "ready", rows_for_parity)
         return NamedTuple[
             summary_row(
                 case_id=case_id,
                 source="parity",
                 quantity="velocity",
                 row_count=length(rows_for_parity),
-                ready_row_count=ready_row_count,
+                ready_row_count=parity_result.velocity_operator_status.ready ? length(rows_for_parity) : 0,
                 max_mean_velocity_abs_difference_cm_s=max_finite_or_nan(
                     row.mean_velocity_abs_difference_cm_s for row in rows_for_parity
                 ),
@@ -653,7 +798,7 @@ function run_native_resolved_fsi_parity(
                 source="parity",
                 quantity="pressure",
                 row_count=length(rows_for_parity),
-                ready_row_count=ready_row_count,
+                ready_row_count=parity_result.pressure_operator_status.ready ? length(rows_for_parity) : 0,
                 max_mean_pressure_abs_difference_dyn_cm2=max_finite_or_nan(
                     row.mean_pressure_abs_difference_dyn_cm2 for row in rows_for_parity
                 ),

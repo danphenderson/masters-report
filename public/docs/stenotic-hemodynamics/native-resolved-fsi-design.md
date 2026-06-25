@@ -21,6 +21,13 @@ Scope for this boundary:
   deferred surfaces without widening them into public CLI or paper-grade
   reproduction claims.
 
+P3/P4 in this document means internal smoke/operator-readiness only. It covers
+exact boundary-mode status, production-control sidecars, bounded observation
+rows, and qualified internal split-run resume. It does not promote public
+native production CLI execution, public/default resume, production-scale
+Section 4.1 reproduction, monolithic ALE, clinical/patient validation, or
+report evidence.
+
 ## Current implementation tiers
 
 The implemented native resolved-FSI surface is split into these tiers:
@@ -31,9 +38,9 @@ The implemented native resolved-FSI surface is split into these tiers:
 | Fixed-wall smoke | `run_native_resolved_fsi_smoke(...)` and `run_native_resolved_fsi_navier_stokes_smoke(...)` run coarse fixed-wall Gridap smoke solves and write zero displacement. | Solver-backed smoke and importer round trip, not moving-wall FSI. |
 | Partitioned smoke | `run_native_resolved_fsi_partitioned_smoke(...)` updates a reduced radial membrane state and prescribes radial wall-velocity Dirichlet data on the fluid wall. | Coarse staggered smoke with prescribed wall velocity; not monolithic ALE. |
 | Production dry-run | `native_resolved_fsi_partitioned_production_dry_run(...)` resolves output, sidecar, restart, and imported-parity paths without running a solver or writing files. | Side-effect-free planning only. |
-| Production sidecars | `run_native_resolved_fsi_partitioned_production(...)` advances one state-carrying partitioned snapshot series within a run and writes importer-compatible snapshot bundles, `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, `restart_metadata.json`, and schema-v3 durable checkpoint sidecars. | Production-control and diagnostics harness with in-run state carry and qualified internal split-run resume; monolithic ALE coupling, public/default resume, and paper-grade reproduction remain deferred. |
+| Production sidecars | `run_native_resolved_fsi_partitioned_production(...)` advances one state-carrying partitioned snapshot series within a run and writes importer-compatible snapshot bundles, `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, `restart_metadata.json`, and schema-v3 durable checkpoint sidecars. | P3/P4 production-control and diagnostics harness with in-run state carry and qualified internal split-run resume; monolithic ALE coupling, public/default resume, public native production CLI execution, and paper-grade reproduction remain deferred. |
 | Restart metadata | `native_resolved_fsi_read_restart_metadata(...)` validates current and legacy package-written restart metadata, including versioned `state_payload` audit data and schema-v3 durable checkpoints when present. | Schema-v3 checkpoints support qualified internal split-run resume only; `native_resolved_fsi_resume_partitioned_production(...)` still fails closed for public callers. |
-| Observation artifacts | Production parity writes `section41_observations.csv` and `section41_observation_summary.csv`. | Local velocity/pressure observation evidence and optional imported-bundle comparison, not a paper-grade reproduction claim. |
+| Observation artifacts | Production parity writes `section41_observations.csv` and `section41_observation_summary.csv`. | Local velocity/pressure observation rows and optional imported-bundle comparison only; pressure rows are non-evidentiary for pressure discrepancy until a common gauge operator is selected and tested. |
 
 External importer support is retained. Legacy or explicitly supplied
 XDMF/HDF5 resolved-3D bundles still enter through the existing importer and
@@ -63,6 +70,8 @@ Interpretation:
   schedule within a run and now writes schema-v3 durable checkpoint sidecars.
   Qualified internal split-run resume can continue from those checkpoints into
   a forked output root, but public/default resume remains closed.
+- The exact Section 4.1 boundary mode is explicit, but the weak
+  pressure-drop smoke path remains the default smoke evidence path.
 - The moving-wall tier remains partitioned and smoke-backed, not monolithic.
 
 ## Backend decision
@@ -238,7 +247,7 @@ The current inlet/outlet realizations are:
   partitioned smoke harnesses;
 - exact Section 4.1 internal mode: strong Poiseuille inlet with
   `u_max = 45 cm/s` plus zero outlet stress, threaded through the tiny
-  partitioned production harness for operator-readiness evidence only.
+  partitioned production harness for P3/P4 operator-readiness evidence only.
 
 The native Navier-Stokes adapter also records outlet normal-velocity diagnostics
 in `solver_diagnostics`: outlet node count, fallback sampling count, backflow
@@ -534,8 +543,10 @@ pass/fail production claim:
 - maximum relative error in the longitudinal velocity curve within `10%`.
 
 The current observation artifacts record velocity and pressure section
-averages and differences. A paper-grade pressure parity tolerance remains a
-later local choice.
+averages and differences. Pressure differences remain non-evidentiary until a
+common pressure gauge operator is implemented, tested against imported pressure
+offsets, and selected for the Section 4.1 comparison contract. A paper-grade
+pressure comparison tolerance remains a later local choice.
 
 ## Reuse and separation
 
@@ -586,13 +597,18 @@ These items remain open and should not be implied by current documentation:
 - public CLI exposure beyond the status-only `fsi native-status` surface for
   native resolved-FSI production, restart/resume, parity, or
   observation-artifact workflows;
+- public native production CLI execution;
+- report-evidence promotion from P3/P4 smoke/operator-readiness rows;
+- clinical or patient-specific validation;
 - paper-grade transient Section 4.1 reproduction.
 
 ## Blockers
 
 No documentation blocker remains for the implemented schema, smoke, production
-dry-run, restart metadata, sidecar, and observation-artifact tiers. The design
+dry-run, restart metadata, sidecar, and observation-artifact tiers when they
+are described as P3/P4 internal smoke/operator-readiness surfaces. The design
 intentionally defers monolithic moving-wall FSI, public/default process resume,
 CLI surfaces beyond `fsi native-status`, production-scale resume claim
-promotion, and paper-grade reproduction claims instead of presenting the
-current qualified-internal harness as those stronger surfaces.
+promotion, report-evidence promotion, clinical validation, and paper-grade
+reproduction claims instead of presenting the current qualified-internal
+harness as those stronger surfaces.

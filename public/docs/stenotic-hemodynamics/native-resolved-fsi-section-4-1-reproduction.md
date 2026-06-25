@@ -24,6 +24,13 @@ Scope:
   observation-artifact tiers;
 - explicit separation between paper-given facts, local inferences, and unknowns.
 
+P3/P4 in this note means internal smoke/operator-readiness only. Exact
+boundary-mode status, bounded observation rows, production sidecars, and
+qualified internal split-run resume may be documented, but public native
+production CLI execution, public/default resume, production-scale Section 4.1
+reproduction, monolithic ALE, clinical/patient validation, and report-evidence
+promotion remain deferred.
+
 ## Current package status
 
 The current native resolved-FSI implementation supports generated artifacts and
@@ -63,7 +70,9 @@ local operator evidence in separate tiers:
   still intentionally fails closed for public callers.
 - Observation artifacts: native/imported/parity rows are written to
   `section41_observations.csv` and summarized in
-  `section41_observation_summary.csv`.
+  `section41_observation_summary.csv`. These rows are local optional-data
+  observation rows; pressure differences are non-evidentiary until a common
+  pressure gauge operator is selected and offset-tested.
 
 External importer support is retained and supported. The optional upstream
 XDMF/HDF5 velocity bundles, and explicitly supplied three-field bundles, remain
@@ -133,8 +142,8 @@ artifacts or local operator summaries are marked `non-blocker`.
 | Wall thickness | `h = 0.06 cm` | explicit | no | Table 1. |
 | Poisson ratio | `nu = 0.5` | explicit | no | Table 1; map to package `sigma`. |
 | Young modulus | `E = 5.02e6 dyn/cm^2` | explicit | no | Table 1. |
-| Inlet condition | Poiseuille inflow with `u_max = 45 cm/s` | explicit; internal exact mode implemented, broader parity validation deferred | no for generated artifacts; yes for validated exact boundary parity | Section 4.1 text. Mean inflow is inferred as `22.5 cm/s`. Pressure-drop weak loading remains the default smoke evidence path; the internal exact mode is smoke-scale/operator-readiness evidence only. |
-| Outlet condition | zero stress `sigma n = 0` at `Gamma_out` | explicit; internal exact mode implemented, broader parity validation deferred | no for generated artifacts; yes for validated exact boundary parity | Section 4.1 text. Pressure-drop weak loading remains the default smoke evidence path; the internal exact mode is smoke-scale/operator-readiness evidence only. |
+| Inlet condition | Poiseuille inflow with `u_max = 45 cm/s` | explicit; internal exact mode implemented, broader parity validation deferred | not blocking generated artifacts; blocking any validated exact-boundary parity claim | Section 4.1 text. Mean inflow is inferred as `22.5 cm/s`. Pressure-drop weak loading remains the default smoke evidence path; the internal exact mode is smoke-scale/operator-readiness evidence only. |
+| Outlet condition | zero stress `sigma n = 0` at `Gamma_out` | explicit; internal exact mode implemented, broader parity validation deferred | not blocking generated artifacts; blocking any validated exact-boundary parity claim | Section 4.1 text. Pressure-drop weak loading remains the default smoke evidence path; the internal exact mode is smoke-scale/operator-readiness evidence only. |
 | End constraint | artery clamped at both ends, radial deformation allowed | explicit | no | Section 4.1 text. |
 | Comparison time | steady-state 3D snapshot at `T = 1 s` | explicit | no | Section 4.1 text. |
 | Legacy imported XDMF time | current local cases expect `0.9995 +/- time_atol` | inferred/local | no | From `Resolved3DCaseSpec` defaults and README; keep for importer compatibility only. |
@@ -255,6 +264,9 @@ displacement and therefore do not use the velocity-only schema as their target.
 - Exact-mode outputs may report
   `poiseuille_inlet_zero_outlet_stress_section41` as internal
   smoke-scale/operator-readiness evidence.
+- The weak pressure-drop smoke path remains the default native smoke evidence
+  path until exact-boundary parity is validated beyond the tiny production
+  harness.
 - Current outputs must not report validated Section 4.1 boundary reproduction
   or parity.
 - Exact paper boundary parity remains deferred until the implemented internal
@@ -274,7 +286,8 @@ displacement and therefore do not use the velocity-only schema as their target.
 - The only explicit published numeric parity statement is the velocity claim:
   extended 1D maximum error within `10%`.
 - Pressure parity is qualitative in the paper; a local numeric tolerance still
-  needs to be chosen later.
+  needs to be chosen later. Current pressure differences are non-evidentiary
+  until a common pressure gauge operator is implemented and offset-tested.
 - Radial profile comparisons are local diagnostics and are not the published
   Section 4.1 observables.
 
@@ -315,5 +328,7 @@ Deferred claims:
 - validated native resolved-FSI Section 4.1 boundary parity and paper-grade
   numerical reproduction of the Poiseuille-inlet / zero-outlet-stress case;
 - monolithic ALE FSI;
+- clinical or patient-specific validation;
+- report-evidence promotion from P3/P4 smoke/operator-readiness rows;
 - paper-grade native resolved-FSI Section 4.1 numerical reproduction or
   validation.

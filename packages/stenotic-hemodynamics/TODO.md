@@ -12,9 +12,10 @@ claim-boundary cleanup. Treat the live checkout as authority.
   `NO-SEND`.
 - Package/report separation remains strict. Package code and tests define the
   computational contract; report prose may only describe that contract.
-- Final report PDF sync is in scope after the explicit 2026-06-24 user
-  request. Do not modify `report/assets/rendered/**`, raw resolved-3D inputs,
-  public logs, public simulation data, or reference PDFs/HTML.
+- This P3/P4 native resolved-FSI documentation lane is source-docs only. Do
+  not refresh `public/final-report.pdf`, `report/assets/rendered/**`, raw
+  resolved-3D inputs, public logs, public simulation data, generated outputs,
+  or reference PDFs/HTML.
 
 ## P0 Package Tasks
 
@@ -46,16 +47,46 @@ claim-boundary cleanup. Treat the live checkout as authority.
 - Keep architecture cleanup documentary: Gridap, HDF5, OrdinaryDiffEq,
   SciMLBase, and YAML are hard dependencies today; layer marker types are
   descriptive only until a separate weak-dependency/extension refactor lands.
-- Preserve public/default restart and resume boundaries; do not widen CLI
-  support.
+- Preserve public/default restart and resume boundaries; qualified internal
+  split-run resume remains an operator-readiness surface, not public resume or
+  CLI support.
 - Coordinate with report prose for residual-budget removal, operator-claim
   narrowing, area-tolerance limitation, MMS dependency qualification, label
   cleanup, and provenance cleanup.
 
 Corrected numerical outputs, if needed, require a separate derived-asset refresh
-lane. This package batch must not regenerate or publish report data assets; the
-only artifact refresh in scope is the report-owned `public/final-report.pdf`
-sync from current source.
+lane. This package batch must not regenerate or publish report data assets, and
+it does not reopen the report-owned `public/final-report.pdf` sync lane.
+
+## P3/P4 Native Resolved-FSI Documentation Boundary
+
+P3/P4 native resolved-FSI work is internal smoke/operator-readiness only:
+
+- P3 exact-boundary readiness may document the internal
+  `poiseuille_inlet_zero_outlet_stress_section41` mode, but the weak
+  pressure-drop smoke path remains the default evidence path. Exact-mode rows
+  must say they are smoke-scale/operator-readiness evidence, not validated
+  Section 4.1 boundary reproduction.
+- P4 sidecar, observation, and resume readiness may document production
+  dry-run plans, state-carrying sidecars, bounded native/imported observation
+  rows, and schema-v3 checkpoints. These rows are local artifact/operator
+  checks only, not production-scale Section 4.1 reproduction or report
+  evidence.
+- Pressure observation rows remain non-evidentiary for pressure discrepancy
+  claims until a common gauge operator is implemented, tested for imported
+  pressure offsets, and selected for the Section 4.1 comparison contract.
+- Qualified internal split-run resume may continue a schema-v3 checkpoint into
+  a forked output root. Public/default resume, public native production CLI,
+  and production-scale resume validation remain deferred.
+
+Expected adjacent-agent handoff:
+
+- Agent A keeps the exact boundary mode explicit and leaves weak smoke as the
+  default.
+- Agent B keeps parity/observation rows bounded to local optional-data
+  operator checks, with pressure non-evidentiary unless the gauge is resolved.
+- Agent C keeps internal split-run resume separate from public/default resume
+  and from report-evidence promotion.
 
 ## P2 Maintainability Tasks
 

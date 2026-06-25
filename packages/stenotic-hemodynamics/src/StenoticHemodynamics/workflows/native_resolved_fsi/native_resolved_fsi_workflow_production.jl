@@ -380,7 +380,8 @@ Wrapper returned by [`run_native_resolved_fsi_partitioned_production`](@ref).
 It keeps the production control spec separate from the final carried
 partitioned solver result and records bounded method/output/diagnostic/restart
 statuses. The diagnostics and restart sidecars describe a state-carrying
-partitioned snapshot series; they do not imply persisted restart/resume support,
+partitioned snapshot series; durable checkpoints are limited to qualified
+internal split-run resume and do not imply public/default process resume,
 validated native resolved-FSI Section 4.1 reproduction, or monolithic ALE FSI coupling.
 """
 struct NativeResolvedFSIPartitionedProductionResult
@@ -625,7 +626,7 @@ function native_resolved_fsi_production_workflow_plans(;
             inlet_umax_cm_s=production_spec.inlet_umax_cm_s,
         )
         status = if production_spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
-            "Section 4.1 native production plan for $(case_spec.paper_label) through T=$(last(production_spec.snapshot_times_s)) s; production runner support advances the exact inlet/outlet boundary mode through the coarse partitioned smoke-scale snapshot harness; boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); this is not a paper-grade reproduction, validated Section 4.1 parity result, or monolithic ALE solve"
+            "Section 4.1 native production plan for $(case_spec.paper_label) through T=$(last(production_spec.snapshot_times_s)) s; production runner support advances the exact Poiseuille inlet / zero-outlet-stress boundary mode through the coarse partitioned smoke-scale snapshot harness as smoke-scale/operator-readiness evidence only; boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); this is not a paper-grade reproduction, validated Section 4.1 parity result, or monolithic ALE solve"
         else
             "Section 4.1 native production plan for $(case_spec.paper_label) through T=$(last(production_spec.snapshot_times_s)) s; production runner support advances one coarse state-carrying partitioned native FSI snapshot series for the requested schedule using local pressure-drop smoke inlet/outlet loading, while the legacy workflow_spec remains schema-only; boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); this is not a paper-grade reproduction or monolithic ALE solve"
         end
@@ -683,7 +684,7 @@ function native_resolved_fsi_partitioned_production_dry_run(
         "threads_per_worker=$(requested_threads_per_worker), force_process=$(force_process)"
     execution_status =
         spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41 ?
-        "production execution is available only through explicit production specs and remains smoke-scale/operator-readiness evidence, not paper-grade reproduction" :
+        "production execution is available only through explicit production specs and remains smoke-scale/operator-readiness evidence only, not paper-grade native resolved-FSI Section 4.1 reproduction" :
         "production execution remains opt-in through explicit production specs and output-volume overrides"
     status = "dry-run ready: no production solver executed and no files written; $(layout_status); $(override_status); $(imported_status); boundary_mode=$(boundary_status.boundary_mode); section41_boundary_status=$(boundary_status.section41_boundary_status); pressure_nullspace_status=$(pressure_nullspace_status); wall_stability_status=$(wall_stability_status); $(execution_status)"
     return NativeResolvedFSIProductionDryRunPlan(
@@ -833,7 +834,7 @@ function run_native_resolved_fsi_partitioned_production(
     resume_context = nothing
     if _resume_checkpoint_path !== nothing
         _qualified_internal_resume || throw(ArgumentError(
-            "native resolved-FSI checkpoint resume requires qualified internal resume approval",
+            "native resolved-FSI checkpoint resume requires qualified internal split-run resume approval",
         ))
         resume_context = native_resolved_fsi_restart_resume_context(String(_resume_checkpoint_path), spec)
     end
@@ -841,7 +842,7 @@ function run_native_resolved_fsi_partitioned_production(
         nothing
     else
         _qualified_internal_resume || throw(ArgumentError(
-            "native resolved-FSI prefix checkpoint stops require qualified internal resume approval",
+            "native resolved-FSI prefix checkpoint stops require qualified internal split-run resume approval",
         ))
         Int(_internal_stop_after_snapshot_index)
     end
@@ -2095,6 +2096,13 @@ function run_native_resolved_fsi_partitioned_production(
             "completed_parent_snapshot_count" => completed_snapshot_count,
             "next_pending_snapshot_index" => next_pending_snapshot_index,
             "resume_run_role" => resume_context === nothing ? "checkpoint_writer" : "forked_internal_resume",
+            "resume_scope" => NATIVE_RESOLVED_FSI_RESTART_INTERNAL_RESUME_SCOPE,
+            "internal_split_run_resume_supported" => true,
+            "internal_split_run_resume_status" => NATIVE_RESOLVED_FSI_RESTART_INTERNAL_RESUME_STATUS,
+            "public_resume_supported" => false,
+            "public_resume_status" => NATIVE_RESOLVED_FSI_RESTART_PUBLIC_RESUME_STATUS,
+            "default_process_resume_supported" => false,
+            "default_process_resume_status" => NATIVE_RESOLVED_FSI_RESTART_DEFAULT_PROCESS_RESUME_STATUS,
             "output_ownership_policy" => resume_context === nothing ?
                 "current_run_owns_all_listed_outputs" :
                 "forked_resume_references_parent_completed_outputs_and_owns_only_current_resume_output_root",
@@ -2171,7 +2179,7 @@ function run_native_resolved_fsi_partitioned_production(
             "resume_supported" => true,
             "resume_status" => "ready",
             "resume_note" =>
-                "Schema v3 checkpoint sidecars record reduced wall state, regenerated mesh identity digests, Gridap free-DOF fluid state, coupling history, and the snapshot cursor for qualified internal resume. Public CLI resume remains intentionally unexposed.",
+                "Schema v3 checkpoint sidecars record reduced wall state, regenerated mesh identity digests, Gridap free-DOF fluid state, coupling history, and the snapshot cursor for qualified internal split-run resume only. Public/default process resume and CLI resume remain intentionally unexposed.",
         )
     end
 
@@ -2188,6 +2196,16 @@ function run_native_resolved_fsi_partitioned_production(
                         get(metadata, "restart_schema_version", 1) == 3 &&
                         get(metadata, "resume_supported", false) == true &&
                         get(metadata, "resume_status", "") == "ready" &&
+                        get(metadata, "resume_scope", "") == NATIVE_RESOLVED_FSI_RESTART_INTERNAL_RESUME_SCOPE &&
+                        get(metadata, "internal_split_run_resume_supported", false) == true &&
+                        get(metadata, "internal_split_run_resume_status", "") ==
+                        NATIVE_RESOLVED_FSI_RESTART_INTERNAL_RESUME_STATUS &&
+                        get(metadata, "public_resume_supported", true) == false &&
+                        get(metadata, "public_resume_status", "") ==
+                        NATIVE_RESOLVED_FSI_RESTART_PUBLIC_RESUME_STATUS &&
+                        get(metadata, "default_process_resume_supported", true) == false &&
+                        get(metadata, "default_process_resume_status", "") ==
+                        NATIVE_RESOLVED_FSI_RESTART_DEFAULT_PROCESS_RESUME_STATUS &&
                         get(metadata, "checkpoint_schema_status", "") == "durable_checkpoint_ready"
                     ) ||
                     (
@@ -2202,7 +2220,7 @@ function run_native_resolved_fsi_partitioned_production(
                     !isempty(get(metadata, "checkpoint_manifest", Any[]))
                 )
         status = if ready && get(metadata, "restart_schema_version", 1) == 3
-            "restart metadata was written with durable schema-v3 checkpoint sidecars ready for qualified internal resume"
+            "restart metadata was written with durable schema-v3 checkpoint sidecars ready for qualified internal split-run resume; public/default process resume remains unsupported"
         elseif ready
             "restart metadata was written with state-carrying partitioned snapshot provenance and non-resumable checkpoint sidecars; persisted resume remains explicitly deferred"
         else
@@ -2261,9 +2279,9 @@ function run_native_resolved_fsi_partitioned_production(
                 snapshot_results,
         )
         ready_status = if exact_boundary_mode
-            "production snapshot harness advanced one state-carrying partitioned solve series as repeated deformed-domain fluid solves through each requested time with a reduced radial membrane update and stationary no-slip wall solves for the exact Section 4.1 inlet/outlet boundary mode; direct finite physical wall-forcing pressure sampling was required with pressure-drop fallback disabled, and outlet-gauge pressure normalization is export-only; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, paper-grade Section 4.1 parity, and monolithic ALE coupling remain out of scope"
+            "production snapshot harness advanced one state-carrying partitioned solve series as repeated deformed-domain fluid solves through each requested time with a reduced radial membrane update and stationary no-slip wall solves for the exact Section 4.1 Poiseuille inlet / zero-outlet-stress boundary mode as smoke-scale/operator-readiness evidence only; direct finite physical wall-forcing pressure sampling was required with pressure-drop fallback disabled, and outlet-gauge pressure normalization is export-only; diagnostics are cumulative per-snapshot summaries with carried coupling residuals; schema-v3 checkpoint resume is qualified-internal split-run only, while public/default process resume, paper-grade Section 4.1 parity, paper-grade reproduction, and monolithic ALE coupling remain out of scope"
         else
-            "production snapshot harness advanced one state-carrying partitioned solve series as repeated deformed-domain fluid solves through each requested time with a reduced radial membrane update and prescribed radial wall-velocity Dirichlet data on deformed geometry; physical wall-forcing pressure uses raw sampling or the pressure-drop resistance fallback, while outlet-gauge pressure normalization is export-only; diagnostics are cumulative per-snapshot summaries with carried coupling residuals, while persisted resume, validated Section 4.1 parity, and monolithic ALE coupling remain out of scope"
+            "production snapshot harness advanced one state-carrying partitioned solve series as repeated deformed-domain fluid solves through each requested time with a reduced radial membrane update and prescribed radial wall-velocity Dirichlet data on deformed geometry; physical wall-forcing pressure uses raw sampling or the pressure-drop resistance fallback, while outlet-gauge pressure normalization is export-only; diagnostics are cumulative per-snapshot summaries with carried coupling residuals; schema-v3 checkpoint resume is qualified-internal split-run only, while public/default process resume, validated Section 4.1 parity, and monolithic ALE coupling remain out of scope"
         end
         status = ready ?
             ready_status :

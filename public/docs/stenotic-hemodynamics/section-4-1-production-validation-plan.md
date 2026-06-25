@@ -12,7 +12,8 @@ The current implementation has:
 - exact-mode reduced partitioned solves that use stationary no-slip wall data
   on deformed geometry, with a semi-implicit reduced membrane update;
 - status-only CLI reporting through `fsi native-status`;
-- state-carrying in-run production sidecars and restart audit metadata;
+- state-carrying in-run production sidecars, schema-v3 checkpoint metadata,
+  and qualified internal split-run resume into a forked output root;
 - local native/imported observation rows and parity summary surfaces.
 
 The current implementation does not yet have:
@@ -21,7 +22,7 @@ The current implementation does not yet have:
 - monolithic ALE FSI or a validated moving-wall fluid boundary handoff for
   paper-grade FSI fidelity;
 - validated imported-data parity for the exact-boundary generated outputs;
-- persisted restart/resume;
+- public/default restart or resume, or public native production CLI execution;
 - paper-grade native resolved-FSI Section 4.1 numerical reproduction.
 
 ## Claim Tiers
@@ -54,7 +55,7 @@ Production-scale planning should cover all Section 4.1 native cases:
 | --- | --- | --- | --- | --- |
 | `sev23` | `77` | 23% stenosis | Use explicit `Rmin = 0.1394 cm` / `delta_r = 0.0406 cm`, not plain `severity=23`. | Optional external bundle under the local data root; skip safely when absent. |
 | `sev40` | `60` | 40% stenosis | Use `Rmin = 0.108 cm` / `delta_r = 0.072 cm`. | Optional external bundle under the local data root; skip safely when absent. |
-| `sev50` | none wired by default | 50% stenosis | Use `Rmin = 0.09 cm` / `delta_r = 0.09 cm`. | Expected skip until an imported case is explicitly supplied. |
+| `sev50` | `50` | 50% stenosis | Use `Rmin = 0.09 cm` / `delta_r = 0.09 cm`. | Optional external bundle under the local data root; skip safely when absent. |
 
 All cases use:
 
@@ -64,10 +65,15 @@ All cases use:
   `:poiseuille_inlet_zero_outlet_stress_section41`;
 - Poiseuille inlet `u_max = 45 cm/s`;
 - natural zero outlet traction;
-- output snapshot target `T = 1.0 s` for native generated artifacts.
+- source-artifact observation/parity snapshot targets must use the imported
+  case time recorded in the source bundle.
 
-Legacy imported data may continue to use `target_time = 0.9995` with its
-existing tolerance. Do not inherit `0.9995` as the native production target.
+Current imported-case targets are `0.99949999999994532 s` for `sev23`/case
+`77`, `0.99949999999994532 s` for `sev40`/case `60`, and
+`1.4994999999998904 s` for `sev50`/case `50`. A separate stand-alone native
+generation at nominal `T = 1.0 s` is not source-artifact parity evidence unless
+the corresponding imported case is also aligned to that time within the
+declared tolerance.
 
 ## Mesh Schedule
 
@@ -285,9 +291,9 @@ For each case with imported data:
   summary rows plus parity rows;
 - velocity parity uses a predeclared Section 4.1 observable: cross-sectional
   average axial velocity versus `z`;
-- pressure parity uses cross-sectional average pressure versus `z` and is
-  reported qualitatively or with a separately justified tolerance because
-  Section 4.1 does not publish a pressure numeric threshold;
+- pressure section rows remain non-evidentiary diagnostics until a common
+  pressure gauge operator is implemented, offset-tested, and selected for the
+  comparison contract;
 - boundary-equivalence fields must say whether exact Section 4.1 mode was used;
 - summary status must not call artifact readiness "validated reproduction".
 
