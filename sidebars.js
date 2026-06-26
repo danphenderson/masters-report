@@ -55,6 +55,7 @@ const sidebars = {
         'stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction',
         'stenotic-hemodynamics/native-resolved-fsi-restart-resume-design',
         'stenotic-hemodynamics/section-4-1-production-validation-plan',
+        'stenotic-hemodynamics/section-4-1-production-validation-record',
         'stenotic-hemodynamics/canic-2024-replication',
       ],
     },

@@ -117,6 +117,9 @@ terms aligned with `public/docs/policy-vocabulary.md`.
   boundary.
 - [Section 4.1 production-scale validation plan](stenotic-hemodynamics/section-4-1-production-validation-plan.md):
   future production-scale evidence gates and operational safeguards.
+- [Section 4.1 production validation record](stenotic-hemodynamics/section-4-1-production-validation-record.md):
+  bounded production-target gate record, output paths, optional imported-data
+  skips, and manuscript-claim hold.
 - [Canic 2024 Section 4.1 source-artifact comparison](stenotic-hemodynamics/canic-2024-replication.md):
   source-artifact comparison workflow for Canic et al. 2024 Section 4.1
   numerical findings.
