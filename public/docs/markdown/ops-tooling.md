@@ -73,6 +73,19 @@ commit wrapper runs this command immediately before commit.
 
 Use `public/docs/markdown/report-builds.md` for wrapper details and failure handling.
 
+## Coverage Reporting
+
+`pipenv run ops-coverage-suite` is the CI and on-demand coverage reporting
+command. It runs both validation suites with opt-in coverage enabled, writes raw
+coverage outputs under `tmp/coverage/`, and exits nonzero if either suite lane
+fails. It is reporting-only and does not replace `pipenv run ops-release-check`
+or `pipenv run ops-orchestrate ready-to-commit` as readiness gates.
+
+The suite writes Python reports to `tmp/coverage/ops/coverage.xml` and
+`tmp/coverage/ops/coverage.json`, Julia reports to `tmp/coverage/julia/lcov.info`
+and `tmp/coverage/julia/coverage-summary.json`, and the combined status summary
+to `tmp/coverage/full-suite-summary.json`.
+
 ## Experiment Runner
 
 Use `ops-experiment` for reviewer-facing simulation and benchmark runs:

@@ -45,6 +45,7 @@ def test_validation_entrypoints_are_packaged_and_declared_in_pipfile() -> None:
     pyproject = tomllib.loads((root / "packages/ops/pyproject.toml").read_text(encoding="utf-8"))
     pipfile = tomllib.loads((root / "Pipfile").read_text(encoding="utf-8"))
 
+    assert pyproject["project"]["scripts"]["ops-coverage-suite"] == "ops.coverage_suite:main"
     assert pyproject["project"]["scripts"]["ops-experiment"] == "ops.experiment_runner:main"
     assert pyproject["project"]["scripts"]["ops-julia-check"] == "ops.julia_check:main"
     assert pyproject["project"]["scripts"]["ops-release-check"] == "ops.release_check:main"
@@ -52,6 +53,7 @@ def test_validation_entrypoints_are_packaged_and_declared_in_pipfile() -> None:
         pipfile["scripts"]["docs-serve"]
         == "sh -lc 'npm --prefix public/docs run docs:build && npm --prefix public/docs run docs:serve -- --port 3025'"
     )
+    assert pipfile["scripts"]["ops-coverage-suite"] == "python -m ops.coverage_suite"
     assert pipfile["scripts"]["ops-experiment"] == "python -m ops.experiment_runner"
     assert pipfile["scripts"]["ops-julia-check"] == "python -m ops.julia_check"
     assert pipfile["scripts"]["ops-release-check"] == "python -m ops.release_check"

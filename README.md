@@ -1,4 +1,7 @@
-# StenoticHemodynamics
+[![Docs](https://github.com/danphenderson/masters-report/actions/workflows/docs.yml/badge.svg)](https://danphenderson.github.io/masters-report/)
+[![Coverage suite](https://github.com/danphenderson/masters-report/actions/workflows/coverage-suite.yml/badge.svg)](https://github.com/danphenderson/masters-report/actions/workflows/coverage-suite.yml)
+[![Codecov ops](https://codecov.io/gh/danphenderson/masters-report/graph/badge.svg?flag=ops)](https://codecov.io/gh/danphenderson/masters-report?flags[0]=ops)
+[![Codecov julia](https://codecov.io/gh/danphenderson/masters-report/graph/badge.svg?flag=julia)](https://codecov.io/gh/danphenderson/masters-report?flags[0]=julia)
 
 [![Documentation](https://img.shields.io/badge/docs-online-176d72?logo=githubpages&logoColor=white)](https://danphenderson.github.io/masters-report/)
 
