@@ -920,6 +920,39 @@ function run_native_resolved_fsi_partitioned_production(
         "gridap_rebuild_status",
         "gridap_reuse_status",
         "gridap_reuse_miss_reason",
+        "gridap_operator_component_status",
+        "gridap_operator_component_terms",
+        "gridap_solver_backend_status",
+        "gridap_context_reused",
+        "gridap_model_reused",
+        "gridap_fe_spaces_reused",
+        "gridap_measures_reused",
+        "gridap_matrix_structure_stable",
+        "gridap_symbolic_factorization_eligible",
+        "gridap_symbolic_factorization_reused",
+        "gridap_symbolic_factorization_cache_status",
+        "gridap_symbolic_factorization_setup_count",
+        "gridap_symbolic_factorization_reuse_count",
+        "gridap_numeric_factorization_reused",
+        "gridap_numeric_factorization_cache_status",
+        "gridap_numeric_factorization_cache_key",
+        "gridap_numeric_factorization_matrix_value_digest",
+        "gridap_numeric_factorization_setup_count",
+        "gridap_numeric_factorization_reuse_count",
+        "gridap_reuse_reason_codes",
+        "gridap_mesh_topology_digest",
+        "gridap_coordinate_value_digest",
+        "gridap_matrix_value_baseline_digest",
+        "gridap_matrix_value_digest_observation_count",
+        "gridap_matrix_value_digest_unique_count",
+        "gridap_matrix_value_digest_current_count",
+        "gridap_matrix_value_digest_repeat_count",
+        "gridap_matrix_value_digest_history_tail",
+        "gridap_reuse_boundary_mode",
+        "gridap_reuse_quadrature_degree",
+        "gridap_reuse_matrix_rows",
+        "gridap_reuse_matrix_cols",
+        "gridap_reuse_matrix_nnz",
         "gridap_matrix_rows",
         "gridap_matrix_cols",
         "gridap_matrix_nnz",
@@ -1057,6 +1090,47 @@ function run_native_resolved_fsi_partitioned_production(
             gridap_rebuild_status=solver_diagnostics.gridap_rebuild_status,
             gridap_reuse_status=solver_diagnostics.gridap_reuse_status,
             gridap_reuse_miss_reason=solver_diagnostics.gridap_reuse_miss_reason,
+            gridap_operator_component_status=solver_diagnostics.gridap_operator_component_status,
+            gridap_operator_component_terms=solver_diagnostics.gridap_operator_component_terms,
+            gridap_solver_backend_status=solver_diagnostics.gridap_solver_backend_status,
+            gridap_context_reused=solver_diagnostics.gridap_context_reused,
+            gridap_model_reused=solver_diagnostics.gridap_model_reused,
+            gridap_fe_spaces_reused=solver_diagnostics.gridap_fe_spaces_reused,
+            gridap_measures_reused=solver_diagnostics.gridap_measures_reused,
+            gridap_matrix_structure_stable=solver_diagnostics.gridap_matrix_structure_stable,
+            gridap_symbolic_factorization_eligible=solver_diagnostics.gridap_symbolic_factorization_eligible,
+            gridap_symbolic_factorization_reused=solver_diagnostics.gridap_symbolic_factorization_reused,
+            gridap_symbolic_factorization_cache_status=
+                solver_diagnostics.gridap_symbolic_factorization_cache_status,
+            gridap_symbolic_factorization_setup_count=
+                solver_diagnostics.gridap_symbolic_factorization_setup_count,
+            gridap_symbolic_factorization_reuse_count=
+                solver_diagnostics.gridap_symbolic_factorization_reuse_count,
+            gridap_numeric_factorization_reused=solver_diagnostics.gridap_numeric_factorization_reused,
+            gridap_numeric_factorization_cache_status=
+                solver_diagnostics.gridap_numeric_factorization_cache_status,
+            gridap_numeric_factorization_cache_key=solver_diagnostics.gridap_numeric_factorization_cache_key,
+            gridap_numeric_factorization_matrix_value_digest=
+                solver_diagnostics.gridap_numeric_factorization_matrix_value_digest,
+            gridap_numeric_factorization_setup_count=
+                solver_diagnostics.gridap_numeric_factorization_setup_count,
+            gridap_numeric_factorization_reuse_count=
+                solver_diagnostics.gridap_numeric_factorization_reuse_count,
+            gridap_reuse_reason_codes=solver_diagnostics.gridap_reuse_reason_codes,
+            gridap_mesh_topology_digest=solver_diagnostics.gridap_mesh_topology_digest,
+            gridap_coordinate_value_digest=solver_diagnostics.gridap_coordinate_value_digest,
+            gridap_matrix_value_baseline_digest=solver_diagnostics.gridap_matrix_value_baseline_digest,
+            gridap_matrix_value_digest_observation_count=
+                solver_diagnostics.gridap_matrix_value_digest_observation_count,
+            gridap_matrix_value_digest_unique_count=solver_diagnostics.gridap_matrix_value_digest_unique_count,
+            gridap_matrix_value_digest_current_count=solver_diagnostics.gridap_matrix_value_digest_current_count,
+            gridap_matrix_value_digest_repeat_count=solver_diagnostics.gridap_matrix_value_digest_repeat_count,
+            gridap_matrix_value_digest_history_tail=solver_diagnostics.gridap_matrix_value_digest_history_tail,
+            gridap_reuse_boundary_mode=solver_diagnostics.gridap_reuse_boundary_mode,
+            gridap_reuse_quadrature_degree=solver_diagnostics.gridap_reuse_quadrature_degree,
+            gridap_reuse_matrix_rows=solver_diagnostics.gridap_reuse_matrix_rows,
+            gridap_reuse_matrix_cols=solver_diagnostics.gridap_reuse_matrix_cols,
+            gridap_reuse_matrix_nnz=solver_diagnostics.gridap_reuse_matrix_nnz,
             gridap_matrix_rows=solver_diagnostics.gridap_matrix_rows,
             gridap_matrix_cols=solver_diagnostics.gridap_matrix_cols,
             gridap_matrix_nnz=solver_diagnostics.gridap_matrix_nnz,
@@ -1214,6 +1288,51 @@ function run_native_resolved_fsi_partitioned_production(
             "gridap_rebuild_status" => solver_diagnostics.gridap_rebuild_status,
             "gridap_reuse_status" => solver_diagnostics.gridap_reuse_status,
             "gridap_reuse_miss_reason" => solver_diagnostics.gridap_reuse_miss_reason,
+            "gridap_operator_component_status" => solver_diagnostics.gridap_operator_component_status,
+            "gridap_operator_component_terms" => solver_diagnostics.gridap_operator_component_terms,
+            "gridap_solver_backend_status" => solver_diagnostics.gridap_solver_backend_status,
+            "gridap_context_reused" => solver_diagnostics.gridap_context_reused,
+            "gridap_model_reused" => solver_diagnostics.gridap_model_reused,
+            "gridap_fe_spaces_reused" => solver_diagnostics.gridap_fe_spaces_reused,
+            "gridap_measures_reused" => solver_diagnostics.gridap_measures_reused,
+            "gridap_matrix_structure_stable" => solver_diagnostics.gridap_matrix_structure_stable,
+            "gridap_symbolic_factorization_eligible" => solver_diagnostics.gridap_symbolic_factorization_eligible,
+            "gridap_symbolic_factorization_reused" => solver_diagnostics.gridap_symbolic_factorization_reused,
+            "gridap_symbolic_factorization_cache_status" =>
+                solver_diagnostics.gridap_symbolic_factorization_cache_status,
+            "gridap_symbolic_factorization_setup_count" =>
+                solver_diagnostics.gridap_symbolic_factorization_setup_count,
+            "gridap_symbolic_factorization_reuse_count" =>
+                solver_diagnostics.gridap_symbolic_factorization_reuse_count,
+            "gridap_numeric_factorization_reused" => solver_diagnostics.gridap_numeric_factorization_reused,
+            "gridap_numeric_factorization_cache_status" =>
+                solver_diagnostics.gridap_numeric_factorization_cache_status,
+            "gridap_numeric_factorization_cache_key" =>
+                solver_diagnostics.gridap_numeric_factorization_cache_key,
+            "gridap_numeric_factorization_matrix_value_digest" =>
+                solver_diagnostics.gridap_numeric_factorization_matrix_value_digest,
+            "gridap_numeric_factorization_setup_count" =>
+                solver_diagnostics.gridap_numeric_factorization_setup_count,
+            "gridap_numeric_factorization_reuse_count" =>
+                solver_diagnostics.gridap_numeric_factorization_reuse_count,
+            "gridap_reuse_reason_codes" => solver_diagnostics.gridap_reuse_reason_codes,
+            "gridap_mesh_topology_digest" => solver_diagnostics.gridap_mesh_topology_digest,
+            "gridap_coordinate_value_digest" => solver_diagnostics.gridap_coordinate_value_digest,
+            "gridap_matrix_value_baseline_digest" => solver_diagnostics.gridap_matrix_value_baseline_digest,
+            "gridap_matrix_value_digest_observation_count" =>
+                solver_diagnostics.gridap_matrix_value_digest_observation_count,
+            "gridap_matrix_value_digest_unique_count" =>
+                solver_diagnostics.gridap_matrix_value_digest_unique_count,
+            "gridap_matrix_value_digest_current_count" =>
+                solver_diagnostics.gridap_matrix_value_digest_current_count,
+            "gridap_matrix_value_digest_repeat_count" =>
+                solver_diagnostics.gridap_matrix_value_digest_repeat_count,
+            "gridap_matrix_value_digest_history_tail" => solver_diagnostics.gridap_matrix_value_digest_history_tail,
+            "gridap_reuse_boundary_mode" => solver_diagnostics.gridap_reuse_boundary_mode,
+            "gridap_reuse_quadrature_degree" => solver_diagnostics.gridap_reuse_quadrature_degree,
+            "gridap_reuse_matrix_rows" => solver_diagnostics.gridap_reuse_matrix_rows,
+            "gridap_reuse_matrix_cols" => solver_diagnostics.gridap_reuse_matrix_cols,
+            "gridap_reuse_matrix_nnz" => solver_diagnostics.gridap_reuse_matrix_nnz,
             "gridap_matrix_rows" => solver_diagnostics.gridap_matrix_rows,
             "gridap_matrix_cols" => solver_diagnostics.gridap_matrix_cols,
             "gridap_matrix_nnz" => solver_diagnostics.gridap_matrix_nnz,
@@ -1409,6 +1528,12 @@ function run_native_resolved_fsi_partitioned_production(
             local_spec.tfinal_s,
             default_native_resolved_fsi_partitioned_production_output_dir(local_spec),
         )
+        gridap_context = build_native_resolved_fsi_gridap_context(
+            mesh;
+            inlet_outlet_boundary_mode=series_spec.inlet_outlet_boundary_mode,
+            quadrature_degree=4,
+        )
+        solve_workspace = NativeResolvedFSISolveWorkspace(length(mesh.geometry.axial_coordinates_cm))
         function progress_callback(progress_event::NamedTuple)
             row = batch_status_row(local_spec, progress_event, start_ns)
             event_name = row.event
@@ -1430,6 +1555,8 @@ function run_native_resolved_fsi_partitioned_production(
             requested_snapshot_times_s,
             progress_callback=progress_callback,
             restart_state=resume_context === nothing ? nothing : resume_context.solver_state,
+            gridap_context=gridap_context,
+            workspace=solve_workspace,
         )
         snapshot_results = NamedTuple[]
         completed_snapshot_count = resume_context === nothing ? 0 : resume_context.completed_snapshot_count

@@ -73,6 +73,39 @@ const run_native_resolved_fsi_workflow = StenoticHemodynamics.run_native_resolve
     @test minimum_signed_volume6 > 0.0
 end
 
+@testset "StenoticHemodynamics native resolved-FSI block assembly probe" begin
+    mesh = native_resolved_fsi_mesh(:sev23, NativeResolvedFSIMeshResolution(axial=1, radial=1, angular=3))
+    probe = StenoticHemodynamics.native_resolved_fsi_first_picard_block_assembly_probe(
+        mesh;
+        inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+        inlet_umax_cm_s=45.0,
+        pressure_drop_dyn_cm2=0.0,
+        dt_s=1.0e-4,
+    )
+
+    @test probe.status == "block_assembly_probe_completed"
+    @test probe.boundary_mode == "poiseuille_inlet_zero_outlet_stress_section41"
+    @test probe.pressure_constraint == "none"
+    @test probe.rows == probe.cols
+    @test probe.nnz > 0
+    @test probe.stable_matrix_nnz > 0
+    @test probe.convection_matrix_nnz > 0
+    @test occursin("mass", probe.component_terms)
+    @test occursin("convection", probe.component_terms)
+    @test probe.sparse_block_matrix_within_tolerance
+    @test probe.form_sum_matrix_within_tolerance
+    @test isfinite(probe.sparse_block_matrix_relative_l2_difference)
+    @test probe.sparse_block_matrix_relative_l2_difference <= probe.matrix_relative_tolerance
+    @test isfinite(probe.form_sum_matrix_relative_l2_difference)
+    @test probe.form_sum_matrix_relative_l2_difference <= probe.matrix_relative_tolerance
+    @test probe.form_sum_rhs_within_tolerance
+    @test !probe.sparse_block_rhs_within_tolerance
+    @test probe.sparse_block_rhs_relative_l2_difference > 1.0
+    @test length(probe.full_matrix_structure_digest) == 16
+    @test length(probe.full_matrix_value_digest) == 16
+    @test length(probe.full_rhs_digest) == 16
+end
+
 @testset "StenoticHemodynamics native resolved-FSI phase timing helper contract" begin
     phase_keys = StenoticHemodynamics.NATIVE_RESOLVED_FSI_PHASE_TIMING_KEYS
     derived_phase_keys = StenoticHemodynamics.NATIVE_RESOLVED_FSI_PHASE_TIMING_DERIVED_KEYS
@@ -690,8 +723,65 @@ end
         @test phase_timing.step_total_s > 0.0
         solver_diagnostics = result.smoke_result.solver_diagnostics
         @test solver_diagnostics.gridap_rebuild_status == "rebuild_unconditionally_current_path"
-        @test solver_diagnostics.gridap_reuse_status == "reuse_not_attempted_instrumentation_only"
-        @test occursin("invariants must pass", solver_diagnostics.gridap_reuse_miss_reason)
+        @test solver_diagnostics.gridap_reuse_status ==
+              "structured_reuse_diagnostics_symbolic_and_exact_numeric_cache_probe"
+        @test occursin(
+            "numeric_factorization_requires_exact_matrix_value_digest_match",
+            solver_diagnostics.gridap_reuse_miss_reason,
+        )
+        @test solver_diagnostics.gridap_operator_component_status ==
+              "matrix_rhs_component_terms_available_monolithic_full_affine_operator_assembly"
+        @test occursin("convection", solver_diagnostics.gridap_operator_component_terms)
+        @test solver_diagnostics.gridap_solver_backend_status == "gridap_lusolver_default_backend"
+        @test solver_diagnostics.gridap_context_reused
+        @test !solver_diagnostics.gridap_model_reused
+        @test !solver_diagnostics.gridap_fe_spaces_reused
+        @test !solver_diagnostics.gridap_measures_reused
+        @test solver_diagnostics.gridap_matrix_structure_stable in ("yes", "unknown")
+        @test solver_diagnostics.gridap_symbolic_factorization_eligible == "yes"
+        @test solver_diagnostics.gridap_symbolic_factorization_reused
+        @test solver_diagnostics.gridap_symbolic_factorization_cache_status ==
+              "symbolic_factorization_reused_from_context"
+        @test solver_diagnostics.gridap_symbolic_factorization_setup_count >= 1
+        @test solver_diagnostics.gridap_symbolic_factorization_reuse_count >= 1
+        @test solver_diagnostics.gridap_numeric_factorization_cache_status in (
+            "numeric_factorization_cache_initialized",
+            "numeric_factorization_cache_miss_structure_changed",
+            "numeric_factorization_cache_miss_matrix_value_changed",
+            "numeric_factorization_cache_miss_key_changed",
+            "numeric_factorization_reused_exact_matrix_value_digest",
+        )
+        @test length(solver_diagnostics.gridap_numeric_factorization_cache_key) == 16
+        @test solver_diagnostics.gridap_numeric_factorization_matrix_value_digest ==
+              solver_diagnostics.gridap_matrix_value_digest
+        @test solver_diagnostics.gridap_numeric_factorization_setup_count >= 1
+        @test solver_diagnostics.gridap_numeric_factorization_reuse_count >= 0
+        if solver_diagnostics.gridap_numeric_factorization_reused
+            @test solver_diagnostics.gridap_numeric_factorization_cache_status ==
+                  "numeric_factorization_reused_exact_matrix_value_digest"
+            @test solver_diagnostics.gridap_numeric_factorization_reuse_count >= 1
+        else
+            @test solver_diagnostics.gridap_numeric_factorization_cache_status !=
+                  "numeric_factorization_reused_exact_matrix_value_digest"
+        end
+        @test occursin("gridap_model_rebuilt_coordinate_capture_risk", solver_diagnostics.gridap_reuse_reason_codes)
+        @test occursin(
+            "numeric_factorization_requires_exact_matrix_value_digest_match",
+            solver_diagnostics.gridap_reuse_reason_codes,
+        )
+        @test length(solver_diagnostics.gridap_mesh_topology_digest) == 16
+        @test length(solver_diagnostics.gridap_coordinate_value_digest) == 16
+        @test length(solver_diagnostics.gridap_matrix_value_baseline_digest) == 16
+        @test solver_diagnostics.gridap_matrix_value_digest_observation_count >= 1
+        @test solver_diagnostics.gridap_matrix_value_digest_unique_count >= 1
+        @test solver_diagnostics.gridap_matrix_value_digest_current_count >= 1
+        @test solver_diagnostics.gridap_matrix_value_digest_repeat_count >= 0
+        @test occursin(solver_diagnostics.gridap_matrix_value_digest, solver_diagnostics.gridap_matrix_value_digest_history_tail)
+        @test solver_diagnostics.gridap_reuse_boundary_mode == solver_diagnostics.gridap_boundary_mode
+        @test solver_diagnostics.gridap_reuse_quadrature_degree == solver_diagnostics.gridap_quadrature_degree
+        @test solver_diagnostics.gridap_reuse_matrix_rows == solver_diagnostics.gridap_matrix_rows
+        @test solver_diagnostics.gridap_reuse_matrix_cols == solver_diagnostics.gridap_matrix_cols
+        @test solver_diagnostics.gridap_reuse_matrix_nnz == solver_diagnostics.gridap_matrix_nnz
         @test solver_diagnostics.gridap_matrix_rows > 0
         @test solver_diagnostics.gridap_matrix_cols > 0
         @test solver_diagnostics.gridap_matrix_nnz > 0
@@ -814,7 +904,10 @@ end
         @test any(
             occursin("\"event\":\"production_completed\"", line) &&
             occursin("\"gridap_rebuild_status\":\"rebuild_unconditionally_current_path\"", line) &&
-            occursin("\"gridap_reuse_status\":\"reuse_not_attempted_instrumentation_only\"", line)
+            occursin(
+                "\"gridap_reuse_status\":\"structured_reuse_diagnostics_symbolic_and_exact_numeric_cache_probe\"",
+                line,
+            )
             for line in batch_status_lines
         )
         @test any(occursin("\"estimated_remaining_s\":", line) for line in batch_status_lines)
@@ -823,8 +916,41 @@ end
         @test any(occursin("\"field_finite_status\":\"ready\"", line) for line in batch_status_lines)
         @test any(occursin("\"production_spec_digest\":", line) for line in batch_status_lines)
         @test any(occursin("\"gridap_rebuild_status\":\"rebuild_unconditionally_current_path\"", line) for line in batch_status_lines)
-        @test any(occursin("\"gridap_reuse_status\":\"reuse_not_attempted_instrumentation_only\"", line) for line in batch_status_lines)
+        @test any(
+            occursin(
+                "\"gridap_reuse_status\":\"structured_reuse_diagnostics_symbolic_and_exact_numeric_cache_probe\"",
+                line,
+            ) for line in batch_status_lines
+        )
         @test any(occursin("\"gridap_reuse_miss_reason\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_operator_component_status\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_operator_component_terms\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_solver_backend_status\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_context_reused\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_model_reused\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_fe_spaces_reused\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_measures_reused\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_structure_stable\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_symbolic_factorization_eligible\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_symbolic_factorization_reused\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_symbolic_factorization_cache_status\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_symbolic_factorization_setup_count\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_symbolic_factorization_reuse_count\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_numeric_factorization_reused\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_numeric_factorization_cache_status\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_numeric_factorization_cache_key\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_numeric_factorization_matrix_value_digest\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_numeric_factorization_setup_count\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_numeric_factorization_reuse_count\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_reuse_reason_codes\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_mesh_topology_digest\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_coordinate_value_digest\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_value_baseline_digest\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_value_digest_observation_count\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_value_digest_unique_count\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_value_digest_current_count\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_value_digest_repeat_count\":", line) for line in batch_status_lines)
+        @test any(occursin("\"gridap_matrix_value_digest_history_tail\":", line) for line in batch_status_lines)
         @test any(occursin("\"gridap_matrix_rows\":", line) for line in batch_status_lines)
         @test any(occursin("\"gridap_matrix_cols\":", line) for line in batch_status_lines)
         @test any(occursin("\"gridap_matrix_nnz\":", line) for line in batch_status_lines)
@@ -873,6 +999,21 @@ end
         @test occursin("production_spec_digest", first(batch_status_csv_lines))
         @test occursin("gridap_rebuild_status", first(batch_status_csv_lines))
         @test occursin("gridap_reuse_status", first(batch_status_csv_lines))
+        @test occursin("gridap_operator_component_status", first(batch_status_csv_lines))
+        @test occursin("gridap_solver_backend_status", first(batch_status_csv_lines))
+        @test occursin("gridap_context_reused", first(batch_status_csv_lines))
+        @test occursin("gridap_matrix_structure_stable", first(batch_status_csv_lines))
+        @test occursin("gridap_symbolic_factorization_eligible", first(batch_status_csv_lines))
+        @test occursin("gridap_symbolic_factorization_reused", first(batch_status_csv_lines))
+        @test occursin("gridap_symbolic_factorization_cache_status", first(batch_status_csv_lines))
+        @test occursin("gridap_symbolic_factorization_reuse_count", first(batch_status_csv_lines))
+        @test occursin("gridap_numeric_factorization_cache_status", first(batch_status_csv_lines))
+        @test occursin("gridap_numeric_factorization_cache_key", first(batch_status_csv_lines))
+        @test occursin("gridap_numeric_factorization_setup_count", first(batch_status_csv_lines))
+        @test occursin("gridap_numeric_factorization_reuse_count", first(batch_status_csv_lines))
+        @test occursin("gridap_reuse_reason_codes", first(batch_status_csv_lines))
+        @test occursin("gridap_coordinate_value_digest", first(batch_status_csv_lines))
+        @test occursin("gridap_matrix_value_digest_history_tail", first(batch_status_csv_lines))
         @test occursin("gridap_matrix_structure_digest", first(batch_status_csv_lines))
         @test occursin("gridap_quadrature_sensitivity_status", first(batch_status_csv_lines))
         @test occursin("gridap_open_boundary_status", first(batch_status_csv_lines))
@@ -902,8 +1043,39 @@ end
         @test occursin("\"phase_timing_total_s\":", batch_benchmark_text)
         @test occursin("\"solver_diagnostics\":", batch_benchmark_text)
         @test occursin("\"gridap_rebuild_status\": \"rebuild_unconditionally_current_path\"", batch_benchmark_text)
-        @test occursin("\"gridap_reuse_status\": \"reuse_not_attempted_instrumentation_only\"", batch_benchmark_text)
+        @test occursin(
+            "\"gridap_reuse_status\": \"structured_reuse_diagnostics_symbolic_and_exact_numeric_cache_probe\"",
+            batch_benchmark_text,
+        )
         @test occursin("\"gridap_reuse_miss_reason\":", batch_benchmark_text)
+        @test occursin("\"gridap_operator_component_status\":", batch_benchmark_text)
+        @test occursin("\"gridap_operator_component_terms\":", batch_benchmark_text)
+        @test occursin("\"gridap_solver_backend_status\":", batch_benchmark_text)
+        @test occursin("\"gridap_context_reused\":", batch_benchmark_text)
+        @test occursin("\"gridap_model_reused\":", batch_benchmark_text)
+        @test occursin("\"gridap_fe_spaces_reused\":", batch_benchmark_text)
+        @test occursin("\"gridap_measures_reused\":", batch_benchmark_text)
+        @test occursin("\"gridap_matrix_structure_stable\":", batch_benchmark_text)
+        @test occursin("\"gridap_symbolic_factorization_eligible\":", batch_benchmark_text)
+        @test occursin("\"gridap_symbolic_factorization_reused\":", batch_benchmark_text)
+        @test occursin("\"gridap_symbolic_factorization_cache_status\":", batch_benchmark_text)
+        @test occursin("\"gridap_symbolic_factorization_setup_count\":", batch_benchmark_text)
+        @test occursin("\"gridap_symbolic_factorization_reuse_count\":", batch_benchmark_text)
+        @test occursin("\"gridap_numeric_factorization_reused\":", batch_benchmark_text)
+        @test occursin("\"gridap_numeric_factorization_cache_status\":", batch_benchmark_text)
+        @test occursin("\"gridap_numeric_factorization_cache_key\":", batch_benchmark_text)
+        @test occursin("\"gridap_numeric_factorization_matrix_value_digest\":", batch_benchmark_text)
+        @test occursin("\"gridap_numeric_factorization_setup_count\":", batch_benchmark_text)
+        @test occursin("\"gridap_numeric_factorization_reuse_count\":", batch_benchmark_text)
+        @test occursin("\"gridap_reuse_reason_codes\":", batch_benchmark_text)
+        @test occursin("\"gridap_mesh_topology_digest\":", batch_benchmark_text)
+        @test occursin("\"gridap_coordinate_value_digest\":", batch_benchmark_text)
+        @test occursin("\"gridap_matrix_value_baseline_digest\":", batch_benchmark_text)
+        @test occursin("\"gridap_matrix_value_digest_observation_count\":", batch_benchmark_text)
+        @test occursin("\"gridap_matrix_value_digest_unique_count\":", batch_benchmark_text)
+        @test occursin("\"gridap_matrix_value_digest_current_count\":", batch_benchmark_text)
+        @test occursin("\"gridap_matrix_value_digest_repeat_count\":", batch_benchmark_text)
+        @test occursin("\"gridap_matrix_value_digest_history_tail\":", batch_benchmark_text)
         @test occursin("\"gridap_matrix_structure_digest\":", batch_benchmark_text)
         @test occursin("\"gridap_matrix_value_digest\":", batch_benchmark_text)
         @test occursin("\"gridap_rhs_digest\":", batch_benchmark_text)

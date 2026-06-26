@@ -417,6 +417,62 @@ function native_resolved_fsi_partitioned_wall_velocity_at(
     return z -> native_resolved_fsi_interpolate_wall_lift(wall_axial_coordinates_cm, wall_velocity_cm_s, z)
 end
 
+struct NativeResolvedFSISolveWorkspace
+    step_start_displacement_cm::Vector{Float64}
+    step_start_velocity_cm_s::Vector{Float64}
+    iteration_displacement_cm::Vector{Float64}
+    iteration_velocity_cm_s::Vector{Float64}
+    iteration_radii_cm::Vector{Float64}
+    candidate_displacement_cm::Vector{Float64}
+    candidate_velocity_cm_s::Vector{Float64}
+    candidate_radii_cm::Vector{Float64}
+    relaxed_displacement_cm::Vector{Float64}
+    relaxed_velocity_cm_s::Vector{Float64}
+    relaxed_radii_cm::Vector{Float64}
+end
+
+function NativeResolvedFSISolveWorkspace(axial_station_count::Integer)
+    count = Int(axial_station_count)
+    count > 0 || throw(ArgumentError("native resolved-FSI solve workspace requires at least one axial station"))
+    return NativeResolvedFSISolveWorkspace(ntuple(_ -> zeros(Float64, count), 11)...)
+end
+
+function native_resolved_fsi_solve_workspace_for(mesh::NativeResolvedFSIMesh, workspace)
+    axial_station_count = length(mesh.geometry.axial_coordinates_cm)
+    workspace_value =
+        workspace === nothing ? NativeResolvedFSISolveWorkspace(axial_station_count) : workspace
+    workspace_value isa NativeResolvedFSISolveWorkspace || throw(ArgumentError(
+        "native resolved-FSI solve workspace must be a NativeResolvedFSISolveWorkspace",
+    ))
+    arrays = (
+        workspace_value.step_start_displacement_cm,
+        workspace_value.step_start_velocity_cm_s,
+        workspace_value.iteration_displacement_cm,
+        workspace_value.iteration_velocity_cm_s,
+        workspace_value.iteration_radii_cm,
+        workspace_value.candidate_displacement_cm,
+        workspace_value.candidate_velocity_cm_s,
+        workspace_value.candidate_radii_cm,
+        workspace_value.relaxed_displacement_cm,
+        workspace_value.relaxed_velocity_cm_s,
+        workspace_value.relaxed_radii_cm,
+    )
+    all(length(array) == axial_station_count for array in arrays) || throw(DimensionMismatch(
+        "native resolved-FSI solve workspace axial-vector lengths must match the mesh axial station count",
+    ))
+    return workspace_value
+end
+
+function native_resolved_fsi_max_abs_difference(left::AbstractVector{<:Real}, right::AbstractVector{<:Real})
+    length(left) == length(right) || throw(DimensionMismatch("native resolved-FSI vector lengths must match"))
+    isempty(left) && return 0.0
+    residual = 0.0
+    @inbounds for index in eachindex(left, right)
+        residual = max(residual, abs(Float64(left[index]) - Float64(right[index])))
+    end
+    return residual
+end
+
 function native_resolved_fsi_solve_partitioned_smoke(
     mesh::NativeResolvedFSIMesh,
     spec::NativeResolvedFSIPartitionedSmokeSpec,
@@ -430,6 +486,8 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
     snapshot_times_s;
     progress_callback = nothing,
     restart_state = nothing,
+    gridap_context = nothing,
+    workspace = nothing,
 )
     requested_snapshot_times_s = Float64[Float64(time_s) for time_s in snapshot_times_s]
     isempty(requested_snapshot_times_s) &&
@@ -450,6 +508,13 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
     end
 
     controls = native_resolved_fsi_navier_stokes_controls(spec)
+    gridap_context_value = native_resolved_fsi_gridap_context_for(
+        mesh,
+        gridap_context;
+        inlet_outlet_boundary_mode=controls.inlet_outlet_boundary_mode,
+        quadrature_degree=4,
+    )
+    solve_workspace = native_resolved_fsi_solve_workspace_for(mesh, workspace)
     params = Params(severity=mesh.case_spec.severity_percent, tfinal=spec.tfinal_s, initial_condition=GeometryRestIC())
     wall_stiffness_c0_dyn_cm3 = canic_membrane_c0(params; reference_radius=params.rmax)
     wall_mass_g_cm2 = spec.wall_density_g_cm3 * params.wall_h
@@ -572,11 +637,16 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             step_start_ns = time_ns()
             dt_step = min(spec.dt_s, snapshot_time_s - time_s)
             step_index = time_step_count + 1
-            step_start_displacement_cm = copy(wall_displacement_cm)
-            step_start_velocity_cm_s = copy(wall_velocity_cm_s)
-            iteration_displacement_cm = copy(wall_displacement_cm)
-            iteration_velocity_cm_s = copy(wall_velocity_cm_s)
-            iteration_radii_cm = copy(current_radii_cm)
+            step_start_displacement_cm = solve_workspace.step_start_displacement_cm
+            step_start_velocity_cm_s = solve_workspace.step_start_velocity_cm_s
+            iteration_displacement_cm = solve_workspace.iteration_displacement_cm
+            iteration_velocity_cm_s = solve_workspace.iteration_velocity_cm_s
+            iteration_radii_cm = solve_workspace.iteration_radii_cm
+            copyto!(step_start_displacement_cm, wall_displacement_cm)
+            copyto!(step_start_velocity_cm_s, wall_velocity_cm_s)
+            copyto!(iteration_displacement_cm, wall_displacement_cm)
+            copyto!(iteration_velocity_cm_s, wall_velocity_cm_s)
+            copyto!(iteration_radii_cm, current_radii_cm)
             coupling_velocity_dofs = velocity_dofs_previous
             step_coupling_converged = false
             step_coupling_residual_cm = Inf
@@ -618,6 +688,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     picard_iteration_count=controls.picard_iteration_count,
                     picard_tolerance=controls.picard_tolerance,
                     initial_velocity_dofs=coupling_velocity_dofs,
+                    gridap_context=gridap_context_value,
                 )
                 native_resolved_fsi_record_fluid_solve_phase_timing!(
                     fluid_state.phase_timing_s,
@@ -646,9 +717,12 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                 )
                 pressure_projection_fallback_count += step_pressure_fallback_count
 
-                candidate_displacement_cm = copy(step_start_displacement_cm)
-                candidate_velocity_cm_s = copy(step_start_velocity_cm_s)
-                candidate_radii_cm = copy(reference_radii_cm)
+                candidate_displacement_cm = solve_workspace.candidate_displacement_cm
+                candidate_velocity_cm_s = solve_workspace.candidate_velocity_cm_s
+                candidate_radii_cm = solve_workspace.candidate_radii_cm
+                copyto!(candidate_displacement_cm, step_start_displacement_cm)
+                copyto!(candidate_velocity_cm_s, step_start_velocity_cm_s)
+                copyto!(candidate_radii_cm, reference_radii_cm)
                 wall_update_start_ns = time_ns()
                 try
                     native_resolved_fsi_partitioned_wall_state!(
@@ -687,15 +761,18 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     step_phase_timing,
                 )
 
-                relaxed_displacement_cm =
-                    iteration_displacement_cm .+
-                    spec.coupling_under_relaxation .* (candidate_displacement_cm .- iteration_displacement_cm)
-                relaxed_velocity_cm_s =
-                    iteration_velocity_cm_s .+
-                    spec.coupling_under_relaxation .* (candidate_velocity_cm_s .- iteration_velocity_cm_s)
+                relaxed_displacement_cm = solve_workspace.relaxed_displacement_cm
+                relaxed_velocity_cm_s = solve_workspace.relaxed_velocity_cm_s
+                relaxed_radii_cm = solve_workspace.relaxed_radii_cm
+                @. relaxed_displacement_cm =
+                    iteration_displacement_cm +
+                    spec.coupling_under_relaxation * (candidate_displacement_cm - iteration_displacement_cm)
+                @. relaxed_velocity_cm_s =
+                    iteration_velocity_cm_s +
+                    spec.coupling_under_relaxation * (candidate_velocity_cm_s - iteration_velocity_cm_s)
                 clamp_membrane_endpoints!(relaxed_displacement_cm)
                 clamp_membrane_endpoints!(relaxed_velocity_cm_s)
-                relaxed_radii_cm = reference_radii_cm .+ relaxed_displacement_cm
+                @. relaxed_radii_cm = reference_radii_cm + relaxed_displacement_cm
                 all(isfinite, relaxed_displacement_cm) || throw(ArgumentError(
                     "native resolved-FSI partitioned smoke produced non-finite relaxed displacement at time step $(step_index), coupling iteration $(coupling_iteration)",
                 ))
@@ -721,7 +798,8 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
                     ))
                 end
 
-                step_coupling_residual_cm = maximum(abs, relaxed_displacement_cm .- iteration_displacement_cm)
+                step_coupling_residual_cm =
+                    native_resolved_fsi_max_abs_difference(relaxed_displacement_cm, iteration_displacement_cm)
                 iteration_displacement_cm .= relaxed_displacement_cm
                 iteration_velocity_cm_s .= relaxed_velocity_cm_s
                 iteration_radii_cm .= relaxed_radii_cm
@@ -827,6 +905,7 @@ function native_resolved_fsi_solve_partitioned_snapshot_series(
             picard_iteration_count=controls.picard_iteration_count,
             picard_tolerance=controls.picard_tolerance,
             initial_velocity_dofs=velocity_dofs_previous,
+            gridap_context=gridap_context_value,
         )
         native_resolved_fsi_record_fluid_solve_phase_timing!(
             fluid_state.phase_timing_s,
