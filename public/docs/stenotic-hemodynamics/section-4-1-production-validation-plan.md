@@ -120,6 +120,56 @@ The first production claim gate should use the final snapshot only. Time
 history is useful for diagnosing instabilities, but it increases output volume
 and should not become a default artifact requirement.
 
+## Bounded Exact-Boundary Probe Ledger
+
+The next bounded exact-boundary probe is a single-snapshot `sev23` run at the
+preproduction mesh target, but with a one-step time horizon so it remains a
+probe rather than production-scale validation:
+
+```julia
+using StenoticHemodynamics
+
+resolution = NativeResolvedFSIMeshResolution(axial=80, radial=4, angular=24)
+spec = NativeResolvedFSIPartitionedProductionSpec(
+    case_id=:sev23,
+    resolution=resolution,
+    output_root="tmp/simulations/output/native-resolved-fsi-exact-boundary-probes/sev23-mesh80x4x24-tfinal0p0001",
+    dt_s=1.0e-4,
+    tfinal_s=1.0e-4,
+    snapshot_times_s=[1.0e-4],
+    inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+    inlet_umax_cm_s=45.0,
+    pressure_drop_dyn_cm2=0.0,
+    status_every=1,
+)
+result = run_native_resolved_fsi_partitioned_production(spec)
+```
+
+The scratch output location is:
+
+```text
+tmp/simulations/output/native-resolved-fsi-exact-boundary-probes/sev23-mesh80x4x24-tfinal0p0001/sev23/
+```
+
+This bounded probe plan records the following required review gates in the
+production dry-run policy string
+`sev23_preproduction_mesh_exact_boundary_probe_mesh80x4x24_tfinal0p0001_planned`.
+The dry run does not certify these artifact gates; they remain pending until a
+reviewed execution artifact is produced:
+
+| Gate | Status |
+| --- | --- |
+| finite velocity, pressure, and displacement fields | pending artifact review |
+| positive current radii and positive signed tetrahedra | pending artifact review |
+| outlet-gauge pressure normalization | pending artifact review |
+| native writer/importer round trip | pending artifact review |
+| coupling status | pending execution |
+
+This probe is not paper-grade Section 4.1 parity, not moving-wall ALE
+validation, and not production-scale all-case validation. It exercises the
+exact Poiseuille inlet / natural zero-outlet-stress mode with the current
+stationary-wall-on-deformed-geometry handoff only.
+
 ## Boundary And Pressure Handling
 
 Exact Section 4.1 production-scale runs must select:
