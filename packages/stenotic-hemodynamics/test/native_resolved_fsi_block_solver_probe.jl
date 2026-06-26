@@ -36,7 +36,7 @@ if EXPECTED_JULIA_THREADS !== nothing && Threads.nthreads() != EXPECTED_JULIA_TH
     )
 end
 
-const PROBE_CASES = (
+const DEFAULT_PROBE_CASES = (
     (
         label="small_8x2x8",
         resolution=StenoticHemodynamics.NativeResolvedFSIMeshResolution(axial=8, radial=2, angular=8),
@@ -47,12 +47,39 @@ const PROBE_CASES = (
     ),
 )
 
+const EXTENDED_PROBE_CASES = (
+    (
+        label="large_24x4x16",
+        resolution=StenoticHemodynamics.NativeResolvedFSIMeshResolution(axial=24, radial=4, angular=16),
+    ),
+)
+
+const ALL_PROBE_CASES = (DEFAULT_PROBE_CASES..., EXTENDED_PROBE_CASES...)
+
+function nonnegative_probe_int_env(name::String, default::Int)
+    raw = strip(get(ENV, name, string(default)))
+    value = try
+        parse(Int, raw)
+    catch
+        throw(ArgumentError("$name must be an integer, got $(repr(raw))"))
+    end
+    value >= 0 || throw(ArgumentError("$name must be nonnegative, got $value"))
+    return value
+end
+
+const PROBE_ASSEMBLY_WARMUPS = nonnegative_probe_int_env("NATIVE_RESOLVED_FSI_ASSEMBLY_WARMUPS", 0)
+const PROBE_ASSEMBLY_REPEATS = max(1, nonnegative_probe_int_env("NATIVE_RESOLVED_FSI_ASSEMBLY_REPEATS", 1))
+const PROBE_BACKEND_WARMUPS = nonnegative_probe_int_env("NATIVE_RESOLVED_FSI_BACKEND_WARMUPS", 0)
+const PROBE_BACKEND_REPEATS = max(1, nonnegative_probe_int_env("NATIVE_RESOLVED_FSI_BACKEND_REPEATS", 1))
+
 function selected_probe_cases()
     selector = lowercase(get(ENV, "NATIVE_RESOLVED_FSI_PROBE_CASE", "small"))
-    selector == "all" && return PROBE_CASES
-    selected = filter(case -> lowercase(case.label) == selector || startswith(lowercase(case.label), selector), PROBE_CASES)
+    selector == "all" && return DEFAULT_PROBE_CASES
+    selector in ("extended", "all_extended", "all_bounded") && return ALL_PROBE_CASES
+    selector in ("large", "larger") && return EXTENDED_PROBE_CASES
+    selected = filter(case -> lowercase(case.label) == selector || startswith(lowercase(case.label), selector), ALL_PROBE_CASES)
     isempty(selected) && throw(ArgumentError(
-        "unknown NATIVE_RESOLVED_FSI_PROBE_CASE=$(repr(selector)); use all, small, or medium",
+        "unknown NATIVE_RESOLVED_FSI_PROBE_CASE=$(repr(selector)); use all, all_bounded, small, medium, or large",
     ))
     return Tuple(selected)
 end
@@ -89,6 +116,8 @@ function print_block_header()
     println(join((
         "record_type",
         "case",
+        "trial_role",
+        "trial_index",
         "julia_threads",
         "blas_threads",
         "rows",
@@ -133,6 +162,8 @@ function print_backend_header()
         "record_type",
         "case",
         "backend",
+        "trial_role",
+        "trial_index",
         "status",
         "julia_threads",
         "blas_threads",
@@ -206,78 +237,93 @@ const SOLVER_BACKENDS = (
     ("julia_sparse_backslash", run_julia_sparse_backslash_backend),
 )
 
-function run_backend_rows(case_label, matrix, rhs)
+function run_backend_rows(case_label, matrix, rhs; trial_role="measured", trial_index=1)
     reference_solution = nothing
     reference_digest = ""
     rows = Vector{Tuple}()
-    for (backend_name, backend_runner) in SOLVER_BACKENDS
-        timed = @timed begin
+    for _ in 1:PROBE_BACKEND_WARMUPS
+        for (_, backend_runner) in SOLVER_BACKENDS
             try
-                result = backend_runner(matrix, rhs)
-                if reference_solution === nothing
-                    reference_solution = copy(result.solution)
-                    reference_digest = StenoticHemodynamics.native_resolved_fsi_vector_digest(reference_solution)
-                end
-                solution_digest = StenoticHemodynamics.native_resolved_fsi_vector_digest(result.solution)
-                residual = residual_summary(matrix, result.solution, rhs)
-                row = (
-                    "solver_backend",
-                    case_label,
-                    backend_name,
-                    "ok",
-                    Threads.nthreads(),
-                    LinearAlgebra.BLAS.get_num_threads(),
-                    0.0,
-                    0,
-                    0.0,
-                    result.symbolic_setup_s,
-                    result.numeric_factorization_s,
-                    result.backsolve_s,
-                    residual.residual_l2,
-                    residual.residual_relative_l2,
-                    residual.residual_max_abs,
-                    solution_digest,
-                    reference_digest,
-                    solution_digest == reference_digest,
-                    relative_l2_difference(result.solution, reference_solution),
-                    "",
-                )
-                row
-            catch error
-                (
-                    "solver_backend",
-                    case_label,
-                    backend_name,
-                    "error",
-                    Threads.nthreads(),
-                    LinearAlgebra.BLAS.get_num_threads(),
-                    0.0,
-                    0,
-                    0.0,
-                    NaN,
-                    NaN,
-                    NaN,
-                    NaN,
-                    NaN,
-                    NaN,
-                    "",
-                    reference_digest,
-                    false,
-                    NaN,
-                    sprint(showerror, error),
-                )
+                backend_runner(matrix, rhs)
+            catch
             end
         end
-        row = timed.value
-        row = Base.setindex(row, @sprintf("%.9f", timed.time), 7)
-        row = Base.setindex(row, timed.bytes, 8)
-        row = Base.setindex(row, @sprintf("%.9f", timed.gctime), 9)
-        push!(rows, row)
+    end
+    for repeat_index in 1:PROBE_BACKEND_REPEATS
+        for (backend_name, backend_runner) in SOLVER_BACKENDS
+            backend_trial_index = trial_index == 1 ? string(repeat_index) : "$(trial_index).$(repeat_index)"
+            timed = @timed begin
+                try
+                    result = backend_runner(matrix, rhs)
+                    if reference_solution === nothing
+                        reference_solution = copy(result.solution)
+                        reference_digest = StenoticHemodynamics.native_resolved_fsi_vector_digest(reference_solution)
+                    end
+                    solution_digest = StenoticHemodynamics.native_resolved_fsi_vector_digest(result.solution)
+                    residual = residual_summary(matrix, result.solution, rhs)
+                    row = (
+                        "solver_backend",
+                        case_label,
+                        backend_name,
+                        trial_role,
+                        backend_trial_index,
+                        "ok",
+                        Threads.nthreads(),
+                        LinearAlgebra.BLAS.get_num_threads(),
+                        0.0,
+                        0,
+                        0.0,
+                        result.symbolic_setup_s,
+                        result.numeric_factorization_s,
+                        result.backsolve_s,
+                        residual.residual_l2,
+                        residual.residual_relative_l2,
+                        residual.residual_max_abs,
+                        solution_digest,
+                        reference_digest,
+                        solution_digest == reference_digest,
+                        relative_l2_difference(result.solution, reference_solution),
+                        "",
+                    )
+                    row
+                catch error
+                    (
+                        "solver_backend",
+                        case_label,
+                        backend_name,
+                        trial_role,
+                        backend_trial_index,
+                        "error",
+                        Threads.nthreads(),
+                        LinearAlgebra.BLAS.get_num_threads(),
+                        0.0,
+                        0,
+                        0.0,
+                        NaN,
+                        NaN,
+                        NaN,
+                        NaN,
+                        NaN,
+                        NaN,
+                        "",
+                        reference_digest,
+                        false,
+                        NaN,
+                        sprint(showerror, error),
+                    )
+                end
+            end
+            row = timed.value
+            row = Base.setindex(row, @sprintf("%.9f", timed.time), 9)
+            row = Base.setindex(row, timed.bytes, 10)
+            row = Base.setindex(row, @sprintf("%.9f", timed.gctime), 11)
+            push!(rows, row)
+        end
     end
     return rows
 end
 
-function run_probe_case(case)
+function run_probe_case(case; trial_role="measured", trial_index=1, emit_row=true)
     mesh = StenoticHemodynamics.native_resolved_fsi_mesh(:sev23, case.resolution)
     mkpath(joinpath(PROBE_OUTPUT_PARENT, case.label))
     timed = @timed StenoticHemodynamics.native_resolved_fsi_first_picard_block_assembly_probe(
@@ -291,6 +337,8 @@ function run_probe_case(case)
     block_row = (
         "block_assembly",
         case.label,
+        trial_role,
+        trial_index,
         Threads.nthreads(),
         LinearAlgebra.BLAS.get_num_threads(),
         probe.rows,
@@ -328,7 +376,7 @@ function run_probe_case(case)
         @sprintf("%.9f", probe.sparse_sum_s),
         probe.component_terms,
     )
-    println(join(csv_cell.(block_row), ","))
+    emit_row && println(join(csv_cell.(block_row), ","))
     return probe
 end
 
@@ -336,11 +384,16 @@ function main()
     print_block_header()
     probes = Pair{String,Any}[]
     for case in selected_probe_cases()
-        push!(probes, case.label => run_probe_case(case))
+        for warmup_index in 1:PROBE_ASSEMBLY_WARMUPS
+            run_probe_case(case; trial_role="warmup", trial_index=warmup_index, emit_row=false)
+        end
+        for repeat_index in 1:PROBE_ASSEMBLY_REPEATS
+            push!(probes, case.label => run_probe_case(case; trial_role="measured", trial_index=repeat_index))
+        end
     end
     print_backend_header()
-    for (case_label, probe) in probes
-        for row in run_backend_rows(case_label, probe.full_matrix, probe.full_rhs)
+    for (probe_index, (case_label, probe)) in enumerate(probes)
+        for row in run_backend_rows(case_label, probe.full_matrix, probe.full_rhs; trial_role="measured", trial_index=probe_index)
             println(join(csv_cell.(row), ","))
         end
     end
