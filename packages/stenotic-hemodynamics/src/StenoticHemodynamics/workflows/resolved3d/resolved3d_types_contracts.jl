@@ -37,12 +37,16 @@ end
 
 function resolved3d_common_cli_values(values::Dict{String,String}, flags::Set{String})
     params, backend, progress_every = params_backend_progress(values, flags)
+    solver_threads = parse(Int, get(values, "solver-threads", string(solver_thread_count(backend))))
+    case_workers = parse(Int, get(values, "case-workers", string(default_case_workers())))
     return (
         data_root=get(values, "data-root", default_resolved3d_data_root()),
         target_time=parse(Float64, get(values, "target-time", "0.9995")),
         time_atol=parse(Float64, get(values, "time-atol", "1.0e-3")),
         base_params=params,
         backend=backend,
+        case_workers=case_workers,
+        solver_threads=solver_threads,
         section_count=parse(Int, get(values, "section-count", "200")),
         profile_slices=haskey(values, "profile-slices") ? parse_float_list(values["profile-slices"]) : nothing,
         radial_bins=parse(Int, get(values, "radial-bins", "20")),
@@ -99,6 +103,8 @@ function compare3d_command_plan_from_values(values::Dict{String,String}, flags::
                 time_atol=common.time_atol,
                 base_params=common.base_params,
                 backend=common.backend,
+                case_workers=common.case_workers,
+                solver_threads=common.solver_threads,
                 output_dir=output_dir,
                 nxs=nxs,
                 section_count=common.section_count,
@@ -128,6 +134,8 @@ function compare3d_command_plan_from_values(values::Dict{String,String}, flags::
             time_atol=common.time_atol,
             base_params=common.base_params,
             backend=common.backend,
+            case_workers=common.case_workers,
+            solver_threads=common.solver_threads,
             output_dir=get(values, "output-dir", DEFAULT_COMPARISON_OUTPUT_DIR),
             section_count=common.section_count,
             profile_slices=common.profile_slices,

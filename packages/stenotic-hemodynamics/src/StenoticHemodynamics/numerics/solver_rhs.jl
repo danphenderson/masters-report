@@ -23,6 +23,8 @@ function fill_rhs_dt!(
     t::Float64,
     p::Params,
     cache::RHSCache,
+    ;
+    threaded::Bool = false,
 )
     nx = length(A)
     length(Q) == nx || throw(DimensionMismatch("area and flow vectors must have the same length"))
@@ -41,9 +43,22 @@ function fill_rhs_dt!(
     length(slope_A) == nx || throw(DimensionMismatch("area slope cache length mismatch"))
     length(slope_Q) == nx || throw(DimensionMismatch("flow slope cache length mismatch"))
 
-    fill_method_fluxes!(FA, FQ, A, Q, z, dx, dt, t, p.space, p, cache)
-    fill_source!(source, A, Q, z, dx, p)
+    fill_method_fluxes!(FA, FQ, A, Q, z, dx, dt, t, p.space, p, cache; threaded=threaded)
+    fill_source!(source, A, Q, z, dx, p; threaded=threaded)
     apply_geometry_rest_well_balanced_source!(source, z, dx, t, p.space, p)
+
+    if threaded
+        Threads.@threads :static for i in 1:nx
+            dA[i] = -(FA[i + 1] - FA[i]) / dx
+            dQ[i] = -(FQ[i + 1] - FQ[i]) / dx + source[i]
+            if !(p.forcing isa NoForcing)
+                dA[i] += mass_forcing(p.forcing, z[i], t, p)
+                dQ[i] += momentum_forcing(p.forcing, z[i], t, p)
+            end
+        end
+
+        return dA, dQ
+    end
 
     for i in 1:nx
         dA[i] = -(FA[i + 1] - FA[i]) / dx

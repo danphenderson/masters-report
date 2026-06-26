@@ -9,6 +9,8 @@ struct GridSensitivitySpec{B<:AbstractTimeBackend,O<:AbstractResolved3DOperator}
     cases::Vector{Resolved3DCaseSpec}
     base_params::Params
     backend::B
+    case_workers::Int
+    solver_threads::Int
     operator::O
     output_dir::String
     nxs::Vector{Int}
@@ -30,6 +32,8 @@ function GridSensitivitySpec(;
     cases = default_resolved3d_cases(),
     base_params::Params = Params(tfinal=0.9995, initial_condition=GeometryRestIC()),
     backend = NativeRK3Backend(),
+    case_workers::Integer = default_case_workers(),
+    solver_threads::Integer = solver_thread_count(backend),
     operator = CrossSectionQuadratureOperator(),
     output_dir::String = joinpath(DEFAULT_COMPARISON_OUTPUT_DIR, "grid_sensitivity"),
     nxs = DEFAULT_GRID_SENSITIVITY_NXS,
@@ -47,6 +51,12 @@ function GridSensitivitySpec(;
     summary_tex::String = "",
 )
     backend isa AbstractTimeBackend || throw(ArgumentError("backend must subtype AbstractTimeBackend"))
+    case_workers >= 0 || throw(ArgumentError("case_workers must be nonnegative"))
+    solver_threads >= 1 || throw(ArgumentError("solver_threads must be positive"))
+    if solver_threads > 1 && !(backend isa NativeRK3Backend)
+        throw(ArgumentError("solver_threads > 1 is only supported by the native backend"))
+    end
+    configured_backend = backend isa NativeRK3Backend ? NativeRK3Backend(; solver_threads=solver_threads) : backend
     operator isa AbstractResolved3DOperator || throw(ArgumentError("operator must subtype AbstractResolved3DOperator"))
     case_values = Resolved3DCaseSpec[case for case in cases]
     isempty(case_values) && throw(ArgumentError("grid sensitivity spec must include at least one case"))
@@ -102,10 +112,12 @@ function GridSensitivitySpec(;
     csv_path = isempty(summary_csv) ? joinpath(output_dir, "grid_sensitivity_summary.csv") : summary_csv
     tex_path = isempty(summary_tex) ? joinpath(output_dir, "grid_sensitivity_summary.tex") : summary_tex
 
-    return GridSensitivitySpec{typeof(backend),typeof(operator)}(
+    return GridSensitivitySpec{typeof(configured_backend),typeof(operator)}(
         case_values,
         base_params,
-        backend,
+        configured_backend,
+        Int(case_workers),
+        Int(solver_threads),
         operator,
         output_dir,
         nx_values,
@@ -130,6 +142,11 @@ function validate(spec::GridSensitivitySpec)
     isempty(spec.cases) && throw(ArgumentError("grid sensitivity spec must include at least one case"))
     validate(spec.base_params)
     assert_backend_supported(spec.base_params.space, spec.backend)
+    spec.case_workers >= 0 || throw(ArgumentError("case_workers must be nonnegative"))
+    spec.solver_threads >= 1 || throw(ArgumentError("solver_threads must be positive"))
+    if spec.solver_threads > 1 && !(spec.backend isa NativeRK3Backend)
+        throw(ArgumentError("solver_threads > 1 is only supported by the native backend"))
+    end
     !isempty(spec.nxs) || throw(ArgumentError("grid sensitivity requires at least one nx value"))
     all(nx -> nx >= 3, spec.nxs) || throw(ArgumentError("all grid sensitivity sizes must be at least 3"))
     sort(spec.nxs) == spec.nxs || throw(ArgumentError("grid sensitivity sizes must be sorted ascending"))

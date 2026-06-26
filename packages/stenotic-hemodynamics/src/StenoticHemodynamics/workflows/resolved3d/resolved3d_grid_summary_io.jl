@@ -49,6 +49,11 @@ function grid_sensitivity_summary_header()
         "adjacent_relative_rms_velocity_difference",
         "one_d_completed_time_s",
         "cross_model_time_offset_s",
+        "runtime_elapsed_s",
+        "case_worker_count",
+        "solver_thread_count",
+        "julia_thread_count",
+        "process_id",
         "comparison_summary_csv",
         "section_csv",
     ]
@@ -86,6 +91,11 @@ function grid_sensitivity_summary_values(row::GridSensitivitySummaryRow)
         row.adjacent_relative_rms_velocity_difference,
         row.one_d_completed_time_s,
         row.cross_model_time_offset_s,
+        row.runtime_elapsed_s,
+        row.case_worker_count,
+        row.solver_thread_count,
+        row.julia_thread_count,
+        row.process_id,
         row.comparison_summary_csv,
         row.section_csv,
     ]
@@ -93,7 +103,16 @@ end
 
 function read_grid_sensitivity_summary_csv(path::String)
     headers, raw_rows = read_workflow_csv_table(path)
-    required_columns = filter(column -> !(column in ("case", "coordinate_mode")), grid_sensitivity_summary_header())
+    optional_columns = Set([
+        "case",
+        "coordinate_mode",
+        "runtime_elapsed_s",
+        "case_worker_count",
+        "solver_thread_count",
+        "julia_thread_count",
+        "process_id",
+    ])
+    required_columns = filter(column -> !(column in optional_columns), grid_sensitivity_summary_header())
     missing_columns = setdiff(required_columns, headers)
     if !isempty(missing_columns)
         throw(ArgumentError("grid sensitivity summary '$path' is missing columns: $(join(missing_columns, ", "))"))
@@ -138,6 +157,11 @@ function grid_sensitivity_summary_row_from_csv(row::Dict{String,String}, path::S
         required_csv_float(row, "adjacent_relative_rms_velocity_difference", path, line_number),
         required_csv_float(row, "one_d_completed_time_s", path, line_number),
         required_csv_float(row, "cross_model_time_offset_s", path, line_number),
+        optional_csv_float(row, "runtime_elapsed_s", NaN),
+        optional_csv_int(row, "case_worker_count", -1),
+        optional_csv_int(row, "solver_thread_count", -1),
+        optional_csv_int(row, "julia_thread_count", -1),
+        optional_csv_int(row, "process_id", -1),
         required_csv_string(row, "comparison_summary_csv", path, line_number),
         required_csv_string(row, "section_csv", path, line_number),
     )
@@ -174,6 +198,14 @@ function required_csv_float(row::Dict{String,String}, column::String, path::Stri
         err isa ArgumentError || rethrow()
         throw(ArgumentError("CSV input '$path' line $line_number column '$column' is not a float: '$value'"))
     end
+end
+
+function optional_csv_float(row::Dict{String,String}, column::String, default::Float64)
+    return haskey(row, column) ? parse(Float64, row[column]) : default
+end
+
+function optional_csv_int(row::Dict{String,String}, column::String, default::Int)
+    return haskey(row, column) ? parse(Int, row[column]) : default
 end
 
 function required_csv_int(row::Dict{String,String}, column::String, path::String, line_number::Int)

@@ -17,7 +17,18 @@ Native fixed-step finite-volume backend.
 This preserves the original in-repo SSP RK3 stepping behavior and remains the
 default for `simulate(params)`.
 """
-struct NativeRK3Backend <: AbstractTimeBackend end
+struct NativeRK3Backend <: AbstractTimeBackend
+    solver_threads::Int
+
+    function NativeRK3Backend(solver_threads::Integer)
+        solver_threads >= 1 || throw(ArgumentError("solver_threads must be positive"))
+        return new(Int(solver_threads))
+    end
+end
+
+function NativeRK3Backend(; solver_threads::Integer = 1)
+    return NativeRK3Backend(solver_threads)
+end
 
 """
 SciML/OrdinaryDiffEq backend.
@@ -38,6 +49,27 @@ backend_name(::SciMLTimeBackend) = "sciml"
 backend_name(backend::AbstractTimeBackend) = string(nameof(typeof(backend)))
 backend_algorithm_name(::NativeRK3Backend) = "ssprk"
 backend_algorithm_name(backend::SciMLTimeBackend) = algorithm_name(backend.solve.algorithm)
+solver_thread_count(::AbstractTimeBackend) = 1
+solver_thread_count(backend::NativeRK3Backend) = backend.solver_threads
+native_solver_threading_enabled(backend::NativeRK3Backend) =
+    backend.solver_threads > 1 && Threads.nthreads() == backend.solver_threads
+native_solver_threading_enabled(::AbstractTimeBackend) = false
+
+function validate_native_solver_threading(backend::NativeRK3Backend)
+    requested_threads = solver_thread_count(backend)
+    requested_threads == 1 && return false
+
+    julia_threads = Threads.nthreads()
+    if julia_threads != requested_threads
+        throw(ArgumentError(
+            "NativeRK3Backend(solver_threads=$(requested_threads)) direct solves require " *
+            "Threads.nthreads() == $(requested_threads); current Julia process has " *
+            "$(julia_threads). Use compare-3d --case-workers with --solver-threads " *
+            "to spawn matching workers, or start Julia with --threads=$(requested_threads).",
+        ))
+    end
+    return true
+end
 
 """
     supports_backend(method, backend) -> Bool
@@ -78,7 +110,8 @@ function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
     method_family(p.space) == :discontinuous_galerkin && return simulate_dg(p, p.space; progress_every=progress_every)
 
     start_ns = telemetry_start_ns()
-    @telemetry_info "simulation started" event="simulation_started" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="started"
+    threaded = validate_native_solver_threading(backend)
+    @telemetry_info "simulation started" event="simulation_started" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="started" solver_threads=solver_thread_count(backend) julia_threads=Threads.nthreads()
     try
         validate(p)
 
@@ -90,8 +123,8 @@ function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
         step = 0
 
         while t < p.tfinal - 1.0e-14
-            dt = choose_dt_record_timestep!(diagnostics, A, Q, z, dx, p.tfinal - t, p)
-            native_step!(A, Q, z, dx, dt, t, p, step_cache, diagnostics)
+            dt = choose_dt_record_timestep!(diagnostics, A, Q, z, dx, p.tfinal - t, p; threaded=threaded)
+            native_step!(A, Q, z, dx, dt, t, p, step_cache, diagnostics; threaded=threaded)
             t += dt
             step += 1
             record_mass_diagnostics!(diagnostics, A, dx)
@@ -106,10 +139,10 @@ function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
         end
 
         result = SimulationResult(z, A, Q, t, step, initial.summary, finalize_diagnostics(diagnostics))
-        @telemetry_info "simulation completed" event="simulation_completed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(A)
+        @telemetry_info "simulation completed" event="simulation_completed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(A) solver_threads=solver_thread_count(backend) julia_threads=Threads.nthreads()
         return result
     catch err
-        @telemetry_error "simulation failed" event="simulation_failed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="error" elapsed_s=telemetry_elapsed_s(start_ns) reason=sprint(showerror, err)
+        @telemetry_error "simulation failed" event="simulation_failed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="error" elapsed_s=telemetry_elapsed_s(start_ns) reason=sprint(showerror, err) solver_threads=solver_thread_count(backend) julia_threads=Threads.nthreads()
         rethrow()
     end
 end

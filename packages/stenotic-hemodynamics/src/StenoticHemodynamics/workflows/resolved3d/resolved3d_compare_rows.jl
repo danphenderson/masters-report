@@ -208,6 +208,7 @@ function summarize_comparison(
     diagnostics,
     production_diagnostics,
     one_d_completed_time::Real,
+    execution = nothing,
 )
     section_abs = finite_values(row.abs_velocity_error_cm_s for row in section_rows)
     section_rel = finite_values(row.rel_error for row in section_rows)
@@ -217,6 +218,13 @@ function summarize_comparison(
     intersection_counts = [row.intersection_count for row in section_rows if row.intersection_count > 0]
     time_fields = resolved3d_time_fields(case.target_time, metadata.time, one_d_completed_time)
     run_fields = resolved3d_run_fields(case, params, backend)
+    execution_fields = execution === nothing ? (
+        elapsed_s=NaN,
+        case_workers=-1,
+        solver_threads=-1,
+        julia_threads=-1,
+        process_id=-1,
+    ) : execution
     velocity_errors = finite_values(row.abs_velocity_error_cm_s for row in section_rows)
     velocity_refs = finite_values(row.mean_u3d_cm_s for row in section_rows)
     coordinate_mode = isempty(section_rows) ? "reference" : first(section_rows).coordinate_mode
@@ -280,6 +288,11 @@ function summarize_comparison(
         time_fields.one_d_terminal_time_error_s,
         time_fields.xdmf_target_time_error_s,
         time_fields.cross_model_time_offset_s,
+        Float64(execution_fields.elapsed_s),
+        Int(execution_fields.case_workers),
+        Int(execution_fields.solver_threads),
+        Int(execution_fields.julia_threads),
+        Int(execution_fields.process_id),
     )
 end
 

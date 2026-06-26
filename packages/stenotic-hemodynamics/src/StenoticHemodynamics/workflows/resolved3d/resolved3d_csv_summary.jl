@@ -73,6 +73,11 @@ function comparison_summary_header()
         "one_d_terminal_time_error_s",
         "xdmf_target_time_error_s",
         "cross_model_time_offset_s",
+        "runtime_elapsed_s",
+        "case_worker_count",
+        "solver_thread_count",
+        "julia_thread_count",
+        "process_id",
     ]
 end
 
@@ -136,5 +141,10 @@ function comparison_summary_values(row::ComparisonSummaryRow)
         row.one_d_terminal_time_error_s,
         row.xdmf_target_time_error_s,
         row.cross_model_time_offset_s,
+        row.runtime_elapsed_s,
+        row.case_worker_count,
+        row.solver_thread_count,
+        row.julia_thread_count,
+        row.process_id,
     ]
 end

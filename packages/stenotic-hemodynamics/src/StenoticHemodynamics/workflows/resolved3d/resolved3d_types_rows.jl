@@ -171,6 +171,11 @@ struct ComparisonSummaryRow
     one_d_terminal_time_error_s::Float64
     xdmf_target_time_error_s::Float64
     cross_model_time_offset_s::Float64
+    runtime_elapsed_s::Float64
+    case_worker_count::Int
+    solver_thread_count::Int
+    julia_thread_count::Int
+    process_id::Int
 end
 
 """Compact per-case, per-grid resolved-3D grid-sensitivity summary."""
@@ -204,6 +209,11 @@ struct GridSensitivitySummaryRow
     adjacent_relative_rms_velocity_difference::Float64
     one_d_completed_time_s::Float64
     cross_model_time_offset_s::Float64
+    runtime_elapsed_s::Float64
+    case_worker_count::Int
+    solver_thread_count::Int
+    julia_thread_count::Int
+    process_id::Int
     comparison_summary_csv::String
     section_csv::String
 end
