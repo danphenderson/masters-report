@@ -57,6 +57,12 @@ pipenv run ops-experiment simulate --help
   deferred surfaces.
 - `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`:
   bounded Section 4.1 generated-artifact and local observation-operator note.
+- `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`:
+  schema-v3 checkpoint metadata and qualified internal split-run resume only;
+  public/default resume remains fail-closed.
+- `../../public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`:
+  future production-scale evidence gates with optional imported-data parity
+  skipped safely when local upstream bundles are absent.
 - `../../public/docs/stenotic-hemodynamics/canic-2024-replication.md`:
   source-artifact comparison workflow for the Canic et al. 2024 Section 4.1
   numerical findings.
