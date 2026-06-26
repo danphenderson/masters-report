@@ -169,6 +169,11 @@ STALE_PATH_CHECK_PATHS = (
 
 HISTORICAL_PATH_PREFIXES = ("report/archive/",)
 
+DELETED_TODO_COORDINATION_FILE_ROUTE = (
+    "deleted TODO coordination file route; use GitHub issues and public/docs/agent-workflows.md",
+    re.compile(r"\b(?:report/TODO\.md|packages/stenotic-hemodynamics/TODO\.md)\b"),
+)
+
 STALE_PATH_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("removed Julia simulations package path", re.compile(r"\bpackages/stenotic-hemodynamics/simulations(?:/|\b)")),
     ("removed ops source path", re.compile(r"\btools/python(?:/|\b)")),
@@ -177,10 +182,7 @@ STALE_PATH_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         "removed root reference metadata path",
         re.compile(r"(?<!public/)references/(?:AGENTS\.md|README\.md|references\.bib|source-inventory\.tsv)\b"),
     ),
-    (
-        "deleted TODO coordination file route; use GitHub issues and public/docs/agent-workflows.md",
-        re.compile(r"\b(?:report/TODO\.md|packages/stenotic-hemodynamics/TODO\.md)\b"),
-    ),
+    DELETED_TODO_COORDINATION_FILE_ROUTE,
 )
 
 PACKET_STALE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -210,10 +212,7 @@ PACKET_STALE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         "stale Julia CLI wrapper; use packages/stenotic-hemodynamics/bin/stenotic-hemodynamics",
         re.compile(r"(?<![\w./-])bin/stenotic-hemodynamics\b"),
     ),
-    (
-        "deleted TODO coordination file route; use GitHub issues and public/docs/agent-workflows.md",
-        re.compile(r"\b(?:report/TODO\.md|packages/stenotic-hemodynamics/TODO\.md)\b"),
-    ),
+    DELETED_TODO_COORDINATION_FILE_ROUTE,
 )
 PACKET_VALIDATION_NEEDLES = (
     "pipenv run ops-build-report",

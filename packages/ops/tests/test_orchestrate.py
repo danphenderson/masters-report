@@ -634,6 +634,23 @@ def test_packet_check_flags_stale_paths_and_overbroad_authority() -> None:
     assert "overbroad packet authority: avoid regenerate/rewrite/modify-as-needed language" in result.issues
 
 
+def test_packet_check_rejects_deleted_todo_coordination_file_route() -> None:
+    packet = "\n".join(
+        [
+            "Coordinate with packages/stenotic-hemodynamics/TODO.md.",
+            "Guard public/final-report.pdf and report/assets/rendered/**.",
+            "Validation: pipenv run ops-python-check passed.",
+        ]
+    )
+
+    result = orchestrate.packet_check(packet)
+
+    assert result.status == "failed"
+    assert result.issues == (
+        "deleted TODO coordination file route; use GitHub issues and public/docs/agent-workflows.md",
+    )
+
+
 def test_packet_check_accepts_profiled_dispatch_packet(monkeypatch) -> None:
     monkeypatch.setattr(
         orchestrate,
