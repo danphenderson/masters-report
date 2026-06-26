@@ -114,7 +114,7 @@ Then run a validation-only report build.
 | Deformed-coordinate comparison | Same command with `--coordinate-mode deformed` and a distinct scratch `--output-dir` | Yes, including displacement companions | Deformed suffixed data assets. |
 | Table fragments | `pipenv run ops-render-resolved3d-comparison-tables` | No | `coordinate_mode_comparison.tex` and `radial_profile_audit.tex` from tracked data assets. |
 | Operator validation | `operator-validation` with explicit `--summary-csv` and `--summary-tex` paths | No | Synthetic operator CSV and TeX table. |
-| Grid sensitivity | `compare-3d --nxs 200,400,800` with explicit grid summary CSV/TeX paths | Yes | Grid-sensitivity CSV and TeX table. |
+| Grid sensitivity | `compare-3d --nxs 200,400,800,1600,3200` with explicit grid summary CSV/TeX paths | Yes | Grid-sensitivity CSV and TeX table retaining N=200,400,800,1600,3200 at T=0.9995 s. |
 
 ## Published Comparison Assets
 
@@ -149,7 +149,7 @@ Run grid sensitivity with explicit grid sizes:
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
   --output-dir tmp/simulations/output/3d_comparison/grid_sensitivity_severity23_severity40 \
-  --nxs 200,400,800 \
+  --nxs 200,400,800,1600,3200 \
   --target-time 0.9995 \
   --time-atol 1e-3 \
   --section-count 200 \
@@ -165,8 +165,8 @@ already reviewed summary without rerunning the full comparison:
 
 ```sh
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
-  --nxs 200,400,800 \
-  --reuse-grid-summary tmp/simulations/output/3d_comparison/grid_sensitivity/summary.csv \
+  --nxs 200,400,800,1600,3200 \
+  --reuse-grid-summary tmp/simulations/output/3d_comparison/grid_sensitivity_severity23_severity40/grid_sensitivity_summary.csv \
   --grid-summary-csv report/assets/data/stenosis-comparison/grid-sensitivity-summary.csv \
   --grid-summary-tex report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex \
   --overwrite

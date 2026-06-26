@@ -9,11 +9,14 @@ function run_comparison_with_case_runs(spec::ComparisonSpec)
     profile_rows = RadialProfileRow[]
     sensitivity_rows = NodeSlabSensitivityRow[]
     summary_rows = ComparisonSummaryRow[]
-    case_runs = []
+    loaded_cases = [load_comparison_case_inputs(case, spec) for case in spec.cases]
+    case_runs = Vector{Any}(undef, length(loaded_cases))
+    Threads.@threads for index in eachindex(loaded_cases)
+        loaded = loaded_cases[index]
+        case_runs[index] = run_loaded_comparison_case(loaded.case, loaded.bundle, loaded.field, spec)
+    end
 
-    for case in spec.cases
-        case_run = run_comparison_case(case, spec)
-        push!(case_runs, case_run)
+    for case_run in case_runs
         append!(section_rows, case_run.section_rows)
         append!(profile_rows, case_run.profile_rows)
         append!(sensitivity_rows, case_run.sensitivity_rows)
@@ -57,8 +60,17 @@ function run_comparison_with_case_runs(spec::ComparisonSpec)
 end
 
 function run_comparison_case(case::Resolved3DCaseSpec, spec::ComparisonSpec)
+    loaded = load_comparison_case_inputs(case, spec)
+    return run_loaded_comparison_case(loaded.case, loaded.bundle, loaded.field, spec)
+end
+
+function load_comparison_case_inputs(case::Resolved3DCaseSpec, spec::ComparisonSpec)
     bundle = load_resolved3d_field_bundle(case; require_displacement=(spec.coordinate_mode == "deformed"))
     field = resolved3d_velocity_field_from_bundle(bundle, spec.coordinate_mode)
+    return (case=case, bundle=bundle, field=field)
+end
+
+function run_loaded_comparison_case(case::Resolved3DCaseSpec, bundle, field, spec::ComparisonSpec)
     params = params_with(spec.base_params; severity=case.severity, tfinal=case.target_time)
     result = simulate(params, spec.backend; progress_every=spec.progress_every)
 

@@ -453,8 +453,13 @@ specified in Appendix~\ref{app:num-current-solver-operator}.
 The principal numerical comparison uses $N=400$ cells on $0\le z\le6$ cm, a
 timestep cap of $10^{-5}$ s, and a CFL cap of 0.45. The optional
 output-sensitivity check reruns the same comparison protocol at
-$N=200,400,800$ cells and is interpreted only as a production-grid sensitivity
-check. The boundary-state approximation is the fixed-area characteristic
+$N=200,400,800,1600,3200$ cells, retaining $N=1600$ as the intermediate
+refinement and $N=3200$ as the finest reported grid, and is interpreted only
+as a production-grid sensitivity check. The resolved-data comparison target time is
+$0.9995\,\mathrm{s}$, matching the imported final-time samples for the 23\% and
+40\% cases; it is distinct from the $t=1.0\,\mathrm{s}$ zero-forcing rest-state
+diagnostic in Section~\ref{subsec:rest-state-drift}. The boundary-state
+approximation is the fixed-area characteristic
 approximation defined in
 Appendix~\ref{app:num-boundary-state-realization}. Other finite-volume, modal-DG,
 time-stepper, and ODE-integration surfaces are secondary sensitivity context
