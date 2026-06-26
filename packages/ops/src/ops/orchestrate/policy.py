@@ -177,7 +177,10 @@ STALE_PATH_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         "removed root reference metadata path",
         re.compile(r"(?<!public/)references/(?:AGENTS\.md|README\.md|references\.bib|source-inventory\.tsv)\b"),
     ),
-    ("deleted TODO coordination reference", re.compile(r"\b(?:current package TODO plan|TODO handoff)\b")),
+    (
+        "deleted TODO coordination file route; use GitHub issues and public/docs/agent-workflows.md",
+        re.compile(r"\b(?:report/TODO\.md|packages/stenotic-hemodynamics/TODO\.md)\b"),
+    ),
 )
 
 PACKET_STALE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -206,6 +209,10 @@ PACKET_STALE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "stale Julia CLI wrapper; use packages/stenotic-hemodynamics/bin/stenotic-hemodynamics",
         re.compile(r"(?<![\w./-])bin/stenotic-hemodynamics\b"),
+    ),
+    (
+        "deleted TODO coordination file route; use GitHub issues and public/docs/agent-workflows.md",
+        re.compile(r"\b(?:report/TODO\.md|packages/stenotic-hemodynamics/TODO\.md)\b"),
     ),
 )
 PACKET_VALIDATION_NEEDLES = (
