@@ -83,7 +83,7 @@ def rest_row(
     return ",".join(values) + "\n"
 
 
-def write_rest_method(root: Path, method: str, *, ok: bool = True) -> None:
+def write_rest_method(root: Path, method: str, *, ok: bool = True, residual_ok: bool = True) -> None:
     method_dir = root / f"rest-{method}"
     method_dir.mkdir(parents=True)
     if ok:
@@ -94,10 +94,14 @@ def write_rest_method(root: Path, method: str, *, ok: bool = True) -> None:
             + rest_row("23.0", "0.1", "0.10", "0.02"),
             encoding="utf-8",
         )
-        (method_dir / "rest_state_residual_components.csv").write_text(
-            RESIDUAL_HEADER + "23.0,400,0.015,1.0,2.0,3.0,4.0,5.0,6.0,8.0,2.1,1.0,ok,\n",
-            encoding="utf-8",
-        )
+        if residual_ok:
+            residual_row = "23.0,400,0.015,1.0,2.0,3.0,4.0,5.0,6.0,8.0,2.1,1.0,ok,\n"
+        else:
+            residual_row = (
+                "23.0,400,0.015,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,error,"
+                "ArgumentError: fv-lax-wendroff requires a positive native timestep\n"
+            )
+        (method_dir / "rest_state_residual_components.csv").write_text(RESIDUAL_HEADER + residual_row, encoding="utf-8")
     else:
         message = "ArgumentError: fv-lax-wendroff requires a positive native timestep"
         (method_dir / "rest_state_drift.csv").write_text(
@@ -190,6 +194,7 @@ def write_comparison(root: Path, dt_dir: str, dt: str) -> None:
 def test_render_case_study_evidence_tables(tmp_path: Path) -> None:
     rest_root = tmp_path / "scratch"
     write_rest_method(rest_root, "fv-muscl")
+    write_rest_method(rest_root, "fv-weno3", residual_ok=False)
     write_rest_method(rest_root, "fv-lax-wendroff", ok=False)
     write_comparison(rest_root, "compare-dt-5e-6", "5e-6")
     write_comparison(rest_root, "compare-dt-2e-5", "2e-5")
@@ -211,7 +216,11 @@ def test_render_case_study_evidence_tables(tmp_path: Path) -> None:
     ]
     rest_table = output[1].read_text(encoding="utf-8")
     assert "FV MUSCL & C23 & 8 &" in rest_table
+    assert "FV WENO3 & C23 & -- & 0.001 & 0.12 & 0.1 & residual skipped" in rest_table
     assert "FV Lax--Wendroff & C23 & -- & -- & -- & -- & not available" in rest_table
+    rest_csv = output[0].read_text(encoding="utf-8")
+    assert "residual_status,residual_error_message,source_csv" in rest_csv
+    assert "residual error,ArgumentError: fv-lax-wendroff requires a positive native timestep,error" in rest_csv
 
     comparison_csv = output[2].read_text(encoding="utf-8")
     assert "C23 (22.56%)" in comparison_csv

@@ -149,8 +149,9 @@ pipenv run ops-experiment --dirty-policy warn \
 pipenv run ops-render-case-study-evidence-tables
 \end{lstlisting}
 The Lax--Wendroff rows are retained as a diagnostic-surface capability result:
-the current residual decomposition calls the method flux at zero native
-timestep, while that flux requires a positive native timestep.
+the archived scratch residual decomposition called the method flux at zero
+native diagnostic timestep, while that flux requires a positive native
+timestep.
 The resolved-velocity comparison uses the 23\% and 40\% stenosis-severity
 descriptions in the main text. These correspond to local source IDs 77 and 60,
 respectively. The raw 3D fields are optional local inputs rather than archived

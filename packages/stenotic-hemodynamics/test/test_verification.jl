@@ -29,6 +29,32 @@ struct RestStateFailingBackend <: AbstractTimeBackend end
     @test forcing_audit.momentum_max_abs_diff < 1.0e-3
     mutated_audit = StenoticHemodynamics.manufactured_forcing_residual_audit(mms_params; momentum_scale=-1.0)
     @test mutated_audit.momentum_max_abs_diff > forcing_audit.momentum_max_abs_diff + 1.0
+
+    lax_rest_params = Params(
+        nx=8,
+        tfinal=0.0,
+        dt=1.0e-5,
+        initial_condition=GeometryRestIC(),
+        space=FVLaxWendroffMethod(),
+    )
+    lax_initial = StenoticHemodynamics.initial_state_result(lax_rest_params)
+    lax_cache = StenoticHemodynamics.RHSCache(length(lax_initial.area))
+    @test_throws ArgumentError StenoticHemodynamics.fill_method_fluxes!(
+        lax_cache.area_flux,
+        lax_cache.flow_flux,
+        lax_initial.area,
+        lax_initial.flow,
+        lax_initial.z,
+        lax_initial.dx,
+        0.0,
+        0.0,
+        lax_rest_params.space,
+        lax_rest_params,
+        lax_cache,
+    )
+    lax_residual = StenoticHemodynamics.rest_state_residual_components(lax_rest_params)
+    @test lax_residual.status == "ok"
+    @test isfinite(lax_residual.total_flow_residual_max_abs)
 end
 
 @testset "StenoticHemodynamics verification runners" begin
@@ -335,5 +361,23 @@ end
         @test isnan(error_row.elapsed_time_s)
         @test isnan(error_row.terminal_time_error_s)
         @test isfile(failing_drift.residual_csv)
+
+        lax_drift = StenoticHemodynamics.run_rest_state_drift(StenoticHemodynamics.RestStateDriftSpec(;
+            output_dir=joinpath(dir, "lax-wendroff-rest-state"),
+            base_params=Params(
+                nx=8,
+                tfinal=1.0e-5,
+                dt=1.0e-5,
+                initial_condition=GeometryRestIC(),
+                space=FVLaxWendroffMethod(),
+            ),
+            severities=[23.0],
+            nxs=[8],
+            elapsed_times=[0.0, 1.0e-5],
+            overwrite=true,
+        ))
+        @test all(row.status == "ok" for row in lax_drift.rows)
+        @test all(row.status == "ok" for row in lax_drift.residual_rows)
+        @test isfinite(only(lax_drift.residual_rows).total_flow_residual_max_abs)
     end
 end

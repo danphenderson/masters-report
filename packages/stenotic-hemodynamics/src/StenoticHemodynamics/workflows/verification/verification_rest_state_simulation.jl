@@ -160,7 +160,7 @@ function rest_state_boundary_flux_metrics(
     t::Float64,
     cache::RHSCache,
 )
-    fill_method_fluxes!(cache.area_flux, cache.flow_flux, A, Q, z, dx, 0.0, t, params.space, params, cache)
+    fill_method_fluxes!(cache.area_flux, cache.flow_flux, A, Q, z, dx, params.dt, t, params.space, params, cache)
     _, applied_q_in, _, _ = boundary_states(A, Q, params, t)
     return (
         requested_q_in=inlet_flow(params, t),
@@ -180,7 +180,7 @@ function rest_state_lh_metrics(
     cache = RHSCache(length(A))
     dA = similar(A)
     dQ = similar(Q)
-    fill_rhs_dt!(dA, dQ, A, Q, z, dx, 0.0, 0.0, params, cache)
+    fill_rhs_dt!(dA, dQ, A, Q, z, dx, params.dt, 0.0, params, cache)
     return (
         area_interior_max_abs=maximum_abs_index_range(dA, 2:(length(dA) - 1)),
         area_boundary_max_abs=max(abs(dA[begin]), abs(dA[end])),
@@ -203,7 +203,7 @@ function rest_state_residual_components(params::Params)
     dx = initial.dx
     nx = length(A)
     cache = RHSCache(nx)
-    fill_method_fluxes!(cache.area_flux, cache.flow_flux, A, Q, z, dx, 0.0, 0.0, params.space, params, cache)
+    fill_method_fluxes!(cache.area_flux, cache.flow_flux, A, Q, z, dx, params.dt, 0.0, params.space, params, cache)
     fill_source!(cache.source, A, Q, z, dx, params)
 
     mass_flux = Vector{Float64}(undef, nx)
