@@ -36,7 +36,7 @@ handoffs.
 
 1. **Operator-readiness.** The package can construct Section 4.1 cases, apply
    the exact boundary mode, write three-field bundles, reload them, and compute
-   section observations. This proves plumbing, not numerical reproduction.
+   section observations. This checks plumbing, not numerical reproduction.
 2. **Smoke-scale evidence.** Tiny exact-boundary runs exercise the boundary
    mode, pressure sampling, state carry, sidecars, and status rows on cheap
    meshes. This is implementation evidence only.

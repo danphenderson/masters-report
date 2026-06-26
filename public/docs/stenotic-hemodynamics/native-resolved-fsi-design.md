@@ -50,7 +50,7 @@ remain skip-safe when optional local data is absent.
 
 | Item | Choice | Reason |
 | --- | --- | --- |
-| Spatial backend | Gridap on the package-owned `NativeResolvedFSIMesh` contract | Gridap is the only local 3D FE stack already used in package code, especially in `adapters/stokes_ic.jl`. It already proves P2/P1 spaces, weak outlet traction, and package-owned tetrahedral model construction. |
+| Spatial backend | Gridap on the package-owned `NativeResolvedFSIMesh` contract | Gridap is the only local 3D FE stack already used in package code, especially in `adapters/stokes_ic.jl`. It already exercises P2/P1 spaces, weak outlet traction, and package-owned tetrahedral model construction. |
 | Time advancement | Package-owned fixed-step loop | The native resolved-FSI state mixes FE fields, wall state, mesh deformation, writer cadence, and output guards. A local fixed-step loop is easier to reason about than wrapping the current coupled version in `OrdinaryDiffEq`. |
 | Fixed-wall target | Fixed-wall 3D Stokes and incompressible Navier-Stokes smoke | This exercises the native mesh, Gridap model build, time loop, and three-field writer without pretending that full transient moving-wall FSI is solved. |
 | Coupled strategy | Partitioned, staggered fluid solve plus radial membrane update | This is the smallest local extension from the existing stationary-Stokes and membrane surrogate surfaces. A monolithic moving-domain weak form remains deferred. |
