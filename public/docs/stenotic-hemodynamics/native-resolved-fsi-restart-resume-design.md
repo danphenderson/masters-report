@@ -3,7 +3,7 @@
 This design records the current restart/resume boundary for native
 resolved-FSI production runs. The package now writes schema-v3 durable
 checkpoint metadata with wall, mesh, fluid-state, coupling, and output-linkage
-sidecars, and it has a qualified internal split-run resume path for smoke-scale
+sidecars, and it has a qualified internal split-run resume path for bounded
 operator validation.
 
 The public contract remains narrower: `native_resolved_fsi_resume_partitioned_production(...)`
@@ -208,16 +208,19 @@ Implemented validation covers:
   controls, and non-forked output roots fail closed;
 - exact boundary metadata still requires positive `inlet_umax_cm_s`;
 - public resume validates metadata and still fails closed;
-- a two-snapshot smoke-scale production run can be split into prefix plus
-  qualified internal resume, preserving parent rows and writing the remaining
-  resumed snapshot under a forked output root.
+- smoke-scale and bounded non-smoke production runs can be split into prefix
+  plus qualified internal resume, preserving parent rows and writing the
+  remaining resumed snapshots under a forked output root;
+- uninterrupted-vs-resumed equivalence is checked for more than one split point
+  over a three-snapshot schedule and more than one stenosis case;
+- imported-parity planning remains skip-safe when optional upstream bundles are
+  absent.
 
 Remaining validation before any stronger claim:
 
-- broader numerical equivalence against uninterrupted runs across more cases
-  and schedules;
-- imported-parity skip-safe resume coverage when optional upstream bundles are
-  present or absent;
+- production-scale restart/resume validation beyond bounded operator-size
+  schedules;
+- imported-parity resume coverage when optional upstream bundles are present;
 - production-scale resume validation on long `sev23` runs;
 - any public API or CLI exposure review, if a future lane proposes one.
 
@@ -241,7 +244,9 @@ Tests and docs must keep these boundaries intact:
 3. **10D-3 resume runner.** Completed for the qualified internal split-run
    path only. Public API and CLI resume stay closed.
 4. **10D-4 validation tests.** Completed for metadata validation, sidecar
-   ownership, forked output roots, and split-run smoke-scale resume. Broader
-   production-scale and imported-parity resume validation remains future work.
+   ownership, forked output roots, split-run smoke-scale resume, multiple
+   bounded restart schedules, bounded non-smoke uninterrupted-vs-resumed
+   equivalence, and absent-imported-data skip safety. Production-scale and
+   present-imported-bundle resume validation remains future work.
 5. **10D-5 docs and claim boundary.** Completed for package docs and
    issue-tracker handoff. Manuscript claim promotion remains out of scope.
