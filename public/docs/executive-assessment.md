@@ -1,6 +1,12 @@
-# Executive Assessment
+# Archived Executive Assessment
 
 Assessment date: June 25, 2026
+
+This historical note records the June 25, 2026 audit only.
+
+Repository state evaluated: `main...origin/main [ahead 4]` with a dirty working
+tree containing staged cleanup/tooling/docs changes plus unclassified deleted
+root handoff artifacts.
 
 This dated assessment is not the source of policy authority. Use
 `public/docs/publication-readiness.md` for public export rules,
@@ -8,21 +14,21 @@ This dated assessment is not the source of policy authority. Use
 `public/docs/agent-workflows.md` for handoff rules, and
 `public/docs/policy-vocabulary.md` for shared terms.
 
-This assessment summarizes the current public-readiness posture after the
+This archived note summarizes the public-readiness posture recorded during the
 June 25, 2026 independent public-readiness audit.
 
-## Verdict
+## Historical Verdict
 
-The repository is close to public source-tree readiness, but the current dirty
-candidate is not ready to publish. The correct readiness verdict is
-`READY_AFTER_NAMED_FIXES`.
+The repository was close to public source-tree readiness, but the dirty
+candidate audited on June 25, 2026 was not ready to publish. The recorded
+readiness verdict was `READY_AFTER_NAMED_FIXES`.
 
 The public-facing source tree has a coherent structure, current validation
 commands, source-first artifact policy, reference-metadata boundaries, and
 working report/viewer validation paths. The remaining work is a bounded
 release-preparation cleanup, not a research or manuscript rewrite.
 
-## Current Public-Readiness State
+## Repository State Evaluated
 
 - Branch state during the audit was `main...origin/main [ahead 4]`.
 - The working tree had staged cleanup/tooling/docs changes plus unclassified
@@ -80,7 +86,7 @@ The audit also established these unresolved issues:
   source-only candidate.
 - The viewer dependency audit reported one low-severity `esbuild` issue.
 
-## Recommendation
+## Historical Recommendation
 
 Proceed with a bounded public-readiness cleanup lane. Do not reopen manuscript
 claims, regenerate report assets, or refresh `public/final-report.pdf` unless
