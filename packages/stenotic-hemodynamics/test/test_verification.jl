@@ -317,9 +317,9 @@ end
         @test parse(Float64, drift_csv_row["terminal_time_error_s"]) <= 1.0e-12
         @test parse(Float64, drift_csv_row["requested_q_in"]) ≈ 0.0
         @test parse(Float64, drift_csv_row["applied_q_in"]) ≈ 0.0
-        @test occursin("\\Delta\\!\\int a\\,dz", read(drift.summary_tex, String))
+        @test occursin("final balance residual", read(drift.summary_tex, String))
         @test occursin("R_q^{\\mathrm{tot}}", read(drift.residual_tex, String))
-        @test occursin("\\Delta\\!\\int a\\,dz", read(replace(drift.summary_tex, r"\\.tex$" => "_full.tex"), String))
+        @test occursin("final balance residual", read(replace(drift.summary_tex, r"\\.tex$" => "_full.tex"), String))
 
         failing_drift = StenoticHemodynamics.run_rest_state_drift(StenoticHemodynamics.RestStateDriftSpec(;
             output_dir=joinpath(dir, "failing-rest-state"),
