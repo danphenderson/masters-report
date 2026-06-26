@@ -182,6 +182,17 @@ Rusanov/MUSCL operator includes numerical viscosity in the mass flux, and for
 spatially varying $R_0$ this produces a nonzero discrete residual unless an
 equilibrium reconstruction or path-conservative flux is added.
 
+The implementation now also includes an opt-in finite-volume
+geometry-rest-balanced variant for bounded diagnostic grids. It retains the
+MUSCL limiter and Rusanov-type dissipation but applies the dissipative area jump
+to the perturbation $a-a_0$, with $a_0(z_i)=R_0(z_i)^2$, and replaces the wall
+source by the corresponding discrete source that cancels the elastic flux
+difference at the sampled rest state. In zero-forcing, zero-inlet runs this
+preserves the declared geometry-rest state to roundoff in focused package tests
+and in the same rest-drift CSV/\TeX{} workflow used below. This row is a
+method-development diagnostic, not a retroactive change to the principal
+MUSCL/Rusanov comparison results reported in the case study.
+
 Three levels of this statement must be kept separate. Continuous rest-state
 compatibility is the cancellation property of the source-balanced differential
 model. The instantaneous discrete residual at $t=0$ is the semidiscrete
@@ -266,15 +277,18 @@ comparison grid.
 An additional method-sensitivity check asks whether this rest-state limitation
 is only a peculiarity of the production MUSCL reconstruction. Table~\ref{tab:rest-method-sensitivity}
 runs the same zero-inlet geometry-rest diagnostic at $N=400$ through the
-available finite-volume methods and includes the 50\% stenosis geometry as a
-higher-severity stress case. First-order fluxes are much more diffusive, and
-WENO3 reduces the instantaneous residual and drift by more than an order of
-magnitude, but the available executable finite-volume methods still do not
-preserve the sampled geometry-rest state exactly. The published Lax--Wendroff
-row is retained as a diagnostic-surface capability boundary from that scratch
-run: its residual decomposition attempted a $t=0$ flux evaluation with zero
-native diagnostic timestep, while that flux requires a positive native time
-step.
+available historical finite-volume methods and includes the 50\% stenosis
+geometry as a higher-severity stress case. First-order fluxes are much more
+diffusive, and WENO3 reduces the instantaneous residual and drift by more than
+an order of magnitude, but the historical executable finite-volume comparator
+rows still do not preserve the sampled geometry-rest state exactly. The
+published Lax--Wendroff row is retained as a diagnostic-surface capability
+boundary from that scratch run: its residual decomposition attempted a $t=0$
+flux evaluation with zero native diagnostic timestep, while that flux requires a
+positive native time step. Newly generated method-development diagnostics can
+additionally select \texttt{fv-wb-geometry-rest}; those rows are expected to
+report near-roundoff initial residual and drift for the declared rest family and
+should be interpreted separately from the historical comparator table.
 
 \begin{table}[!htb]
     \centering

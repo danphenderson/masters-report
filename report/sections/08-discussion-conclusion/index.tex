@@ -70,7 +70,9 @@ The worked stenosis example demonstrates the distinction. Its manufactured
 solution checks one implemented forced operator using shared manufactured
 states and lower-level operator utilities. Its geometry-rest test addresses
 equilibrium-preservation testing for the chosen discretization and boundary
-approximation. Its 1D--3D comparison becomes meaningful only after both models
+approximation, and an opt-in geometry-rest-balanced finite-volume variant now
+shows how the named rest family can be preserved separately from the historical
+MUSCL/Rusanov comparator. Its 1D--3D comparison becomes meaningful only after both models
 are reduced to the same section-mean velocity observable and discrepancy metric.
 These checks support a bounded diagnostic cross-model comparison. The positive
 MMS result, negative rest-state result, and final-time comparator are useful
@@ -119,9 +121,11 @@ implementation-verification evidence for the forced operator, identifies a
 non-well-balanced geometry-rest limitation that remains visible on the
 production grid, and reports final-time section-mean velocity discrepancies
 under a specified 1D--3D observation map. Those findings are meaningful
-precisely because they are bounded. Future work should strengthen the same
-chain where the present evidence is limited: construct or adopt a well-balanced
-discretization for the geometry-rest state, obtain matched wall and boundary
-metadata for resolved comparisons, report uncertainty separately from model
-discrepancy, and specify validation observables before predictive or clinical
-claims are made.
+precisely because they are bounded. The new opt-in rest-balanced diagnostic
+closes the narrow geometry-rest preservation gap for the declared zero-flow
+family, but it does not retroactively validate the historical comparison runs.
+Future work should strengthen the same chain where the present evidence remains
+limited: decide whether a well-balanced method should replace the comparator in
+production studies, obtain matched wall and boundary metadata for resolved
+comparisons, report uncertainty separately from model discrepancy, and specify
+validation observables before predictive or clinical claims are made.

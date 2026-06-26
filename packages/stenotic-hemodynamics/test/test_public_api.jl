@@ -27,6 +27,7 @@ using StenoticHemodynamics
         :ClassicalParabolicOneDModel,
         :DGMethod,
         :FVFirstOrderMethod,
+        :FVGeometryRestWellBalancedMethod,
         :FVLaxWendroffMethod,
         :FVMUSCLMethod,
         :FVWENO3Method,

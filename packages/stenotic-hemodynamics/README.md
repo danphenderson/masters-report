@@ -119,7 +119,11 @@ idealized-vessel baseline, Riemann-invariant boundary treatment, Rusanov
 fluxes, and third-order SSP Runge-Kutta stepping. The report documents the
 source-to-implementation differences, including explicit gauge-bound pressure
 conventions, the parabolic-profile main case, locally frozen-viscosity `p2`
-derivative, and non-well-balanced finite-volume rest state. Units follow the
+derivative, and the historical non-well-balanced finite-volume rest-state
+comparator. The package also exposes `FVGeometryRestWellBalancedMethod()` /
+`--space fv-wb-geometry-rest` as an opt-in diagnostic method that preserves the
+sampled zero-flow geometry-rest family by balancing perturbation-relative
+Rusanov area dissipation with a matching discrete wall source. Units follow the
 paper and the authors' MATLAB code: centimeters, grams, seconds, and dynes.
 
 This is not a line-for-line port of the authors' DG MATLAB code. It is a
