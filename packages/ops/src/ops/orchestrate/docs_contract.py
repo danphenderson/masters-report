@@ -74,5 +74,8 @@ def docs_contract(repo: Path) -> CheckResult:
     ):
         if phrase not in lower:
             issues.append(f"missing orchestration limit: {phrase}")
+    for phrase in ("github issues", "ops-orchestrate status"):
+        if phrase not in lower:
+            issues.append(f"missing coordination guidance: {phrase}")
     issues.extend(stale_path_issues(repo))
     return CheckResult(status="failed" if issues else "passed", issues=tuple(issues))

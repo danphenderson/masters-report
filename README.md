@@ -144,7 +144,7 @@ pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-bu
 - [`public/docs/artifact-policy.md`](public/docs/artifact-policy.md):
   artifact classes and cleanup guardrails.
 - [`public/docs/agent-workflows.md`](public/docs/agent-workflows.md): bounded
-  agent handoffs.
+  agent handoffs and GitHub issue coordination with `ops-orchestrate status`.
 - [`public/docs/publication-readiness.md`](public/docs/publication-readiness.md):
   public export and release checks.
 

@@ -84,7 +84,8 @@ terms aligned with `public/docs/policy-vocabulary.md`.
 
 <div className="academic-map-list">
 
-- [Lightweight agent workflows](agent-workflows.md): `ops-orchestrate` modes, profiles, packet
+- [Lightweight agent workflows](agent-workflows.md): GitHub issues plus
+  `ops-orchestrate status` for coordination, with modes, profiles, packet
   checks, and validation defaults.
 - [GitHub publication readiness](publication-readiness.md): public export rules and release
   validation.

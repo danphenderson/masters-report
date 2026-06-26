@@ -19,6 +19,7 @@ def write_minimal_docs_contract(root: Path) -> None:
             "Tracked pre-commit config is allowed; local hook installation is explicit.",
             "No background automation.",
             "No persistent orchestration receipts.",
+            "Use GitHub issues with ops-orchestrate status for coordination.",
         ]
     )
     for relative in orchestrate.DOC_CONTRACT_PATHS:
@@ -102,7 +103,7 @@ def test_docs_contract_scans_nested_public_docs(tmp_path: Path) -> None:
     write_minimal_docs_contract(tmp_path)
     extra_doc = tmp_path / "public/docs/stenotic-hemodynamics/native.md"
     extra_doc.parent.mkdir(parents=True, exist_ok=True)
-    extra_doc.write_text("Old handoff: TODO handoff\n", encoding="utf-8")
+    extra_doc.write_text("Old handoff route: packages/stenotic-hemodynamics/TODO.md\n", encoding="utf-8")
 
     result = orchestrate.docs_contract(tmp_path)
 

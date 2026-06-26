@@ -616,6 +616,7 @@ def test_packet_check_flags_stale_paths_and_overbroad_authority() -> None:
         [
             "Use julia/Project.toml and tools/python/scripts/build_report.py.",
             "Run bin/build-report --outdir /tmp/build.",
+            "Coordinate with report/TODO.md.",
             "Please regenerate experiments or rewrite report assets as needed.",
         ]
     )
@@ -626,10 +627,28 @@ def test_packet_check_flags_stale_paths_and_overbroad_authority() -> None:
     assert "stale Julia root; use packages/stenotic-hemodynamics/" in result.issues
     assert "stale Python tooling root; use packages/ops/" in result.issues
     assert "stale report build wrapper; use pipenv run ops-build-report" in result.issues
+    assert "deleted TODO coordination file route; use GitHub issues and public/docs/agent-workflows.md" in result.issues
     assert "missing final PDF artifact guardrail: public/final-report.pdf" in result.issues
     assert "missing rendered report asset guardrail: report/assets/rendered/**" in result.issues
     assert "missing current ops validation command" in result.issues
     assert "overbroad packet authority: avoid regenerate/rewrite/modify-as-needed language" in result.issues
+
+
+def test_packet_check_rejects_deleted_todo_coordination_file_route() -> None:
+    packet = "\n".join(
+        [
+            "Coordinate with packages/stenotic-hemodynamics/TODO.md.",
+            "Guard public/final-report.pdf and report/assets/rendered/**.",
+            "Validation: pipenv run ops-python-check passed.",
+        ]
+    )
+
+    result = orchestrate.packet_check(packet)
+
+    assert result.status == "failed"
+    assert result.issues == (
+        "deleted TODO coordination file route; use GitHub issues and public/docs/agent-workflows.md",
+    )
 
 
 def test_packet_check_accepts_profiled_dispatch_packet(monkeypatch) -> None:

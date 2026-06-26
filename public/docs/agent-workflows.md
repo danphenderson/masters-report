@@ -8,6 +8,11 @@ not create background automation. Do not write persistent orchestration
 receipts. Re-anchor every handoff on the live checkout, local files, and
 validation output. Scope mutations to explicitly named files.
 
+Use GitHub issues for durable cross-agent coordination and planning decisions.
+Use `ops-orchestrate status` to summarize the live dirty tree before planning,
+delegation, or issue updates; keep handoff details in issues or pull-request
+comments rather than stale local planning files.
+
 Contract limits:
 
 - Tracked pre-commit config is allowed; local hook installation is explicit.
