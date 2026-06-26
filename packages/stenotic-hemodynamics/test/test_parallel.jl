@@ -17,6 +17,9 @@ const parallel_case_map = StenoticHemodynamics.parallel_case_map
     @test StenoticHemodynamics.NativeRK3Backend().solver_threads == 1
     @test StenoticHemodynamics.NativeRK3Backend(solver_threads=2).solver_threads == 2
     @test_throws ArgumentError StenoticHemodynamics.NativeRK3Backend(solver_threads=0)
+    @test collect(StenoticHemodynamics.thread_slot_range(1:10, 1, 3)) == [1, 2, 3]
+    @test collect(StenoticHemodynamics.thread_slot_range(1:10, 2, 3)) == [4, 5, 6]
+    @test collect(StenoticHemodynamics.thread_slot_range(1:10, 3, 3)) == [7, 8, 9, 10]
     @test parallel_case_map(x -> x + 1, [1, 2, 3]; parallel_workers=1) == [2, 3, 4]
 
     worker_rows = parallel_case_map([1, 2]; parallel_workers=2) do value

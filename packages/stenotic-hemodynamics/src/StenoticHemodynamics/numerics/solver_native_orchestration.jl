@@ -102,6 +102,14 @@ function choose_dt(A::Vector{Float64}, Q::Vector{Float64}, z::Vector{Float64}, d
     return min(p.dt, p.cfl * dx / max(smax, eps()))
 end
 
+function thread_slot_range(values::AbstractVector, slot::Integer, slot_count::Integer)
+    1 <= slot <= slot_count || throw(ArgumentError("slot must lie in 1:slot_count"))
+    offset = firstindex(values) - 1
+    lo = offset + fld((slot - 1) * length(values), slot_count) + 1
+    hi = slot == slot_count ? lastindex(values) : offset + fld(slot * length(values), slot_count)
+    return lo:hi
+end
+
 function choose_dt_record_timestep!(
     diagnostics::DiagnosticsAccumulator,
     A::Vector{Float64},
@@ -124,9 +132,7 @@ function choose_dt_record_timestep!(
         subcritical_margin_min = fill(Inf, thread_count)
 
         Threads.@threads :static for slot in 1:thread_count
-            lo = firstindex(A) + fld((slot - 1) * length(A), thread_count)
-            hi = slot == thread_count ? lastindex(A) : firstindex(A) + fld(slot * length(A), thread_count) - 1
-            for i in lo:hi
+            for i in thread_slot_range(A, slot, thread_count)
                 lambda_minus, lambda_plus, _, _ = characteristic_speeds(A[i], Q[i], z[i], p)
                 max_speeds[slot] = max(max_speeds[slot], abs(lambda_minus), abs(lambda_plus))
                 lambda_minus_min[slot] = min(lambda_minus_min[slot], lambda_minus)
