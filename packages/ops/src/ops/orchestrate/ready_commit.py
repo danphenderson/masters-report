@@ -139,6 +139,23 @@ def ready_to_commit_gates(
             gates,
             ReadyGate("reference audit", ("pipenv", "run", "ops-audit-references"), "references"),
         )
+    if "viewer" in surfaces:
+        _append_unique(
+            gates,
+            ReadyGate(
+                "viewer production build",
+                ("npm", "--prefix", "packages/stenotic-hemodynamics-viewer", "run", "build"),
+                "viewer",
+            ),
+        )
+        _append_unique(
+            gates,
+            ReadyGate(
+                "viewer smoke tests",
+                ("npm", "--prefix", "packages/stenotic-hemodynamics-viewer", "run", "test"),
+                "viewer",
+            ),
+        )
 
     return tuple(gates)
 

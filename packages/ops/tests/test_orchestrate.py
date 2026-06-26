@@ -87,6 +87,22 @@ def test_parse_status_classifies_docs_site_files_as_release_surface() -> None:
     assert report.unclassified_paths == ()
 
 
+def test_parse_status_classifies_viewer_package_as_viewer_surface() -> None:
+    report = orchestrate.parse_status(
+        "\n".join(
+            [
+                " M packages/stenotic-hemodynamics-viewer/README.md",
+                " M packages/stenotic-hemodynamics-viewer/src/App.tsx",
+                "?? packages/stenotic-hemodynamics-viewer/scripts/browser-smoke.mjs",
+            ]
+        )
+    )
+
+    assert {entry.surface for entry in report.entries} == {"viewer"}
+    assert report.dirty_by_surface["viewer"] == 3
+    assert report.unclassified_paths == ()
+
+
 def test_dispatch_packet_includes_guardrails_and_validation(monkeypatch) -> None:
     monkeypatch.setattr(
         orchestrate,
@@ -747,6 +763,16 @@ def test_ready_to_commit_runs_julia_validation_for_package_source() -> None:
     commands = [orchestrate.shell_command(gate.command) for gate in gates]
 
     assert "pipenv run ops-julia-check" in commands
+
+
+def test_ready_to_commit_runs_viewer_validation_for_viewer_package() -> None:
+    report = orchestrate.parse_status("## master\n M packages/stenotic-hemodynamics-viewer/README.md")
+
+    gates = orchestrate.ready_to_commit_gates(report, report_outdir=Path("/tmp/build"))
+    commands = [orchestrate.shell_command(gate.command) for gate in gates]
+
+    assert "npm --prefix packages/stenotic-hemodynamics-viewer run build" in commands
+    assert "npm --prefix packages/stenotic-hemodynamics-viewer run test" in commands
 
 
 def test_ready_to_commit_all_uses_aggregate_patch_gate() -> None:

@@ -7,7 +7,7 @@ from typing import Sequence
 
 from .models import ReviewLaneSpec
 
-SURFACES = ("report", "julia", "ops", "references", "assets", "release")
+SURFACES = ("report", "julia", "ops", "references", "assets", "viewer", "release")
 MODES = ("inspect", "bounded-edit", "hard-review", "artifact-refresh")
 PROFILES = ("generic", "editorial-readiness", "claim-boundary", "citation-evidence", "pdf-sync", "source-polish")
 COMMANDS = (
@@ -96,6 +96,7 @@ SURFACE_PREFIXES: dict[str, tuple[str, ...]] = {
         "bin/python-check",
     ),
     "references": ("public/references/", "references/"),
+    "viewer": ("packages/stenotic-hemodynamics-viewer/",),
     "release": (
         ".github/",
         "AGENTS.md",
@@ -126,6 +127,10 @@ VALIDATION_COMMANDS: dict[str, tuple[str, ...]] = {
         "Run the owning renderer or Julia workflow for the changed asset.",
         "pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf",
     ),
+    "viewer": (
+        "npm --prefix packages/stenotic-hemodynamics-viewer run build",
+        "npm --prefix packages/stenotic-hemodynamics-viewer run test",
+    ),
     "release": ("pipenv run ops-release-check --mode release",),
 }
 
@@ -135,6 +140,10 @@ VALIDATION_MARKERS: dict[str, tuple[str, ...]] = {
     "ops": ("ops-python-check",),
     "references": ("ops-audit-references",),
     "assets": ("ops-build-report",),
+    "viewer": (
+        "npm --prefix packages/stenotic-hemodynamics-viewer run build",
+        "npm --prefix packages/stenotic-hemodynamics-viewer run test",
+    ),
     "release": ("ops-release-check",),
 }
 
@@ -154,7 +163,6 @@ STALE_PATH_CHECK_PATHS = (
     "public/docs/markdown/agent-workflows.md",
     "public/docs/markdown/policy-vocabulary.md",
     "public/docs/markdown/benchmark-pipeline.md",
-    "public/docs/markdown/executive-assessment.md",
     "public/docs/markdown/publication-readiness.md",
     "packages/stenotic-hemodynamics/README.md",
     "report/appendices/code-and-ai-use.tex",

@@ -101,8 +101,8 @@ changing protected outputs.
 | `bounded-edit` | Yes | Explicit `--files` | Named-file source edits |
 | `artifact-refresh` | Yes | Explicit `--files` plus passed owning gate | Generated report assets or release PDF refresh |
 
-Supported surfaces are `report`, `julia`, `ops`, `references`, `assets`, and
-`release`.
+Supported surfaces are `report`, `julia`, `ops`, `references`, `assets`,
+`viewer`, and `release`.
 
 Use `artifact-refresh` only when a tracked rendered asset or
 `public/final-report.pdf` is intentionally in scope. Keep `public/final-report.pdf`

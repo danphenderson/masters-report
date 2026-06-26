@@ -149,7 +149,8 @@ refresh scope.
   orchestration contract.
 - `pipenv run ops-orchestrate ready-to-commit`: run the centralized
   commit-readiness gate selected from the current dirty surfaces, including the
-  report prose audit when report surfaces are dirty.
+  report prose audit when report surfaces are dirty and the viewer build/smoke
+  checks when `packages/stenotic-hemodynamics-viewer/**` is dirty.
 
 Use `public/docs/markdown/agent-workflows.md` for modes, profiles, and guardrails.
 
