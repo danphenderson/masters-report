@@ -108,8 +108,7 @@ def test_docs_contract_scans_nested_public_docs(tmp_path: Path) -> None:
 
     assert result.status == "failed"
     assert any(
-        "stale active path reference in public/docs/stenotic-hemodynamics/native.md" in issue
-        for issue in result.issues
+        "stale active path reference in public/docs/stenotic-hemodynamics/native.md" in issue for issue in result.issues
     )
 
 
