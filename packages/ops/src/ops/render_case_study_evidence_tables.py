@@ -40,6 +40,8 @@ class RestMethodRow:
     max_positivity_projection_count: int
     status: str
     error_message: str
+    residual_status: str
+    residual_error_message: str
     source_csv: str
 
 
@@ -191,7 +193,10 @@ def summarize_rest_method_csv(path: Path) -> list[RestMethodRow]:
         nx_values = {as_int(row["nx"], field="nx", path=path) for row in group if row.get("nx", "").strip()}
         nx = min(nx_values) if len(nx_values) == 1 else 0
         residual = residuals.get(severity)
-        residual_status = residual.get("status") if residual else "error"
+        residual_status = (residual.get("status", "error").strip() if residual else "error") or "error"
+        residual_error_message = (
+            residual.get("error_message", "").strip() if residual else f"missing residual row for severity {severity}"
+        )
         residual_value = (
             as_float(residual["total_flow_residual_max_abs"], field="total_flow_residual_max_abs", path=residual_path)
             if residual and residual_status == "ok"
@@ -223,12 +228,15 @@ def summarize_rest_method_csv(path: Path) -> list[RestMethodRow]:
                         as_int(row["positivity_projection_count"], field="positivity_projection_count", path=path)
                         for row in ok_rows
                     ),
-                    status="ok",
-                    error_message="",
+                    status="ok" if residual_status == "ok" else f"residual {residual_status}",
+                    error_message="" if residual_status == "ok" else residual_error_message,
+                    residual_status=residual_status,
+                    residual_error_message=residual_error_message,
                     source_csv=path.as_posix(),
                 )
             )
         else:
+            error_message = aggregate_error(group)
             summaries.append(
                 RestMethodRow(
                     method=method,
@@ -243,7 +251,9 @@ def summarize_rest_method_csv(path: Path) -> list[RestMethodRow]:
                     final_rms_q=math.nan,
                     max_positivity_projection_count=0,
                     status="not available",
-                    error_message=aggregate_error(group),
+                    error_message=error_message or residual_error_message,
+                    residual_status=residual_status,
+                    residual_error_message=residual_error_message,
                     source_csv=path.as_posix(),
                 )
             )
@@ -341,6 +351,8 @@ def rest_method_rows_for_csv(rows: list[RestMethodRow]) -> list[dict[str, str]]:
             "max_positivity_projection_count": str(row.max_positivity_projection_count),
             "status": row.status,
             "error_message": row.error_message,
+            "residual_status": row.residual_status,
+            "residual_error_message": row.residual_error_message,
             "source_csv": row.source_csv,
         }
         for row in rows
@@ -401,6 +413,8 @@ def latex_text(value: str) -> str:
 def status_label(row: RestMethodRow) -> str:
     if row.status == "ok":
         return "ok"
+    if row.status.startswith("residual ") and "positive native timestep" in row.residual_error_message:
+        return "residual skipped"
     if "positive native timestep" in row.error_message:
         return "not available"
     return row.status
@@ -493,6 +507,8 @@ def render_tables(
             "max_positivity_projection_count",
             "status",
             "error_message",
+            "residual_status",
+            "residual_error_message",
             "source_csv",
         ],
     )

@@ -270,10 +270,11 @@ available finite-volume methods and includes the 50\% stenosis geometry as a
 higher-severity stress case. First-order fluxes are much more diffusive, and
 WENO3 reduces the instantaneous residual and drift by more than an order of
 magnitude, but the available executable finite-volume methods still do not
-preserve the sampled geometry-rest state exactly. The Lax--Wendroff row is a
-workflow capability boundary for this diagnostic: the residual decomposition
-uses a $t=0$ flux evaluation, while the current Lax--Wendroff implementation
-requires a positive native time step.
+preserve the sampled geometry-rest state exactly. The published Lax--Wendroff
+row is retained as a diagnostic-surface capability boundary from that scratch
+run: its residual decomposition attempted a $t=0$ flux evaluation with zero
+native diagnostic timestep, while that flux requires a positive native time
+step.
 
 \begin{table}[!htb]
     \centering
