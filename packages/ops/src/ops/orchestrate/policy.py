@@ -70,7 +70,6 @@ ALL_HANDBACK_SECTIONS = tuple(
 SURFACE_PREFIXES: dict[str, tuple[str, ...]] = {
     "assets": ("report/assets/", "public/var/data/simulations/", "public/var/logs/"),
     "report": (
-        "report/TODO.md",
         "report/final-report.tex",
         "report/frontmatter/",
         "report/sections/",
@@ -78,6 +77,7 @@ SURFACE_PREFIXES: dict[str, tuple[str, ...]] = {
         "report/preamble/",
         "report/notebooks/",
         "report/archive/",
+        "report/",
     ),
     "julia": (
         "packages/stenotic-hemodynamics/",
@@ -97,6 +97,7 @@ SURFACE_PREFIXES: dict[str, tuple[str, ...]] = {
     ),
     "references": ("public/references/", "references/"),
     "release": (
+        ".github/",
         "AGENTS.md",
         "README.md",
         "CONTRIBUTING.md",
@@ -105,10 +106,16 @@ SURFACE_PREFIXES: dict[str, tuple[str, ...]] = {
         "LICENSE-docs",
         ".gitignore",
         ".vscode/",
+        "docusaurus.config.js",
+        "package-lock.json",
+        "package.json",
+        "sidebars.js",
         "public/docs/",
         "docs/",
         "public/reproducibility/",
         "reproducibility/",
+        "src/css/",
+        "static/",
     ),
 }
 
@@ -170,6 +177,7 @@ STALE_PATH_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         "removed root reference metadata path",
         re.compile(r"(?<!public/)references/(?:AGENTS\.md|README\.md|references\.bib|source-inventory\.tsv)\b"),
     ),
+    ("deleted TODO coordination reference", re.compile(r"\b(?:current package TODO plan|TODO handoff)\b")),
 )
 
 PACKET_STALE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (

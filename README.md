@@ -185,8 +185,8 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi native-status \
 ```
 
 Actual long-running preproduction or production execution remains a qualified
-internal workflow and should be launched only from the current package TODO plan
-with explicit output ownership and claim-boundary review.
+internal workflow and should be launched only with explicit output ownership,
+issue-tracker handoff, and claim-boundary review.
 
 ## Data and References
 

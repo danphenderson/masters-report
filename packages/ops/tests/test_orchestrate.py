@@ -55,10 +55,36 @@ def test_parse_status_classifies_renames_from_original_path_when_needed() -> Non
     assert report.entries[0].original_path == "docs/artifact-policy.md"
 
 
-def test_parse_status_classifies_report_todo_as_report_surface() -> None:
-    report = orchestrate.parse_status(" M report/TODO.md")
+def test_parse_status_classifies_report_sections_as_report_surface() -> None:
+    report = orchestrate.parse_status(" M report/sections/01-intro/index.tex")
 
     assert report.entries[0].surface == "report"
+
+
+def test_parse_status_classifies_report_root_files_as_report_surface() -> None:
+    report = orchestrate.parse_status(" D report/local-note.md")
+
+    assert report.entries[0].surface == "report"
+    assert report.unclassified_paths == ()
+
+
+def test_parse_status_classifies_docs_site_files_as_release_surface() -> None:
+    report = orchestrate.parse_status(
+        "\n".join(
+            [
+                "?? .github/workflows/docs-pages.yml",
+                "?? docusaurus.config.js",
+                "?? package-lock.json",
+                "?? package.json",
+                "?? sidebars.js",
+                "?? src/css/custom.css",
+                "?? static/.nojekyll",
+            ]
+        )
+    )
+
+    assert {entry.surface for entry in report.entries} == {"release"}
+    assert report.unclassified_paths == ()
 
 
 def test_dispatch_packet_includes_guardrails_and_validation(monkeypatch) -> None:
@@ -216,8 +242,8 @@ def test_dispatch_bundle_writes_harness_and_working_tree_snapshot(tmp_path: Path
     subprocess.run(["git", "commit", "-m", "Initial"], cwd=repo, check=True, capture_output=True)
 
     (repo / "README.md").write_text("modified working tree\n", encoding="utf-8")
-    (repo / "report").mkdir()
-    (repo / "report/TODO.md").write_text("untracked report note\n", encoding="utf-8")
+    (repo / "report" / "sections").mkdir(parents=True)
+    (repo / "report" / "sections" / "local-note.tex").write_text("untracked report note\n", encoding="utf-8")
 
     result = orchestrate.create_dispatch_bundle(
         repo,
@@ -247,7 +273,7 @@ def test_dispatch_bundle_writes_harness_and_working_tree_snapshot(tmp_path: Path
     assert any(name.endswith("CHATGPT_PRO_DISPATCH.md") for name in names)
     assert any(name.endswith("GIT_STATUS.txt") for name in names)
     assert any(name.endswith("GIT_DIFF.patch") for name in names)
-    assert any(name.endswith("/repo/report/TODO.md") for name in names)
+    assert any(name.endswith("/repo/report/sections/local-note.tex") for name in names)
     assert not any(name.endswith("/repo/public/final-report.pdf") for name in names)
     assert readme == "modified working tree\n"
     assert manifest["target"] == "chatgpt-pro"
@@ -266,7 +292,7 @@ def test_dispatch_bundle_writes_harness_and_working_tree_snapshot(tmp_path: Path
     assert "Dirty surface `release`: 1 path(s)" in result.prompt
     assert "Dirty surface `report`: 1 path(s)" in result.prompt
     assert "M README.md (release)" in result.prompt
-    assert "?? report/TODO.md (report)" in result.prompt
+    assert "?? report/sections/local-note.tex (report)" in result.prompt
     assert "Excluded protected artifact: public/final-report.pdf" in result.prompt
     assert "Then inspect:" in result.prompt
     assert "Objective-relevant files under repo/" in result.prompt
@@ -657,7 +683,7 @@ def test_ready_to_commit_gates_select_focused_surface_validation() -> None:
 
 
 def test_ready_to_commit_skips_julia_validation_for_package_markdown_only() -> None:
-    report = orchestrate.parse_status("## master\n M packages/stenotic-hemodynamics/TODO.md")
+    report = orchestrate.parse_status("## master\n M packages/stenotic-hemodynamics/README.md")
 
     gates = orchestrate.ready_to_commit_gates(report, report_outdir=Path("/tmp/build"))
     commands = [orchestrate.shell_command(gate.command) for gate in gates]
@@ -665,8 +691,8 @@ def test_ready_to_commit_skips_julia_validation_for_package_markdown_only() -> N
     assert "pipenv run ops-julia-check" not in commands
 
 
-def test_ready_to_commit_skips_report_build_for_report_todo_only() -> None:
-    report = orchestrate.parse_status("## master\n M report/TODO.md")
+def test_ready_to_commit_skips_report_build_for_report_markdown_only() -> None:
+    report = orchestrate.parse_status("## master\n M report/notebooks/note.md")
 
     gates = orchestrate.ready_to_commit_gates(report, report_outdir=Path("/tmp/build"))
     commands = [orchestrate.shell_command(gate.command) for gate in gates]

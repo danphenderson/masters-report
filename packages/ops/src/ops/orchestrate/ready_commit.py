@@ -51,8 +51,6 @@ def _requires_julia_validation(path: str) -> bool:
 
 
 def _requires_report_validation(path: str) -> bool:
-    if path == "report/TODO.md":
-        return False
     return Path(path).suffix.lower() not in {".md", ".txt"}
 
 

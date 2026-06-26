@@ -27,7 +27,7 @@ def default_stale_path_check_paths(repo: Path) -> tuple[str, ...]:
     paths = list(STALE_PATH_CHECK_PATHS)
     public_docs = repo / "public" / "docs"
     if public_docs.is_dir():
-        paths.extend(path.relative_to(repo).as_posix() for path in sorted(public_docs.glob("*.md")))
+        paths.extend(path.relative_to(repo).as_posix() for path in sorted(public_docs.rglob("*.md")))
     return tuple(dict.fromkeys(paths))
 
 

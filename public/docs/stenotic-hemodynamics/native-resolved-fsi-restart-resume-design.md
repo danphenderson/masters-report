@@ -243,5 +243,5 @@ Tests and docs must keep these boundaries intact:
 4. **10D-4 validation tests.** Completed for metadata validation, sidecar
    ownership, forked output roots, and split-run smoke-scale resume. Broader
    production-scale and imported-parity resume validation remains future work.
-5. **10D-5 docs and claim boundary.** Completed for package docs and TODO
-   handoff. Manuscript claim promotion remains out of scope.
+5. **10D-5 docs and claim boundary.** Completed for package docs and
+   issue-tracker handoff. Manuscript claim promotion remains out of scope.
