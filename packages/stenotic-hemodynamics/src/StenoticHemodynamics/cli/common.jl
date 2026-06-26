@@ -130,6 +130,8 @@ const COMPARISON_VALUE_OPTIONS = union(VALUE_OPTIONS, Set([
     "grid-summary-csv",
     "grid-summary-tex",
     "report-assets-dir",
+    "case-workers",
+    "solver-threads",
 ]))
 const COMPARISON_FLAG_OPTIONS = union(FLAG_OPTIONS, Set(["overwrite", "publish-report-assets"]))
 

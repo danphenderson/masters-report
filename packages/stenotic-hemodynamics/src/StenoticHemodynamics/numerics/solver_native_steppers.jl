@@ -8,8 +8,10 @@ function native_step!(
     p::Params,
     cache::NativeStepCache,
     diagnostics = nothing,
+    ;
+    threaded::Bool = false,
 )
-    return native_step!(A, Q, z, dx, dt, t, p.time_stepper, p, cache, diagnostics)
+    return native_step!(A, Q, z, dx, dt, t, p.time_stepper, p, cache, diagnostics; threaded=threaded)
 end
 
 function native_step!(
@@ -23,8 +25,10 @@ function native_step!(
     p::Params,
     cache::NativeStepCache,
     diagnostics = nothing,
+    ;
+    threaded::Bool = false,
 )
-    fill_rhs_dt!(cache.dA1, cache.dQ1, A, Q, z, dx, dt, t, p, cache.rhs)
+    fill_rhs_dt!(cache.dA1, cache.dQ1, A, Q, z, dx, dt, t, p, cache.rhs; threaded=threaded)
 
     for i in eachindex(A)
         A[i] = limited_area(A[i] + dt * cache.dA1[i], diagnostics)
@@ -45,14 +49,16 @@ function native_step!(
     p::Params,
     cache::NativeStepCache,
     diagnostics = nothing,
+    ;
+    threaded::Bool = false,
 )
-    fill_rhs_dt!(cache.dA1, cache.dQ1, A, Q, z, dx, dt, t, p, cache.rhs)
+    fill_rhs_dt!(cache.dA1, cache.dQ1, A, Q, z, dx, dt, t, p, cache.rhs; threaded=threaded)
     for i in eachindex(A)
         cache.A1[i] = limited_area(A[i] + dt * cache.dA1[i], diagnostics)
         cache.Q1[i] = Q[i] + dt * cache.dQ1[i]
     end
 
-    fill_rhs_dt!(cache.dA2, cache.dQ2, cache.A1, cache.Q1, z, dx, dt, t + dt, p, cache.rhs)
+    fill_rhs_dt!(cache.dA2, cache.dQ2, cache.A1, cache.Q1, z, dx, dt, t + dt, p, cache.rhs; threaded=threaded)
     for i in eachindex(A)
         A[i] = limited_area(0.5 * A[i] + 0.5 * (cache.A1[i] + dt * cache.dA2[i]), diagnostics)
         Q[i] = 0.5 * Q[i] + 0.5 * (cache.Q1[i] + dt * cache.dQ2[i])
@@ -72,20 +78,22 @@ function native_step!(
     p::Params,
     cache::NativeStepCache,
     diagnostics = nothing,
+    ;
+    threaded::Bool = false,
 )
-    fill_rhs_dt!(cache.dA1, cache.dQ1, A, Q, z, dx, dt, t, p, cache.rhs)
+    fill_rhs_dt!(cache.dA1, cache.dQ1, A, Q, z, dx, dt, t, p, cache.rhs; threaded=threaded)
     for i in eachindex(A)
         cache.A1[i] = limited_area(A[i] + dt * cache.dA1[i], diagnostics)
         cache.Q1[i] = Q[i] + dt * cache.dQ1[i]
     end
 
-    fill_rhs_dt!(cache.dA2, cache.dQ2, cache.A1, cache.Q1, z, dx, dt, t + dt, p, cache.rhs)
+    fill_rhs_dt!(cache.dA2, cache.dQ2, cache.A1, cache.Q1, z, dx, dt, t + dt, p, cache.rhs; threaded=threaded)
     for i in eachindex(A)
         cache.A2[i] = limited_area(0.75 * A[i] + 0.25 * (cache.A1[i] + dt * cache.dA2[i]), diagnostics)
         cache.Q2[i] = 0.75 * Q[i] + 0.25 * (cache.Q1[i] + dt * cache.dQ2[i])
     end
 
-    fill_rhs_dt!(cache.dA3, cache.dQ3, cache.A2, cache.Q2, z, dx, dt, t + 0.5 * dt, p, cache.rhs)
+    fill_rhs_dt!(cache.dA3, cache.dQ3, cache.A2, cache.Q2, z, dx, dt, t + 0.5 * dt, p, cache.rhs; threaded=threaded)
     for i in eachindex(A)
         A[i] = limited_area((A[i] + 2.0 * (cache.A2[i] + dt * cache.dA3[i])) / 3.0, diagnostics)
         Q[i] = (Q[i] + 2.0 * (cache.Q2[i] + dt * cache.dQ3[i])) / 3.0
@@ -105,19 +113,21 @@ function native_step!(
     p::Params,
     cache::NativeStepCache,
     diagnostics = nothing,
+    ;
+    threaded::Bool = false,
 )
     c1 = 0.391752226571890
     c2 = 0.586079688967798
     c3 = 0.474542363026872
     c4 = 0.935010630967653
 
-    fill_rhs_dt!(cache.dA1, cache.dQ1, A, Q, z, dx, dt, t, p, cache.rhs)
+    fill_rhs_dt!(cache.dA1, cache.dQ1, A, Q, z, dx, dt, t, p, cache.rhs; threaded=threaded)
     for i in eachindex(A)
         cache.A1[i] = limited_area(A[i] + 0.391752226571890 * dt * cache.dA1[i], diagnostics)
         cache.Q1[i] = Q[i] + 0.391752226571890 * dt * cache.dQ1[i]
     end
 
-    fill_rhs_dt!(cache.dA1, cache.dQ1, cache.A1, cache.Q1, z, dx, dt, t + c1 * dt, p, cache.rhs)
+    fill_rhs_dt!(cache.dA1, cache.dQ1, cache.A1, cache.Q1, z, dx, dt, t + c1 * dt, p, cache.rhs; threaded=threaded)
     for i in eachindex(A)
         cache.A1[i] = limited_area(
             0.444370493651235 * A[i] +
@@ -131,7 +141,7 @@ function native_step!(
             0.368410593050371 * dt * cache.dQ1[i]
     end
 
-    fill_rhs_dt!(cache.dA1, cache.dQ1, cache.A1, cache.Q1, z, dx, dt, t + c2 * dt, p, cache.rhs)
+    fill_rhs_dt!(cache.dA1, cache.dQ1, cache.A1, cache.Q1, z, dx, dt, t + c2 * dt, p, cache.rhs; threaded=threaded)
     for i in eachindex(A)
         cache.A2[i] = limited_area(
             0.620101851488403 * A[i] +
@@ -145,7 +155,7 @@ function native_step!(
             0.251891774271694 * dt * cache.dQ1[i]
     end
 
-    fill_rhs_dt!(cache.dA1, cache.dQ1, cache.A2, cache.Q2, z, dx, dt, t + c3 * dt, p, cache.rhs)
+    fill_rhs_dt!(cache.dA1, cache.dQ1, cache.A2, cache.Q2, z, dx, dt, t + c3 * dt, p, cache.rhs; threaded=threaded)
     for i in eachindex(A)
         cache.A3[i] = limited_area(
             0.178079954393132 * A[i] +
@@ -159,7 +169,7 @@ function native_step!(
             0.544974750228521 * dt * cache.dQ1[i]
     end
 
-    fill_rhs_dt!(cache.dA1, cache.dQ1, cache.A3, cache.Q3, z, dx, dt, t + c4 * dt, p, cache.rhs)
+    fill_rhs_dt!(cache.dA1, cache.dQ1, cache.A3, cache.Q3, z, dx, dt, t + c4 * dt, p, cache.rhs; threaded=threaded)
     for i in eachindex(A)
         A[i] = limited_area(
             0.517231671970585 * cache.A1[i] +

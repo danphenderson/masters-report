@@ -208,6 +208,13 @@ function summarize_comparison(
     diagnostics,
     production_diagnostics,
     one_d_completed_time::Real,
+    execution = (
+        elapsed_s=NaN,
+        case_workers=default_case_workers(),
+        solver_threads=solver_thread_count(backend),
+        julia_threads=Threads.nthreads(),
+        process_id=Distributed.myid(),
+    ),
 )
     section_abs = finite_values(row.abs_velocity_error_cm_s for row in section_rows)
     section_rel = finite_values(row.rel_error for row in section_rows)
@@ -280,6 +287,11 @@ function summarize_comparison(
         time_fields.one_d_terminal_time_error_s,
         time_fields.xdmf_target_time_error_s,
         time_fields.cross_model_time_offset_s,
+        Float64(execution.elapsed_s),
+        Int(execution.case_workers),
+        Int(execution.solver_threads),
+        Int(execution.julia_threads),
+        Int(execution.process_id),
     )
 end
 

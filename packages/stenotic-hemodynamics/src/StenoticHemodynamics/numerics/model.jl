@@ -78,8 +78,26 @@ function fill_source!(
     z::AbstractVector{Float64},
     dx::Float64,
     p::Params,
+    ;
+    threaded::Bool = false,
 )
     gp2 = gamma_plus_two(p)
+
+    if threaded
+        Threads.@threads :static for i in eachindex(A)
+            im = max(i - 1, firstindex(A))
+            ip = min(i + 1, lastindex(A))
+            dA = (A[ip] - A[im]) / ((ip - im) * dx)
+            dQ = (Q[ip] - Q[im]) / ((ip - im) * dx)
+
+            Ai = positive_area(A[i])
+            Qi = Q[i]
+            r0, r0z, r0zz = stenosis(z[i], p)
+            source[i] = source_point(Ai, Qi, z[i], dA, dQ, r0, r0z, r0zz, gp2, p)
+        end
+
+        return source
+    end
 
     for i in eachindex(A)
         im = max(i - 1, firstindex(A))

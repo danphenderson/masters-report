@@ -110,16 +110,46 @@ function choose_dt_record_timestep!(
     dx::Float64,
     remaining_time::Float64,
     p::Params,
+    ;
+    threaded::Bool = false,
 )
     max_speed = 0.0
-    for i in eachindex(A)
-        lambda_minus, lambda_plus, _, _ = characteristic_speeds(A[i], Q[i], z[i], p)
-        max_speed = max(max_speed, abs(lambda_minus), abs(lambda_plus))
-        diagnostics.lambda_minus_min = min(diagnostics.lambda_minus_min, lambda_minus)
-        diagnostics.lambda_minus_max = max(diagnostics.lambda_minus_max, lambda_minus)
-        diagnostics.lambda_plus_min = min(diagnostics.lambda_plus_min, lambda_plus)
-        diagnostics.lambda_plus_max = max(diagnostics.lambda_plus_max, lambda_plus)
-        diagnostics.subcritical_margin_min = min(diagnostics.subcritical_margin_min, min(-lambda_minus, lambda_plus))
+    if threaded
+        thread_count = Threads.maxthreadid()
+        max_speeds = zeros(Float64, thread_count)
+        lambda_minus_min = fill(Inf, thread_count)
+        lambda_minus_max = fill(-Inf, thread_count)
+        lambda_plus_min = fill(Inf, thread_count)
+        lambda_plus_max = fill(-Inf, thread_count)
+        subcritical_margin_min = fill(Inf, thread_count)
+
+        Threads.@threads :static for i in eachindex(A)
+            tid = Threads.threadid()
+            lambda_minus, lambda_plus, _, _ = characteristic_speeds(A[i], Q[i], z[i], p)
+            max_speeds[tid] = max(max_speeds[tid], abs(lambda_minus), abs(lambda_plus))
+            lambda_minus_min[tid] = min(lambda_minus_min[tid], lambda_minus)
+            lambda_minus_max[tid] = max(lambda_minus_max[tid], lambda_minus)
+            lambda_plus_min[tid] = min(lambda_plus_min[tid], lambda_plus)
+            lambda_plus_max[tid] = max(lambda_plus_max[tid], lambda_plus)
+            subcritical_margin_min[tid] = min(subcritical_margin_min[tid], min(-lambda_minus, lambda_plus))
+        end
+
+        max_speed = maximum(max_speeds)
+        diagnostics.lambda_minus_min = min(diagnostics.lambda_minus_min, minimum(lambda_minus_min))
+        diagnostics.lambda_minus_max = max(diagnostics.lambda_minus_max, maximum(lambda_minus_max))
+        diagnostics.lambda_plus_min = min(diagnostics.lambda_plus_min, minimum(lambda_plus_min))
+        diagnostics.lambda_plus_max = max(diagnostics.lambda_plus_max, maximum(lambda_plus_max))
+        diagnostics.subcritical_margin_min = min(diagnostics.subcritical_margin_min, minimum(subcritical_margin_min))
+    else
+        for i in eachindex(A)
+            lambda_minus, lambda_plus, _, _ = characteristic_speeds(A[i], Q[i], z[i], p)
+            max_speed = max(max_speed, abs(lambda_minus), abs(lambda_plus))
+            diagnostics.lambda_minus_min = min(diagnostics.lambda_minus_min, lambda_minus)
+            diagnostics.lambda_minus_max = max(diagnostics.lambda_minus_max, lambda_minus)
+            diagnostics.lambda_plus_min = min(diagnostics.lambda_plus_min, lambda_plus)
+            diagnostics.lambda_plus_max = max(diagnostics.lambda_plus_max, lambda_plus)
+            diagnostics.subcritical_margin_min = min(diagnostics.subcritical_margin_min, min(-lambda_minus, lambda_plus))
+        end
     end
 
     dt = min(p.dt, p.cfl * dx / max(max_speed, eps()), remaining_time)

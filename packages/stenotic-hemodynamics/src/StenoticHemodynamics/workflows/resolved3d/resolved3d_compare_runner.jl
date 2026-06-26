@@ -10,10 +10,21 @@ function run_comparison_with_case_runs(spec::ComparisonSpec)
     sensitivity_rows = NodeSlabSensitivityRow[]
     summary_rows = ComparisonSummaryRow[]
     loaded_cases = [load_comparison_case_inputs(case, spec) for case in spec.cases]
-    case_runs = Vector{Any}(undef, length(loaded_cases))
-    Threads.@threads for index in eachindex(loaded_cases)
-        loaded = loaded_cases[index]
-        case_runs[index] = run_loaded_comparison_case(loaded.case, loaded.bundle, loaded.field, spec)
+    case_runs = if spec.solver_threads > 1 || spec.case_workers != 1
+        parallel_case_map(
+            loaded -> run_loaded_comparison_case(loaded.case, loaded.bundle, loaded.field, spec),
+            loaded_cases;
+            parallel_workers=spec.case_workers,
+            threads_per_worker=spec.solver_threads,
+            force_process=spec.solver_threads > 1,
+        )
+    else
+        runs = Vector{Any}(undef, length(loaded_cases))
+        Threads.@threads for index in eachindex(loaded_cases)
+            loaded = loaded_cases[index]
+            runs[index] = run_loaded_comparison_case(loaded.case, loaded.bundle, loaded.field, spec)
+        end
+        runs
     end
 
     for case_run in case_runs
@@ -72,7 +83,9 @@ end
 
 function run_loaded_comparison_case(case::Resolved3DCaseSpec, bundle, field, spec::ComparisonSpec)
     params = params_with(spec.base_params; severity=case.severity, tfinal=case.target_time)
+    start_ns = time_ns()
     result = simulate(params, spec.backend; progress_every=spec.progress_every)
+    elapsed_s = (time_ns() - start_ns) / 1.0e9
 
     section_rows = compare_section_means(field, result, params, spec)
     profile_rows = compare_radial_profiles(field, result, params, spec)
@@ -89,6 +102,13 @@ function run_loaded_comparison_case(case::Resolved3DCaseSpec, bundle, field, spe
         diagnostics,
         production_diagnostics,
         result.completed_time,
+        (
+            elapsed_s=elapsed_s,
+            case_workers=spec.case_workers,
+            solver_threads=spec.solver_threads,
+            julia_threads=Threads.nthreads(),
+            process_id=Distributed.myid(),
+        ),
     )
     return (
         case=case,

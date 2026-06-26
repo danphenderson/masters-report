@@ -26,11 +26,35 @@ function fill_method_fluxes!(
     method::FVFirstOrderMethod,
     p::Params,
     cache::RHSCache,
+    ;
+    threaded::Bool = false,
 )
     _ = dx
     _ = dt
     _ = cache
     Ain, Qin, Aout, Qout = boundary_states(A, Q, p, t)
+
+    if threaded
+        Threads.@threads :static for iface in 1:(length(A) + 1)
+            if iface == 1
+                AL, QL = Ain, Qin
+                AR, QR = A[begin], Q[begin]
+                zi = 0.0
+            elseif iface == length(A) + 1
+                AL, QL = A[end], Q[end]
+                AR, QR = Aout, Qout
+                zi = p.length_cm
+            else
+                AL, QL = A[iface - 1], Q[iface - 1]
+                AR, QR = A[iface], Q[iface]
+                zi = 0.5 * (z[iface - 1] + z[iface])
+            end
+
+            FA[iface], FQ[iface] = rusanov_flux(AL, QL, AR, QR, zi, p)
+        end
+
+        return FA, FQ
+    end
 
     for iface in 1:(length(A) + 1)
         if iface == 1
@@ -65,10 +89,12 @@ function fill_method_fluxes!(
     method::FVGeometryRestWellBalancedMethod,
     p::Params,
     cache::RHSCache,
+    ;
+    threaded::Bool = false,
 )
     _ = dx
     _ = dt
-    fill_geometry_rest_well_balanced_fluxes!(FA, FQ, A, Q, z, t, method.limiter, p, cache)
+    fill_geometry_rest_well_balanced_fluxes!(FA, FQ, A, Q, z, t, method.limiter, p, cache; threaded=threaded)
     return FA, FQ
 end
 
@@ -84,10 +110,12 @@ function fill_method_fluxes!(
     method::FVMUSCLMethod,
     p::Params,
     cache::RHSCache,
+    ;
+    threaded::Bool = false,
 )
     _ = dx
     _ = dt
-    fill_muscl_rusanov_fluxes!(FA, FQ, A, Q, z, t, method.limiter, p, cache)
+    fill_muscl_rusanov_fluxes!(FA, FQ, A, Q, z, t, method.limiter, p, cache; threaded=threaded)
     return FA, FQ
 end
 
@@ -103,10 +131,12 @@ function fill_method_fluxes!(
     method::FVWENO3Method,
     p::Params,
     cache::RHSCache,
+    ;
+    threaded::Bool = false,
 )
     _ = dx
     _ = dt
-    fill_weno3_rusanov_fluxes!(FA, FQ, A, Q, z, t, method.epsilon, p, cache)
+    fill_weno3_rusanov_fluxes!(FA, FQ, A, Q, z, t, method.epsilon, p, cache; threaded=threaded)
     return FA, FQ
 end
 
@@ -122,9 +152,11 @@ function fill_method_fluxes!(
     method::FVLaxWendroffMethod,
     p::Params,
     cache::RHSCache,
+    ;
+    threaded::Bool = false,
 )
     dt > 0.0 || throw(ArgumentError("fv-lax-wendroff requires a positive native timestep"))
-    fill_lax_wendroff_fluxes!(FA, FQ, A, Q, z, dx, dt, t, method.limiter, p, cache)
+    fill_lax_wendroff_fluxes!(FA, FQ, A, Q, z, dx, dt, t, method.limiter, p, cache; threaded=threaded)
     return FA, FQ
 end
 
@@ -140,9 +172,11 @@ function fill_method_fluxes!(
     method::DGMethod,
     p::Params,
     cache::RHSCache,
+    ;
+    threaded::Bool = false,
 )
     method.degree == 0 || throw(ArgumentError("DG degree $(method.degree) uses the native modal DG solver, not cell-mean RHS"))
-    return fill_method_fluxes!(FA, FQ, A, Q, z, dx, dt, t, FVFirstOrderMethod(), p, cache)
+    return fill_method_fluxes!(FA, FQ, A, Q, z, dx, dt, t, FVFirstOrderMethod(), p, cache; threaded=threaded)
 end
 
 function rusanov_flux(AL::Float64, QL::Float64, AR::Float64, QR::Float64, z::Float64, p::Params)
@@ -199,8 +233,19 @@ function cell_slopes(values::AbstractVector{Float64}, limiter::AbstractLimiter)
     return cell_slopes!(slopes, values, limiter)
 end
 
-function cell_slopes!(slopes::AbstractVector{Float64}, values::AbstractVector{Float64}, limiter::AbstractLimiter)
+function cell_slopes!(
+    slopes::AbstractVector{Float64},
+    values::AbstractVector{Float64},
+    limiter::AbstractLimiter;
+    threaded::Bool = false,
+)
     length(slopes) == length(values) || throw(DimensionMismatch("slope cache length mismatch"))
+    if threaded
+        Threads.@threads :static for i in eachindex(values)
+            slopes[i] = limited_slope(values, i, limiter)
+        end
+        return slopes
+    end
     for i in eachindex(values)
         slopes[i] = limited_slope(values, i, limiter)
     end
@@ -374,10 +419,40 @@ function fill_muscl_rusanov_fluxes!(
     limiter::AbstractLimiter,
     p::Params,
     cache::RHSCache,
+    ;
+    threaded::Bool = false,
 )
-    slope_A = cell_slopes!(cache.area_slope, A, limiter)
-    slope_Q = cell_slopes!(cache.flow_slope, Q, limiter)
+    slope_A = cell_slopes!(cache.area_slope, A, limiter; threaded=threaded)
+    slope_Q = cell_slopes!(cache.flow_slope, Q, limiter; threaded=threaded)
     Ain, Qin, Aout, Qout = boundary_states(A, Q, p, t)
+
+    if threaded
+        Threads.@threads :static for iface in 1:(length(A) + 1)
+            if iface == 1
+                AL, QL = Ain, Qin
+                AR = reconstructed_area(A[begin], slope_A[begin], -1.0)
+                QR = reconstructed_flow(Q[begin], slope_Q[begin], -1.0)
+                zi = 0.0
+            elseif iface == length(A) + 1
+                AL = reconstructed_area(A[end], slope_A[end], 1.0)
+                QL = reconstructed_flow(Q[end], slope_Q[end], 1.0)
+                AR, QR = Aout, Qout
+                zi = p.length_cm
+            else
+                left = iface - 1
+                right = iface
+                AL = reconstructed_area(A[left], slope_A[left], 1.0)
+                QL = reconstructed_flow(Q[left], slope_Q[left], 1.0)
+                AR = reconstructed_area(A[right], slope_A[right], -1.0)
+                QR = reconstructed_flow(Q[right], slope_Q[right], -1.0)
+                zi = 0.5 * (z[left] + z[right])
+            end
+
+            FA[iface], FQ[iface] = rusanov_flux(AL, QL, AR, QR, zi, p)
+        end
+
+        return FA, FQ
+    end
 
     for iface in 1:(length(A) + 1)
         if iface == 1
@@ -416,15 +491,51 @@ function fill_geometry_rest_well_balanced_fluxes!(
     limiter::AbstractLimiter,
     p::Params,
     cache::RHSCache,
+    ;
+    threaded::Bool = false,
 )
-    slope_A = cell_slopes!(cache.area_slope, A, limiter)
-    slope_Q = cell_slopes!(cache.flow_slope, Q, limiter)
+    slope_A = cell_slopes!(cache.area_slope, A, limiter; threaded=threaded)
+    slope_Q = cell_slopes!(cache.flow_slope, Q, limiter; threaded=threaded)
     Aeq = geometry_rest_cell_areas(z, p)
     slope_Aeq = cell_slopes(Aeq, limiter)
     Ain, Qin, Aout, Qout = well_balanced_boundary_states(A, Q, p, t)
     Aeq_in, Qeq_in, Aeq_out, Qeq_out = geometry_rest_boundary_states(p)
     _ = Qeq_in
     _ = Qeq_out
+
+    if threaded
+        Threads.@threads :static for iface in 1:(length(A) + 1)
+            if iface == 1
+                AL, QL = Ain, Qin
+                AR = reconstructed_area(A[begin], slope_A[begin], -1.0)
+                QR = reconstructed_flow(Q[begin], slope_Q[begin], -1.0)
+                ALeq = Aeq_in
+                AReq = reconstructed_area(Aeq[begin], slope_Aeq[begin], -1.0)
+                zi = 0.0
+            elseif iface == length(A) + 1
+                AL = reconstructed_area(A[end], slope_A[end], 1.0)
+                QL = reconstructed_flow(Q[end], slope_Q[end], 1.0)
+                AR, QR = Aout, Qout
+                ALeq = reconstructed_area(Aeq[end], slope_Aeq[end], 1.0)
+                AReq = Aeq_out
+                zi = p.length_cm
+            else
+                left = iface - 1
+                right = iface
+                AL = reconstructed_area(A[left], slope_A[left], 1.0)
+                QL = reconstructed_flow(Q[left], slope_Q[left], 1.0)
+                AR = reconstructed_area(A[right], slope_A[right], -1.0)
+                QR = reconstructed_flow(Q[right], slope_Q[right], -1.0)
+                ALeq = reconstructed_area(Aeq[left], slope_Aeq[left], 1.0)
+                AReq = reconstructed_area(Aeq[right], slope_Aeq[right], -1.0)
+                zi = 0.5 * (z[left] + z[right])
+            end
+
+            FA[iface], FQ[iface] = geometry_rest_well_balanced_rusanov_flux(AL, QL, AR, QR, ALeq, AReq, zi, p)
+        end
+
+        return FA, FQ
+    end
 
     for iface in 1:(length(A) + 1)
         if iface == 1
@@ -469,11 +580,44 @@ function fill_weno3_rusanov_fluxes!(
     epsilon::Float64,
     p::Params,
     cache::RHSCache,
+    ;
+    threaded::Bool = false,
 )
-    slope_A = cell_slopes!(cache.area_slope, A, MinmodLimiter())
-    slope_Q = cell_slopes!(cache.flow_slope, Q, MinmodLimiter())
+    slope_A = cell_slopes!(cache.area_slope, A, MinmodLimiter(); threaded=threaded)
+    slope_Q = cell_slopes!(cache.flow_slope, Q, MinmodLimiter(); threaded=threaded)
     Ain, Qin, Aout, Qout = boundary_states(A, Q, p, t)
     nx = length(A)
+
+    if threaded
+        Threads.@threads :static for iface in 1:(nx + 1)
+            if iface == 1
+                AL, QL = Ain, Qin
+                AR = reconstructed_area(A[begin], slope_A[begin], -1.0)
+                QR = reconstructed_flow(Q[begin], slope_Q[begin], -1.0)
+                zi = 0.0
+            elseif iface == nx + 1
+                AL = reconstructed_area(A[end], slope_A[end], 1.0)
+                QL = reconstructed_flow(Q[end], slope_Q[end], 1.0)
+                AR, QR = Aout, Qout
+                zi = p.length_cm
+            elseif 3 <= iface <= nx - 1
+                AL, QL, AR, QR = weno3_interface_states(A, Q, z, iface, epsilon, p)
+                zi = 0.5 * (z[iface - 1] + z[iface])
+            else
+                left = iface - 1
+                right = iface
+                AL = reconstructed_area(A[left], slope_A[left], 1.0)
+                QL = reconstructed_flow(Q[left], slope_Q[left], 1.0)
+                AR = reconstructed_area(A[right], slope_A[right], -1.0)
+                QR = reconstructed_flow(Q[right], slope_Q[right], -1.0)
+                zi = 0.5 * (z[left] + z[right])
+            end
+
+            FA[iface], FQ[iface] = rusanov_flux(AL, QL, AR, QR, zi, p)
+        end
+
+        return FA, FQ
+    end
 
     for iface in 1:(nx + 1)
         if iface == 1
@@ -533,10 +677,44 @@ function fill_lax_wendroff_fluxes!(
     limiter::AbstractLimiter,
     p::Params,
     cache::RHSCache,
+    ;
+    threaded::Bool = false,
 )
-    slope_A = cell_slopes!(cache.area_slope, A, limiter)
-    slope_Q = cell_slopes!(cache.flow_slope, Q, limiter)
+    slope_A = cell_slopes!(cache.area_slope, A, limiter; threaded=threaded)
+    slope_Q = cell_slopes!(cache.flow_slope, Q, limiter; threaded=threaded)
     Ain, Qin, Aout, Qout = boundary_states(A, Q, p, t)
+
+    if threaded
+        Threads.@threads :static for iface in 1:(length(A) + 1)
+            if iface == 1
+                AL, QL = Ain, Qin
+                AR = reconstructed_area(A[begin], slope_A[begin], -1.0)
+                QR = reconstructed_flow(Q[begin], slope_Q[begin], -1.0)
+                zi = 0.0
+            elseif iface == length(A) + 1
+                AL = reconstructed_area(A[end], slope_A[end], 1.0)
+                QL = reconstructed_flow(Q[end], slope_Q[end], 1.0)
+                AR, QR = Aout, Qout
+                zi = p.length_cm
+            else
+                left = iface - 1
+                right = iface
+                AL = reconstructed_area(A[left], slope_A[left], 1.0)
+                QL = reconstructed_flow(Q[left], slope_Q[left], 1.0)
+                AR = reconstructed_area(A[right], slope_A[right], -1.0)
+                QR = reconstructed_flow(Q[right], slope_Q[right], -1.0)
+                zi = 0.5 * (z[left] + z[right])
+            end
+
+            FAL, FQL = flux(AL, QL, zi, p)
+            FAR, FQR = flux(AR, QR, zi, p)
+            Ah = max(0.5 * (AL + AR) - 0.5 * dt / dx * (FAR - FAL), AREA_LIMITER_FLOOR)
+            Qh = 0.5 * (QL + QR) - 0.5 * dt / dx * (FQR - FQL)
+            FA[iface], FQ[iface] = flux(Ah, Qh, zi, p)
+        end
+
+        return FA, FQ
+    end
 
     for iface in 1:(length(A) + 1)
         if iface == 1

@@ -152,6 +152,8 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --nxs 200,400,800,1600,3200 \
   --target-time 0.9995 \
   --time-atol 1e-3 \
+  --case-workers 2 \
+  --solver-threads 4 \
   --section-count 200 \
   --radial-bins 20 \
   --no-svg \
@@ -159,6 +161,30 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --grid-summary-csv report/assets/data/stenosis-comparison/grid-sensitivity-summary.csv \
   --grid-summary-tex report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex
 ```
+
+`--case-workers` controls process-level case parallelism; `0` forces serial
+case execution, while values greater than `1` run cases through distributed
+workers. `--solver-threads` controls native finite-volume threading inside each
+case. Keep the two budgets separate (for example, two case workers with four
+solver threads each) and run a bounded probe on a small `--nxs` subset before
+using the setting for fine grids:
+
+```sh
+packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
+  --data-root public/var/data/simulations/canic_case3 \
+  --output-dir tmp/simulations/output/3d_comparison/grid_sensitivity_thread_probe \
+  --nxs 200,400 \
+  --case-workers 1 \
+  --solver-threads 2 \
+  --target-time 0.9995 \
+  --no-svg \
+  --overwrite
+```
+
+The comparison summaries record elapsed time, case-worker count, solver-thread
+count, Julia thread count, and process id for runtime provenance; these probes
+are performance checks, not resolved-FSI reproduction or production validation
+evidence.
 
 Use `--reuse-grid-summary` when the task needs to reformat or republish an
 already reviewed summary without rerunning the full comparison:

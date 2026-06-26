@@ -1,8 +1,8 @@
 function print_compare3d_usage()
     println("""
     Usage:
-      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d [--data-root PATH] [--coordinate-mode reference|deformed] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--overwrite] [--publish-report-assets]
-      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d --nxs 200,400,800 [--data-root PATH] [--coordinate-mode reference|deformed] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--overwrite] [--publish-report-assets]
+      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d [--data-root PATH] [--coordinate-mode reference|deformed] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--case-workers N] [--solver-threads N] [--overwrite] [--publish-report-assets]
+      packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d --nxs 200,400,800 [--data-root PATH] [--coordinate-mode reference|deformed] [--output-dir PATH] [--target-time SECONDS] [--time-atol SECONDS] [--case-workers N] [--solver-threads N] [--overwrite] [--publish-report-assets]
       packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d --nxs 200,400,800 --reuse-grid-summary PATH [--grid-summary-csv PATH] [--grid-summary-tex PATH] [--overwrite]
     """)
 end
