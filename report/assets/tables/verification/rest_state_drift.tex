@@ -1,16 +1,20 @@
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Zero-forcing, zero-inlet geometry-rest drift summary. The table reports the requested/applied inlet flow, the largest cell flow over positive elapsed times, and the signed finite-volume balance at the final reported time; the production-grid drift remains non-negligible despite strong refinement decay.}
+    \caption{Zero-forcing, zero-inlet geometry-rest drift summary. The table reports the combined requested/applied inlet-flow status, the largest cell flow over positive elapsed times, and the final balance residual; the full diagnostic table remains in Appendix~\ref{app:num-full-rest-state-drift-grid}.}
     \resizebox{\textwidth}{!}{%
-    \begin{tabular}{@{}rrrrrrrrrrr@{}}
+    \begin{tabular}{@{}rrlrrrrr@{}}
         \toprule
-        Severity & $N$ & time of peak $\max_i |q_i|$ & requested $q_{\mathrm{in}}$ & applied $q_{\mathrm{in}}$ & peak $\max |q_i|$ & $z_{\max |q|}$ & final $\max |q_i|$ & final $\Delta\!\int a\,dz$ & final flux integral & final balance residual \\
+        Severity & $N$ & inlet $q_{\mathrm{in}}$ req./appl. & $t_{\mathrm{peak}}$ & peak $\max |q_i|$ & $z_{\max |q|}$ & final $\max |q_i|$ & final balance residual \\
         \midrule
-23 & 400 & 0.001 & 0.000e+00 & 0.000e+00 & 0.04387 & 2.078 & 0.03839 & 4.744e-07 & -4.744e-07 & -5.654e-11 \\
-23 & 800 & 0.001 & 0.000e+00 & 0.000e+00 & 0.01116 & 2.074 & 0.00973 & 1.841e-07 & -1.841e-07 & -6.173e-13 \\
-40 & 400 & 0.001 & 0.000e+00 & 0.000e+00 & 0.07053 & 2.078 & 0.06339 & 4.047e-06 & -4.047e-06 & -5.310e-11 \\
-40 & 800 & 0.001 & 0.000e+00 & 0.000e+00 & 0.01782 & 2.074 & 0.01605 & 1.254e-06 & -1.254e-06 & -2.340e-12 \\
+23 & 400 & $(\mathrm{0.000e+00})/(\mathrm{0.000e+00})$ & 0.001 & 0.04387 & 2.078 & 0.03839 & 0.000e+00 \\
+23 & 800 & $(\mathrm{0.000e+00})/(\mathrm{0.000e+00})$ & 0.001 & 0.01116 & 2.074 & 0.00973 & 0.000e+00 \\
+23 & 1600 & $(\mathrm{0.000e+00})/(\mathrm{0.000e+00})$ & 0.001 & 0.002807 & 2.072 & 0.002442 & 0.000e+00 \\
+23 & 3200 & $(\mathrm{0.000e+00})/(\mathrm{0.000e+00})$ & 0.001 & 7.030e-04 & 2.071 & 6.110e-04 & 0.000e+00 \\
+40 & 400 & $(\mathrm{0.000e+00})/(\mathrm{0.000e+00})$ & 0.001 & 0.07053 & 2.078 & 0.06339 & 0.000e+00 \\
+40 & 800 & $(\mathrm{0.000e+00})/(\mathrm{0.000e+00})$ & 0.001 & 0.01782 & 2.074 & 0.01605 & 0.000e+00 \\
+40 & 1600 & $(\mathrm{0.000e+00})/(\mathrm{0.000e+00})$ & 0.001 & 0.004465 & 2.072 & 0.004028 & 0.000e+00 \\
+40 & 3200 & $(\mathrm{0.000e+00})/(\mathrm{0.000e+00})$ & 0.001 & 0.001116 & 2.071 & 0.001009 & 0.000e+00 \\
         \bottomrule
     \end{tabular}%
     }

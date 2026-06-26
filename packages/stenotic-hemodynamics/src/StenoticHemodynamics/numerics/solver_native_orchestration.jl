@@ -101,3 +101,32 @@ function choose_dt(A::Vector{Float64}, Q::Vector{Float64}, z::Vector{Float64}, d
     end
     return min(p.dt, p.cfl * dx / max(smax, eps()))
 end
+
+function choose_dt_record_timestep!(
+    diagnostics::DiagnosticsAccumulator,
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    remaining_time::Float64,
+    p::Params,
+)
+    max_speed = 0.0
+    for i in eachindex(A)
+        lambda_minus, lambda_plus, _, _ = characteristic_speeds(A[i], Q[i], z[i], p)
+        max_speed = max(max_speed, abs(lambda_minus), abs(lambda_plus))
+        diagnostics.lambda_minus_min = min(diagnostics.lambda_minus_min, lambda_minus)
+        diagnostics.lambda_minus_max = max(diagnostics.lambda_minus_max, lambda_minus)
+        diagnostics.lambda_plus_min = min(diagnostics.lambda_plus_min, lambda_plus)
+        diagnostics.lambda_plus_max = max(diagnostics.lambda_plus_max, lambda_plus)
+        diagnostics.subcritical_margin_min = min(diagnostics.subcritical_margin_min, min(-lambda_minus, lambda_plus))
+    end
+
+    dt = min(p.dt, p.cfl * dx / max(max_speed, eps()), remaining_time)
+    diagnostics.dt_min = min(diagnostics.dt_min, dt)
+    diagnostics.dt_max = max(diagnostics.dt_max, dt)
+    cfl = max_speed * dt / dx
+    diagnostics.cfl_min = min(diagnostics.cfl_min, cfl)
+    diagnostics.cfl_max = max(diagnostics.cfl_max, cfl)
+    return dt
+end

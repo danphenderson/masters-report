@@ -24,7 +24,18 @@ function simulate_rest_state_drift_case(params::Params, backend::AbstractTimeBac
 end
 
 function simulate_rest_state_drift_native(params::Params; progress_every::Int = 0)
+    snapshots = simulate_rest_state_drift_native_snapshots(params, [params.tfinal]; progress_every=progress_every)
+    return only(snapshots)
+end
+
+function simulate_rest_state_drift_native_snapshots(
+    params::Params,
+    sample_times::AbstractVector{<:Real};
+    progress_every::Int = 0,
+)
     validate(params)
+    sorted_sample_times = sort(Float64.(sample_times))
+    all(t -> t >= 0.0, sorted_sample_times) || throw(ArgumentError("rest-state sample times must be nonnegative"))
     initial = initial_state_result(params)
     z = copy(initial.z)
     A = copy(initial.area)
@@ -37,30 +48,89 @@ function simulate_rest_state_drift_native(params::Params; progress_every::Int = 
     boundary_flux_integral = 0.0
     t = 0.0
     step = 0
+    snapshots = NamedTuple[]
 
-    while t < params.tfinal - 1.0e-14
-        dt = min(choose_dt(A, Q, z, dx, params), params.tfinal - t)
-        start_flux = rest_state_boundary_flux_metrics(A, Q, z, dx, params, t, flux_cache)
-        start_flux_difference = start_flux.outlet_area_flux - start_flux.inlet_area_flux
-        record_timestep_diagnostics!(diagnostics, A, Q, z, dx, dt, params)
-        native_step!(A, Q, z, dx, dt, t, params, step_cache, diagnostics)
-        t += dt
-        step += 1
-        record_mass_diagnostics!(diagnostics, A, dx)
-        end_flux = rest_state_boundary_flux_metrics(A, Q, z, dx, params, t, flux_cache)
-        end_flux_difference = end_flux.outlet_area_flux - end_flux.inlet_area_flux
-        boundary_flux_integral += 0.5 * (start_flux_difference + end_flux_difference) * dt
+    for target_time in sorted_sample_times
+        while t < target_time - 1.0e-14
+            dt = rest_state_choose_dt_record_timestep!(diagnostics, A, Q, z, dx, target_time - t, params)
+            mass_before = diagnostics.mass_final
+            native_step!(A, Q, z, dx, dt, t, params, step_cache, diagnostics)
+            t += dt
+            step += 1
+            record_mass_diagnostics!(diagnostics, A, dx)
+            boundary_flux_integral += mass_before - diagnostics.mass_final
 
-        if progress_every > 0 && step % progress_every == 0
-            @telemetry_info "rest-state progress" event="rest_state_progress" stage="verification" nx=params.nx tfinal=params.tfinal status="running" step t dt
+            if progress_every > 0 && step % progress_every == 0
+                @telemetry_info "rest-state progress" event="rest_state_progress" stage="verification" nx=params.nx tfinal=params.tfinal status="running" step t dt
+            end
+
+            if !all(isfinite, A) || !all(isfinite, Q)
+                error("non-finite solution at t=$(t)")
+            end
         end
 
-        if !all(isfinite, A) || !all(isfinite, Q)
-            error("non-finite solution at t=$(t)")
-        end
+        push!(snapshots, rest_state_drift_native_snapshot(
+            A,
+            Q,
+            z,
+            dx,
+            t,
+            step,
+            initial.summary,
+            diagnostics,
+            params,
+            boundary_flux_integral,
+            initial_lh,
+            flux_cache,
+        ))
     end
 
-    result = SimulationResult(z, A, Q, t, step, initial.summary, finalize_diagnostics(diagnostics))
+    return snapshots
+end
+
+function rest_state_choose_dt_record_timestep!(
+    diagnostics::DiagnosticsAccumulator,
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    remaining_time::Float64,
+    params::Params,
+)
+    max_speed = 0.0
+    for i in eachindex(A)
+        lambda_minus, lambda_plus, _, _ = characteristic_speeds(A[i], Q[i], z[i], params)
+        max_speed = max(max_speed, abs(lambda_minus), abs(lambda_plus))
+        diagnostics.lambda_minus_min = min(diagnostics.lambda_minus_min, lambda_minus)
+        diagnostics.lambda_minus_max = max(diagnostics.lambda_minus_max, lambda_minus)
+        diagnostics.lambda_plus_min = min(diagnostics.lambda_plus_min, lambda_plus)
+        diagnostics.lambda_plus_max = max(diagnostics.lambda_plus_max, lambda_plus)
+        diagnostics.subcritical_margin_min = min(diagnostics.subcritical_margin_min, min(-lambda_minus, lambda_plus))
+    end
+    dt = min(params.dt, params.cfl * dx / max(max_speed, eps()), remaining_time)
+    diagnostics.dt_min = min(diagnostics.dt_min, dt)
+    diagnostics.dt_max = max(diagnostics.dt_max, dt)
+    cfl = max_speed * dt / dx
+    diagnostics.cfl_min = min(diagnostics.cfl_min, cfl)
+    diagnostics.cfl_max = max(diagnostics.cfl_max, cfl)
+    return dt
+end
+
+function rest_state_drift_native_snapshot(
+    A::Vector{Float64},
+    Q::Vector{Float64},
+    z::Vector{Float64},
+    dx::Float64,
+    t::Float64,
+    step::Int,
+    initial_summary,
+    diagnostics::DiagnosticsAccumulator,
+    params::Params,
+    boundary_flux_integral::Float64,
+    initial_lh,
+    flux_cache::RHSCache,
+)
+    result = SimulationResult(copy(z), copy(A), copy(Q), t, step, initial_summary, finalize_diagnostics(diagnostics))
     final_flux = rest_state_boundary_flux_metrics(A, Q, z, dx, params, t, flux_cache)
     return (
         result=result,

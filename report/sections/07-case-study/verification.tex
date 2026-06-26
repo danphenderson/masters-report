@@ -162,13 +162,14 @@ study.
     \end{center}
 }
 The spatial rows provide bounded, positive implementation-verification evidence
-for the specified forced operator. Over this grid range, the area orders are
-about $1.96$ in $L^1$, $1.70$--$1.75$ in $L^2$, and $1.33$--$1.37$ in
-$L^\infty$. The flow orders are about $1.81$--$1.93$ in $L^1$, about $1.50$ in
-$L^2$, and about $1.00$ in $L^\infty$. The maximum-norm columns therefore
-emphasize a more localized part of the error than the averaged metrics. The
-evidence is read as metric-specific implementation-verification behavior, not
-as a blanket formal-order claim for every model variant.
+for the specified forced operator through the finest regenerated MMS grid,
+$N=3200$. Over this grid range, the area orders are about $1.96$--$1.98$ in
+$L^1$, $1.66$--$1.75$ in $L^2$, and $1.29$--$1.37$ in $L^\infty$. The flow
+orders are about $1.81$--$1.98$ in $L^1$, about $1.50$ in $L^2$, and about
+$1.00$ in $L^\infty$. The maximum-norm columns therefore emphasize a more
+localized part of the error than the averaged metrics. The evidence is read as
+metric-specific implementation-verification behavior, not as a blanket
+formal-order claim for every model variant.
 
 \subsubsection{Geometry-Rest Preservation Test}
 \label{subsec:rest-state-drift}
@@ -213,7 +214,10 @@ zero-velocity inlet and reports
     &\left|\sum_i a_i\Delta z-\sum_i a_i(0)\Delta z\right| &&
 \end{flalign*}
 as functions of grid size and elapsed time. This test fixes the interpretation
-of any comparison run initialized from the same geometry-rest state.
+of any comparison run initialized from the same geometry-rest state. Its
+terminal elapsed time is the diagnostic endpoint $t=1.0\,\mathrm{s}$; this is
+not the imported resolved-data matching time $0.9995\,\mathrm{s}$ used later for
+the final-time velocity comparison.
 
 \IfFileExists{report/assets/tables/verification/rest_state_drift.tex}{%
     \begin{center}
@@ -249,12 +253,15 @@ comparison grid, the final zero-inlet rest-flow values are $0.03839$ and
 $0.06339\,\mathrm{cm}^3/\mathrm{s}$ in solver $q$ for the 23\% and 40\%
 stenosis cases, equal to
 5.3\% and 8.7\% of $q_{\mathrm{comp}}$. The corresponding peak production-grid
-values are $0.04387$ and $0.07053\,\mathrm{cm}^3/\mathrm{s}$. On the finer
-$N=800$ check grid, the $t=1$ s values fall to $0.00973$ and
-$0.01605\,\mathrm{cm}^3/\mathrm{s}$; the observed final-flow refinement rates
-from $N=400$ to $N=800$ are 1.98 for both severities. The defect is therefore
-strongly localized and strongly grid-decreasing, but it remains non-negligible
-on the production comparison grid.
+values are $0.04387$ and $0.07053\,\mathrm{cm}^3/\mathrm{s}$. The retained
+refinement rows show the same localized defect decreasing through
+$N=1600$ and $N=3200$: final $t=1$ s values are $0.002442$ and
+$0.004028\,\mathrm{cm}^3/\mathrm{s}$ on $N=1600$, and $6.11\times10^{-4}$ and
+$1.009\times10^{-3}\,\mathrm{cm}^3/\mathrm{s}$ on $N=3200$. The adjacent-grid
+final-flow rates from $N=400$ through $N=3200$ are approximately
+$1.98$--$2.00$ for both severities. The defect is therefore strongly localized
+and strongly grid-decreasing, but it remains non-negligible on the production
+comparison grid.
 
 An additional method-sensitivity check asks whether this rest-state limitation
 is only a peculiarity of the production MUSCL reconstruction. Table~\ref{tab:rest-method-sensitivity}

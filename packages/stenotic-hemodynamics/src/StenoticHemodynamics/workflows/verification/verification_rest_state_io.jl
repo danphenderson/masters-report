@@ -149,11 +149,11 @@ function write_rest_state_drift_tex(path::String, rows::Vector{RestStateDriftRow
         println(io, "\\begin{table}[!htb]")
         println(io, "    \\centering")
         println(io, "    \\scriptsize")
-        println(io, "    \\caption{Zero-forcing, zero-inlet geometry-rest drift summary. The table reports the requested/applied inlet flow, the largest cell flow over positive elapsed times, and the signed finite-volume balance at the final reported time.}")
+        println(io, "    \\caption{Zero-forcing, zero-inlet geometry-rest drift summary. The table reports the combined requested/applied inlet-flow status, the largest cell flow over positive elapsed times, and the final balance residual; the full diagnostic table remains in Appendix~\\ref{app:num-full-rest-state-drift-grid}.}")
         println(io, "    \\resizebox{\\textwidth}{!}{%")
-        println(io, "    \\begin{tabular}{@{}rrrrrrrrrrr@{}}")
+        println(io, "    \\begin{tabular}{@{}rrlrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        Severity & \$N\$ & time of peak \$\\max_i |q_i|\$ & requested \$q_{\\mathrm{in}}\$ & applied \$q_{\\mathrm{in}}\$ & peak \$\\max |q_i|\$ & \$z_{\\max |q|}\$ & final \$\\max |q_i|\$ & final \$\\Delta\\!\\int a\\,dz\$ & final flux integral & final balance residual \\\\")
+        println(io, "        Severity & \$N\$ & inlet \$q_{\\mathrm{in}}\$ req./appl. & \$t_{\\mathrm{peak}}\$ & peak \$\\max |q_i|\$ & \$z_{\\max |q|}\$ & final \$\\max |q_i|\$ & final balance residual \\\\")
         println(io, "        \\midrule")
         for row in rest_state_drift_summary_rows(rows)
             println(io, rest_state_drift_summary_latex_row(row))
@@ -220,7 +220,7 @@ end
 function rest_state_drift_summary_rows(rows::Vector{RestStateDriftRow})
     ok_rows = [row for row in rows if row.status == "ok" && row.elapsed_time_s > 0.0]
     nxs = sort(unique(row.nx for row in ok_rows))
-    selected_nxs = Set(nxs[max(1, length(nxs) - 1):end])
+    selected_nxs = Set(report_summary_nxs(nxs))
     output = NamedTuple[]
     for severity in sort(unique(row.severity for row in ok_rows)), nx in sort(collect(selected_nxs))
         group = [row for row in ok_rows if row.severity == severity && row.nx == nx]
@@ -250,11 +250,18 @@ function rest_state_residual_component_summary_rows(rows::Vector{RestStateResidu
     ok_rows = [row for row in rows if row.status == "ok"]
     isempty(ok_rows) && return RestStateResidualComponentRow[]
     nxs = sort(unique(row.nx for row in ok_rows))
-    selected_nxs = Set(nxs[max(1, length(nxs) - 1):end])
+    selected_nxs = Set(report_summary_nxs(nxs))
     return [
         row for row in sort(ok_rows; by=row -> (row.severity, row.nx))
         if row.nx in selected_nxs
     ]
+end
+
+function report_summary_nxs(nxs)
+    isempty(nxs) && return nxs
+    high_resolution_nxs = [nx for nx in nxs if nx >= 400]
+    !isempty(high_resolution_nxs) && return high_resolution_nxs
+    return nxs[max(1, length(nxs) - 1):end]
 end
 
 rest_state_comparison_flow_scale() = 2.288 / pi
@@ -263,14 +270,11 @@ function rest_state_drift_summary_latex_row(row)
     return join((
         string(round(Int, row.severity)),
         string(row.nx),
+        "\$(\\mathrm{$(latex_number(row.peak_requested_q_in))})/(\\mathrm{$(latex_number(row.peak_applied_q_in))})\$",
         latex_number(row.peak_time_s),
-        latex_number(row.peak_requested_q_in),
-        latex_number(row.peak_applied_q_in),
         latex_number(row.peak_max_abs_q),
         latex_number(row.peak_max_abs_q_z),
         latex_number(row.final_max_abs_q),
-        latex_number(row.final_solver_volume_defect),
-        latex_number(row.final_boundary_flux_integral),
         latex_number(row.final_conservation_residual),
     ), " & ") * " \\\\"
 end

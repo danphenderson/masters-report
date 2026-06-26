@@ -90,8 +90,7 @@ function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
         step = 0
 
         while t < p.tfinal - 1.0e-14
-            dt = min(choose_dt(A, Q, z, dx, p), p.tfinal - t)
-            record_timestep_diagnostics!(diagnostics, A, Q, z, dx, dt, p)
+            dt = choose_dt_record_timestep!(diagnostics, A, Q, z, dx, p.tfinal - t, p)
             native_step!(A, Q, z, dx, dt, t, p, step_cache, diagnostics)
             t += dt
             step += 1
