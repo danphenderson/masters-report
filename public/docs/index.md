@@ -77,6 +77,8 @@ terms aligned with `public/docs/policy-vocabulary.md`.
   behavior, comparison workflows, and publication boundaries.
 - [Package benchmark pipeline](benchmark-pipeline.md): package benchmark profiles, outputs, and
   report-asset publication rules.
+- [Manuscript claim register](manuscript-claim-register.md): advisor-facing guide to
+  the claim-tracing TSV, priority review categories, and evidence boundaries.
 
 </div>
 
