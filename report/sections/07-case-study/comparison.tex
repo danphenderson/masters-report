@@ -341,6 +341,31 @@ optional production-grid sensitivity rows and the five largest section-wise
 velocity discrepancies. Those rows support the stated localization and
 numerical-sensitivity reading without changing the main comparison claim.
 
+The additional timestep-cap sensitivity in Table~\ref{tab:t1-time-step-sensitivity}
+uses the live direct comparison workflow on the same local resolved bundles.
+It is a sensitivity check, not a replacement for the accepted
+reference-coordinate discrepancy table above. In this live workflow, dataset 77
+is reported with the exact imported reduced-geometry severity $22.56\%$, so it
+is displayed as rounded C23 with the exact value in parentheses. The coarser
+$2\times10^{-5}$ s cap is CFL-limited to accepted steps of about
+$6.6\times10^{-6}$ s, while the $5\times10^{-6}$ s cap binds. The displayed
+velocity discrepancies are unchanged at the reported precision, so timestep cap
+choice is not the observed driver of the section-mean discrepancy in this
+bounded check.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Additional final-time timestep-cap sensitivity for the live
+    direct resolved-velocity comparison at $N=400$. The rows keep the same
+    reference-coordinate section observation operator and report discrepancy
+    metrics in cm/s, except for relative RMS.}
+    \label{tab:t1-time-step-sensitivity}
+    \resizebox{\textwidth}{!}{%
+    \input{report/assets/tables/stenosis-comparison/comparison_time_step_sensitivity.tex}
+    }
+\end{table}
+
 \subsubsection{Deformed-Coordinate Comparison}
 \label{subsec:deformed-coordinate-comparison}
 

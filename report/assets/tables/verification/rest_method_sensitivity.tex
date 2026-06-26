@@ -1,0 +1,18 @@
+\begin{tabular}{@{}llrrrrl@{}}
+\toprule
+Method & Case & $\max |R_q(0)|$ & $t_{\mathrm{peak}}$ & peak $\max |q|$ & final $\max |q|$ & Status \\
+\midrule
+FV first-order & C23 & 526.2 & 0.001 & 0.6043 & 0.5367 & ok \\
+FV first-order & C40 & 917 & 0.001 & 1.012 & 0.86 & ok \\
+FV first-order & C50 & 1.167e+03 & 0.001 & 1.224 & 1.028 & ok \\
+FV MUSCL & C23 & 630.3 & 0.001 & 0.04387 & 0.03992 & ok \\
+FV MUSCL & C40 & 1.437e+03 & 0.001 & 0.07053 & 0.06172 & ok \\
+FV MUSCL & C50 & 1.397e+03 & 0.001 & 0.08193 & 0.07736 & ok \\
+FV WENO3 & C23 & 31.42 & 0.1 & 0.003972 & 0.003972 & ok \\
+FV WENO3 & C40 & 89.18 & 0.001 & 0.008444 & 0.008242 & ok \\
+FV WENO3 & C50 & 136.7 & 0.001 & 0.01186 & 0.01185 & ok \\
+FV Lax--Wendroff & C23 & -- & -- & -- & -- & not available \\
+FV Lax--Wendroff & C40 & -- & -- & -- & -- & not available \\
+FV Lax--Wendroff & C50 & -- & -- & -- & -- & not available \\
+\bottomrule
+\end{tabular}

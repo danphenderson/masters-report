@@ -86,6 +86,51 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify rest \
 The rest command writes both the drift-history tables and the initial
 geometry-rest residual-component CSV/\TeX{} assets consumed in
 Section~\ref{subsec:rest-state-drift}.
+The additional method-sensitivity rest-state rows in
+Table~\ref{tab:rest-method-sensitivity} were generated as scratch experiments
+and then rendered into report CSV/\TeX{} fragments:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+pipenv run ops-experiment --dirty-policy warn \
+  --run-id additional-rest-fv-first-order -- \
+  verify rest --space fv-first-order \
+  --severities 23,40,50 \
+  --nxs 400 \
+  --elapsed-times 0,0.001,0.01,0.1 \
+  --output-dir tmp/simulations/output/additional-evidence/rest-fv-first-order \
+  --overwrite
+
+pipenv run ops-experiment --dirty-policy warn \
+  --run-id additional-rest-fv-muscl -- \
+  verify rest --space fv-muscl \
+  --severities 23,40,50 \
+  --nxs 400 \
+  --elapsed-times 0,0.001,0.01,0.1 \
+  --output-dir tmp/simulations/output/additional-evidence/rest-fv-muscl \
+  --overwrite
+
+pipenv run ops-experiment --dirty-policy warn \
+  --run-id additional-rest-fv-weno3 -- \
+  verify rest --space fv-weno3 \
+  --severities 23,40,50 \
+  --nxs 400 \
+  --elapsed-times 0,0.001,0.01,0.1 \
+  --output-dir tmp/simulations/output/additional-evidence/rest-fv-weno3 \
+  --overwrite
+
+pipenv run ops-experiment --dirty-policy warn \
+  --run-id additional-rest-fv-lax-wendroff -- \
+  verify rest --space fv-lax-wendroff \
+  --severities 23,40,50 \
+  --nxs 400 \
+  --elapsed-times 0,0.001,0.01,0.1 \
+  --output-dir tmp/simulations/output/additional-evidence/rest-fv-lax-wendroff \
+  --overwrite
+
+pipenv run ops-render-case-study-evidence-tables
+\end{lstlisting}
+The Lax--Wendroff rows are retained as a diagnostic-surface capability result:
+the current residual decomposition calls the method flux at zero native
+timestep, while that flux requires a positive native timestep.
 The resolved-velocity comparison uses the 23\% and 40\% stenosis-severity
 descriptions in the main text. These correspond to local source IDs 77 and 60,
 respectively. The raw 3D fields are optional local inputs rather than archived
@@ -143,6 +188,42 @@ radial-audit tables are regenerated from those generated data, without raw 3D
 inputs, by:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 pipenv run ops-render-resolved3d-comparison-tables
+\end{lstlisting}
+The additional timestep-cap sensitivity table in
+Table~\ref{tab:t1-time-step-sensitivity} was generated with the live direct
+comparison workflow and the same renderer:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
+pipenv run ops-experiment --dirty-policy warn \
+  --run-id additional-compare-dt-2e-5 -- \
+  compare-3d \
+  --data-root public/var/data/simulations/canic_case3 \
+  --output-dir tmp/simulations/output/additional-evidence/compare-dt-2e-5 \
+  --coordinate-mode reference \
+  --nx 400 \
+  --dt 2e-5 \
+  --target-time 0.9995 \
+  --time-atol 1e-6 \
+  --section-count 200 \
+  --radial-bins 20 \
+  --no-svg \
+  --overwrite
+
+pipenv run ops-experiment --dirty-policy warn \
+  --run-id additional-compare-dt-5e-6 -- \
+  compare-3d \
+  --data-root public/var/data/simulations/canic_case3 \
+  --output-dir tmp/simulations/output/additional-evidence/compare-dt-5e-6 \
+  --coordinate-mode reference \
+  --nx 400 \
+  --dt 5e-6 \
+  --target-time 0.9995 \
+  --time-atol 1e-6 \
+  --section-count 200 \
+  --radial-bins 20 \
+  --no-svg \
+  --overwrite
+
+pipenv run ops-render-case-study-evidence-tables
 \end{lstlisting}
 A checkout containing these generated comparison data can rebuild the manuscript
 and can verify absent raw resolved-3D inputs as an expected skip; it cannot

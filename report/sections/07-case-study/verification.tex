@@ -256,6 +256,34 @@ from $N=400$ to $N=800$ are 1.98 for both severities. The defect is therefore
 strongly localized and strongly grid-decreasing, but it remains non-negligible
 on the production comparison grid.
 
+An additional method-sensitivity check asks whether this rest-state limitation
+is only a peculiarity of the production MUSCL reconstruction. Table~\ref{tab:rest-method-sensitivity}
+runs the same zero-inlet geometry-rest diagnostic at $N=400$ through the
+available finite-volume methods and includes the 50\% stenosis geometry as a
+higher-severity stress case. First-order fluxes are much more diffusive, and
+WENO3 reduces the instantaneous residual and drift by more than an order of
+magnitude, but the available executable finite-volume methods still do not
+preserve the sampled geometry-rest state exactly. The Lax--Wendroff row is a
+workflow capability boundary for this diagnostic: the residual decomposition
+uses a $t=0$ flux evaluation, while the current Lax--Wendroff implementation
+requires a positive native time step.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Method-sensitivity check for the zero-inlet geometry-rest
+    diagnostic at $N=400$. The final $\max |q|$ column reports the largest
+    sampled solver-flow magnitude at the final requested diagnostic time,
+    $t=0.1$ s, for executable rows. Values are solver-flow units cm$^3$/s
+    except for the
+    residual column, which reports the initial discrete flow residual
+    magnitude.}
+    \label{tab:rest-method-sensitivity}
+    \resizebox{\textwidth}{!}{%
+    \input{report/assets/tables/verification/rest_method_sensitivity.tex}
+    }
+\end{table}
+
 \begin{figure}[!htb]
     \centering
     \figtikz{rest-state-flow-profiles}
