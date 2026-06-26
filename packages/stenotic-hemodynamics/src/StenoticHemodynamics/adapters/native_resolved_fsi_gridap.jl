@@ -833,6 +833,24 @@ function native_resolved_fsi_vector_difference_summary(
     )
 end
 
+function native_resolved_fsi_velocity_dof_digest(velocity_state)
+    return native_resolved_fsi_vector_digest(get_free_dof_values(velocity_state))
+end
+
+function native_resolved_fsi_perturbed_velocity_state(U, velocity_state, perturbation_scale::Real)
+    scale_value = Float64(perturbation_scale)
+    isfinite(scale_value) ||
+        throw(ArgumentError("native resolved-FSI velocity-state perturbation scale must be finite"))
+    scale_value == 0.0 && return velocity_state
+    values = Float64[Float64(value) for value in get_free_dof_values(velocity_state)]
+    isempty(values) && return velocity_state
+    amplitude = scale_value * max(maximum(abs, values), 1.0)
+    for index in eachindex(values)
+        values[index] += amplitude * sin(0.6180339887498948 * index)
+    end
+    return FEFunction(U, values)
+end
+
 function native_resolved_fsi_block_assembly_probe(
     weak_form_parts::NativeResolvedFSINavierStokesWeakFormParts,
     X,
@@ -1448,6 +1466,8 @@ function native_resolved_fsi_first_picard_block_assembly_probe(
     dt_s::Real,
     pressure_drop_dyn_cm2::Real,
     initial_velocity_dofs = nothing,
+    advector_velocity_dof_perturbation_scale::Real = 0.0,
+    previous_velocity_dof_perturbation_scale::Real = 0.0,
     wall_velocity_at = nothing,
     matrix_relative_tolerance::Real = 1.0e-12,
     matrix_absolute_tolerance::Real = 1.0e-8,
@@ -1534,6 +1554,16 @@ function native_resolved_fsi_first_picard_block_assembly_probe(
     native_resolved_fsi_record_phase_elapsed!(:gridap_measure_setup_s, setup_start_ns, phase_timing)
 
     velocity_state = native_resolved_fsi_navier_stokes_initial_velocity_state(U, initial_velocity_function, initial_velocity_dofs)
+    velocity_advector_state = native_resolved_fsi_perturbed_velocity_state(
+        U,
+        velocity_state,
+        advector_velocity_dof_perturbation_scale,
+    )
+    velocity_previous_state = native_resolved_fsi_perturbed_velocity_state(
+        U,
+        velocity_state,
+        previous_velocity_dof_perturbation_scale,
+    )
     weak_form_coefficients =
         native_resolved_fsi_navier_stokes_weak_form_coefficients(rho, mu, dt_value)
     weak_form_parts = native_resolved_fsi_navier_stokes_weak_form_parts(
@@ -1543,8 +1573,8 @@ function native_resolved_fsi_first_picard_block_assembly_probe(
         n_in,
         n_out,
         weak_form_coefficients;
-        velocity_advector=velocity_state,
-        velocity_previous_step=velocity_state,
+        velocity_advector=velocity_advector_state,
+        velocity_previous_step=velocity_previous_state,
         pressure_drop_value=pressure_drop_value,
         inlet_outlet_boundary_mode=inlet_outlet_boundary_mode_value,
         quadrature_degree=quadrature_degree,
@@ -1569,6 +1599,11 @@ function native_resolved_fsi_first_picard_block_assembly_probe(
             pressure_reference=string(pressure_policy.pressure_reference),
             quadrature_degree=quadrature_degree,
             dt_s=dt_value,
+            advector_velocity_dof_perturbation_scale=Float64(advector_velocity_dof_perturbation_scale),
+            previous_velocity_dof_perturbation_scale=Float64(previous_velocity_dof_perturbation_scale),
+            base_velocity_dof_digest=native_resolved_fsi_velocity_dof_digest(velocity_state),
+            advector_velocity_dof_digest=native_resolved_fsi_velocity_dof_digest(velocity_advector_state),
+            previous_velocity_dof_digest=native_resolved_fsi_velocity_dof_digest(velocity_previous_state),
             coordinate_value_digest=native_resolved_fsi_coordinate_value_digest(coordinates),
             gridap_model_setup_s=phase_timing[:gridap_model_setup_s],
             gridap_space_setup_s=phase_timing[:gridap_space_setup_s],

@@ -104,6 +104,41 @@ end
     @test length(probe.full_matrix_structure_digest) == 16
     @test length(probe.full_matrix_value_digest) == 16
     @test length(probe.full_rhs_digest) == 16
+    @test probe.base_velocity_dof_digest == probe.advector_velocity_dof_digest
+    @test probe.base_velocity_dof_digest == probe.previous_velocity_dof_digest
+
+    advector_probe = StenoticHemodynamics.native_resolved_fsi_first_picard_block_assembly_probe(
+        mesh;
+        inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+        inlet_umax_cm_s=45.0,
+        pressure_drop_dyn_cm2=0.0,
+        dt_s=1.0e-4,
+        advector_velocity_dof_perturbation_scale=1.0e-3,
+    )
+    @test advector_probe.base_velocity_dof_digest != advector_probe.advector_velocity_dof_digest
+    @test advector_probe.base_velocity_dof_digest == advector_probe.previous_velocity_dof_digest
+    @test advector_probe.stable_matrix_value_digest == probe.stable_matrix_value_digest
+    @test advector_probe.convection_matrix_value_digest != probe.convection_matrix_value_digest
+    @test advector_probe.full_matrix_value_digest != probe.full_matrix_value_digest
+    @test advector_probe.previous_rhs_digest == probe.previous_rhs_digest
+    @test advector_probe.boundary_rhs_digest == probe.boundary_rhs_digest
+
+    previous_probe = StenoticHemodynamics.native_resolved_fsi_first_picard_block_assembly_probe(
+        mesh;
+        inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+        inlet_umax_cm_s=45.0,
+        pressure_drop_dyn_cm2=0.0,
+        dt_s=1.0e-4,
+        previous_velocity_dof_perturbation_scale=1.0e-3,
+    )
+    @test previous_probe.base_velocity_dof_digest == previous_probe.advector_velocity_dof_digest
+    @test previous_probe.base_velocity_dof_digest != previous_probe.previous_velocity_dof_digest
+    @test previous_probe.stable_matrix_value_digest == probe.stable_matrix_value_digest
+    @test previous_probe.convection_matrix_value_digest == probe.convection_matrix_value_digest
+    @test previous_probe.full_matrix_value_digest == probe.full_matrix_value_digest
+    @test previous_probe.previous_rhs_digest != probe.previous_rhs_digest
+    @test previous_probe.boundary_rhs_digest == probe.boundary_rhs_digest
+    @test previous_probe.full_rhs_digest != probe.full_rhs_digest
 end
 
 @testset "StenoticHemodynamics native resolved-FSI phase timing helper contract" begin

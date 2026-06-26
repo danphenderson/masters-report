@@ -67,10 +67,30 @@ function nonnegative_probe_int_env(name::String, default::Int)
     return value
 end
 
+function probe_bool_env(name::String, default::Bool)
+    raw = lowercase(strip(get(ENV, name, default ? "true" : "false")))
+    raw in ("1", "true", "yes", "on") && return true
+    raw in ("0", "false", "no", "off") && return false
+    throw(ArgumentError("$name must be a boolean-like value, got $(repr(raw))"))
+end
+
+function probe_float_env(name::String, default::Float64)
+    raw = strip(get(ENV, name, string(default)))
+    value = try
+        parse(Float64, raw)
+    catch
+        throw(ArgumentError("$name must be a finite floating-point value, got $(repr(raw))"))
+    end
+    isfinite(value) || throw(ArgumentError("$name must be finite, got $value"))
+    return value
+end
+
 const PROBE_ASSEMBLY_WARMUPS = nonnegative_probe_int_env("NATIVE_RESOLVED_FSI_ASSEMBLY_WARMUPS", 0)
 const PROBE_ASSEMBLY_REPEATS = max(1, nonnegative_probe_int_env("NATIVE_RESOLVED_FSI_ASSEMBLY_REPEATS", 1))
 const PROBE_BACKEND_WARMUPS = nonnegative_probe_int_env("NATIVE_RESOLVED_FSI_BACKEND_WARMUPS", 0)
 const PROBE_BACKEND_REPEATS = max(1, nonnegative_probe_int_env("NATIVE_RESOLVED_FSI_BACKEND_REPEATS", 1))
+const PROBE_REUSE_ELIGIBILITY = probe_bool_env("NATIVE_RESOLVED_FSI_REUSE_PROBE", false)
+const PROBE_REUSE_PERTURBATION_SCALE = probe_float_env("NATIVE_RESOLVED_FSI_REUSE_PERTURBATION_SCALE", 1.0e-3)
 
 function selected_probe_cases()
     selector = lowercase(get(ENV, "NATIVE_RESOLVED_FSI_PROBE_CASE", "small"))
@@ -181,6 +201,36 @@ function print_backend_header()
         "solution_value_digest_matches_reference",
         "solution_relative_l2_difference",
         "error",
+    ), ","))
+end
+
+function print_reuse_header()
+    println(join((
+        "record_type",
+        "case",
+        "julia_threads",
+        "blas_threads",
+        "rows",
+        "nnz",
+        "perturbation_scale",
+        "base_stable_matrix_value_digest",
+        "advector_stable_matrix_value_digest",
+        "previous_stable_matrix_value_digest",
+        "stable_matrix_same_with_advector_change",
+        "stable_matrix_same_with_previous_change",
+        "convection_matrix_same_with_advector_change",
+        "convection_matrix_same_with_previous_change",
+        "previous_rhs_same_with_advector_change",
+        "previous_rhs_same_with_previous_change",
+        "boundary_rhs_same_with_advector_change",
+        "boundary_rhs_same_with_previous_change",
+        "full_matrix_same_with_advector_change",
+        "full_matrix_same_with_previous_change",
+        "full_rhs_same_with_advector_change",
+        "full_rhs_same_with_previous_change",
+        "advector_velocity_digest_changed",
+        "previous_velocity_digest_changed",
+        "reuse_interpretation",
     ), ","))
 end
 
@@ -323,7 +373,14 @@ function run_backend_rows(case_label, matrix, rhs; trial_role="measured", trial_
     return rows
 end
 
-function run_probe_case(case; trial_role="measured", trial_index=1, emit_row=true)
+function run_probe_case(
+    case;
+    trial_role="measured",
+    trial_index=1,
+    emit_row=true,
+    advector_velocity_dof_perturbation_scale=0.0,
+    previous_velocity_dof_perturbation_scale=0.0,
+)
     mesh = StenoticHemodynamics.native_resolved_fsi_mesh(:sev23, case.resolution)
     mkpath(joinpath(PROBE_OUTPUT_PARENT, case.label))
     timed = @timed StenoticHemodynamics.native_resolved_fsi_first_picard_block_assembly_probe(
@@ -332,6 +389,8 @@ function run_probe_case(case; trial_role="measured", trial_index=1, emit_row=tru
         inlet_umax_cm_s=45.0,
         pressure_drop_dyn_cm2=0.0,
         dt_s=1.0e-4,
+        advector_velocity_dof_perturbation_scale=advector_velocity_dof_perturbation_scale,
+        previous_velocity_dof_perturbation_scale=previous_velocity_dof_perturbation_scale,
     )
     probe = timed.value
     block_row = (
@@ -380,15 +439,77 @@ function run_probe_case(case; trial_role="measured", trial_index=1, emit_row=tru
     return probe
 end
 
+function run_reuse_eligibility_row(case, baseline_probe)
+    advector_probe = run_probe_case(
+        case;
+        trial_role="reuse_advector",
+        trial_index=1,
+        emit_row=false,
+        advector_velocity_dof_perturbation_scale=PROBE_REUSE_PERTURBATION_SCALE,
+    )
+    previous_probe = run_probe_case(
+        case;
+        trial_role="reuse_previous",
+        trial_index=1,
+        emit_row=false,
+        previous_velocity_dof_perturbation_scale=PROBE_REUSE_PERTURBATION_SCALE,
+    )
+    interpretation = if baseline_probe.stable_matrix_value_digest == advector_probe.stable_matrix_value_digest &&
+                        baseline_probe.stable_matrix_value_digest == previous_probe.stable_matrix_value_digest &&
+                        baseline_probe.convection_matrix_value_digest != advector_probe.convection_matrix_value_digest &&
+                        baseline_probe.previous_rhs_digest != previous_probe.previous_rhs_digest
+        "stable_matrix_exact_digest_reuse_candidate_for_fixed_geometry_dt_spaces; convection_and_previous_rhs_remain_state_dependent"
+    else
+        "stable_matrix_reuse_not_proven_by_digest_probe"
+    end
+    row = (
+        "reuse_eligibility",
+        case.label,
+        Threads.nthreads(),
+        LinearAlgebra.BLAS.get_num_threads(),
+        baseline_probe.rows,
+        baseline_probe.nnz,
+        @sprintf("%.12e", PROBE_REUSE_PERTURBATION_SCALE),
+        baseline_probe.stable_matrix_value_digest,
+        advector_probe.stable_matrix_value_digest,
+        previous_probe.stable_matrix_value_digest,
+        baseline_probe.stable_matrix_value_digest == advector_probe.stable_matrix_value_digest,
+        baseline_probe.stable_matrix_value_digest == previous_probe.stable_matrix_value_digest,
+        baseline_probe.convection_matrix_value_digest == advector_probe.convection_matrix_value_digest,
+        baseline_probe.convection_matrix_value_digest == previous_probe.convection_matrix_value_digest,
+        baseline_probe.previous_rhs_digest == advector_probe.previous_rhs_digest,
+        baseline_probe.previous_rhs_digest == previous_probe.previous_rhs_digest,
+        baseline_probe.boundary_rhs_digest == advector_probe.boundary_rhs_digest,
+        baseline_probe.boundary_rhs_digest == previous_probe.boundary_rhs_digest,
+        baseline_probe.full_matrix_value_digest == advector_probe.full_matrix_value_digest,
+        baseline_probe.full_matrix_value_digest == previous_probe.full_matrix_value_digest,
+        baseline_probe.full_rhs_digest == advector_probe.full_rhs_digest,
+        baseline_probe.full_rhs_digest == previous_probe.full_rhs_digest,
+        baseline_probe.base_velocity_dof_digest != advector_probe.advector_velocity_dof_digest,
+        baseline_probe.base_velocity_dof_digest != previous_probe.previous_velocity_dof_digest,
+        interpretation,
+    )
+    println(join(csv_cell.(row), ","))
+end
+
 function main()
     print_block_header()
+    selected_cases = selected_probe_cases()
     probes = Pair{String,Any}[]
-    for case in selected_probe_cases()
+    for case in selected_cases
         for warmup_index in 1:PROBE_ASSEMBLY_WARMUPS
             run_probe_case(case; trial_role="warmup", trial_index=warmup_index, emit_row=false)
         end
         for repeat_index in 1:PROBE_ASSEMBLY_REPEATS
             push!(probes, case.label => run_probe_case(case; trial_role="measured", trial_index=repeat_index))
+        end
+    end
+    if PROBE_REUSE_ELIGIBILITY
+        print_reuse_header()
+        for case in selected_cases
+            baseline_index = findfirst(pair -> pair.first == case.label, probes)
+            baseline_index === nothing && continue
+            run_reuse_eligibility_row(case, probes[baseline_index].second)
         end
     end
     print_backend_header()
