@@ -14,6 +14,9 @@ The current implementation has:
 - status-only CLI reporting through `fsi native-status`;
 - state-carrying in-run production sidecars, schema-v3 checkpoint metadata,
   and qualified internal split-run resume into a forked output root;
+- internal Gridap reuse diagnostics, symbolic/numeric factorization cache
+  status fields, phase timing fields, and batch status/benchmark sidecars for
+  operational review;
 - local native/imported observation rows and parity summary surfaces.
 
 The current implementation does not yet have:
@@ -23,6 +26,7 @@ The current implementation does not yet have:
   paper-grade FSI fidelity;
 - validated imported-data parity for the exact-boundary generated outputs;
 - public/default restart or resume, or public native production CLI execution;
+- public performance, scalability, or timing claims from the current telemetry;
 - paper-grade native resolved-FSI Section 4.1 numerical reproduction.
 
 ## Claim Tiers
@@ -335,6 +339,10 @@ Operational policy for non-smoke runs:
 - enable batch status sidecars for long runs: `batch_status.jsonl`,
   `batch_status.csv`, `batch_benchmark.json`, and fail-fast
   `batch_failure.json`;
+- treat phase timing fields, Gridap reuse status, and symbolic/numeric
+  factorization cache fields as internal diagnostics only. Nested timing fields
+  must not be summed into an elapsed-time claim, and cache/reuse observations
+  must not be promoted into performance or production-scale evidence;
 - preflight output ownership before the solver starts; a preproduction batch
   should fail before Gridap work if the deterministic output directory already
   exists and `overwrite=false`;

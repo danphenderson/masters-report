@@ -160,12 +160,16 @@ source.
 
 The Julia package includes native resolved-FSI infrastructure for Section 4.1
 case generation, status-only dry runs, three-field XDMF/HDF5 output, restart
-audit metadata, and local/imported observation surfaces. Current evidence is
-bounded: exact Section 4.1 boundary-mode support and the mathematical-contract
-gate have focused smoke/contract-test coverage, and a `sev23` preproduction
-run may be in progress under ignored scratch output. The repository does not
-yet claim production-scale Section 4.1 reproduction, imported-data parity,
-monolithic ALE FSI, moving-wall fidelity, or persisted restart/resume support.
+audit metadata, schema-v3 durable checkpoint sidecars, qualified internal
+split-run resume into forked output roots, and local/imported observation
+surfaces. Current evidence is bounded: exact Section 4.1 boundary-mode support,
+the mathematical-contract gate, checkpoint metadata validation, and split-run
+resume have focused smoke/contract-test coverage. The source tree documents
+`sev23` preproduction as a qualified internal workflow with explicit output
+ownership and claim-boundary review, not as an active run. The repository does
+not yet claim public/default resume, public native production CLI execution,
+production-scale Section 4.1 reproduction, imported-data parity, monolithic ALE
+FSI, moving-wall fidelity, paper-grade reproduction, or clinical validation.
 
 Use `fsi native-status` for status-only planning; it does not run production:
 

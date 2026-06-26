@@ -38,7 +38,7 @@ The implemented native resolved-FSI surface is split into these tiers:
 | Fixed-wall smoke | `run_native_resolved_fsi_smoke(...)` and `run_native_resolved_fsi_navier_stokes_smoke(...)` run coarse fixed-wall Gridap smoke solves and write zero displacement. | Solver-backed smoke and importer round trip, not moving-wall FSI. |
 | Partitioned smoke | `run_native_resolved_fsi_partitioned_smoke(...)` updates a reduced radial membrane state and prescribes radial wall-velocity Dirichlet data on the fluid wall. | Coarse staggered smoke with prescribed wall velocity; not monolithic ALE. |
 | Production dry-run | `native_resolved_fsi_partitioned_production_dry_run(...)` resolves output, sidecar, restart, and imported-parity paths without running a solver or writing files. | Side-effect-free planning only. |
-| Production sidecars | `run_native_resolved_fsi_partitioned_production(...)` advances one state-carrying partitioned snapshot series within a run and writes importer-compatible snapshot bundles, `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, `restart_metadata.json`, and schema-v3 durable checkpoint sidecars. | P3/P4 production-control and diagnostics harness with in-run state carry and qualified internal split-run resume; monolithic ALE coupling, public/default resume, public native production CLI execution, and paper-grade reproduction remain deferred. |
+| Production sidecars | `run_native_resolved_fsi_partitioned_production(...)` advances one state-carrying partitioned snapshot series within a run and writes importer-compatible snapshot bundles, `snapshot_manifest.csv`, `snapshot_diagnostics.csv`, `restart_metadata.json`, schema-v3 durable checkpoint sidecars, and optional batch status/benchmark sidecars. | P3/P4 production-control and diagnostics harness with in-run state carry, Gridap reuse/timing telemetry, and qualified internal split-run resume; monolithic ALE coupling, public/default resume, public native production CLI execution, performance claims, and paper-grade reproduction remain deferred. |
 | Restart metadata | `native_resolved_fsi_read_restart_metadata(...)` validates current and legacy package-written restart metadata, including versioned `state_payload` audit data and schema-v3 durable checkpoints when present. | Schema-v3 checkpoints support qualified internal split-run resume only; `native_resolved_fsi_resume_partitioned_production(...)` still fails closed for public callers. |
 | Observation artifacts | Production parity writes `section41_observations.csv` and `section41_observation_summary.csv`. | Local velocity/pressure observation rows and optional imported-bundle comparison only; pressure discrepancies use the common Section 4.1 outlet-quadrature gauge and remain diagnostic, not clinical, FFR, or paper-grade native FSI reproduction evidence. |
 
@@ -70,6 +70,11 @@ Interpretation:
   schedule within a run and now writes schema-v3 durable checkpoint sidecars.
   Qualified internal split-run resume can continue from those checkpoints into
   a forked output root, but public/default resume remains closed.
+- Production diagnostics now include phase timing fields, Gridap operator
+  component status, context/reuse flags, matrix structure/value digests, and
+  symbolic/numeric factorization cache status fields. These fields support
+  internal debugging and readiness review; they do not promote performance,
+  scalability, or reproduction claims.
 - The exact Section 4.1 boundary mode is explicit, but the weak
   pressure-drop smoke path remains the default smoke evidence path.
 - The moving-wall tier remains partitioned and smoke-backed, not monolithic.
@@ -164,16 +169,37 @@ state-carrying partitioned snapshot series:
   state through the requested snapshot schedule and writes importer-compatible
   velocity/pressure/displacement bundles, `snapshot_manifest.csv`,
   `snapshot_diagnostics.csv`, `restart_metadata.json`, and schema-v3
-  checkpoint sidecars under `checkpoint/`.
+  checkpoint sidecars under `checkpoint/`. The diagnostics include wall,
+  coupling, phase-timing, and Gridap reuse/cache telemetry for internal review.
 - `native_resolved_fsi_read_restart_metadata(...)` validates current and legacy
   restart metadata, including versioned `state_payload` audit metadata and
   schema-v3 durable checkpoint sidecars when present. Qualified internal
   resume can continue a split production run into a forked output root;
-  `native_resolved_fsi_resume_partitioned_production(...)` validates metadata
-  and then fails closed for public callers.
+  public/default resume remains fail-closed.
 - Production parity writes `section41_observations.csv` and
   `section41_observation_summary.csv` using the local cross-section velocity
   and pressure observation operators.
+
+### Diagnostic timing and reuse telemetry
+
+Production and smoke sidecars may report:
+
+- phase timing fields such as `gridap_model_setup_s`, `gridap_space_setup_s`,
+  `gridap_operator_assembly_s`, `linear_symbolic_factorization_s`,
+  `linear_numeric_factorization_s`, `linear_backsolve_s`,
+  `fluid_solve_total_s`, `checkpoint_output_s`, `step_total_s`, and
+  `phase_timing_total_s`;
+- Gridap reuse diagnostics such as `gridap_reuse_status`,
+  `gridap_operator_component_status`, `gridap_context_reused`,
+  `gridap_matrix_structure_stable`, and matrix digest fields;
+- symbolic and numeric factorization cache status fields, including setup and
+  reuse counts.
+
+These fields are instrumentation for package maintainers. Some phase timings
+are nested or overlapping, so `phase_timing_total_s` must not be interpreted as
+wall-clock elapsed time. Cache and reuse status fields likewise indicate what
+the current smoke harness observed; they are not standalone speedup,
+production-scale, or paper-grade reproduction evidence.
 
 ## Fluid model
 
@@ -516,9 +542,9 @@ status-only CLI surface:
   and state-carrying partitioned snapshot sidecars.
 - `native_resolved_fsi_read_restart_metadata(...)` and
   `native_resolved_fsi_resume_partitioned_production(...)` for
-  restart-identification metadata validation and public fail-closed resume;
-  qualified internal production-run controls can resume schema-v3 checkpoints
-  into a forked output root.
+  restart-identification metadata validation. Qualified internal production-run
+  controls can resume schema-v3 checkpoints into a forked output root;
+  public/default resume remains fail-closed.
 - `run_native_resolved_fsi_parity(...)` for native/imported observation and
   parity artifacts.
 - `fsi native-status` for dry-run/status reporting only; it does not run

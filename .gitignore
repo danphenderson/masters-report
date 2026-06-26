@@ -71,6 +71,7 @@ public/references/**/*.htm
 
 # Local tool state
 .cache/
+.docusaurus/
 .playwright-mcp/
 **/node_modules/
 **/.vite/

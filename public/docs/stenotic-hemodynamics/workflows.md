@@ -14,10 +14,10 @@ sit on top of that core solver path.
 ## Simulation And Studies
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies_types.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies_outputs.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies_outputs.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/refinement.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/refinement.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies_types.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies_types.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies_outputs.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/studies_outputs.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/refinement.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/studies/refinement.jl)
 - Entrypoints:
   - CLI: `study severity`, `study grid`, `study refinement`
   - Julia: `run_study(...)`, `run_refinement_study(...)`, with spec types such as `SeveritySweepSpec`, `GridConvergenceStudySpec`, and `RefinementStudySpec`
@@ -34,10 +34,10 @@ sit on top of that core solver path.
 ## Verification: MMS, Rest State, And P/H Refinement
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_mms_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_mms_types.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_rest_state_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_rest_state_types.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_ph_refinement.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_ph_refinement.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_mms_types.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_mms_types.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_rest_state_types.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_rest_state_types.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_ph_refinement.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification_ph_refinement.jl)
 - Entrypoints:
   - CLI: `verify mms`, `verify rest`, `verify ph-refinement`
   - Julia: `run_manufactured_verification(...)`, `run_rest_state_drift(...)`, `run_ph_refinement_demo(...)`
@@ -52,8 +52,8 @@ sit on top of that core solver path.
 ## Membrane-FSI Validation
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi/membrane_fsi_validation.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi/membrane_fsi_validation.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi/membrane_fsi_validation_spec.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi/membrane_fsi_validation_spec.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi/membrane_fsi_validation.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi/membrane_fsi_validation.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi/membrane_fsi_validation_spec.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/membrane_fsi/membrane_fsi_validation_spec.jl)
 - Entrypoints:
   - CLI: `fsi validate`
   - Julia: `run_membrane_fsi_validation(...)`, `MembraneFSIValidationSpec(...)`
@@ -72,8 +72,8 @@ fluid solve.
 ## Stationary-Stokes Refinement
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/stationary_stokes_refinement.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/stationary_stokes_refinement.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/stationary_stokes_refinement_spec.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/stationary_stokes_refinement_spec.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/stationary_stokes_refinement.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/stationary_stokes_refinement.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/stationary_stokes_refinement_spec.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/stationary_stokes_refinement_spec.jl)
 - Entrypoints:
   - CLI: `stokes refine`
   - Julia: `run_stationary_stokes_refinement(...)`, `StationaryStokesRefinementSpec(...)`
@@ -88,7 +88,7 @@ fluid solve.
 ## Geometry Export
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/geometry_exports/geometry_exports.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/geometry_exports/geometry_exports.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/geometry_exports/geometry_exports.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/geometry_exports/geometry_exports.jl)
 - Entrypoints:
   - CLI: `export-assets`
   - Julia: `export_all(...)`, `export_stenosis_geometry_figures(...)`, `GeometryExportOptions(...)`
@@ -105,10 +105,10 @@ fluid solve.
 ## Resolved-3D Import, Comparison, And Report Assets
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_compare.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_compare.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_comparison.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_comparison.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_grid_sensitivity.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_grid_sensitivity.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_contracts.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_contracts.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_compare.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_compare.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_comparison.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_comparison.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_grid_sensitivity.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_grid_sensitivity.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_contracts.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/resolved3d/resolved3d_types_contracts.jl)
 - Entrypoints:
   - CLI: `compare-3d`
   - Julia: `run_comparison(...)`, `run_grid_sensitivity(...)`, `run_available_resolved3d_comparison(...)`, `run_available_resolved3d_grid_sensitivity(...)`
@@ -128,8 +128,8 @@ contract, skip behavior, and report publication boundaries.
 ## Canic 2024 Section 4.1 Source-Artifact Comparison
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/canic_replication/canic_replication.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/canic_replication/canic_replication.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli/canic_replication_cli.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli/canic_replication_cli.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/canic_replication/canic_replication.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/canic_replication/canic_replication.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli/canic_replication_cli.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli/canic_replication_cli.jl)
 - Entrypoints:
   - CLI: `canic-replication section41`
   - Julia: `run_canic_section41_replication(...)`,
@@ -158,8 +158,8 @@ parameter-audit caveats.
 ## Operator Validation
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation/operator_validation.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation/operator_validation.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation/operator_validation_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation/operator_validation_types.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation/operator_validation.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation/operator_validation.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation/operator_validation_types.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/operator_validation/operator_validation_types.jl)
 - Entrypoints:
   - CLI: `operator-validation`
   - Julia: `run_operator_validation(...)`, `OperatorValidationSpec(...)`
@@ -174,8 +174,8 @@ parameter-audit caveats.
 ## Package Benchmarks
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks/benchmarks.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks/benchmarks.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks/benchmark_spec.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks/benchmark_spec.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks/benchmarks.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks/benchmarks.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks/benchmark_spec.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/benchmarks/benchmark_spec.jl)
 - Entrypoints:
   - CLI: `benchmark`
   - Julia: `run_package_benchmark(...)`, `PackageBenchmarkSpec(...)`
@@ -192,12 +192,12 @@ parameter-audit caveats.
 ## Native Resolved-FSI Mesh, Smoke, P3/P4 Sidecars, And Bounded Observation Rows
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_mesh.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_mesh.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow_production.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow_production.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity_production.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity_production.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_restart.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_restart.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_mesh.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_mesh.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow_production.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_workflow_production.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity_production.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_parity_production.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_restart.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/native_resolved_fsi/native_resolved_fsi_restart.jl)
 - Entrypoints:
   - Julia: `native_resolved_fsi_case_spec(...)`,
     `run_native_resolved_fsi_workflow(...)`,
@@ -225,6 +225,11 @@ parameter-audit caveats.
     `snapshot_diagnostics.csv`, `restart_metadata.json`, and optional
     Section 4.1 observation artifacts such as
     `section41_observation_summary.csv`
+  - Production diagnostics may include phase timing fields, Gridap operator
+    component status, context/reuse flags, matrix structure/value digests, and
+    symbolic/numeric factorization cache status fields. These are internal
+    implementation diagnostics, not performance claims or reproduction
+    evidence.
   - These outputs are ignored scratch artifacts for internal
     smoke/operator-readiness; they are not report assets and are not promoted
     to public generated outputs by this workflow.
@@ -259,14 +264,16 @@ Current tiers are intentionally separate:
   exposes this status boundary without exposing production execution.
 - Production sidecars: `run_native_resolved_fsi_partitioned_production(...)`
   runs one state-carrying partitioned snapshot series and writes manifest,
-  diagnostics, and restart metadata for P3/P4 internal production-control
-  inspection only.
+  diagnostics, restart metadata, and optional batch status/benchmark sidecars
+  for P3/P4 internal production-control inspection only. The timing and Gridap
+  reuse fields are health/debug telemetry; they do not establish throughput,
+  scalability, or production-scale Section 4.1 reproduction.
 - Restart metadata: `native_resolved_fsi_read_restart_metadata(...)` validates
   legacy and current package-written metadata, including versioned
   `state_payload` audit metadata when present. Qualified internal split-run
-  resume can continue schema-v3 checkpoints into a forked output root, while
-  `native_resolved_fsi_resume_partitioned_production(...)` fails closed because
-  public/default persisted state-carrying resume is deferred.
+  resume can continue schema-v3 checkpoints into a forked output root through
+  internal controls. Public/default persisted state-carrying resume remains
+  unsupported and fail-closed.
 - Observation artifacts: production parity writes native/imported/parity
   observation rows and `section41_observation_summary.csv` through the local
   cross-section velocity and pressure observation operators. These are bounded
@@ -278,22 +285,23 @@ Current tiers are intentionally separate:
   smoke-scale/operator-readiness evidence only, not paper-grade native
   resolved-FSI Section 4.1 reproduction.
 
-The current family documents generated artifacts, local operator evidence, and
-P3/P4 internal production-control sidecars. Public/default restart or resume,
-public native production CLI execution, production-scale Section 4.1
-reproduction, monolithic ALE, clinical/patient validation, report-evidence
-promotion, and paper-grade native resolved-FSI Section 4.1 reproduction claims
-remain deferred. The separate `canic-replication section41` workflow owns the
-source-artifact Section 4.1 comparison against restored upstream bundles.
+The current family documents generated artifacts, local operator evidence,
+Gridap diagnostic telemetry, and P3/P4 internal production-control sidecars.
+Public/default restart or resume, public native production CLI execution,
+production-scale Section 4.1 reproduction, monolithic ALE, clinical/patient
+validation, report-evidence promotion, and paper-grade native resolved-FSI
+Section 4.1 reproduction claims remain deferred. The separate
+`canic-replication section41` workflow owns the source-artifact Section 4.1
+comparison against restored upstream bundles.
 
 ## Native Resolved-FSI Web Visualization Export
 
 - Representative files:
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_types.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_types.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_runner.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_runner.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_writer.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_writer.jl)
-  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli/visualization_cli.jl`](../../../packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli/visualization_cli.jl)
-  - [`packages/stenotic-hemodynamics-viewer/src`](../../../packages/stenotic-hemodynamics-viewer/src)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_types.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_types.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_runner.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_runner.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_writer.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/visualization/web_export_writer.jl)
+  - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli/visualization_cli.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/cli/visualization_cli.jl)
+  - [`packages/stenotic-hemodynamics-viewer/src`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics-viewer/src)
 - Entrypoints:
   - Julia: `NativeResolvedFSIWebExportSpec(...)`,
     `run_native_resolved_fsi_web_export(...)`
