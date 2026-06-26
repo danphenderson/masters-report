@@ -1,6 +1,6 @@
 # Policy Vocabulary
 
-Use these terms consistently across `public/docs/**.md`, handoff packets, and
+Use these terms consistently across `public/docs/markdown/**.md`, handoff packets, and
 review handbacks.
 
 ## Modal Verbs
@@ -59,16 +59,16 @@ Prefer direct imperatives for procedure: `Run`, `Keep`, `Validate`, `Inspect`,
 
 ## Related Policies
 
-- Use `public/docs/index.md` for the full documentation map.
-- Use `public/docs/agent-workflows.md` for bounded agent dispatch and review.
-- Use `public/docs/artifact-policy.md` before moving, deleting, regenerating, or
+- Use `public/docs/markdown/index.md` for the full documentation map.
+- Use `public/docs/markdown/agent-workflows.md` for bounded agent dispatch and review.
+- Use `public/docs/markdown/artifact-policy.md` before moving, deleting, regenerating, or
   publishing artifacts.
-- Use `public/docs/report-builds.md` for report build gates.
-- Use `public/docs/ops-tooling.md` for Python support commands and renderers.
-- Use `public/docs/julia-cli-workflows.md` for Julia CLI workflows.
-- Use `public/docs/report-assets-and-provenance.md` for report asset ownership.
-- Use `public/docs/resolved3d-workflows.md` for optional resolved-3D workflows.
-- Use `public/docs/benchmark-pipeline.md` when generating package benchmark
+- Use `public/docs/markdown/report-builds.md` for report build gates.
+- Use `public/docs/markdown/ops-tooling.md` for Python support commands and renderers.
+- Use `public/docs/markdown/julia-cli-workflows.md` for Julia CLI workflows.
+- Use `public/docs/markdown/report-assets-and-provenance.md` for report asset ownership.
+- Use `public/docs/markdown/resolved3d-workflows.md` for optional resolved-3D workflows.
+- Use `public/docs/markdown/benchmark-pipeline.md` when generating package benchmark
   outputs or report-consumed benchmark assets.
-- Use `public/docs/publication-readiness.md` before public export or release
+- Use `public/docs/markdown/publication-readiness.md` before public export or release
   publication.

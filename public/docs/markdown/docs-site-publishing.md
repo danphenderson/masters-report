@@ -1,38 +1,44 @@
 # Docs Site Publishing
 
-This repository publishes the Markdown documentation under `public/docs/**` as a
-Docusaurus site at `https://danphenderson.github.io/masters-report/`.
+This repository publishes the Markdown documentation under
+`public/docs/markdown/**` as a Docusaurus site at
+`https://danphenderson.github.io/masters-report/`. The Docusaurus application
+source also lives under `public/docs/`, including `package.json`,
+`docusaurus.config.js`, `sidebars.js`, `src/css/custom.css`, and
+`static/.nojekyll`.
 
 ## Local Commands
 
 Run the docs site from the repository root:
 
 ```sh
-npm ci
-npm run docs:build
+npm --prefix public/docs ci
+npm --prefix public/docs run docs:build
 ```
 
 For local inspection, use:
 
 ```sh
-npm run docs:serve -- --port 3025
+npm --prefix public/docs run docs:serve -- --port 3025
 ```
 
 Then open `http://localhost:3025/masters-report/`. The explicit port keeps the
 preview stable for browser screenshots and avoids colliding with other local
 development servers. `npm run docs:start` remains useful for live-editing the
-site, but the production preview should use the built `build/` directory.
+site when run from `public/docs/`, but the production preview should use the
+built `public/docs/build/` directory.
 
-The Docusaurus build reads `public/docs/**.md` directly. It does not copy the
-whole `public/` tree, so ignored simulation data, local logs, private reference
-mirrors, and release PDFs remain outside the Pages artifact.
+The Docusaurus build reads `public/docs/markdown/**.md` directly. It does not
+copy the whole `public/` tree, so ignored simulation data, local logs, private
+reference mirrors, and release PDFs remain outside the Pages artifact.
 
 ## GitHub Pages Workflow
 
 The `.github/workflows/docs-pages.yml` workflow validates pull requests and
 deploys pushes to `main`. Pull requests run `npm ci` and `npm run docs:build`
-without deploying. Pushes to `main` upload the generated `build/` directory as a
-GitHub Pages artifact and deploy it to the `github-pages` environment.
+from `public/docs/` without deploying. Pushes to `main` upload the generated
+`public/docs/build/` directory as a GitHub Pages artifact and deploy it to the
+`github-pages` environment.
 
 The repository must have GitHub Pages configured with **Build and deployment >
 Source: GitHub Actions**. No `gh-pages` branch or custom domain is required for

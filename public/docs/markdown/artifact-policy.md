@@ -5,7 +5,7 @@ repository artifacts.
 
 Separate source moves, reference-metadata decisions, report-artifact refreshes,
 and ignore-rule changes into distinct patches. Do not combine them in one
-cleanup sweep. Use `public/docs/agent-workflows.md` for bounded agent handoffs.
+cleanup sweep. Use `public/docs/markdown/agent-workflows.md` for bounded agent handoffs.
 Treat `pipenv run ops-orchestrate status` as read-only classification, and use
 `pipenv run ops-orchestrate ready-to-commit` as the orchestrator-owned focused
 validation gate before managed commits.
@@ -37,7 +37,7 @@ receipts.
 | --- | --- | --- | --- | --- | --- |
 | Source code | `packages/stenotic-hemodynamics/src/StenoticHemodynamics.jl`, `packages/stenotic-hemodynamics/src/StenoticHemodynamics/**`, `packages/stenotic-hemodynamics/bin/**`, `packages/stenotic-hemodynamics/README.md`, `packages/stenotic-hemodynamics/test/**`, `packages/stenotic-hemodynamics/Project.toml`, `packages/stenotic-hemodynamics/Manifest.toml`, `Pipfile`, `Pipfile.lock`, `packages/ops/**` | Track source, package manifests, lockfiles, tests, and documented wrappers. | Regenerate only through the owning language package or lockfile workflow. | Never. | Run targeted Julia or Python tests for the changed surface. Use `pipenv run ops-julia-check` for Julia validation and `pipenv run ops-python-check` for Python support-tooling changes. |
 | Manuscript/report source | `report/final-report.tex`, `report/frontmatter/**`, `report/sections/**`, `report/appendices/**`, `report/preamble/**`, `public/references/references.bib`, `report/assets/tikz/**` | Track TeX source, bibliography metadata, TikZ source, and report-consumed inputs. | Edit source deliberately. Regenerate only files documented as generated. | Never. | For ordinary source validation, run `pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-pdf`. Use the full build only when artifact refresh or publication is in scope. |
-| Manuscript-used static data and tables | `report/assets/data/**`, `report/assets/tables/**` | Track when the current report consumes the data or table, or when `public/docs/report-assets-and-provenance.md` documents the asset family as published support/provenance. | Regenerate through the documented simulation, benchmark, or rendering command that owns the asset. | Never. | Check TeX references, appendix provenance text, documented ownership in `public/docs/report-assets-and-provenance.md`, and recorded hashes before replacing. Follow with a validation-only report build unless publication is in scope. |
+| Manuscript-used static data and tables | `report/assets/data/**`, `report/assets/tables/**` | Track when the current report consumes the data or table, or when `public/docs/markdown/report-assets-and-provenance.md` documents the asset family as published support/provenance. | Regenerate through the documented simulation, benchmark, or rendering command that owns the asset. | Never. | Check TeX references, appendix provenance text, documented ownership in `public/docs/markdown/report-assets-and-provenance.md`, and recorded hashes before replacing. Follow with a validation-only report build unless publication is in scope. |
 | Generated report outputs | `public/final-report.pdf`, `report/assets/rendered/*.pdf`, `report/assets/rendered/*.png` | Track rendered figures only when the report consumes them. Treat final PDFs as release artifacts, not source. Keep `public/final-report.pdf` ignored in source-tree candidates; do not refresh or recommit it except in an explicit publication or artifact-refresh lane. | Refresh only through a passing owning gate and an explicitly scoped artifact-refresh task. | Never for report-consumed figures. Ignored local PDFs may be removed when not active evidence. | Validate with scratch renderer output or report build first. Publish final PDFs through release artifacts, not ordinary source commits, and keep them out of source-only public export. |
 | Simulation/benchmark outputs | `tmp/simulations/output/**`, `tmp/experiments/**`, `public/var/logs/*.jsonl`, `public/var/logs/*.json`, per-run `manifest.json`, `series.csv`, `solution.npz`, summary CSVs, benchmark logs | Keep run outputs and logs ignored except deliberately published report assets under `report/assets/**`. | Regenerate as run outputs through `pipenv run ops-experiment ...`; Julia remains the numerical execution engine underneath. | Delete only ignored scratch outputs that are not active evidence. | Verify that equivalent published assets, manifests, logs, or provenance records exist before discarding evidence-bearing outputs. For benchmark changes, run the relevant smoke or overnight command and inspect summaries. |
 | Reference metadata and private full-text mirrors | `public/references/source-inventory.tsv`, `public/references/AGENTS.md`, `public/references/README.md`, `public/references/references.bib`, ignored `public/references/**/*.pdf`, ignored `public/references/**/*.html` | Track metadata. Keep third-party full-text files as private local mirrors outside public Git releases. | Edit source records deliberately. Reacquire full-text mirrors from external sources or private archives. | Never automatically delete private mirrors. | Follow `public/references/AGENTS.md`. Run `pipenv run ops-audit-references`, `pipenv run pytest packages/ops/tests/test_references_inventory.py packages/ops/tests/test_tex_preamble_audit.py`, and `biber --tool --validate-datamodel --output-file /tmp/masters-report-references.bib public/references/references.bib` after moving, adding, or reclassifying reference records. |
@@ -151,15 +151,15 @@ pipenv run ops-experiment benchmark --profile smoke \
 
 ## Related Policies
 
-- Use `public/docs/index.md` for the full documentation map.
-- Use `public/docs/policy-vocabulary.md` for shared terms and modal verbs.
-- Use `public/docs/agent-workflows.md` for bounded agent dispatch and review.
-- Use `public/docs/report-builds.md` for report build modes and summary JSON.
-- Use `public/docs/ops-tooling.md` for audit and renderer commands.
-- Use `public/docs/julia-cli-workflows.md` for Julia workflow commands.
-- Use `public/docs/report-assets-and-provenance.md` before report asset refresh.
-- Use `public/docs/resolved3d-workflows.md` before optional resolved-3D work.
-- Use `public/docs/benchmark-pipeline.md` before generating package benchmark
+- Use `public/docs/markdown/index.md` for the full documentation map.
+- Use `public/docs/markdown/policy-vocabulary.md` for shared terms and modal verbs.
+- Use `public/docs/markdown/agent-workflows.md` for bounded agent dispatch and review.
+- Use `public/docs/markdown/report-builds.md` for report build modes and summary JSON.
+- Use `public/docs/markdown/ops-tooling.md` for audit and renderer commands.
+- Use `public/docs/markdown/julia-cli-workflows.md` for Julia workflow commands.
+- Use `public/docs/markdown/report-assets-and-provenance.md` before report asset refresh.
+- Use `public/docs/markdown/resolved3d-workflows.md` before optional resolved-3D work.
+- Use `public/docs/markdown/benchmark-pipeline.md` before generating package benchmark
   outputs or report-consumed benchmark assets.
-- Use `public/docs/publication-readiness.md` before public export or release
+- Use `public/docs/markdown/publication-readiness.md` before public export or release
   publication.

@@ -34,8 +34,8 @@ REQUIRED_BUNDLE_READING_ORDER = (
 )
 OPTIONAL_REPO_CONTRACT_FILES = (
     "repo/AGENTS.md",
-    "repo/public/docs/agent-workflows.md",
-    "repo/public/docs/artifact-policy.md",
+    "repo/public/docs/markdown/agent-workflows.md",
+    "repo/public/docs/markdown/artifact-policy.md",
 )
 FOLLOW_UP_REPO_READING_HINT = "Objective-relevant files under repo/"
 OUTPUT_CONTRACT_SECTIONS = (

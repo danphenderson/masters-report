@@ -9,10 +9,10 @@ tree containing staged cleanup/tooling/docs changes plus unclassified deleted
 root handoff artifacts.
 
 This dated assessment is not the source of policy authority. Use
-`public/docs/publication-readiness.md` for public export rules,
-`public/docs/artifact-policy.md` for artifact decisions,
-`public/docs/agent-workflows.md` for handoff rules, and
-`public/docs/policy-vocabulary.md` for shared terms.
+`public/docs/markdown/publication-readiness.md` for public export rules,
+`public/docs/markdown/artifact-policy.md` for artifact decisions,
+`public/docs/markdown/agent-workflows.md` for handoff rules, and
+`public/docs/markdown/policy-vocabulary.md` for shared terms.
 
 This archived note summarizes the public-readiness posture recorded during the
 June 25, 2026 independent public-readiness audit.

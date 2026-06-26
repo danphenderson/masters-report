@@ -6,25 +6,15 @@ on:
       - main
     paths:
       - '.github/workflows/docs-pages.yml'
-      - 'docusaurus.config.js'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'sidebars.js'
       - 'public/docs/**'
-      - 'src/css/**'
-      - 'static/**'
+      - 'README.md'
   push:
     branches:
       - main
     paths:
       - '.github/workflows/docs-pages.yml'
-      - 'docusaurus.config.js'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'sidebars.js'
       - 'public/docs/**'
-      - 'src/css/**'
-      - 'static/**'
+      - 'README.md'
   workflow_dispatch:
 
 permissions:
@@ -48,12 +38,15 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: public/docs/package-lock.json
 
       - name: Install dependencies
         run: npm ci
+        working-directory: public/docs
 
       - name: Build docs
         run: npm run docs:build
+        working-directory: public/docs
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
@@ -61,7 +54,7 @@ jobs:
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: build
+          path: public/docs/build
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

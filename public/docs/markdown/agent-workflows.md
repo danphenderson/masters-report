@@ -19,8 +19,8 @@ Contract limits:
 - No background automation.
 - No persistent orchestration receipts.
 
-Read `public/docs/artifact-policy.md` before cleanup, artifact moves, generated
-asset refreshes, or release-PDF work. Use `public/docs/policy-vocabulary.md`
+Read `public/docs/markdown/artifact-policy.md` before cleanup, artifact moves, generated
+asset refreshes, or release-PDF work. Use `public/docs/markdown/policy-vocabulary.md`
 for shared terms and modal verbs.
 
 ## Command Surface
@@ -234,17 +234,17 @@ report build only for `artifact-refresh` tasks that explicitly include
 
 ## Related Policies
 
-- Use `public/docs/index.md` for the full documentation map.
-- Use `public/docs/policy-vocabulary.md` for shared terms and modal verbs.
-- Use `public/docs/report-builds.md` for validation-only and artifact-refresh
+- Use `public/docs/markdown/index.md` for the full documentation map.
+- Use `public/docs/markdown/policy-vocabulary.md` for shared terms and modal verbs.
+- Use `public/docs/markdown/report-builds.md` for validation-only and artifact-refresh
   report builds.
-- Use `public/docs/ops-tooling.md` for packaged Python support commands.
-- Use `public/docs/julia-cli-workflows.md` for Julia command workflows.
-- Use `public/docs/report-assets-and-provenance.md` before report asset refresh.
-- Use `public/docs/resolved3d-workflows.md` before optional resolved-3D work.
-- Use `public/docs/artifact-policy.md` before moving, deleting, regenerating, or
+- Use `public/docs/markdown/ops-tooling.md` for packaged Python support commands.
+- Use `public/docs/markdown/julia-cli-workflows.md` for Julia command workflows.
+- Use `public/docs/markdown/report-assets-and-provenance.md` before report asset refresh.
+- Use `public/docs/markdown/resolved3d-workflows.md` before optional resolved-3D work.
+- Use `public/docs/markdown/artifact-policy.md` before moving, deleting, regenerating, or
   publishing artifacts.
-- Use `public/docs/benchmark-pipeline.md` when generating package benchmark
+- Use `public/docs/markdown/benchmark-pipeline.md` when generating package benchmark
   outputs or report-consumed benchmark assets.
-- Use `public/docs/publication-readiness.md` before public export or release
+- Use `public/docs/markdown/publication-readiness.md` before public export or release
   publication.

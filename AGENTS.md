@@ -85,11 +85,11 @@ rendered figure assets unless the change explicitly requires those artifacts.
 Keep regenerated data/assets separate from unrelated source edits when
 practical. The report wrapper writes its JSON summary into the scratch outdir;
 inspect it instead of staging or deleting untracked consumed inputs. See
-`public/docs/index.md` for the documentation map,
-`public/docs/artifact-policy.md` for artifact classes and cleanup guardrails,
-`public/docs/report-builds.md` for build modes,
-`public/docs/report-assets-and-provenance.md` for report asset ownership, and
-`public/docs/agent-workflows.md` for the lightweight handoff contract.
+`public/docs/markdown/index.md` for the documentation map,
+`public/docs/markdown/artifact-policy.md` for artifact classes and cleanup guardrails,
+`public/docs/markdown/report-builds.md` for build modes,
+`public/docs/markdown/report-assets-and-provenance.md` for report asset ownership, and
+`public/docs/markdown/agent-workflows.md` for the lightweight handoff contract.
 
 ## Patch Discipline
 

@@ -73,12 +73,12 @@ def test_parse_status_classifies_docs_site_files_as_release_surface() -> None:
         "\n".join(
             [
                 "?? .github/workflows/docs-pages.yml",
-                "?? docusaurus.config.js",
-                "?? package-lock.json",
-                "?? package.json",
-                "?? sidebars.js",
-                "?? src/css/custom.css",
-                "?? static/.nojekyll",
+                "?? public/docs/docusaurus.config.js",
+                "?? public/docs/package-lock.json",
+                "?? public/docs/package.json",
+                "?? public/docs/sidebars.js",
+                "?? public/docs/src/css/custom.css",
+                "?? public/docs/static/.nojekyll",
             ]
         )
     )
@@ -296,7 +296,7 @@ def test_dispatch_bundle_writes_harness_and_working_tree_snapshot(tmp_path: Path
     assert "Excluded protected artifact: public/final-report.pdf" in result.prompt
     assert "Then inspect:" in result.prompt
     assert "Objective-relevant files under repo/" in result.prompt
-    assert "repo/public/docs/agent-workflows.md" not in result.prompt
+    assert "repo/public/docs/markdown/agent-workflows.md" not in result.prompt
     assert "Current State" in result.prompt
     assert "Blocked-condition rules:" in result.prompt
     assert "if any listed required-reading file path is absent from the bundle" in result.prompt
@@ -312,11 +312,18 @@ def test_dispatch_bundle_required_reading_includes_repo_contract_files_when_pres
     init_git_repo(repo)
     (repo / "README.md").write_text("baseline\n", encoding="utf-8")
     (repo / "AGENTS.md").write_text("repo guide\n", encoding="utf-8")
-    (repo / "public" / "docs").mkdir(parents=True)
-    (repo / "public" / "docs" / "agent-workflows.md").write_text("agent workflow\n", encoding="utf-8")
-    (repo / "public" / "docs" / "artifact-policy.md").write_text("artifact policy\n", encoding="utf-8")
+    (repo / "public" / "docs" / "markdown").mkdir(parents=True)
+    (repo / "public" / "docs" / "markdown" / "agent-workflows.md").write_text("agent workflow\n", encoding="utf-8")
+    (repo / "public" / "docs" / "markdown" / "artifact-policy.md").write_text("artifact policy\n", encoding="utf-8")
     subprocess.run(
-        ["git", "add", "README.md", "AGENTS.md", "public/docs/agent-workflows.md", "public/docs/artifact-policy.md"],
+        [
+            "git",
+            "add",
+            "README.md",
+            "AGENTS.md",
+            "public/docs/markdown/agent-workflows.md",
+            "public/docs/markdown/artifact-policy.md",
+        ],
         cwd=repo,
         check=True,
     )
@@ -334,12 +341,12 @@ def test_dispatch_bundle_required_reading_includes_repo_contract_files_when_pres
         "GIT_STATUS.txt",
         "GIT_DIFF.patch",
         "repo/AGENTS.md",
-        "repo/public/docs/agent-workflows.md",
-        "repo/public/docs/artifact-policy.md",
+        "repo/public/docs/markdown/agent-workflows.md",
+        "repo/public/docs/markdown/artifact-policy.md",
     ]
     assert "repo/AGENTS.md" in result.prompt
-    assert "repo/public/docs/agent-workflows.md" in result.prompt
-    assert "repo/public/docs/artifact-policy.md" in result.prompt
+    assert "repo/public/docs/markdown/agent-workflows.md" in result.prompt
+    assert "repo/public/docs/markdown/artifact-policy.md" in result.prompt
 
 
 def test_dispatch_bundle_rejects_dirty_protected_artifacts(tmp_path: Path) -> None:
@@ -627,7 +634,10 @@ def test_packet_check_flags_stale_paths_and_overbroad_authority() -> None:
     assert "stale Julia root; use packages/stenotic-hemodynamics/" in result.issues
     assert "stale Python tooling root; use packages/ops/" in result.issues
     assert "stale report build wrapper; use pipenv run ops-build-report" in result.issues
-    assert "deleted TODO coordination file route; use GitHub issues and public/docs/agent-workflows.md" in result.issues
+    assert (
+        "deleted TODO coordination file route; use GitHub issues and public/docs/markdown/agent-workflows.md"
+        in result.issues
+    )
     assert "missing final PDF artifact guardrail: public/final-report.pdf" in result.issues
     assert "missing rendered report asset guardrail: report/assets/rendered/**" in result.issues
     assert "missing current ops validation command" in result.issues
@@ -647,7 +657,7 @@ def test_packet_check_rejects_deleted_todo_coordination_file_route() -> None:
 
     assert result.status == "failed"
     assert result.issues == (
-        "deleted TODO coordination file route; use GitHub issues and public/docs/agent-workflows.md",
+        "deleted TODO coordination file route; use GitHub issues and public/docs/markdown/agent-workflows.md",
     )
 
 

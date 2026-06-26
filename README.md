@@ -1,5 +1,7 @@
 # StenoticHemodynamics
 
+[![Documentation](https://img.shields.io/badge/docs-online-176d72?logo=githubpages&logoColor=white)](https://danphenderson.github.io/masters-report/)
+
 This repository contains the Julia package, simulations,
 tests, and LaTeX source for an idealized stenotic-vessel
 hemodynamics master's report. The report source is rooted
@@ -122,30 +124,30 @@ pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-bu
 
 ## Documentation Map
 
-- [`public/docs/index.md`](public/docs/index.md): task-oriented map for public
+- [`public/docs/markdown/index.md`](public/docs/markdown/index.md): task-oriented map for public
   docs.
-- [`public/docs/report-builds.md`](public/docs/report-builds.md): report build
+- [`public/docs/markdown/report-builds.md`](public/docs/markdown/report-builds.md): report build
   modes, summary JSON, and failure handling.
-- [`public/docs/julia-cli-workflows.md`](public/docs/julia-cli-workflows.md):
+- [`public/docs/markdown/julia-cli-workflows.md`](public/docs/markdown/julia-cli-workflows.md):
   Julia command families and artifact posture.
-- [`public/docs/stenotic-hemodynamics/workflows.md`](public/docs/stenotic-hemodynamics/workflows.md):
+- [`public/docs/markdown/stenotic-hemodynamics/workflows.md`](public/docs/markdown/stenotic-hemodynamics/workflows.md):
   Julia package workflow ownership, validation commands, and workflow
   subdirectories.
-- [`public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`](public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md):
+- [`public/docs/markdown/stenotic-hemodynamics/section-4-1-production-validation-plan.md`](public/docs/markdown/stenotic-hemodynamics/section-4-1-production-validation-plan.md):
   native resolved-FSI Section 4.1 validation roadmap and claim gates.
-- [`public/docs/stenotic-hemodynamics/web-visualization.md`](public/docs/stenotic-hemodynamics/web-visualization.md):
+- [`public/docs/markdown/stenotic-hemodynamics/web-visualization.md`](public/docs/markdown/stenotic-hemodynamics/web-visualization.md):
   static browser visualization export schema and viewer checks.
-- [`public/docs/ops-tooling.md`](public/docs/ops-tooling.md): Python support
+- [`public/docs/markdown/ops-tooling.md`](public/docs/markdown/ops-tooling.md): Python support
   commands, renderers, and evidence summaries.
-- [`public/docs/report-assets-and-provenance.md`](public/docs/report-assets-and-provenance.md):
+- [`public/docs/markdown/report-assets-and-provenance.md`](public/docs/markdown/report-assets-and-provenance.md):
   report asset ownership, TeX consumers, and refresh gates.
-- [`public/docs/resolved3d-workflows.md`](public/docs/resolved3d-workflows.md):
+- [`public/docs/markdown/resolved3d-workflows.md`](public/docs/markdown/resolved3d-workflows.md):
   optional resolved-3D data, skip behavior, and publication boundaries.
-- [`public/docs/artifact-policy.md`](public/docs/artifact-policy.md):
+- [`public/docs/markdown/artifact-policy.md`](public/docs/markdown/artifact-policy.md):
   artifact classes and cleanup guardrails.
-- [`public/docs/agent-workflows.md`](public/docs/agent-workflows.md): bounded
+- [`public/docs/markdown/agent-workflows.md`](public/docs/markdown/agent-workflows.md): bounded
   agent handoffs and GitHub issue coordination with `ops-orchestrate status`.
-- [`public/docs/publication-readiness.md`](public/docs/publication-readiness.md):
+- [`public/docs/markdown/publication-readiness.md`](public/docs/markdown/publication-readiness.md):
   public export and release checks.
 
 ## Optional Resolved-3D Inputs
@@ -235,7 +237,7 @@ pipenv run ops-experiment benchmark \
 
 For the full overnight benchmark, report-asset publishing workflow, output
 schemas, and resolved-3D skip behavior, see
-[`public/docs/benchmark-pipeline.md`](public/docs/benchmark-pipeline.md).
+[`public/docs/markdown/benchmark-pipeline.md`](public/docs/markdown/benchmark-pipeline.md).
 
 ## Environments
 

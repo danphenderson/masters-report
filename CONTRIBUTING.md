@@ -39,7 +39,7 @@ reviewable, and tied to a reproducible validation path.
   Keep `public/references/references.bib` and `public/references/source-inventory.tsv` synchronized
   instead.
 - Keep generated report assets separate from source edits when practical.
-- Use `public/docs/report-assets-and-provenance.md` before refreshing tracked
+- Use `public/docs/markdown/report-assets-and-provenance.md` before refreshing tracked
   report assets.
 
 ## Pull Requests
@@ -48,4 +48,4 @@ Summaries should state the changed surface, validation run, and any skipped
 optional data inputs. Numerical changes should include the smallest smoke case
 or regression test that exercises the changed behavior.
 
-See `public/docs/index.md` for the full documentation map.
+See `public/docs/markdown/index.md` for the full documentation map.

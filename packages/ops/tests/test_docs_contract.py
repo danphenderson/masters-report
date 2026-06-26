@@ -9,7 +9,7 @@ def repo_root() -> Path:
 
 
 def write_minimal_docs_contract(root: Path) -> None:
-    (root / "public/docs").mkdir(parents=True)
+    (root / "public/docs/markdown").mkdir(parents=True)
     command_lines = "\n".join(f"pipenv run ops-orchestrate {command}" for command in orchestrate.COMMANDS)
     profile_lines = "\n".join(orchestrate.PROFILES)
     contract_text = "\n".join(
@@ -54,27 +54,27 @@ def test_validation_entrypoints_are_packaged_and_declared_in_pipfile() -> None:
 
 
 def test_agent_workflow_doc_names_every_public_command() -> None:
-    text = (repo_root() / "public/docs/agent-workflows.md").read_text(encoding="utf-8")
+    text = (repo_root() / "public/docs/markdown/agent-workflows.md").read_text(encoding="utf-8")
 
     for command in orchestrate.COMMANDS:
         assert f"ops-orchestrate {command}" in text
 
 
 def test_agent_workflow_doc_names_every_profile() -> None:
-    text = (repo_root() / "public/docs/agent-workflows.md").read_text(encoding="utf-8")
+    text = (repo_root() / "public/docs/markdown/agent-workflows.md").read_text(encoding="utf-8")
 
     for profile in orchestrate.PROFILES:
         assert profile in text
 
 
 def test_docs_index_does_not_link_archived_executive_assessment() -> None:
-    text = (repo_root() / "public/docs/index.md").read_text(encoding="utf-8")
+    text = (repo_root() / "public/docs/markdown/index.md").read_text(encoding="utf-8")
 
     assert "](executive-assessment.md)" not in text
 
 
 def test_archived_executive_assessment_declares_audited_tree_state() -> None:
-    text = (repo_root() / "public/docs/executive-assessment.md").read_text(encoding="utf-8")
+    text = (repo_root() / "public/docs/markdown/executive-assessment.md").read_text(encoding="utf-8")
 
     assert "# Archived Executive Assessment" in text
     assert "Repository state evaluated: `main...origin/main [ahead 4]` with a dirty working" in text
@@ -104,18 +104,18 @@ def test_docs_contract_rejects_stale_active_paths(tmp_path: Path) -> None:
 
 def test_docs_contract_scans_new_active_public_docs(tmp_path: Path) -> None:
     write_minimal_docs_contract(tmp_path)
-    extra_doc = tmp_path / "public/docs/new-policy.md"
+    extra_doc = tmp_path / "public/docs/markdown/new-policy.md"
     extra_doc.write_text("Old wrapper: tools/python/build_report.py\n", encoding="utf-8")
 
     result = orchestrate.docs_contract(tmp_path)
 
     assert result.status == "failed"
-    assert any("stale active path reference in public/docs/new-policy.md" in issue for issue in result.issues)
+    assert any("stale active path reference in public/docs/markdown/new-policy.md" in issue for issue in result.issues)
 
 
 def test_docs_contract_scans_nested_public_docs(tmp_path: Path) -> None:
     write_minimal_docs_contract(tmp_path)
-    extra_doc = tmp_path / "public/docs/stenotic-hemodynamics/native.md"
+    extra_doc = tmp_path / "public/docs/markdown/stenotic-hemodynamics/native.md"
     extra_doc.parent.mkdir(parents=True, exist_ok=True)
     extra_doc.write_text("Old handoff route: packages/stenotic-hemodynamics/TODO.md\n", encoding="utf-8")
 
@@ -123,8 +123,33 @@ def test_docs_contract_scans_nested_public_docs(tmp_path: Path) -> None:
 
     assert result.status == "failed"
     assert any(
-        "stale active path reference in public/docs/stenotic-hemodynamics/native.md" in issue for issue in result.issues
+        "stale active path reference in public/docs/markdown/stenotic-hemodynamics/native.md" in issue
+        for issue in result.issues
     )
+
+
+def test_docs_contract_rejects_public_docs_markdown_outside_markdown_dir(tmp_path: Path) -> None:
+    write_minimal_docs_contract(tmp_path)
+    (tmp_path / "public/docs/old-location.md").write_text("Moved docs source.\n", encoding="utf-8")
+
+    result = orchestrate.docs_contract(tmp_path)
+
+    assert result.status == "failed"
+    assert any(
+        "public docs Markdown must live under public/docs/markdown: public/docs/old-location.md" in issue
+        for issue in result.issues
+    )
+
+
+def test_docs_contract_ignores_generated_docusaurus_markdown(tmp_path: Path) -> None:
+    write_minimal_docs_contract(tmp_path)
+    node_readme = tmp_path / "public/docs/node_modules/example/README.md"
+    node_readme.parent.mkdir(parents=True)
+    node_readme.write_text("Dependency package notes.\n", encoding="utf-8")
+
+    result = orchestrate.docs_contract(tmp_path)
+
+    assert result.status == "passed", result.issues
 
 
 def test_stale_path_check_allows_historical_archive_paths(tmp_path: Path) -> None:

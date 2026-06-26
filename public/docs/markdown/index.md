@@ -42,7 +42,7 @@ title: Documentation index
 </div>
 
 Use this map to find the repository guide that matches the task. Keep policy
-terms aligned with `public/docs/policy-vocabulary.md`.
+terms aligned with `public/docs/markdown/policy-vocabulary.md`.
 
 ## Start here
 

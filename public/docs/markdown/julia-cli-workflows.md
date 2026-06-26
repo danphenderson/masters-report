@@ -15,7 +15,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics <command> [options]
 ```
 
 For the code-level map of the package workflow modules behind these commands,
-use `public/docs/stenotic-hemodynamics/workflows.md`.
+use `public/docs/markdown/stenotic-hemodynamics/workflows.md`.
 
 Keep generated outputs under ignored scratch paths such as
 `tmp/simulations/output/**` unless a task explicitly publishes report-consumed
@@ -34,7 +34,7 @@ assets.
 | `verify` | Run MMS, p/h refinement, or rest-state verification workflows. | Keep scratch outputs unless refreshing report verification tables or figures. |
 | `compare-3d` | Compare optional resolved-3D cases against 1D runs. | Skip when local data is absent; publish assets only in explicit scope. |
 | `operator-validation` | Validate cross-section quadrature on synthetic cuts. | Use for operator evidence and report tables when scoped. |
-| `benchmark` | Run package benchmark profiles. | Follow `public/docs/benchmark-pipeline.md`. |
+| `benchmark` | Run package benchmark profiles. | Follow `public/docs/markdown/benchmark-pipeline.md`. |
 | `export-assets` | Export stenosis geometry/report CSV assets. | Follow report asset publication rules before rendering or staging outputs. |
 | `visualization export-web` | Convert resolved-FSI/resolved-3D XDMF/HDF5 bundles into static browser assets. | Keep exports in `tmp/simulations/output/visualization/**` unless curating a reviewed viewer demo. |
 | `canic-replication section41` | Compare local 1D outputs with Canic et al. 2024 Section 4.1 source artifacts for velocity, pressure observation rows, radial postprocessing, and 3D diagnostics. | Skip when local raw data is absent; publish assets only in an explicit manuscript lane. |
@@ -179,7 +179,7 @@ pipenv run ops-experiment visualization export-web \
 
 The command prints `manifest_json`, `asset_count`, `frame_count`,
 `skipped_snapshots`, and `estimated_playback_fps`. See
-`public/docs/stenotic-hemodynamics/web-visualization.md` for the schema and
+`public/docs/markdown/stenotic-hemodynamics/web-visualization.md` for the schema and
 viewer contract.
 
 ## Canic 2024 Section 4.1 Source-Artifact Comparison
@@ -221,7 +221,7 @@ corresponding 1D diagnostic outlet pressure are subtracted before comparison.
 Those pressure values remain diagnostics, not clinical validation, FFR evidence,
 paper-grade native FSI reproduction, or full replication evidence.
 
-See `public/docs/stenotic-hemodynamics/canic-2024-replication.md` for raw-data
+See `public/docs/markdown/stenotic-hemodynamics/canic-2024-replication.md` for raw-data
 restoration, outputs, provenance, and manuscript claim boundaries.
 
 ## Verification
@@ -241,13 +241,13 @@ that distinction in documentation and handbacks.
 ## Resolved-3D And Operator Workflows
 
 Use `compare-3d` and `operator-validation` through
-`public/docs/resolved3d-workflows.md`. That document defines optional data roots,
+`public/docs/markdown/resolved3d-workflows.md`. That document defines optional data roots,
 skip behavior, grid sensitivity, `--reuse-grid-summary`, and report publication
 boundaries.
 
 ## Benchmark And Asset Export
 
-Use `benchmark` through `public/docs/benchmark-pipeline.md`.
+Use `benchmark` through `public/docs/markdown/benchmark-pipeline.md`.
 
 Use `export-assets` to regenerate stenosis geometry CSV assets before running
 geometry renderers:
@@ -265,12 +265,12 @@ pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-p
 
 ## Related Policies
 
-- Use `public/docs/policy-vocabulary.md` for shared artifact terms.
-- Use `public/docs/report-assets-and-provenance.md` before staging generated
+- Use `public/docs/markdown/policy-vocabulary.md` for shared artifact terms.
+- Use `public/docs/markdown/report-assets-and-provenance.md` before staging generated
   assets.
-- Use `public/docs/stenotic-hemodynamics/workflows.md` for the package workflow
+- Use `public/docs/markdown/stenotic-hemodynamics/workflows.md` for the package workflow
   map and focused validation surfaces.
-- Use `public/docs/stenotic-hemodynamics/web-visualization.md` for browser
+- Use `public/docs/markdown/stenotic-hemodynamics/web-visualization.md` for browser
   visualization export and viewer checks.
-- Use `public/docs/resolved3d-workflows.md` for optional resolved-3D data.
-- Use `public/docs/benchmark-pipeline.md` for package benchmark outputs.
+- Use `public/docs/markdown/resolved3d-workflows.md` for optional resolved-3D data.
+- Use `public/docs/markdown/benchmark-pipeline.md` for package benchmark outputs.

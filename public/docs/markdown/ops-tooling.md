@@ -71,7 +71,7 @@ commit wrapper runs this command immediately before commit.
 - `pipenv run ops-build-report --outdir /tmp/masters-report-build`: run the full
   report build gate only when `public/final-report.pdf` refresh is in scope.
 
-Use `public/docs/report-builds.md` for wrapper details and failure handling.
+Use `public/docs/markdown/report-builds.md` for wrapper details and failure handling.
 
 ## Experiment Runner
 
@@ -151,7 +151,7 @@ refresh scope.
   commit-readiness gate selected from the current dirty surfaces, including the
   report prose audit when report surfaces are dirty.
 
-Use `public/docs/agent-workflows.md` for modes, profiles, and guardrails.
+Use `public/docs/markdown/agent-workflows.md` for modes, profiles, and guardrails.
 
 ## Evidence Summary Commands
 
@@ -165,9 +165,9 @@ they are report-consumed assets.
 
 ## Related Policies
 
-- Use `public/docs/policy-vocabulary.md` for shared artifact terms.
-- Use `public/docs/report-builds.md` for report wrapper behavior.
-- Use `public/docs/report-assets-and-provenance.md` before rendering tracked
+- Use `public/docs/markdown/policy-vocabulary.md` for shared artifact terms.
+- Use `public/docs/markdown/report-builds.md` for report wrapper behavior.
+- Use `public/docs/markdown/report-assets-and-provenance.md` before rendering tracked
   report assets.
-- Use `public/docs/resolved3d-workflows.md` before using optional resolved-3D
+- Use `public/docs/markdown/resolved3d-workflows.md` before using optional resolved-3D
   inputs.

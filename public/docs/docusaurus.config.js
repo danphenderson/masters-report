@@ -28,10 +28,10 @@ const config = {
       'classic',
       {
         docs: {
-          path: 'public/docs',
+          path: 'markdown',
           routeBasePath: '/',
           sidebarPath: './sidebars.js',
-          editUrl: ({docPath}) => `${githubUrl}/edit/main/public/docs/${docPath}`,
+          editUrl: ({docPath}) => `${githubUrl}/edit/main/public/docs/markdown/${docPath}`,
           breadcrumbs: true,
         },
         blog: false,

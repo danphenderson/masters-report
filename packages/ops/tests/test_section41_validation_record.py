@@ -3,7 +3,7 @@ from pathlib import Path
 
 def test_section41_production_validation_record_covers_required_gate_contracts() -> None:
     root = Path(__file__).resolve().parents[3]
-    record = root / "public/docs/stenotic-hemodynamics/section-4-1-production-validation-record.md"
+    record = root / "public/docs/markdown/stenotic-hemodynamics/section-4-1-production-validation-record.md"
     text = record.read_text(encoding="utf-8")
 
     assert "danphenderson/masters-report#9" in text

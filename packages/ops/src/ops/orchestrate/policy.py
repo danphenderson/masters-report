@@ -106,16 +106,10 @@ SURFACE_PREFIXES: dict[str, tuple[str, ...]] = {
         "LICENSE-docs",
         ".gitignore",
         ".vscode/",
-        "docusaurus.config.js",
-        "package-lock.json",
-        "package.json",
-        "sidebars.js",
         "public/docs/",
         "docs/",
         "public/reproducibility/",
         "reproducibility/",
-        "src/css/",
-        "static/",
     ),
 }
 
@@ -147,21 +141,21 @@ VALIDATION_MARKERS: dict[str, tuple[str, ...]] = {
 DOC_CONTRACT_PATHS = (
     "AGENTS.md",
     "README.md",
-    "public/docs/artifact-policy.md",
-    "public/docs/agent-workflows.md",
-    "public/docs/policy-vocabulary.md",
+    "public/docs/markdown/artifact-policy.md",
+    "public/docs/markdown/agent-workflows.md",
+    "public/docs/markdown/policy-vocabulary.md",
 )
 
 STALE_PATH_CHECK_PATHS = (
     "AGENTS.md",
     "README.md",
     "CONTRIBUTING.md",
-    "public/docs/artifact-policy.md",
-    "public/docs/agent-workflows.md",
-    "public/docs/policy-vocabulary.md",
-    "public/docs/benchmark-pipeline.md",
-    "public/docs/executive-assessment.md",
-    "public/docs/publication-readiness.md",
+    "public/docs/markdown/artifact-policy.md",
+    "public/docs/markdown/agent-workflows.md",
+    "public/docs/markdown/policy-vocabulary.md",
+    "public/docs/markdown/benchmark-pipeline.md",
+    "public/docs/markdown/executive-assessment.md",
+    "public/docs/markdown/publication-readiness.md",
     "packages/stenotic-hemodynamics/README.md",
     "report/appendices/code-and-ai-use.tex",
     "report/sections/07-case-study/methodology.tex",
@@ -170,7 +164,7 @@ STALE_PATH_CHECK_PATHS = (
 HISTORICAL_PATH_PREFIXES = ("report/archive/",)
 
 DELETED_TODO_COORDINATION_FILE_ROUTE = (
-    "deleted TODO coordination file route; use GitHub issues and public/docs/agent-workflows.md",
+    "deleted TODO coordination file route; use GitHub issues and public/docs/markdown/agent-workflows.md",
     re.compile(r"\b(?:report/TODO\.md|packages/stenotic-hemodynamics/TODO\.md)\b"),
 )
 
@@ -277,7 +271,7 @@ REVIEW_LANE_SPECS: dict[str, ReviewLaneSpec] = {
         scope="Raw-data exclusion, ignored local artifacts, rendered PDF/data refresh boundaries.",
         files=(
             ".gitignore",
-            "public/docs/artifact-policy.md",
+            "public/docs/markdown/artifact-policy.md",
             "report/assets/rendered/stenosis-fem-fvm-meshes.pdf",
             "report/assets/data/stenosis-comparison/grid-sensitivity-summary.csv",
         ),
@@ -295,7 +289,7 @@ REVIEW_LANE_SPECS: dict[str, ReviewLaneSpec] = {
             "packages/ops/src/ops/orchestrate/**",
             "packages/ops/tests/test_orchestrate.py",
             "packages/ops/tests/test_docs_contract.py",
-            "public/docs/agent-workflows.md",
+            "public/docs/markdown/agent-workflows.md",
         ),
         validation=(
             "pipenv run ops-orchestrate docs-contract",
@@ -314,13 +308,13 @@ REVIEW_LANE_SPECS: dict[str, ReviewLaneSpec] = {
         files=(
             "README.md",
             "AGENTS.md",
-            "public/docs/benchmark-pipeline.md",
+            "public/docs/markdown/benchmark-pipeline.md",
             "report/appendices/code-and-ai-use.tex",
             "report/sections/07-case-study/methodology.tex",
             "packages/stenotic-hemodynamics/README.md",
         ),
         validation=(
-            'rg -n "packages/stenotic-hemodynamics/simulations" AGENTS.md README.md public/docs '
+            'rg -n "packages/stenotic-hemodynamics/simulations" AGENTS.md README.md public/docs/markdown '
             "report/appendices/code-and-ai-use.tex report/sections/07-case-study/methodology.tex "
             "packages/stenotic-hemodynamics/README.md",
         ),

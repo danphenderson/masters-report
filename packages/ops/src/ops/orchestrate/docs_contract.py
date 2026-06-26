@@ -17,17 +17,27 @@ from .policy import (
 )
 from .status import normalize_repo_path
 
+GENERATED_DOCS_DIRS = frozenset({"node_modules", "build", ".docusaurus"})
+
 
 def is_historical_path(path: str) -> bool:
     normalized = normalize_repo_path(path)
     return any(normalized.startswith(prefix) for prefix in HISTORICAL_PATH_PREFIXES)
 
 
+def is_generated_docs_path(path: Path) -> bool:
+    return bool(GENERATED_DOCS_DIRS.intersection(path.parts))
+
+
 def default_stale_path_check_paths(repo: Path) -> tuple[str, ...]:
     paths = list(STALE_PATH_CHECK_PATHS)
     public_docs = repo / "public" / "docs"
     if public_docs.is_dir():
-        paths.extend(path.relative_to(repo).as_posix() for path in sorted(public_docs.rglob("*.md")))
+        paths.extend(
+            path.relative_to(repo).as_posix()
+            for path in sorted(public_docs.rglob("*.md"))
+            if not is_generated_docs_path(path.relative_to(public_docs))
+        )
     return tuple(dict.fromkeys(paths))
 
 
@@ -46,6 +56,25 @@ def stale_path_issues(repo: Path, paths: Sequence[str] | None = None) -> tuple[s
                 if match is None:
                     continue
                 issues.append(f"stale active path reference in {normalized}:{line_number}: {match.group(0)} ({label})")
+    return tuple(issues)
+
+
+def markdown_layout_issues(repo: Path) -> tuple[str, ...]:
+    docs_root = repo / "public" / "docs"
+    markdown_root = docs_root / "markdown"
+    if not docs_root.is_dir():
+        return ()
+
+    issues: list[str] = []
+    for path in sorted(docs_root.rglob("*.md")):
+        if is_generated_docs_path(path.relative_to(docs_root)):
+            continue
+        try:
+            path.relative_to(markdown_root)
+        except ValueError:
+            issues.append(
+                "public docs Markdown must live under public/docs/markdown: " f"{path.relative_to(repo).as_posix()}"
+            )
     return tuple(issues)
 
 
@@ -77,5 +106,6 @@ def docs_contract(repo: Path) -> CheckResult:
     for phrase in ("github issues", "ops-orchestrate status"):
         if phrase not in lower:
             issues.append(f"missing coordination guidance: {phrase}")
+    issues.extend(markdown_layout_issues(repo))
     issues.extend(stale_path_issues(repo))
     return CheckResult(status="failed" if issues else "passed", issues=tuple(issues))

@@ -83,8 +83,8 @@ review record:
 
 ## Related Policies
 
-- Use `public/docs/policy-vocabulary.md` for shared build terms.
-- Use `public/docs/artifact-policy.md` before artifact cleanup or refresh.
-- Use `public/docs/report-assets-and-provenance.md` when report-consumed assets
+- Use `public/docs/markdown/policy-vocabulary.md` for shared build terms.
+- Use `public/docs/markdown/artifact-policy.md` before artifact cleanup or refresh.
+- Use `public/docs/markdown/report-assets-and-provenance.md` when report-consumed assets
   change.
-- Use `public/docs/publication-readiness.md` before publishing a release PDF.
+- Use `public/docs/markdown/publication-readiness.md` before publishing a release PDF.

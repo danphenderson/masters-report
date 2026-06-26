@@ -70,17 +70,17 @@ release PDF refresh is explicitly in scope.
 
 ## Related Policies
 
-- Use `public/docs/index.md` for the full documentation map.
-- Use `public/docs/policy-vocabulary.md` for shared terms and modal verbs.
-- Use `public/docs/agent-workflows.md` for bounded dispatch and review before
+- Use `public/docs/markdown/index.md` for the full documentation map.
+- Use `public/docs/markdown/policy-vocabulary.md` for shared terms and modal verbs.
+- Use `public/docs/markdown/agent-workflows.md` for bounded dispatch and review before
   publication work.
-- Use `public/docs/artifact-policy.md` before moving, deleting, regenerating, or
+- Use `public/docs/markdown/artifact-policy.md` before moving, deleting, regenerating, or
   publishing artifacts.
-- Use `public/docs/report-builds.md` for report build gates and release PDF
+- Use `public/docs/markdown/report-builds.md` for report build gates and release PDF
   refresh behavior.
-- Use `public/docs/report-assets-and-provenance.md` before publishing generated
+- Use `public/docs/markdown/report-assets-and-provenance.md` before publishing generated
   report assets.
-- Use `public/docs/resolved3d-workflows.md` before relying on optional local
+- Use `public/docs/markdown/resolved3d-workflows.md` before relying on optional local
   resolved-3D data.
-- Use `public/docs/benchmark-pipeline.md` before publishing benchmark-generated
+- Use `public/docs/markdown/benchmark-pipeline.md` before publishing benchmark-generated
   report assets.

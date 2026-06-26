@@ -6,8 +6,8 @@ plus summary JSON logs under `public/var/logs/`. Use the smoke profile for
 wiring checks and reviewer validation. Use the overnight profile only when
 refreshing the full benchmark matrix or report-consumed benchmark assets.
 
-Read `public/docs/artifact-policy.md` before publishing benchmark outputs into
-`report/assets/**`. Use `public/docs/policy-vocabulary.md` for shared artifact
+Read `public/docs/markdown/artifact-policy.md` before publishing benchmark outputs into
+`report/assets/**`. Use `public/docs/markdown/policy-vocabulary.md` for shared artifact
 and build vocabulary.
 
 ## Profile Selection
@@ -98,18 +98,18 @@ refresh unless the task explicitly opens all three scopes.
 
 ## Related Policies
 
-- Use `public/docs/index.md` for the full documentation map.
-- Use `public/docs/policy-vocabulary.md` for shared terms and modal verbs.
-- Use `public/docs/artifact-policy.md` before moving, deleting, regenerating, or
+- Use `public/docs/markdown/index.md` for the full documentation map.
+- Use `public/docs/markdown/policy-vocabulary.md` for shared terms and modal verbs.
+- Use `public/docs/markdown/artifact-policy.md` before moving, deleting, regenerating, or
   publishing artifacts.
-- Use `public/docs/report-builds.md` after publishing report-consumed benchmark
+- Use `public/docs/markdown/report-builds.md` after publishing report-consumed benchmark
   assets.
-- Use `public/docs/ops-tooling.md` for benchmark renderer details.
-- Use `public/docs/julia-cli-workflows.md` for general Julia command usage.
-- Use `public/docs/report-assets-and-provenance.md` for benchmark asset
+- Use `public/docs/markdown/ops-tooling.md` for benchmark renderer details.
+- Use `public/docs/markdown/julia-cli-workflows.md` for general Julia command usage.
+- Use `public/docs/markdown/report-assets-and-provenance.md` for benchmark asset
   ownership.
-- Use `public/docs/resolved3d-workflows.md` for optional resolved-3D rows.
-- Use `public/docs/agent-workflows.md` for bounded handoffs involving benchmark
+- Use `public/docs/markdown/resolved3d-workflows.md` for optional resolved-3D rows.
+- Use `public/docs/markdown/agent-workflows.md` for bounded handoffs involving benchmark
   review or artifact refresh.
-- Use `public/docs/publication-readiness.md` before publishing a release PDF or
+- Use `public/docs/markdown/publication-readiness.md` before publishing a release PDF or
   public source export.

@@ -11,7 +11,7 @@ absent root.
 
 For the broader `StenoticHemodynamics` workflow map, including native
 resolved-FSI planning notes that stay inside package-owned schema/parity lanes,
-use `public/docs/stenotic-hemodynamics/workflows.md`.
+use `public/docs/markdown/stenotic-hemodynamics/workflows.md`.
 
 ## Local Data Root
 
@@ -284,9 +284,9 @@ absent.
 - Use `public/reproducibility/release-manifest.json` for the retained
   release-provenance pointer to the raw-input convention, final PDF hash, and
   validation-only report build command.
-- Use `public/docs/artifact-policy.md` before moving or publishing artifacts.
-- Use `public/docs/report-assets-and-provenance.md` for asset ownership.
-- Use `public/docs/stenotic-hemodynamics/workflows.md` for the package workflow
+- Use `public/docs/markdown/artifact-policy.md` before moving or publishing artifacts.
+- Use `public/docs/markdown/report-assets-and-provenance.md` for asset ownership.
+- Use `public/docs/markdown/stenotic-hemodynamics/workflows.md` for the package workflow
   map and links to the native resolved-FSI design/reproduction notes.
-- Use `public/docs/julia-cli-workflows.md` for general Julia command usage.
-- Use `public/docs/report-builds.md` after publishing report-consumed assets.
+- Use `public/docs/markdown/julia-cli-workflows.md` for general Julia command usage.
+- Use `public/docs/markdown/report-builds.md` after publishing report-consumed assets.

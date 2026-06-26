@@ -77,8 +77,8 @@ Also run the owning workflow validation:
 
 ## Related Policies
 
-- Use `public/docs/artifact-policy.md` for artifact classes and cleanup rules.
-- Use `public/docs/report-builds.md` for build-gate behavior.
-- Use `public/docs/ops-tooling.md` for renderer command details.
-- Use `public/docs/resolved3d-workflows.md` for resolved-3D assets.
-- Use `public/docs/benchmark-pipeline.md` for package benchmark assets.
+- Use `public/docs/markdown/artifact-policy.md` for artifact classes and cleanup rules.
+- Use `public/docs/markdown/report-builds.md` for build-gate behavior.
+- Use `public/docs/markdown/ops-tooling.md` for renderer command details.
+- Use `public/docs/markdown/resolved3d-workflows.md` for resolved-3D assets.
+- Use `public/docs/markdown/benchmark-pipeline.md` for package benchmark assets.
