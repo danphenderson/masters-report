@@ -220,10 +220,10 @@ function summarize_comparison(
     run_fields = resolved3d_run_fields(case, params, backend)
     execution_fields = execution === nothing ? (
         elapsed_s=NaN,
-        case_workers=default_case_workers(),
-        solver_threads=solver_thread_count(backend),
-        julia_threads=Threads.nthreads(),
-        process_id=Distributed.myid(),
+        case_workers=-1,
+        solver_threads=-1,
+        julia_threads=-1,
+        process_id=-1,
     ) : execution
     velocity_errors = finite_values(row.abs_velocity_error_cm_s for row in section_rows)
     velocity_refs = finite_values(row.mean_u3d_cm_s for row in section_rows)

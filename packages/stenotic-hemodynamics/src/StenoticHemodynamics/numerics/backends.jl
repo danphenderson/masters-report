@@ -51,8 +51,25 @@ backend_algorithm_name(::NativeRK3Backend) = "ssprk"
 backend_algorithm_name(backend::SciMLTimeBackend) = algorithm_name(backend.solve.algorithm)
 solver_thread_count(::AbstractTimeBackend) = 1
 solver_thread_count(backend::NativeRK3Backend) = backend.solver_threads
-native_solver_threading_enabled(backend::NativeRK3Backend) = backend.solver_threads > 1 && Threads.nthreads() > 1
+native_solver_threading_enabled(backend::NativeRK3Backend) =
+    backend.solver_threads > 1 && Threads.nthreads() == backend.solver_threads
 native_solver_threading_enabled(::AbstractTimeBackend) = false
+
+function validate_native_solver_threading(backend::NativeRK3Backend)
+    requested_threads = solver_thread_count(backend)
+    requested_threads == 1 && return false
+
+    julia_threads = Threads.nthreads()
+    if julia_threads != requested_threads
+        throw(ArgumentError(
+            "NativeRK3Backend(solver_threads=$(requested_threads)) direct solves require " *
+            "Threads.nthreads() == $(requested_threads); current Julia process has " *
+            "$(julia_threads). Use compare-3d --case-workers with --solver-threads " *
+            "to spawn matching workers, or start Julia with --threads=$(requested_threads).",
+        ))
+    end
+    return true
+end
 
 """
     supports_backend(method, backend) -> Bool
@@ -93,7 +110,7 @@ function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
     method_family(p.space) == :discontinuous_galerkin && return simulate_dg(p, p.space; progress_every=progress_every)
 
     start_ns = telemetry_start_ns()
-    threaded = native_solver_threading_enabled(backend)
+    threaded = validate_native_solver_threading(backend)
     @telemetry_info "simulation started" event="simulation_started" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="started" solver_threads=solver_thread_count(backend) julia_threads=Threads.nthreads()
     try
         validate(p)

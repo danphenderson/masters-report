@@ -10,7 +10,7 @@ function run_comparison_with_case_runs(spec::ComparisonSpec)
     sensitivity_rows = NodeSlabSensitivityRow[]
     summary_rows = ComparisonSummaryRow[]
     loaded_cases = [load_comparison_case_inputs(case, spec) for case in spec.cases]
-    case_runs = if spec.solver_threads > 1 || spec.case_workers != 1
+    case_runs = if spec.solver_threads > 1 || spec.case_workers > 1
         parallel_case_map(
             loaded -> run_loaded_comparison_case(loaded.case, loaded.bundle, loaded.field, spec),
             loaded_cases;

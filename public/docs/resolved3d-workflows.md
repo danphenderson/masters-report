@@ -164,10 +164,12 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
 
 `--case-workers` controls process-level case parallelism; `0` forces serial
 case execution, while values greater than `1` run cases through distributed
-workers. `--solver-threads` controls native finite-volume threading inside each
-case. Keep the two budgets separate (for example, two case workers with four
-solver threads each) and run a bounded probe on a small `--nxs` subset before
-using the setting for fine grids:
+workers. `--solver-threads` sets `NativeRK3Backend(solver_threads=N)` for each
+case. Spawned compare-3D workers start with exactly `N` Julia threads; direct
+local solves require the current Julia process to have exactly `N` threads and
+throw instead of silently using more threads than requested. Keep the two budgets
+separate (for example, two case workers with four solver threads each) and run a
+bounded probe on a small `--nxs` subset before using the setting for fine grids:
 
 ```sh
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
