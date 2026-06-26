@@ -26,6 +26,19 @@ This appendix therefore describes local source records without claiming a
 public archive. It does not assert a public repository URL, immutable archive
 URL, or DOI unless such metadata is added in the release record.
 
+\paragraph*{Archive contents.}
+A thesis source snapshot should contain the tracked manuscript source, package
+source, dependency manifests or lockfiles, accepted report assets, and
+reproducibility records needed to rebuild the submitted copy. It should not
+embed local virtual environments, Julia depots, caches, editor state, or other
+machine-specific rebuild products such as \path{.venv/}. Those environments are
+recreated from the recorded manifests and commands. Full Git history is useful
+for a repository-history handoff, for example through a tagged repository or
+Git bundle, but it is not required inside an ordinary manuscript source
+archive. Large optional raw inputs such as XDMF/HDF5 resolved-flow bundles
+should remain separate from the thesis PDF/source archive unless a release plan
+explicitly assigns an external data archive, checksum record, and size budget.
+
 \paragraph*{AI-assisted drafting and code work.}
 Substantive AI assistance, including OpenAI ChatGPT and Codex, was used during
 preparation of this report and repository. That assistance included outlining
@@ -70,7 +83,7 @@ pipenv run ops-julia-check
 The Section~\ref{sec:case-study} verification tables are regenerated with:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify mms \
-  --nxs 50,100,200,400 \
+  --nxs 50,100,200,400,800,1600,3200 \
   --dt-values 2e-5,1e-5,5e-6,2.5e-6 \
   --tfinal 0.002 \
   --output-dir report/assets/tables/verification \
@@ -78,7 +91,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify mms \
 
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify rest \
   --severities 23,40 \
-  --nxs 100,200,400,800 \
+  --nxs 100,200,400,800,1600,3200 \
   --elapsed-times 0,0.001,0.01,0.1,1.0 \
   --output-dir report/assets/tables/verification \
   --overwrite
@@ -86,6 +99,12 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify rest \
 The rest command writes both the drift-history tables and the initial
 geometry-rest residual-component CSV/\TeX{} assets consumed in
 Section~\ref{subsec:rest-state-drift}.
+These timing choices are diagnostic-specific. The MMS run uses the short
+manufactured-solution horizon $t=0.002$ s. The zero-forcing rest-state run
+intentionally reports elapsed diagnostic times through $t=1.0$ s. The resolved
+velocity-comparison workflow below instead targets the imported final-time
+sample at $0.9995$ s for cases 77 and 60; this imported-data matching time is
+not substituted into the rest-state drift diagnostic.
 The additional method-sensitivity rest-state rows in
 Table~\ref{tab:rest-method-sensitivity} were generated as scratch experiments
 and then rendered into report CSV/\TeX{} fragments:
@@ -360,7 +379,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --output-dir tmp/simulations/output/3d_comparison/grid_sensitivity_severity23_severity40 \
   --target-time 0.9995 \
   --time-atol 1e-3 \
-  --nxs 200,400,800 \
+  --nxs 200,400,800,1600,3200 \
   --section-count 200 \
   --radial-bins 20 \
   --no-svg \
@@ -369,10 +388,14 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --grid-summary-tex report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex
 \end{lstlisting}
 The manuscript treats this as output-sensitivity evidence for the reported
-23\% and 40\% severity section means and physical flows. It does not change the
-matched-data boundary: wall, boundary, material, current-geometry, and
-transient-history metadata for the resolved cases remain unmatched or
-unpersisted.
+23\% and 40\% severity section means and physical flows, with $N=1600$ kept as
+the intermediate refinement and $N=3200$ as the finest reported grid. It does
+not change the matched-data boundary: wall, boundary, material,
+current-geometry, and transient-history metadata for the resolved cases remain
+unmatched or unpersisted. The target time $0.9995$ s is the imported-bundle
+matching time for this workflow; it is distinct from the $t=1.0$ s rest-state
+diagnostic and from the one-second native Section~4.1 benchmark target used in
+future native resolved-FSI reproduction planning.
 
 Package-benchmark assets are regenerated separately from the PDF:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
@@ -390,7 +413,7 @@ Those rows are secondary numerical diagnostics, not the principal
 comparison method.
 
 \paragraph*{Raw 3D inputs and manifest.}
-The raw upstream XDMF/HDF5 velocity inputs used for
+The raw upstream XDMF/HDF5 velocity, pressure, and displacement bundles used for
 Section~\ref{sec:resolved-3d-comparison} are not archived in this report
 package. The expected local input root is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]

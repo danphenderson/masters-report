@@ -208,18 +208,13 @@ than a transparent solver detail
 DeepONet and Fourier neural operators shift the ambition from one solution to a
 map between function spaces \cite{LuEtAl2021DeepONet,LiEtAl2021FNO}. Recent
 hemodynamics-specific neural differential and stenosed-vessel operator-learning
-work shows why such models are appealing for fast parameterized flow prediction.
-Csala and coauthors report lower error than a specified 1D FEM baseline and
-sub-1.2\% relative error against averaged 3D data within their declared
-train/test setting \cite{CsalaEtAl2025PCNDE}. Velikorodny and coauthors learn
-pressure and flow maps and then derive FFR in a simplified stenosis setting
-with 201 training and 68 test cases
-\cite{VelikorodnyEtAl2025DeepOperatorStenosed}. These are conditional
-dataset-level claims, not evidence of patient-specific or out-of-distribution
-clinical validity. Their open challenge is the same synthesis problem in a new
-form: the training distribution, geometry family, boundary inputs, wall and
-rheology assumptions, loss normalization, and validation observables must be
-declared before speed or fit can be interpreted as hemodynamic evidence.
+examples show the appeal of fast parameterized prediction, but their claims
+remain conditional on the declared train/test setting
+\cite{CsalaEtAl2025PCNDE,VelikorodnyEtAl2025DeepOperatorStenosed}. Their open
+challenge is the same synthesis problem in a new form: the training
+distribution, geometry family, boundary inputs, wall and rheology assumptions,
+loss normalization, and validation observables must be declared before speed or
+fit can be interpreted as hemodynamic evidence.
 
 \subsection{Role of the Idealized Stenosis Case Study}
 \label{subsec:synthesis-idealized-stenosis-case-study}

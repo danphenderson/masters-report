@@ -45,6 +45,22 @@ receipts.
 | Large/raw data | `public/var/data/simulations/**`, local XDMF/HDF5 resolved-3D inputs, future raw solver dumps or external datasets | Do not track unless the project owner approves Git LFS, DVC, or another archival policy. | Do not regenerate external raw inputs. Regenerate derived data only when regeneration is documented. | Delete only disposable local copies with known source or archive pointers. | Record source, checksum, and expected local path before relying on the data. Keep raw data out of ordinary commits until an archival strategy is approved. |
 | Stale or review-only artifacts | Root review handbacks, historical review notes, superseded local notes, one-off audit exports | Do not track unless intentionally retained as project documentation. | Do not regenerate. | Do not delete automatically. | Confirm the artifact is not referenced by TeX, README, AGENTS, appendix provenance, active review notes, or pending dirty work. Move or remove it in its own cleanup patch. |
 
+## Source Archive Packaging
+
+For a thesis/source handoff, package tracked source files, dependency manifests
+and lockfiles, accepted report-consumed assets, and the release/provenance
+records that identify the submitted copy. Do not package `.venv/`,
+`.julia_depot/`, build caches, editor state, or other local machine products;
+they are recreated from the recorded commands and manifests.
+
+Treat `.git/` as repository-history material, not as ordinary manuscript
+payload. Include history only when the handoff is explicitly a repository
+archive, such as a tagged Git remote or a Git bundle. If the handoff would exceed
+the intended size budget because of raw resolved-flow bundles, full histories, or
+local environments, split those materials into separate archives with explicit
+checksum and restoration notes rather than folding them into the thesis PDF or
+source package.
+
 ## Report Build Gates
 
 Use validation-only builds for ordinary report source review:

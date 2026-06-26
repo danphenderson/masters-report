@@ -36,6 +36,13 @@ traction or kinematic coupling
 Thus 0D, 1D, and 2D tiers are not simply alternative ``3D CFD methods''; they
 are reduced or coupled formulations with different native states and observation
 operators.
+Two closure axes should be kept separate from this dimensional label. The wall
+closure records whether the vessel is fixed, reduced through a pressure--area
+law, or solved as a structural FSI state. The coupling closure records whether a
+single vessel is isolated or connected to a 0D, 1D, or 3D tier through pressure,
+flow, traction, impedance, or characteristic data. Both axes are independent of
+the rheology law and both affect what a comparison can claim
+\cite{FormaggiaEtAl2003OneDimensionalBloodFlow,QuarteroniVeneziani2003GeometricalMultiscale,FormaggiaEtAl2007FSICoupling}.
 
 \subsection{Resolved 3D CFD and FSI Models}
 \label{subsec:resolved-reduced-model-tiers}
@@ -51,6 +58,10 @@ fields, recirculation, separation, and geometry-specific flow structures. A WSS
 quantity, for example, is not just a scalar label: it requires a stress tensor,
 wall normal, tangent projection convention, and surface output map
 \cite{JohnEtAl2017WallShearStressVectorForm}.
+Resolved FSI changes the wall state itself, not merely the list of reported
+diagnostics. A compliant 1D wall law remains a reduced pressure--area closure;
+it is not a substitute for wall displacement, wall velocity, structural stress,
+and interface-work variables carried by a resolved FSI solve.
 
 The resolved tier also contains distinct uses of ``three-dimensional'' data.
 Peskin's numerical analysis of blood flow in the heart is an early example in
@@ -87,7 +98,8 @@ models remain useful for sectional diagnostics and controlled comparisons only
 when their boundary conditions, rheology, wall treatment, and observable
 definitions are declared. Suppressed secondary flow, asymmetric geometry, and
 wall mechanics cannot later be recovered as native outputs unless an additional
-closure or observation operator supplies them.
+closure or observation operator supplies them
+\cite{GaldiEtAl2008HemodynamicalFlows,KopplHelmig2023DimensionReducedModeling}.
 
 \subsection{Distributed One-Dimensional Area--Flow Models}
 \label{subsec:distributed-one-dimensional-models}
@@ -106,6 +118,14 @@ It is therefore appropriate for single-vessel stenosis calculations when the
 target observables are area, flow, mean velocity, and reduced pressure, and
 when unavailable transverse flow, wall traction, and local stress fields are
 not required as native outputs.
+Those closures are distinct evidence dimensions: the state variables determine
+native outputs; the wall law controls area response and wave speed; profile,
+friction, and rheology choices control convective and dissipative terms; the
+stenosis treatment determines how narrowed geometry enters the balance law; and
+boundary and numerical choices determine the admissible comparison record.
+Tube-flow and hemorheology evidence are therefore used only as closure support,
+not as a license to report resolved local stresses from a reduced state
+\cite{PriesEtAl1992BloodViscosityTubeFlow,GaldiEtAl2008HemodynamicalFlows,KumarEtAl2019CarreauYasudaHemodynamics,LiuEtAl2021ICASRheology}.
 
 Stenosis-specific reductions also divide by observable. Pressure-loss formulas
 and pressure-drop reduced-order models, such as the Lyras--Lee pressure-drop
@@ -130,10 +150,13 @@ states and algebraic or ordinary-differential pressure--flow relations. The
 Shi--Lawford--Hose review is useful here because it treats 0D and 1D models as
 circulation models with explicit resistance, compliance, junction, and terminal
 assumptions, rather than as merely cheaper versions of resolved CFD
-\cite{ShiEtAl2011BloodFlowModelReview}. Their state variables are not local
-wall or velocity fields. In a single-vessel calculation, these models most
-often enter through inlet or outlet closure rather than as the main spatial
-solver.
+\cite{ShiEtAl2011BloodFlowModelReview,KopplHelmig2023DimensionReducedModeling,Wang2014BloodFlowNetworks}.
+Their state variables are not local wall or velocity fields. In a single-vessel
+calculation, these models most often enter through inlet or outlet closure
+rather than as the main spatial solver. They do not natively contain local
+stenosis geometry, an axial pressure-drop field, a velocity profile,
+recirculation, resolved WSS, or wall traction; each of those quantities would
+require an added spatial model or observation map.
 
 Geometrical multiscale models connect tiers, for example 3D--1D, 3D--0D, or
 1D--0D, through interface conditions that transfer pressure, flow, traction,
@@ -152,23 +175,19 @@ observable before agreement or disagreement has a mathematical meaning
 \subsection{Learned Surrogates, PINNs, and Operator Maps}
 \label{subsec:learned-surrogates-operator-maps}
 
-Surrogate and scientific-ML models add a second axis to the hierarchy. The
-general PINN framework constrains an approximate solution or inverse map with
-residual, boundary, data, and regularization terms, while hemodynamics-specific
-reviews ask how that framework translates to vascular flow settings
+Surrogate and scientific-ML models add a second axis to the hierarchy, but they
+do not remove the state, closure, and observable questions. A PINN constrains an
+approximate solution or inverse map with residual, boundary, data, and
+regularization terms, while hemodynamics-specific reviews ask how that framework
+translates to vascular flow settings
 \cite{RaissiEtAl2019PhysicsInformedNeuralNetworks,YuEtAl2026PINNHemodynamicsReview}.
 DeepONet and Fourier neural operators shift the claim from one computed
 solution to a learned map between functions or parameterized fields
-\cite{LuEtAl2021DeepONet,LiEtAl2021FNO}. Hemodynamics-specific neural
-differential and deep-operator examples then target reduced blood-flow or
-stenosed-vessel maps directly. Csala and coauthors report conditional error
-reductions in an idealized stenosis/waveform setting, while Velikorodny and
-coauthors derive FFR after learning pressure and flow maps in a simplified
-stenosis setting \cite{CsalaEtAl2025PCNDE,VelikorodnyEtAl2025DeepOperatorStenosed}.
-These learned categories do not remove the need to state the underlying model
-tier: every learned-model claim should identify its training target, input
-functions or parameters, output observable, geometry family, and evaluation
-domain.
+\cite{LuEtAl2021DeepONet,LiEtAl2021FNO}. Recent stenosis or blood-flow learning
+examples are therefore read only through their declared training target,
+input functions or parameters, output observable, geometry family, and
+evaluation domain
+\cite{CsalaEtAl2025PCNDE,VelikorodnyEtAl2025DeepOperatorStenosed}.
 
 \subsection{Native States and Cross-Tier Observation Maps}
 \label{subsec:native-states-observation-maps}

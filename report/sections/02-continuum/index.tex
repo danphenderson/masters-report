@@ -259,8 +259,12 @@ geometric averaging and closure choices
 \label{subsec:continuum-integral-weak-moving-forms}
 
 The continuum equations also determine which numerical form is being
-discretized. A finite-volume method starts from a control-volume balance: for a
-conserved state $U$, flux $F(U)$, source $S(U)$, and fixed control volume $K$,
+discretized. A strong or classical form states differential equations pointwise
+where the required derivatives exist. A weak or variational form tests the
+equations against admissible functions after integration by parts. An integral
+finite-volume form enforces balances on control volumes. A finite-volume method
+starts from such a control-volume balance: for a conserved state $U$, flux
+$F(U)$, source $S(U)$, and fixed control volume $K$,
 \begin{flalign*}
     \quad
     \frac{d}{dt}\int_K U\dx
@@ -302,7 +306,8 @@ interface also imposes kinematic and traction compatibility, schematically
     \vT_f\nhat_f+\vT_s\nhat_s=\zero. &&
 \end{flalign*}
 Appendix~\ref{app:continuum-derivation-details} records these as bridge
-forms, not as a completed discretization or solver claim.
+forms: compact continuum statements that identify what a later discretization
+would have to approximate, not completed solver claims.
 
 \subsection{Cross-Sectional Bridge to Area--Flow Models}
 \label{subsec:continuum-area-flow-bridge}
@@ -381,12 +386,16 @@ section-averaged axial balance has the structure
     \mathcal S_{\mathrm{body}},
     &&
 \end{flalign*}
-where $\bar p$ is a section pressure representative. The reduced model is
-therefore defined as much by its closures as by its conservation form:
-$\alpha$ and the friction term encode the assumed velocity profile and rheology,
-the pressure--area relation encodes wall mechanics, geometry terms encode axial
-variation of the reference radius or coordinate map, and inlet/outlet conditions
-close the finite vessel problem
+where $\bar p$ is a section pressure representative. The source labels name
+closure families: $\mathcal S_{\mathrm{wall}}$ collects wall-law or wall-motion
+effects, $\mathcal S_{\mathrm{fric}}$ collects profile and rheology-dependent
+friction, $\mathcal S_{\mathrm{geom}}$ collects reference-radius or coordinate
+variation terms, and $\mathcal S_{\mathrm{body}}$ denotes externally supplied
+body forcing when present. The reduced model is therefore defined as much by its
+closures as by its conservation form: $\alpha$ and the friction term encode the
+assumed velocity profile and rheology, the pressure--area relation encodes wall
+mechanics, geometry terms encode axial variation of the reference radius or
+coordinate map, and inlet/outlet conditions close the finite vessel problem
 \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,CanicEtAl2024Extended1DStenosis}.
 Formaggia, Lamponi, and Quarteroni also show why there is no single canonical
 area--flow system: different structural simplifications for the vessel wall

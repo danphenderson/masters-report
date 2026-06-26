@@ -4,8 +4,8 @@
 Blood-flow simulation sits between continuum mechanics, numerical analysis,
 and biomedical interpretation. A stenosis is a useful organizing example
 because a vessel narrowing changes velocity, pressure, wall loading, and
-downstream flow in ways that depend on the retained state and the observable
-being compared. A three-dimensional (3D) Navier--Stokes CFD model, an
+downstream flow in ways that depend on which variables a model retains and
+which quantity is being compared. A three-dimensional (3D) Navier--Stokes CFD model, an
 axisymmetric or two-dimensional (2D) reduction of that continuum description,
 a reduced one-dimensional (1D) area--flow model, and a lumped
 zero-dimensional (0D) outlet network therefore do not answer the same
@@ -15,6 +15,17 @@ pressure--flow measurements and coronary imaging studies distinguish lesion
 appearance from functional assessment
 \cite[p.~4401]{DerimayEtAl2021CoronaryStenosisObstruction}
 \cite[Abstract; Methods]{VanDenHoogenEtAl2022CoronaryLesionCTA}.
+
+The report uses a small set of terms in that specific sense. The
+\emph{retained state} is the collection of variables advanced or constrained by
+the formulation itself. A \emph{native observable} is computed directly from
+that retained state. A \emph{closure} is a modeling assumption that supplies
+unresolved physics, geometry, material behavior, profile information, or
+boundary data. An \emph{observation operator} maps a continuum field or reduced
+state to a reported scalar, curve, table entry, or discrepancy metric. An
+\emph{evidence standard} names the kind of support being claimed, such as
+derivation, verification, benchmark comparison, reproducibility, or external
+validation.
 
 This report develops a review framework for reading mathematical blood-flow
 results across model tiers. It organizes the literature around the ingredients
@@ -36,38 +47,55 @@ support bounded claims.
 
 \begin{table}[!htb]
     \centering
-    \small
-    \caption{Primary source roles used in the narrative review.}
+    \scriptsize
+    \caption{Source roles mapped to the review questions and claim boundaries.}
     \label{tab:intro-source-roles}
     \begin{tabularx}{\textwidth}{@{}
-        >{\raggedright\arraybackslash}p{0.24\textwidth}
-        >{\raggedright\arraybackslash}p{0.34\textwidth}
+        >{\raggedright\arraybackslash}p{0.19\textwidth}
+        >{\raggedright\arraybackslash}p{0.18\textwidth}
+        >{\raggedright\arraybackslash}p{0.25\textwidth}
         >{\raggedright\arraybackslash}X@{}}
         \toprule
-        \textbf{Source role} & \textbf{What it supports} & \textbf{Representative use} \\
+        \textbf{Source role} & \textbf{Research-question support} & \textbf{Claim type supported} & \textbf{Limitation} \\
         \midrule
         Derivation and theory
-            & Governing equations, reductions, wall laws, coupling assumptions.
-            & Continuum-to-1D reductions and multiscale coupling
-            \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,QuarteroniVeneziani2003GeometricalMultiscale}. \\
+            & RQ1, RQ2.
+            & Governing equations, reductions, wall laws, and coupling assumptions
+            \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,QuarteroniVeneziani2003GeometricalMultiscale}.
+            & Does not by itself establish implementation correctness or physical
+            validation for a new case. \\
         Review and taxonomy
-            & Model classes, state variables, and clinical or numerical context.
-            & 0D/1D hierarchy and pressure--flow network interpretation
-            \cite{ShiEtAl2011BloodFlowModelReview}. \\
+            & RQ1, RQ3.
+            & Model classes, state variables, pressure--flow network context, and
+            terminology
+            \cite{ShiEtAl2011BloodFlowModelReview}.
+            & A taxonomy does not make tiers equivalent or rank them by accuracy. \\
         Numerical benchmark or reproducibility study
-            & Scheme comparison, reproducibility comparison, and inspectable numerical setup.
-            & 1D benchmark cases and open finite-volume solvers
-            \cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}. \\
+            & RQ2, RQ3.
+            & Scheme comparison, reproducibility comparison, and inspectable numerical setup
+            \cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}.
+            & Benchmark agreement is not external validation unless the observable,
+            model, and accepted reference match the target claim. \\
         Clinical or experimental observable
-            & External meaning of pressure ratios, anatomy/function distinction,
-            and measured wall or flow quantities.
-            & Angiographic versus functional stenosis assessment
-            \cite{ToninoEtAl2010FAMEAngioFunctional,Blanco2018FFR1D3D}. \\
+            & RQ2, RQ3.
+            & External meaning of pressure ratios, anatomy/function distinction, and
+            measured wall or flow quantities
+            \cite{ToninoEtAl2010FAMEAngioFunctional,Blanco2018FFR1D3D}.
+            & Clinical relevance does not automatically transfer to the idealized
+            case study without matched data and observation conventions. \\
         Learned-model study
-            & Performance within a declared training target, geometry family, and
-            output observable.
-            & PINN, neural differential, and operator-learning scope limits
-            \cite{YuEtAl2026PINNHemodynamicsReview}. \\
+            & RQ1, RQ3.
+            & Performance within a declared training target, geometry family, and output
+            observable
+            \cite{YuEtAl2026PINNHemodynamicsReview}.
+            & Fit or speed is bounded by the training distribution and validation
+            observable. \\
+        Source and reproducibility record
+            & RQ3.
+            & Source identity, build commands, raw-input boundaries, and generated-asset
+            provenance.
+            & Traceability supports reviewability; it is not a substitute for numerical
+            accuracy or validation evidence. \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -108,16 +136,13 @@ review-oriented questions:
 \label{subsec:intro-notation-guide}
 \label{subsec:report-organization}
 
-The report proceeds in two stages. Sections~\ref{sec:continuum-description}--%
-\ref{sec:literature-synthesis} build the reading framework by fixing the
-continuum vocabulary, comparing model tiers, making closure and observable
-choices explicit, and separating numerical evidence categories that are often
-blurred together in hemodynamics. Section~\ref{sec:case-study} then uses an
-idealized stenosis example to show how those distinctions matter in practice:
-the model, boundary approximation, discretization, verification evidence, and
-1D--3D observation rule are specified before any comparison is interpreted. The
-final discussion returns from that example to the review questions and states
-the bounded methodological contribution directly.
+The report proceeds from framework to worked example. Sections~\ref{sec:continuum-description}--%
+\ref{sec:literature-synthesis} define continuum vocabulary, compare model tiers,
+make closure and observable choices explicit, and separate numerical evidence
+categories. Section~\ref{sec:case-study} then applies those distinctions to an
+idealized stenosis example by specifying the model, boundary approximation,
+discretization, verification evidence, and 1D--3D observation rule before
+interpreting any comparison. The final discussion returns to RQ1--RQ3.
 
 The main continuum symbols are used in their standard units unless a generated
 numerical table states otherwise: $\rho$ denotes density, $u_z$ axial velocity,
@@ -129,7 +154,3 @@ $a=R^2$ and $q=Q_{\mathrm{phys}}/\pi$. Thus
 $A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and the section-mean
 velocity is $\bar u=q/a$. Appendix~\ref{app:domain-specific-notation} collects
 the full symbol and unit table used by the report.
-
-The rest of the manuscript follows that sequence: continuum definitions,
-model hierarchy, closure choices, numerical evidence, synthesis, case-study
-application, and integrated discussion.
