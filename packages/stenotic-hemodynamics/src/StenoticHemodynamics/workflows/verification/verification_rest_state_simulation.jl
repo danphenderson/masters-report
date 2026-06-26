@@ -205,6 +205,7 @@ function rest_state_residual_components(params::Params)
     cache = RHSCache(nx)
     fill_method_fluxes!(cache.area_flux, cache.flow_flux, A, Q, z, dx, params.dt, 0.0, params.space, params, cache)
     fill_source!(cache.source, A, Q, z, dx, params)
+    apply_geometry_rest_well_balanced_source!(cache.source, z, dx, 0.0, params.space, params)
 
     mass_flux = Vector{Float64}(undef, nx)
     elastic_flux_difference = Vector{Float64}(undef, nx)

@@ -13,7 +13,7 @@ function print_simulate_usage(io::IO = stdout)
           --tfinal VALUE          Final time in seconds, default 1.0
           --dt VALUE              Maximum time step, default 1e-5
           --cfl VALUE             CFL limit, default 0.45
-          --space VALUE           fv-first-order, fv-muscl, fv-weno3, fv-lax-wendroff, or dg
+          --space VALUE           fv-first-order, fv-muscl, fv-wb-geometry-rest, fv-weno3, fv-lax-wendroff, or dg
           --degree VALUE          DG polynomial degree 0 through 4
           --limiter VALUE         TVD limiter: minmod or van-leer, default minmod
           --time-stepper VALUE    euler, ssprk2, ssprk3, or ssprk54

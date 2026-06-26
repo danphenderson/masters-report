@@ -43,6 +43,7 @@ function fill_rhs_dt!(
 
     fill_method_fluxes!(FA, FQ, A, Q, z, dx, dt, t, p.space, p, cache)
     fill_source!(source, A, Q, z, dx, p)
+    apply_geometry_rest_well_balanced_source!(source, z, dx, t, p.space, p)
 
     for i in 1:nx
         dA[i] = -(FA[i + 1] - FA[i]) / dx
@@ -54,6 +55,50 @@ function fill_rhs_dt!(
     end
 
     return dA, dQ
+end
+
+function apply_geometry_rest_well_balanced_source!(
+    source::AbstractVector{Float64},
+    z::AbstractVector{Float64},
+    dx::Float64,
+    t::Float64,
+    method::AbstractSpatialMethod,
+    p::Params,
+)
+    _ = source
+    _ = z
+    _ = dx
+    _ = t
+    _ = method
+    _ = p
+    return source
+end
+
+function apply_geometry_rest_well_balanced_source!(
+    source::AbstractVector{Float64},
+    z::AbstractVector{Float64},
+    dx::Float64,
+    t::Float64,
+    method::FVGeometryRestWellBalancedMethod,
+    p::Params,
+)
+    p.forcing isa NoForcing || return source
+
+    Aeq = geometry_rest_cell_areas(z, p)
+    Qeq = zeros(Float64, length(Aeq))
+    eq_source = similar(source)
+    eq_area_flux = zeros(Float64, length(Aeq) + 1)
+    eq_flow_flux = zeros(Float64, length(Aeq) + 1)
+    eq_cache = RHSCache(length(Aeq))
+
+    fill_source!(eq_source, Aeq, Qeq, z, dx, p)
+    fill_method_fluxes!(eq_area_flux, eq_flow_flux, Aeq, Qeq, z, dx, 0.0, t, method, p, eq_cache)
+
+    for i in eachindex(source)
+        source[i] += (eq_flow_flux[i + 1] - eq_flow_flux[i]) / dx - eq_source[i]
+    end
+
+    return source
 end
 
 function rhs(A::AbstractVector{Float64}, Q::AbstractVector{Float64}, z::AbstractVector{Float64}, dx::Float64, p::Params)
