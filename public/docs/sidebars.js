@@ -42,7 +42,7 @@ const sidebars = {
       type: 'category',
       label: 'Handoffs and release',
       collapsed: true,
-      items: ['agent-workflows', 'publication-readiness', 'policy-vocabulary', 'docs-site-publishing', 'executive-assessment'],
+      items: ['agent-workflows', 'publication-readiness', 'policy-vocabulary', 'docs-site-publishing'],
     },
     {
       type: 'category',

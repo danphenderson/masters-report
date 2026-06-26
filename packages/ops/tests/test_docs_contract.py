@@ -77,12 +77,8 @@ def test_docs_index_does_not_link_archived_executive_assessment() -> None:
     assert "](executive-assessment.md)" not in text
 
 
-def test_archived_executive_assessment_declares_audited_tree_state() -> None:
-    text = (repo_root() / "public/docs/markdown/executive-assessment.md").read_text(encoding="utf-8")
-
-    assert "# Archived Executive Assessment" in text
-    assert "Repository state evaluated: `main...origin/main [ahead 4]` with a dirty working" in text
-    assert "## Repository State Evaluated" in text
+def test_executive_assessment_page_is_removed() -> None:
+    assert not (repo_root() / "public/docs/markdown/executive-assessment.md").exists()
 
 
 def test_docs_contract_rejects_stale_active_paths(tmp_path: Path) -> None:

@@ -1,4 +1,4 @@
-# StenoticHemodynamics
+# Idealized Blood Flow Simulations
 
 [![Documentation](https://img.shields.io/badge/docs-online-176d72?logo=githubpages&logoColor=white)](https://danphenderson.github.io/masters-report/)
 
