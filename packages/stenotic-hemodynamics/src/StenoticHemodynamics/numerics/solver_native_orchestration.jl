@@ -115,7 +115,7 @@ function choose_dt_record_timestep!(
 )
     max_speed = 0.0
     if threaded
-        thread_count = Threads.maxthreadid()
+        thread_count = Threads.nthreads()
         max_speeds = zeros(Float64, thread_count)
         lambda_minus_min = fill(Inf, thread_count)
         lambda_minus_max = fill(-Inf, thread_count)
@@ -123,15 +123,18 @@ function choose_dt_record_timestep!(
         lambda_plus_max = fill(-Inf, thread_count)
         subcritical_margin_min = fill(Inf, thread_count)
 
-        Threads.@threads :static for i in eachindex(A)
-            tid = Threads.threadid()
-            lambda_minus, lambda_plus, _, _ = characteristic_speeds(A[i], Q[i], z[i], p)
-            max_speeds[tid] = max(max_speeds[tid], abs(lambda_minus), abs(lambda_plus))
-            lambda_minus_min[tid] = min(lambda_minus_min[tid], lambda_minus)
-            lambda_minus_max[tid] = max(lambda_minus_max[tid], lambda_minus)
-            lambda_plus_min[tid] = min(lambda_plus_min[tid], lambda_plus)
-            lambda_plus_max[tid] = max(lambda_plus_max[tid], lambda_plus)
-            subcritical_margin_min[tid] = min(subcritical_margin_min[tid], min(-lambda_minus, lambda_plus))
+        Threads.@threads :static for slot in 1:thread_count
+            lo = firstindex(A) + fld((slot - 1) * length(A), thread_count)
+            hi = firstindex(A) + fld(slot * length(A), thread_count) - 1
+            for i in lo:hi
+                lambda_minus, lambda_plus, _, _ = characteristic_speeds(A[i], Q[i], z[i], p)
+                max_speeds[slot] = max(max_speeds[slot], abs(lambda_minus), abs(lambda_plus))
+                lambda_minus_min[slot] = min(lambda_minus_min[slot], lambda_minus)
+                lambda_minus_max[slot] = max(lambda_minus_max[slot], lambda_minus)
+                lambda_plus_min[slot] = min(lambda_plus_min[slot], lambda_plus)
+                lambda_plus_max[slot] = max(lambda_plus_max[slot], lambda_plus)
+                subcritical_margin_min[slot] = min(subcritical_margin_min[slot], min(-lambda_minus, lambda_plus))
+            end
         end
 
         max_speed = maximum(max_speeds)
