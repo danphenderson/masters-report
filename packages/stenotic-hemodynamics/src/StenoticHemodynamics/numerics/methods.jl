@@ -60,6 +60,13 @@ end
 
 FVMUSCLMethod() = FVMUSCLMethod(MinmodLimiter())
 
+"""MUSCL finite-volume method balanced for the sampled geometry-rest state."""
+struct FVGeometryRestWellBalancedMethod{L<:AbstractLimiter} <: AbstractSpatialMethod
+    limiter::L
+end
+
+FVGeometryRestWellBalancedMethod() = FVGeometryRestWellBalancedMethod(MinmodLimiter())
+
 """Characteristic-wise third-order WENO finite-volume method with Rusanov flux."""
 struct FVWENO3Method <: AbstractSpatialMethod
     epsilon::Float64
@@ -101,6 +108,8 @@ limiter_name(::VanLeerLimiter) = "van-leer"
 
 spatial_method_name(::FVFirstOrderMethod) = "fv-first-order"
 spatial_method_name(method::FVMUSCLMethod) = "fv-muscl-$(limiter_name(method.limiter))"
+spatial_method_name(method::FVGeometryRestWellBalancedMethod) =
+    "fv-wb-geometry-rest-muscl-$(limiter_name(method.limiter))"
 spatial_method_name(::FVWENO3Method) = "fv-weno3"
 spatial_method_name(method::FVLaxWendroffMethod) = "fv-lax-wendroff-$(limiter_name(method.limiter))"
 spatial_method_name(method::DGMethod) = "dg-p$(method.degree)"
@@ -114,6 +123,7 @@ validate(::MinmodLimiter) = MinmodLimiter()
 validate(::VanLeerLimiter) = VanLeerLimiter()
 validate(::FVFirstOrderMethod) = FVFirstOrderMethod()
 validate(method::FVMUSCLMethod) = (validate(method.limiter); method)
+validate(method::FVGeometryRestWellBalancedMethod) = (validate(method.limiter); method)
 validate(method::FVWENO3Method) = (method.epsilon > 0.0 || throw(ArgumentError("WENO epsilon must be positive")); method)
 validate(method::FVLaxWendroffMethod) = (validate(method.limiter); method)
 validate(method::DGMethod) = (
@@ -166,6 +176,7 @@ their solver path.
 """
 method_family(::FVFirstOrderMethod) = :finite_volume
 method_family(::FVMUSCLMethod) = :finite_volume
+method_family(::FVGeometryRestWellBalancedMethod) = :finite_volume
 method_family(::FVWENO3Method) = :finite_volume
 method_family(::FVLaxWendroffMethod) = :finite_volume
 method_family(::DGMethod) = :discontinuous_galerkin

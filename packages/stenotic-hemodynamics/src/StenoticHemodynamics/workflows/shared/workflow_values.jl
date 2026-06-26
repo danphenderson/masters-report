@@ -67,6 +67,9 @@ function spatial_method_from_cli(values::Dict{String,String})
     elseif name in ("fv-muscl", "muscl")
         degree_was_set && throw(ArgumentError("--degree is only valid with --space dg"))
         return FVMUSCLMethod(limiter)
+    elseif name in ("fv-wb-geometry-rest", "wb-geometry-rest", "well-balanced-geometry-rest")
+        degree_was_set && throw(ArgumentError("--degree is only valid with --space dg"))
+        return FVGeometryRestWellBalancedMethod(limiter)
     elseif name in ("fv-weno3", "weno3")
         degree_was_set && throw(ArgumentError("--degree is only valid with --space dg"))
         return FVWENO3Method()
@@ -77,7 +80,7 @@ function spatial_method_from_cli(values::Dict{String,String})
         return DGMethod(degree)
     end
 
-    throw(ArgumentError("unknown spatial method '$name'; expected fv-first-order, fv-muscl, fv-weno3, fv-lax-wendroff, or dg"))
+    throw(ArgumentError("unknown spatial method '$name'; expected fv-first-order, fv-muscl, fv-wb-geometry-rest, fv-weno3, fv-lax-wendroff, or dg"))
 end
 
 function time_stepper_from_cli(values::Dict{String,String})

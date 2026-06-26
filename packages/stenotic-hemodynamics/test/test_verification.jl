@@ -57,6 +57,31 @@ struct RestStateFailingBackend <: AbstractTimeBackend end
     @test isfinite(lax_residual.total_flow_residual_max_abs)
 end
 
+@testset "StenoticHemodynamics geometry-rest well-balanced finite volume" begin
+    params = Params(
+        nx=16,
+        tfinal=2.0e-5,
+        dt=1.0e-5,
+        severity=23.0,
+        initial_condition=GeometryRestIC(),
+        forcing=NoForcing(),
+        inlet_umax=0.0,
+        space=FVGeometryRestWellBalancedMethod(),
+    )
+    initial = StenoticHemodynamics.initial_state_result(params)
+    dA, dQ = StenoticHemodynamics.rhs_dt(initial.area, initial.flow, initial.z, initial.dx, 0.0, params)
+    @test maximum(abs.(dA)) <= 1.0e-10
+    @test maximum(abs.(dQ)) <= 1.0e-7
+
+    residual = StenoticHemodynamics.rest_state_residual_components(params)
+    @test residual.total_area_residual_max_abs <= 1.0e-10
+    @test residual.total_flow_residual_max_abs <= 1.0e-7
+
+    result = simulate(params)
+    @test maximum(abs.(result.area .- initial.area)) <= 1.0e-12
+    @test maximum(abs.(result.flow)) <= 1.0e-10
+end
+
 @testset "StenoticHemodynamics verification runners" begin
     mktempdir() do dir
         default_mms_spec = StenoticHemodynamics.ManufacturedVerificationSpec()
@@ -346,6 +371,32 @@ end
         @test occursin("final balance residual", read(drift.summary_tex, String))
         @test occursin("R_q^{\\mathrm{tot}}", read(drift.residual_tex, String))
         @test occursin("final balance residual", read(replace(drift.summary_tex, r"\\.tex$" => "_full.tex"), String))
+
+        balanced_drift = StenoticHemodynamics.run_rest_state_drift(StenoticHemodynamics.RestStateDriftSpec(;
+            output_dir=joinpath(dir, "balanced-rest-state"),
+            base_params=Params(
+                nx=8,
+                tfinal=1.0e-5,
+                dt=1.0e-5,
+                severity=23.0,
+                initial_condition=GeometryRestIC(),
+                forcing=NoForcing(),
+                inlet_umax=0.0,
+                space=FVGeometryRestWellBalancedMethod(),
+            ),
+            severities=[23.0],
+            nxs=[8],
+            elapsed_times=[0.0, 1.0e-5],
+            overwrite=true,
+        ))
+        @test isfile(balanced_drift.summary_csv)
+        @test isfile(balanced_drift.residual_csv)
+        @test all(row.status == "ok" for row in balanced_drift.rows)
+        @test all(row.max_abs_q <= 1.0e-10 for row in balanced_drift.rows)
+        @test all(row.max_abs_area_drift <= 1.0e-12 for row in balanced_drift.rows)
+        @test all(row.total_area_residual_max_abs <= 1.0e-10 for row in balanced_drift.residual_rows)
+        @test all(row.total_flow_residual_max_abs <= 1.0e-7 for row in balanced_drift.residual_rows)
+        @test occursin("total_flow_residual_max_abs", read(balanced_drift.residual_csv, String))
 
         failing_drift = StenoticHemodynamics.run_rest_state_drift(StenoticHemodynamics.RestStateDriftSpec(;
             output_dir=joinpath(dir, "failing-rest-state"),

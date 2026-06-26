@@ -199,6 +199,7 @@ context.
         \midrule
         Spatial & First-order finite-volume Rusanov & Low-order cell-average baseline and DG $p=0$ bridge. \\
         Spatial & MUSCL finite volume, minmod limiter, Rusanov flux & Principal 23\% and 40\% stenosis comparison method and main verification target. \\
+        Spatial & Geometry-rest-balanced MUSCL finite volume & Opt-in method-development diagnostic for the sampled zero-flow geometry-rest family; not the historical comparison method. \\
         Spatial & Characteristic WENO3 and Richtmyer/Lax--Wendroff finite volume & Native sensitivity and diagnostic paths, not principal comparison methods. \\
         Spatial & Modal Legendre DG degrees $p=0,\ldots,4$ & Secondary native-DG surface; selected benchmark rows may use only subsets such as $p=0,1,2$. \\
         Time & Forward Euler, SSPRK2, SSPRK3, SSPRK54, and selected integrator wrappers & Native SSPRK3 is selected for the principal comparison; other integrators are diagnostic context. \\
@@ -667,6 +668,24 @@ This operator is not an exactly well-balanced discretization of the
 geometry-rest state. At $q_i=0$ with spatially varying $a_i=R_0(z_i)^2$, the
 Rusanov mass-flux viscosity generally contributes a nonzero discrete residual
 unless an equilibrium reconstruction or path-conservative flux is added.
+
+The package now includes such a targeted opt-in finite-volume variant for the
+declared geometry-rest family. In that method, interface dissipation in the
+area equation is applied to
+\[
+    (a^+_{i+1/2}-a_0^+{}_{i+1/2})-
+    (a^-_{i+1/2}-a_0^-{}_{i+1/2}),
+    \qquad a_0(z)=R_0(z)^2,
+\]
+rather than to the raw reconstructed area jump. The momentum source is then
+shifted by the discrete residual of the sampled equilibrium so that, for
+zero-forcing and compatible zero-inlet boundary data, the discrete elastic flux
+difference and wall source cancel at $a=a_0$, $q=0$. Remaining nonzero values in
+the focused tests are therefore limited to floating-point roundoff and diagnostic
+formatting. This construction is intentionally narrower than a general
+path-conservative treatment for every stationary family: it preserves the named
+geometry-rest equilibrium used by the report diagnostics and leaves the
+principal MUSCL/Rusanov comparator unchanged.
 
 \paragraph*{Rest-state compatibility detail.}
 Proposition~\ref{prop:selected-rest-state-compatibility} is a continuous

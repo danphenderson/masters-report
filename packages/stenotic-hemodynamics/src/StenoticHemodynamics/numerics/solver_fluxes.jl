@@ -62,6 +62,25 @@ function fill_method_fluxes!(
     dx::Float64,
     dt::Float64,
     t::Float64,
+    method::FVGeometryRestWellBalancedMethod,
+    p::Params,
+    cache::RHSCache,
+)
+    _ = dx
+    _ = dt
+    fill_geometry_rest_well_balanced_fluxes!(FA, FQ, A, Q, z, t, method.limiter, p, cache)
+    return FA, FQ
+end
+
+function fill_method_fluxes!(
+    FA::AbstractVector{Float64},
+    FQ::AbstractVector{Float64},
+    A::AbstractVector{Float64},
+    Q::AbstractVector{Float64},
+    z::AbstractVector{Float64},
+    dx::Float64,
+    dt::Float64,
+    t::Float64,
     method::FVMUSCLMethod,
     p::Params,
     cache::RHSCache,
@@ -132,6 +151,45 @@ function rusanov_flux(AL::Float64, QL::Float64, AR::Float64, QR::Float64, z::Flo
     smax = max(max_wave_speed(AL, QL, z, p), max_wave_speed(AR, QR, z, p))
     return (
         0.5 * (FAL + FAR) - 0.5 * smax * (AR - AL),
+        0.5 * (FQL + FQR) - 0.5 * smax * (QR - QL),
+    )
+end
+
+function geometry_rest_area(z::Float64, p::Params)
+    r0, _, _ = stenosis(z, p)
+    return r0^2
+end
+
+function geometry_rest_cell_areas(z::AbstractVector{Float64}, p::Params)
+    return [geometry_rest_area(zi, p) for zi in z]
+end
+
+function geometry_rest_boundary_states(p::Params)
+    return geometry_rest_area(0.0, p), 0.0, geometry_rest_area(p.length_cm, p), 0.0
+end
+
+function well_balanced_boundary_states(A::AbstractVector{Float64}, Q::AbstractVector{Float64}, p::Params, t::Float64)
+    if p.forcing isa NoForcing && isapprox(inlet_flow(p, t), 0.0; rtol=0.0, atol=10 * eps(Float64))
+        return geometry_rest_boundary_states(p)
+    end
+    return boundary_states(A, Q, p, t)
+end
+
+function geometry_rest_well_balanced_rusanov_flux(
+    AL::Float64,
+    QL::Float64,
+    AR::Float64,
+    QR::Float64,
+    ALeq::Float64,
+    AReq::Float64,
+    z::Float64,
+    p::Params,
+)
+    FAL, FQL = flux(AL, QL, z, p)
+    FAR, FQR = flux(AR, QR, z, p)
+    smax = max(max_wave_speed(AL, QL, z, p), max_wave_speed(AR, QR, z, p))
+    return (
+        0.5 * (FAL + FAR) - 0.5 * smax * ((AR - AReq) - (AL - ALeq)),
         0.5 * (FQL + FQR) - 0.5 * smax * (QR - QL),
     )
 end
@@ -343,6 +401,59 @@ function fill_muscl_rusanov_fluxes!(
         end
 
         FA[iface], FQ[iface] = rusanov_flux(AL, QL, AR, QR, zi, p)
+    end
+
+    return FA, FQ
+end
+
+function fill_geometry_rest_well_balanced_fluxes!(
+    FA::AbstractVector{Float64},
+    FQ::AbstractVector{Float64},
+    A::AbstractVector{Float64},
+    Q::AbstractVector{Float64},
+    z::AbstractVector{Float64},
+    t::Float64,
+    limiter::AbstractLimiter,
+    p::Params,
+    cache::RHSCache,
+)
+    slope_A = cell_slopes!(cache.area_slope, A, limiter)
+    slope_Q = cell_slopes!(cache.flow_slope, Q, limiter)
+    Aeq = geometry_rest_cell_areas(z, p)
+    slope_Aeq = cell_slopes(Aeq, limiter)
+    Ain, Qin, Aout, Qout = well_balanced_boundary_states(A, Q, p, t)
+    Aeq_in, Qeq_in, Aeq_out, Qeq_out = geometry_rest_boundary_states(p)
+    _ = Qeq_in
+    _ = Qeq_out
+
+    for iface in 1:(length(A) + 1)
+        if iface == 1
+            AL, QL = Ain, Qin
+            AR = reconstructed_area(A[begin], slope_A[begin], -1.0)
+            QR = reconstructed_flow(Q[begin], slope_Q[begin], -1.0)
+            ALeq = Aeq_in
+            AReq = reconstructed_area(Aeq[begin], slope_Aeq[begin], -1.0)
+            zi = 0.0
+        elseif iface == length(A) + 1
+            AL = reconstructed_area(A[end], slope_A[end], 1.0)
+            QL = reconstructed_flow(Q[end], slope_Q[end], 1.0)
+            AR, QR = Aout, Qout
+            ALeq = reconstructed_area(Aeq[end], slope_Aeq[end], 1.0)
+            AReq = Aeq_out
+            zi = p.length_cm
+        else
+            left = iface - 1
+            right = iface
+            AL = reconstructed_area(A[left], slope_A[left], 1.0)
+            QL = reconstructed_flow(Q[left], slope_Q[left], 1.0)
+            AR = reconstructed_area(A[right], slope_A[right], -1.0)
+            QR = reconstructed_flow(Q[right], slope_Q[right], -1.0)
+            ALeq = reconstructed_area(Aeq[left], slope_Aeq[left], 1.0)
+            AReq = reconstructed_area(Aeq[right], slope_Aeq[right], -1.0)
+            zi = 0.5 * (z[left] + z[right])
+        end
+
+        FA[iface], FQ[iface] = geometry_rest_well_balanced_rusanov_flux(AL, QL, AR, QR, ALeq, AReq, zi, p)
     end
 
     return FA, FQ
