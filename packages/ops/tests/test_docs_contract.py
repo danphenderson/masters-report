@@ -48,6 +48,10 @@ def test_validation_entrypoints_are_packaged_and_declared_in_pipfile() -> None:
     assert pyproject["project"]["scripts"]["ops-experiment"] == "ops.experiment_runner:main"
     assert pyproject["project"]["scripts"]["ops-julia-check"] == "ops.julia_check:main"
     assert pyproject["project"]["scripts"]["ops-release-check"] == "ops.release_check:main"
+    assert (
+        pipfile["scripts"]["docs-serve"]
+        == "sh -lc 'npm --prefix public/docs run docs:build && npm --prefix public/docs run docs:serve -- --port 3025'"
+    )
     assert pipfile["scripts"]["ops-experiment"] == "python -m ops.experiment_runner"
     assert pipfile["scripts"]["ops-julia-check"] == "python -m ops.julia_check"
     assert pipfile["scripts"]["ops-release-check"] == "python -m ops.release_check"

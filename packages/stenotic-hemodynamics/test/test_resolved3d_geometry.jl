@@ -249,6 +249,7 @@ end
         1.0e-5,
         "geometry-rest",
         "native",
+        "fv-muscl-minmod",
         "ok",
         "reference",
         0.5,
@@ -285,6 +286,7 @@ end
             1.0e-5,
             "geometry-rest",
             "native",
+            "fv-muscl-minmod",
             "ok",
             "reference",
             0.5,
@@ -514,6 +516,7 @@ end
             "dt_s",
             "initial_condition",
             "backend",
+            "spatial_method",
             "run_status",
             "coordinate_mode",
         ]
@@ -552,6 +555,7 @@ end
             @test parse(Float64, csv_row["dt_s"]) ≈ spec.base_params.dt
             @test csv_row["initial_condition"] == "geometry-rest"
             @test csv_row["backend"] == "native"
+            @test csv_row["spatial_method"] == "fv-muscl-minmod"
             @test csv_row["run_status"] == "ok"
             @test csv_row["coordinate_mode"] == "reference"
             @test parse(Float64, csv_row["time_atol_s"]) ≈ case_spec.time_atol
@@ -583,7 +587,7 @@ end
         @test "time_offset_s" in node_slab_report_header
         @test all(in(node_slab_report_header), time_columns)
         production_report_header = split(readline(production_report_path))
-        @test all(in(production_report_header), ["case", "dt_min", "cfl_max", "rhs_flow_max"])
+        @test all(in(production_report_header), ["case", "spatial_method", "dt_min", "cfl_max", "rhs_flow_max"])
 
         valid_sections = [row for row in result.section_rows if row.area_valid]
         @test !isempty(valid_sections)
@@ -646,7 +650,7 @@ end
             "aref_max_cm2",
         ]
         area_audit_values = split(area_audit_lines[2])
-        @test area_audit_values[1] == "23\\%"
+        @test area_audit_values[1] == "C23(22.56\\%)"
         @test parse(Int, area_audit_values[2]) == length(valid_sections)
         @test parse(Float64, area_audit_values[3]) >= 0.0
         @test parse(Float64, area_audit_values[6]) >= parse(Float64, area_audit_values[3])
@@ -748,7 +752,8 @@ end
         @test [parse(Int, row["nx"]) for row in rows] == [6, 8]
         @test all(row["case"] == "severity23" for row in rows)
         @test all(row["coordinate_mode"] == "reference" for row in rows)
-        @test all(row["severity"] == "23" for row in rows)
+        @test all(parse(Float64, row["severity"]) ≈ 22.555555555555554 for row in rows)
+        @test all(row["spatial_method"] == "fv-muscl-minmod" for row in rows)
         @test parse(Int, rows[1]["adjacent_from_nx"]) == 0
         @test parse(Int, rows[2]["adjacent_from_nx"]) == 6
         @test all(parse(Int, row["valid_section_count"]) > 0 for row in rows)
@@ -766,7 +771,7 @@ end
 
         tex = read(result.summary_tex, String)
         @test occursin("\\begin{tabular}", tex)
-        @test occursin("23\\% stenosis", tex)
+        @test occursin("C23 (22.56\\%)", tex)
         @test occursin(" & 8 & ", tex)
         table_rows = [line for line in split(tex, '\n') if occursin(" & ", line)]
         @test !isempty(table_rows)

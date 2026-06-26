@@ -28,6 +28,7 @@ function grid_sensitivity_summary_header()
         "dt_s",
         "initial_condition",
         "backend",
+        "spatial_method",
         "run_status",
         "coordinate_mode",
         "target_time_s",
@@ -62,7 +63,7 @@ end
 function grid_sensitivity_summary_values(row::GridSensitivitySummaryRow)
     return Any[
         row.case_label,
-        round(Int, row.severity),
+        row.severity,
         report_case_token(row.severity),
         row.operator,
         row.model,
@@ -70,6 +71,7 @@ function grid_sensitivity_summary_values(row::GridSensitivitySummaryRow)
         row.dt_s,
         row.initial_condition,
         row.backend,
+        row.spatial_method,
         row.run_status,
         row.coordinate_mode,
         row.target_time_s,
@@ -106,6 +108,7 @@ function read_grid_sensitivity_summary_csv(path::String)
     optional_columns = Set([
         "case",
         "coordinate_mode",
+        "spatial_method",
         "runtime_elapsed_s",
         "case_worker_count",
         "solver_thread_count",
@@ -136,6 +139,7 @@ function grid_sensitivity_summary_row_from_csv(row::Dict{String,String}, path::S
         required_csv_float(row, "dt_s", path, line_number),
         required_csv_string(row, "initial_condition", path, line_number),
         required_csv_string(row, "backend", path, line_number),
+        get(row, "spatial_method", "not-recorded"),
         required_csv_string(row, "run_status", path, line_number),
         get(row, "coordinate_mode", "reference"),
         required_csv_float(row, "target_time_s", path, line_number),
@@ -234,7 +238,7 @@ function write_grid_sensitivity_summary_tex(
         println(io, raw"\midrule")
         for row in ordered_rows
             values = [
-                report_case_label_tex(row.severity),
+                report_case_label_tex(row.case_label, row.severity),
                 string(row.nx),
                 tex_number(row.mean_physical_flow_discrepancy_cm3_s),
                 tex_number(row.rms_physical_flow_discrepancy_cm3_s),

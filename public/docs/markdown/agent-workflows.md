@@ -241,7 +241,7 @@ report build only for `artifact-refresh` tasks that explicitly include
 - Use `public/docs/markdown/ops-tooling.md` for packaged Python support commands.
 - Use `public/docs/markdown/julia-cli-workflows.md` for Julia command workflows.
 - Use `public/docs/markdown/report-assets-and-provenance.md` before report asset refresh.
-- Use `public/docs/markdown/resolved3d-workflows.md` before optional resolved-3D work.
+- Use `public/docs/markdown/resolved3d-workflows.md` before resolved-3D work.
 - Use `public/docs/markdown/artifact-policy.md` before moving, deleting, regenerating, or
   publishing artifacts.
 - Use `public/docs/markdown/benchmark-pipeline.md` when generating package benchmark

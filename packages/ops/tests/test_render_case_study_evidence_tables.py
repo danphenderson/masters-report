@@ -21,7 +21,7 @@ RESIDUAL_HEADER = (
     "total_area_residual_max_abs,status,error_message\n"
 )
 COMPARE_HEADER = (
-    "case_label,severity,operator,model,nx,dt_s,initial_condition,backend,run_status,coordinate_mode,"
+    "case_label,severity,operator,model,nx,dt_s,initial_condition,backend,spatial_method,run_status,coordinate_mode,"
     "section_count,profile_count,mean_abs_discrepancy_cm_s,l2_velocity_discrepancy_cm_s,"
     "max_abs_discrepancy_cm_s,mean_relative_discrepancy,relative_l1_velocity_discrepancy,"
     "max_relative_discrepancy,relative_l2_velocity_discrepancy,mean_flow_abs_discrepancy_cm3_s,"
@@ -126,6 +126,7 @@ def compare_row(case_label: str, severity: str, dt: str, mean: str, rms: str, re
         dt,
         "geometry-rest",
         "native",
+        "fv-wb-geometry-rest-muscl-minmod",
         "ok",
         "reference",
         "200",

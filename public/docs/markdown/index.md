@@ -73,8 +73,8 @@ terms aligned with `public/docs/markdown/policy-vocabulary.md`.
   rules, and baseline validation gates.
 - [Report assets and provenance](report-assets-and-provenance.md): report asset directories,
   owning commands, TeX consumers, and refresh validation.
-- [Resolved-3D workflows](resolved3d-workflows.md): optional resolved-3D inputs, skip
-  behavior, comparison workflows, and publication boundaries.
+- [Resolved-3D workflows](resolved3d-workflows.md): tracked Canic resolved-3D
+  inputs, skip behavior, comparison workflows, and publication boundaries.
 - [Package benchmark pipeline](benchmark-pipeline.md): package benchmark profiles, outputs, and
   report-asset publication rules.
 - [Manuscript claim register](manuscript-claim-register.md): advisor-facing guide to

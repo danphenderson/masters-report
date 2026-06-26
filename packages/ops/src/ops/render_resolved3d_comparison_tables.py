@@ -17,7 +17,8 @@ COORDINATE_MODES = ("reference", "deformed")
 
 @dataclass(frozen=True)
 class CoordinateMetricRow:
-    severity: int
+    case_token: str
+    severity: float
     coordinate_mode: str
     mean_velocity_discrepancy: float
     rms_velocity_discrepancy: float
@@ -27,7 +28,8 @@ class CoordinateMetricRow:
 
 @dataclass(frozen=True)
 class RadialAuditRow:
-    severity: int
+    case_token: str
+    severity: float
     coordinate_mode: str
     slice_count: int
     radial_bin_count: str
@@ -86,19 +88,27 @@ def read_csv_table(path: Path) -> list[dict[str, str]]:
     return rows
 
 
-def severity_tokens(rows: Iterable[dict[str, str]]) -> list[int]:
-    tokens: set[int] = set()
+def case_tokens(rows: Iterable[dict[str, str]]) -> list[str]:
+    tokens: set[str] = set()
     for row in rows:
         for key in row:
             if key.startswith("discseverity"):
-                token = key.removeprefix("discseverity")
+                token = key.removeprefix("disc")
                 try:
-                    tokens.add(int(token))
+                    int(token.removeprefix("severity"))
                 except ValueError as exc:
                     raise ValueError(f"unsupported severity token in column '{key}'") from exc
+                tokens.add(token)
     if not tokens:
         raise ValueError("no discseverityXX columns found in section-quadrature input")
-    return sorted(tokens)
+    return sorted(tokens, key=lambda token: int(token.removeprefix("severity")))
+
+
+def default_token_severity(case_token: str) -> float:
+    try:
+        return float(int(case_token.removeprefix("severity")))
+    except ValueError as exc:
+        raise ValueError(f"unsupported case token '{case_token}'") from exc
 
 
 def mean(values: list[float]) -> float:
@@ -111,12 +121,14 @@ def rms(values: list[float]) -> float:
     return math.sqrt(mean([value * value for value in values]))
 
 
-def coordinate_metrics_for(path: Path, coordinate_mode: str) -> list[CoordinateMetricRow]:
+def coordinate_metrics_for(
+    path: Path, coordinate_mode: str, case_severities: dict[str, float]
+) -> list[CoordinateMetricRow]:
     rows = read_space_table(path)
     metrics: list[CoordinateMetricRow] = []
-    for severity in severity_tokens(rows):
-        velocity_key = f"discseverity{severity}"
-        flow_key = f"flowdiscseverity{severity}"
+    for case_token in case_tokens(rows):
+        velocity_key = f"disc{case_token}"
+        flow_key = f"flowdisc{case_token}"
         missing = [key for key in (velocity_key, flow_key) if key not in rows[0]]
         if missing:
             raise ValueError(f"{path} is missing required columns: {', '.join(missing)}")
@@ -124,7 +136,8 @@ def coordinate_metrics_for(path: Path, coordinate_mode: str) -> list[CoordinateM
         flow_values = [as_float(row[flow_key], field=flow_key, path=path) for row in rows]
         metrics.append(
             CoordinateMetricRow(
-                severity=severity,
+                case_token=case_token,
+                severity=case_severities.get(case_token, default_token_severity(case_token)),
                 coordinate_mode=coordinate_mode,
                 mean_velocity_discrepancy=mean(velocity_values),
                 rms_velocity_discrepancy=rms(velocity_values),
@@ -155,8 +168,10 @@ def fmt_summary_delta(value: float) -> str:
     return f"{value:.1f}" if abs(value) < 0.05 else f"{value:.3g}"
 
 
-def latex_case_label(severity: int) -> str:
-    return f"{severity}\\% stenosis"
+def latex_case_label(case_token: str, severity: float) -> str:
+    if case_token == "severity23" and not math.isclose(severity, 23.0, abs_tol=1.0e-9):
+        return f"C23 ({severity:.2f}\\%)"
+    return f"{int(round(severity))}\\% stenosis"
 
 
 def coordinate_mode_label(mode: str) -> str:
@@ -170,11 +185,11 @@ def coordinate_mode_table(rows: list[CoordinateMetricRow]) -> str:
         r"Case & Coordinates & $D_{u,1}$ & $D_{u,2}$ & $\max |d_u|$ & $D_{Q,1}$ \\",
         r"\midrule",
     ]
-    for row in sorted(rows, key=lambda item: (item.severity, item.coordinate_mode != "reference")):
+    for row in sorted(rows, key=lambda item: (item.severity, item.case_token, item.coordinate_mode != "reference")):
         lines.append(
             " & ".join(
                 [
-                    latex_case_label(row.severity),
+                    latex_case_label(row.case_token, row.severity),
                     coordinate_mode_label(row.coordinate_mode),
                     fmt_velocity_mean(row.mean_velocity_discrepancy),
                     fmt_velocity_rms(row.rms_velocity_discrepancy),
@@ -234,7 +249,8 @@ def radial_audit_for(path: Path) -> list[RadialAuditRow]:
         ]
         audit_rows.append(
             RadialAuditRow(
-                severity=severity,
+                case_token=group[0].get("case", f"severity{severity}"),
+                severity=as_float(group[0]["severity"], field="severity", path=path),
                 coordinate_mode=mode,
                 slice_count=len(slices),
                 radial_bin_count=",".join(bins),
@@ -255,11 +271,11 @@ def radial_audit_table(rows: list[RadialAuditRow]) -> str:
         r"Case & Coordinates & Slices & Bins & Summary delta & Audit result \\",
         r"\midrule",
     ]
-    for row in sorted(rows, key=lambda item: (item.severity, item.coordinate_mode != "reference")):
+    for row in sorted(rows, key=lambda item: (item.severity, item.case_token, item.coordinate_mode != "reference")):
         lines.append(
             " & ".join(
                 [
-                    latex_case_label(row.severity),
+                    latex_case_label(row.case_token, row.severity),
                     coordinate_mode_label(row.coordinate_mode),
                     str(row.slice_count),
                     row.radial_bin_count,
@@ -277,9 +293,15 @@ def render_tables(data_dir: Path, table_dir: Path) -> list[Path]:
     table_dir.mkdir(parents=True, exist_ok=True)
     coordinate_rows: list[CoordinateMetricRow] = []
     radial_rows: list[RadialAuditRow] = []
+    case_severities: dict[str, float] = {}
     for mode in COORDINATE_MODES:
-        coordinate_rows.extend(coordinate_metrics_for(data_dir / f"section-quadrature-{mode}.dat", mode))
-        radial_rows.extend(radial_audit_for(data_dir / f"radial-profile-audit-{mode}.csv"))
+        mode_radial_rows = radial_audit_for(data_dir / f"radial-profile-audit-{mode}.csv")
+        radial_rows.extend(mode_radial_rows)
+        case_severities.update({row.case_token: row.severity for row in mode_radial_rows})
+    for mode in COORDINATE_MODES:
+        coordinate_rows.extend(
+            coordinate_metrics_for(data_dir / f"section-quadrature-{mode}.dat", mode, case_severities)
+        )
 
     coordinate_path = table_dir / "coordinate_mode_comparison.tex"
     radial_path = table_dir / "radial_profile_audit.tex"

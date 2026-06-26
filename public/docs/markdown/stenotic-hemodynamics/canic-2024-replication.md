@@ -2,9 +2,9 @@
 
 This workflow compares local 1D model outputs with source-artifact bundles for
 Canic et al. 2024, Section 4.1, using original Julia implementations of the two
-1D models in this package and the authors' upstream 3D XDMF/HDF5 bundles as
-optional benchmark data. It is separate from the narrower `compare-3d` report
-comparator.
+1D models in this package and the tracked authors' upstream 3D XDMF/HDF5
+bundles as approved source-data inputs. It is separate from the narrower
+`compare-3d` report comparator.
 
 The workflow covers:
 
@@ -16,7 +16,7 @@ The workflow covers:
 
 It does not independently regenerate the authors' full 3D FSI benchmark. The
 upstream MATLAB and ParaView files are treated as external provenance and
-optional comparator material only; GPL-licensed source is not copied into this
+comparator material only; GPL-licensed source is not copied into this
 MIT-licensed package implementation.
 
 ## Raw Data Policy
@@ -100,7 +100,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication secti
   --overwrite
 ```
 
-Fast smoke with restored raw inputs:
+Fast smoke with tracked raw inputs:
 
 ```sh
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \

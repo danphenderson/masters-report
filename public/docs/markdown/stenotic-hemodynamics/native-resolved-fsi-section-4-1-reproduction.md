@@ -70,15 +70,15 @@ local operator evidence in separate tiers:
   still intentionally fails closed for public callers.
 - Observation artifacts: native/imported/parity rows are written to
   `section41_observations.csv` and summarized in
-  `section41_observation_summary.csv`. These rows are local optional-data
+  `section41_observation_summary.csv`. These rows are bounded local-data
   observation rows; pressure differences use the common Section 4.1
   outlet-quadrature gauge and remain diagnostic, not paper-grade native FSI
   reproduction evidence.
 
-External importer support is retained and supported. The optional upstream
+External importer support is retained and supported. The tracked Canic upstream
 XDMF/HDF5 velocity bundles, and explicitly supplied three-field bundles, remain
-valid inputs for local comparison workflows. Missing optional imported data
-must remain an expected skip, not a public-clone failure.
+valid inputs for local comparison workflows. Missing explicitly selected
+imported data must remain an expected skip, not a public-clone failure.
 
 ## Section 4.1 cases
 

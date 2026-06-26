@@ -157,6 +157,7 @@ function summarize_grid_sensitivity_case(case_run, comparison_result::Comparison
         case_run.params.dt,
         summary_row.initial_condition,
         summary_row.backend,
+        summary_row.spatial_method,
         summary_row.run_status,
         summary_row.coordinate_mode,
         case_run.case.target_time,

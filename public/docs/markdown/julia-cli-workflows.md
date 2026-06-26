@@ -31,13 +31,13 @@ assets.
 | `stokes refine` | Run stationary-Stokes initialization refinement. | Publish tables only when report verification assets are in scope. |
 | `fsi validate` | Run quasi-static or reduced dynamic membrane-FSI scratch workflows. | Keep wall profiles, histories, and manifests in scratch unless an explicit report-refresh lane promotes them. |
 | `fsi native-status` | Print native resolved-FSI production dry-run/status fields without running production. | Status-only; prints paths, guard status, boundary status, and imported-bundle status without writing solver outputs. |
-| `verify` | Run MMS, p/h refinement, or rest-state verification workflows. | Keep scratch outputs unless refreshing report verification tables or figures. |
-| `compare-3d` | Compare optional resolved-3D cases against 1D runs. | Skip when local data is absent; publish assets only in explicit scope. |
+| `verify` | Run MMS, p/h refinement, or rest-state verification workflows. | Secondary numerical-diagnostic outputs by default; keep scratch unless refreshing verification-only report tables or figures. |
+| `compare-3d` | Compare tracked Canic resolved-3D cases against 1D runs. | Skip when an explicit data root is missing; publish assets only in explicit scope. |
 | `operator-validation` | Validate cross-section quadrature on synthetic cuts. | Use for operator evidence and report tables when scoped. |
 | `benchmark` | Run package benchmark profiles. | Follow `public/docs/markdown/benchmark-pipeline.md`. |
 | `export-assets` | Export stenosis geometry/report CSV assets. | Follow report asset publication rules before rendering or staging outputs. |
 | `visualization export-web` | Convert resolved-FSI/resolved-3D XDMF/HDF5 bundles into static browser assets. | Keep exports in `tmp/simulations/output/visualization/**` unless curating a reviewed viewer demo. |
-| `canic-replication section41` | Compare local 1D outputs with Canic et al. 2024 Section 4.1 source artifacts for velocity, pressure observation rows, radial postprocessing, and 3D diagnostics. | Skip when local raw data is absent; publish assets only in an explicit manuscript lane. |
+| `canic-replication section41` | Compare local 1D outputs with Canic et al. 2024 Section 4.1 source artifacts for velocity, pressure observation rows, radial postprocessing, and 3D diagnostics. | Skip when an explicit data root is missing; publish assets only in an explicit manuscript lane. |
 
 There is intentionally no native resolved-FSI production, restart, resume, or
 parity execution CLI command in this round. `fsi native-status` is a status-only
@@ -186,7 +186,7 @@ viewer contract.
 
 Use `canic-replication section41` for the article-level Section 4.1
 source-artifact comparison workflow. It runs the local `canic-extended-1d` and
-`classical-parabolic-1d` models, compares them with optional upstream 3D
+`classical-parabolic-1d` models, compares them with the tracked upstream 3D
 velocity/pressure/displacement bundles for cases `77`, `60`, and `50`, writes a
 parameter audit, and records raw-input provenance.
 
@@ -197,7 +197,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication secti
   --data-root /tmp/missing-canic-section41
 ```
 
-Full source-artifact comparison after restoring raw inputs:
+Full source-artifact comparison using the tracked raw inputs:
 
 ```sh
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
@@ -235,15 +235,18 @@ pipenv run ops-experiment verify rest --severities 23,40 --nxs 50,100,200 --over
 ```
 
 Rest verification defaults to `--inlet-umax 0.0`. Ordinary `simulate` and
-`compare-3d` workflows default to the production inlet scale instead. Preserve
-that distinction in documentation and handbacks.
+`compare-3d` workflows default to the production inlet scale instead.  
+Use `simulate`/`compare-3d` for the primary thesis comparison lane; treat
+`verify ph-refinement` as the secondary DG diagnostic lane (with DG-space
+diagnostics and p/h convergence evidence) unless a handback explicitly scopes
+it into comparison narrative.
 
 ## Resolved-3D And Operator Workflows
 
 Use `compare-3d` and `operator-validation` through
-`public/docs/markdown/resolved3d-workflows.md`. That document defines optional data roots,
-skip behavior, grid sensitivity, `--reuse-grid-summary`, and report publication
-boundaries.
+`public/docs/markdown/resolved3d-workflows.md`. That document defines the
+tracked Canic data root, explicit missing-root skip behavior, grid sensitivity,
+`--reuse-grid-summary`, and report publication boundaries.
 
 ## Benchmark And Asset Export
 
@@ -272,5 +275,5 @@ pipenv run ops-build-report --outdir /tmp/masters-report-build --no-sync-final-p
   map and focused validation surfaces.
 - Use `public/docs/markdown/stenotic-hemodynamics/web-visualization.md` for browser
   visualization export and viewer checks.
-- Use `public/docs/markdown/resolved3d-workflows.md` for optional resolved-3D data.
+- Use `public/docs/markdown/resolved3d-workflows.md` for resolved-3D data.
 - Use `public/docs/markdown/benchmark-pipeline.md` for package benchmark outputs.

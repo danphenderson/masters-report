@@ -67,7 +67,7 @@ Prefer direct imperatives for procedure: `Run`, `Keep`, `Validate`, `Inspect`,
 - Use `public/docs/markdown/ops-tooling.md` for Python support commands and renderers.
 - Use `public/docs/markdown/julia-cli-workflows.md` for Julia CLI workflows.
 - Use `public/docs/markdown/report-assets-and-provenance.md` for report asset ownership.
-- Use `public/docs/markdown/resolved3d-workflows.md` for optional resolved-3D workflows.
+- Use `public/docs/markdown/resolved3d-workflows.md` for resolved-3D workflows.
 - Use `public/docs/markdown/benchmark-pipeline.md` when generating package benchmark
   outputs or report-consumed benchmark assets.
 - Use `public/docs/markdown/publication-readiness.md` before public export or release

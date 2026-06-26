@@ -63,8 +63,8 @@ Treat these files as required after a successful run:
   rows.
 - `manifest.json`: run provenance and output hash record.
 
-Treat missing required files as benchmark failure. Treat absent optional
-resolved-3D inputs under `public/var/data/simulations/canic_case3/` as skipped
+Treat missing required files as benchmark failure. Treat explicitly missing
+resolved-3D data roots or unavailable additional external bundles as skipped
 evidence rows in `resolved3d.csv`, not as failed execution.
 
 ## Report Asset Publication
@@ -108,7 +108,7 @@ refresh unless the task explicitly opens all three scopes.
 - Use `public/docs/markdown/julia-cli-workflows.md` for general Julia command usage.
 - Use `public/docs/markdown/report-assets-and-provenance.md` for benchmark asset
   ownership.
-- Use `public/docs/markdown/resolved3d-workflows.md` for optional resolved-3D rows.
+- Use `public/docs/markdown/resolved3d-workflows.md` for resolved-3D rows.
 - Use `public/docs/markdown/agent-workflows.md` for bounded handoffs involving benchmark
   review or artifact refresh.
 - Use `public/docs/markdown/publication-readiness.md` before publishing a release PDF or

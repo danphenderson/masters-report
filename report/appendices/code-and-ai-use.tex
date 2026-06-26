@@ -35,9 +35,11 @@ machine-specific rebuild products such as \path{.venv/}. Those environments are
 recreated from the recorded manifests and commands. Full Git history is useful
 for a repository-history handoff, for example through a tagged repository or
 Git bundle, but it is not required inside an ordinary manuscript source
-archive. Large optional raw inputs such as XDMF/HDF5 resolved-flow bundles
-should remain separate from the thesis PDF/source archive unless a release plan
-explicitly assigns an external data archive, checksum record, and size budget.
+archive. Large raw inputs should remain separate from the thesis PDF/source
+archive unless a release plan explicitly assigns a data archive, checksum
+record, and size budget. The retained Canic case3 XDMF/HDF5 bundle is tracked
+in this source package as source-data input with checksum provenance; it is not
+duplicated as a report asset.
 
 \paragraph*{AI-assisted drafting and code work.}
 Substantive AI assistance, including OpenAI ChatGPT and Codex, was used during
@@ -67,7 +69,7 @@ supplementary files outside the thesis PDF. The bounded claim register for the
 main editorial pass and its reader-facing guide are stored at:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 public/reproducibility/manuscript-claim-register.tsv
-public/docs/manuscript-claim-register.md
+public/docs/markdown/manuscript-claim-register.md
 \end{lstlisting}
 
 \paragraph*{Build command.}
@@ -154,12 +156,13 @@ native diagnostic timestep, while that flux requires a positive native
 timestep.
 The resolved-velocity comparison uses the 23\% and 40\% stenosis-severity
 descriptions in the main text. These correspond to local source IDs 77 and 60,
-respectively. The raw 3D fields are optional local inputs rather than archived
-thesis assets; the detailed input root and upstream pointer are recorded below.
+respectively. The retained raw 3D fields are tracked source-data inputs rather
+than report assets; the detailed input root and upstream pointer are recorded
+below.
 
 \paragraph*{Resolved-comparison reconstruction commands.}
-When the optional raw 3D inputs are restored locally, the generated comparison
-data are regenerated with:
+Using the tracked raw 3D input root, the generated comparison data are
+regenerated with:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
@@ -256,7 +259,7 @@ transient-history matching, not the final timestamp.
 The package also provides a separate source-based diagnostic comparison for Canic
 et al.\ Section~4.1. It is distinct from the main 23\%/40\% manuscript
 comparator above: it reconstructs local 1D outputs, compares section-mean
-velocity against restored upstream 3D bundles, emits outlet-gauge pressure
+velocity against tracked upstream 3D bundles, emits outlet-gauge pressure
 diagnostics, and writes parameter and upstream-provenance comparisons. The 50\%
 upstream bundle follows the same per-case final-time rule. Its rows remain
 diagnostic comparison output rather than replication evidence unless
@@ -300,7 +303,7 @@ policy landed, so they are current reproducibility diagnostic assets.
     \centering
     \scriptsize
     \caption{Current Canic Section~4.1 reproducibility comparison boundary.
-    Imported times are read from the restored XDMF bundles, and the default
+    Imported times are read from the tracked XDMF bundles, and the default
     local target time is the imported time for each case. Explicit global
     final-time overrides are recorded as intentional time mismatches when they
     differ outside the \(10^{-6}\,\mathrm{s}\) tolerance. Pressure diagnostics
@@ -337,7 +340,7 @@ policy landed, so they are current reproducibility diagnostic assets.
         Time alignment & imported, local target, and local completed times must agree within \(10^{-6}\,\mathrm{s}\) & required for replication evidence \\
         Pressure gauge & common Section~4.1 outlet-quadrature gauge is offset-tested and applied & diagnostic pressure differences only \\
         Parameter alignment & PDF Table~1 Young modulus differs from the upstream MATLAB control value & source-model limitation \\
-        Raw bundles & local XDMF/HDF5 inputs are restored under \path{public/var/data/simulations/canic_case3/} & optional regeneration input \\
+        Raw bundles & tracked XDMF/HDF5 source-data inputs live under \path{public/var/data/simulations/canic_case3/} with checksum provenance & regeneration input, not report asset \\
         \bottomrule
     \end{tabular}%
     }
@@ -371,11 +374,10 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics operator-validation \
 This run uses an in-memory tetrahedron with constant and affine axial fields.
 The package tests also include closed-form single-tetrahedron and disjoint
 two-tetrahedron cuts with independently computed areas and affine means. These
-checks are independent of the optional HDF5/XDMF velocity fields; they do not
+checks are independent of the raw HDF5/XDMF velocity fields; they do not
 validate the available resolved meshes.
 
-When the optional raw 3D inputs are available, the reported grid
-sensitivity is:
+Using the tracked raw 3D input root, the reported grid sensitivity is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
@@ -422,8 +424,8 @@ the retained Canic case3 labels. The input root is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 public/var/data/simulations/canic_case3/
 \end{lstlisting}
-When available, that directory is restored from this upstream repository,
-commit, and subtree:
+The retained directory was sourced from this upstream repository, commit, and
+subtree:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 https://github.com/qcutexu/Extended-1D-AQ-system
 056a9da2b36b480691f18025d242d2c00f6e7180
@@ -448,9 +450,10 @@ The release manifest is stored outside the thesis PDF:
 public/reproducibility/release-manifest.json
 \end{lstlisting}
 That manifest is release/provenance metadata, not a full report asset
-inventory. It records the build command, resolved-input availability, upstream
-3D input pointer, comparison reconstruction commands, and the absence of a declared
-public repository URL or archival DOI. The report-facing artifact inventory and
-command matrix are maintained in \path{public/docs/resolved3d-workflows.md}.
+inventory. It records the build command, tracked resolved-input convention,
+upstream 3D input pointer, comparison reconstruction commands, and the absence
+of a declared public repository URL or archival DOI. The report-facing artifact
+inventory and command matrix are maintained in
+\path{public/docs/markdown/resolved3d-workflows.md}.
 Per-run workflow manifests record SHA-256 output hashes when those workflows are
 regenerated.

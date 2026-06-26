@@ -143,5 +143,5 @@ Generated visualization data should normally stay under ignored scratch paths.
 Only curated, reviewed demo subsets should be copied into this package's
 `public/data/**` tree.
 
-See `../../public/docs/stenotic-hemodynamics/web-visualization.md` for the full
-schema, hosting, and validation contract.
+See `../../public/docs/markdown/stenotic-hemodynamics/web-visualization.md` for
+the full schema, hosting, and validation contract.

@@ -157,8 +157,8 @@ Use `public/docs/markdown/agent-workflows.md` for modes, profiles, and guardrail
 
 - `pipenv run ops-summarize-revision-evidence`: write compact revision-evidence
   summaries under `tmp/revision-evidence/summary` by default. It can read
-  rest-state CSVs, comparison roots, and optional resolved-3D data under
-  `public/var/data/simulations/canic_case3`.
+  rest-state CSVs, comparison roots, and the tracked Canic resolved-3D data
+  under `public/var/data/simulations/canic_case3`.
 
 Keep evidence summaries in ignored scratch paths unless a separate policy says
 they are report-consumed assets.
@@ -169,5 +169,5 @@ they are report-consumed assets.
 - Use `public/docs/markdown/report-builds.md` for report wrapper behavior.
 - Use `public/docs/markdown/report-assets-and-provenance.md` before rendering tracked
   report assets.
-- Use `public/docs/markdown/resolved3d-workflows.md` before using optional resolved-3D
+- Use `public/docs/markdown/resolved3d-workflows.md` before using resolved-3D
   inputs.

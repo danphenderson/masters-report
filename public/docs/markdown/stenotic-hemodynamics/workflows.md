@@ -3,8 +3,8 @@
 This page maps `packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/**`.
 Use it alongside [Julia CLI Workflows](../julia-cli-workflows.md): that page
 covers command syntax, while this hub names the package workflow families,
-entrypoints, artifact posture, optional-data behavior, and the narrowest useful
-validation surface for each family.
+entrypoints, artifact posture, data-dependency behavior, and the narrowest
+useful validation surface for each family.
 
 Plain one-off forward solves still enter through `simulate(params, backend)` or
 the `simulate` CLI command. The workflow files documented here are the study,
@@ -32,6 +32,12 @@ sit on top of that core solver path.
   - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_cli_studies.jl")'`
 
 ## Verification: MMS, Rest State, And P/H Refinement
+
+Primary thesis comparison workflows are the simulation and comparison families in this
+hub (`simulate` and `compare-3d`), which represent the publication-relevant
+evidence path.  
+DG verification commands here are secondary diagnostics for numerical robustness
+and are not the primary comparison lane.
 
 - Representative files:
   - [`packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification.jl`](https://github.com/danphenderson/masters-report/blob/main/packages/stenotic-hemodynamics/src/StenoticHemodynamics/workflows/verification/verification.jl)
@@ -98,7 +104,8 @@ fluid solve.
   - Renderer inputs for analytic, stationary-Stokes, and resolved-flow figure generation
 - Optional-data behavior:
   - Analytic and stationary-Stokes exports are self-contained
-  - Resolved-flow helper exports skip cleanly when optional local resolved-3D inputs are absent
+  - Resolved-flow helper exports skip cleanly when requested resolved-flow
+    intermediate inputs are absent
 - Focused validation command:
   - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_resolved3d_geometry.jl")'`
 
@@ -145,14 +152,14 @@ contract, skip behavior, and report publication boundaries.
     `report/assets/tables/canic-replication/**`
 - Optional-data behavior:
   - Depends on tracked upstream XDMF/HDF5 bundles for cases `77`, `60`, and `50`
-  - Missing raw inputs print `canic_replication_status,skipped_missing_data`
+  - Missing explicit data roots print `canic_replication_status,skipped_missing_data`
   - Upstream MATLAB code is provenance/comparator material only and is not
     copied into the package implementation
 - Focused validation command:
   - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_helpers.jl"); include("packages/stenotic-hemodynamics/test/test_canic_replication.jl")'`
 
 Use [Canic 2024 Section 4.1 Source-Artifact Comparison](canic-2024-replication.md) for
-raw-data restoration commands, output inventory, provenance policy, and
+raw-data source commands, output inventory, provenance policy, and
 parameter-audit caveats.
 
 ## Operator Validation
@@ -185,7 +192,8 @@ parameter-audit caveats.
   - Optional published benchmark tables under `report/assets/data/package-benchmark/**`
 - Optional-data behavior:
   - Core benchmark profiles are self-contained
-  - Optional resolved-3D rows remain skip-safe when local data is absent
+  - Resolved-3D benchmark rows remain skip-safe when an explicit data root is
+    unavailable
 - Focused validation command:
   - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_package_benchmark.jl")'`
 
@@ -292,7 +300,7 @@ production-scale Section 4.1 reproduction, monolithic ALE, clinical/patient
 validation, report-evidence promotion, and paper-grade native resolved-FSI
 Section 4.1 reproduction claims remain deferred. The separate
 `canic-replication section41` workflow owns the source-artifact Section 4.1
-comparison against restored upstream bundles.
+comparison against the tracked upstream bundles.
 
 ## Native Resolved-FSI Web Visualization Export
 

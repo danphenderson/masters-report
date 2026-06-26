@@ -24,6 +24,7 @@ ruff        = "==0.15.12"
 python_version = "3.13"
 
 [scripts]
+docs-serve = "sh -lc 'npm --prefix public/docs run docs:build && npm --prefix public/docs run docs:serve -- --port 3025'"
 ops-audit-references = "python -m ops.audit_references"
 ops-audit-report-prose = "python -m ops.audit_report_prose"
 ops-audit-tex-preamble = "python -m ops.audit_tex_preamble"

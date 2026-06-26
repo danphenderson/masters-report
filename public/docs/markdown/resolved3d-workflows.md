@@ -13,9 +13,9 @@ For the broader `StenoticHemodynamics` workflow map, including native
 resolved-FSI planning notes that stay inside package-owned schema/parity lanes,
 use `public/docs/markdown/stenotic-hemodynamics/workflows.md`.
 
-## Local Data Root
+## Tracked Data Root
 
-The default optional data root is:
+The default tracked data root is:
 
 ```text
 public/var/data/simulations/canic_case3/
@@ -45,7 +45,8 @@ public/var/data/simulations/canic_case3/50/displace.h5
 ```
 
 Keep other raw resolved-3D files ignored. The tracked Canic case3 files are
-bounded by the provenance and checksum record in
+source-data inputs, not `report/assets/**` files, and are bounded by the
+provenance and checksum record in
 `report/assets/data/canic-replication/canic-section41-provenance.json`. For
 local handoff checks, generate scratch checksum lists under `/tmp`, such as
 `/tmp/raw-3d-inputs-files.txt` and `/tmp/raw-3d-inputs-sha256.txt`; do not
@@ -53,7 +54,7 @@ commit those scratch audits.
 
 ## Comparison Workflow
 
-Run the default comparison only when local data is available:
+Run the default comparison against the tracked Canic data root:
 
 ```sh
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
@@ -62,9 +63,9 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --overwrite
 ```
 
-The command prints `compare_3d_status,skipped_missing_data` when required local
-inputs are absent. Treat that as an expected skip for public-clone validation.
-The explicit clean-clone skip check is:
+The command prints `compare_3d_status,skipped_missing_data` when the selected
+data root is missing required inputs. Treat that as an expected skip for
+explicit missing-root validation. The explicit skip check is:
 
 ```sh
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
@@ -266,18 +267,22 @@ pipenv run ops-render-stenosis-geometry-figures
 ```
 
 The renderer skips resolved-flow figures when no complete resolved velocity node
-CSV set is present. Treat skipped renders as expected when optional local data is
-absent.
+CSV set is present. Treat skipped renders as expected when the figure-refresh
+lane has not generated or retained those intermediate CSV inputs.
 
 ## Publication Boundaries
 
-- Do not track raw XDMF/HDF5 inputs.
+- Track only the approved Canic case3 XDMF/HDF5 input bundle under
+  `public/var/data/simulations/canic_case3/**`; keep any additional raw
+  resolved-3D inputs ignored unless a separate data-release policy approves
+  them.
 - Do not publish report assets unless the current TeX source consumes them.
 - Treat radial-profile audit rows as supplemental reproducibility artifacts,
   not promoted localization evidence.
 - Do not refresh `public/final-report.pdf` unless release publication is
   explicitly in scope.
-- Record skipped optional inputs in handbacks and PR summaries.
+- Record skipped explicit missing roots or unavailable additional inputs in
+  handbacks and PR summaries.
 
 ## Related Policies
 

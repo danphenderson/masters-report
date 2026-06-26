@@ -4,7 +4,7 @@ Publish this repository as a source tree only after the source, artifact, and
 reference boundaries pass review. Track Julia package code, tests, report
 source, bibliography metadata, and report-consumed derived assets. Keep
 generated final PDFs, third-party full-text references, local review notes,
-caches, and raw optional 3D inputs out of ordinary source commits.
+caches, and unapproved raw 3D inputs out of ordinary source commits.
 This source-tree candidate excludes `public/final-report.pdf` from tracking.
 Release-mode hygiene flags tracked final PDFs, so publish any rendered PDF only
 through a separate release-artifact lane.
@@ -13,7 +13,7 @@ Use validation-only report builds for ordinary source review. Use the full
 report build only when preparing a release artifact or intentionally refreshing
 `public/final-report.pdf`.
 Keep `public/reproducibility/release-manifest.json` as the release-provenance
-record for the validation command, current final-PDF hash, and optional raw
+record for the validation command, current final-PDF hash, and tracked Canic
 resolved-3D input convention.
 
 ## Public Export Rules
@@ -80,7 +80,7 @@ release PDF refresh is explicitly in scope.
   refresh behavior.
 - Use `public/docs/markdown/report-assets-and-provenance.md` before publishing generated
   report assets.
-- Use `public/docs/markdown/resolved3d-workflows.md` before relying on optional local
+- Use `public/docs/markdown/resolved3d-workflows.md` before relying on
   resolved-3D data.
 - Use `public/docs/markdown/benchmark-pipeline.md` before publishing benchmark-generated
   report assets.

@@ -255,7 +255,10 @@ def render_chatgpt_pro_prompt(*, archive_name: str, objective: str, manifest: di
             "Repo guardrails:",
             "- Treat the bundle as the latest provided working-tree evidence, not as a clean release unless the context says clean.",
             "- Preserve the source/artifact boundary described by the harness and repo policy docs.",
-            "- Do not assume ignored raw resolved-3D inputs, local caches, or private mirrors are present.",
+            (
+                "- Do not assume ignored raw resolved-3D inputs beyond the tracked Canic case3 bundle, "
+                "local caches, or private mirrors are present."
+            ),
             "- Treat excluded protected artifacts as unavailable for refresh or inspection unless explicitly included in the bundle.",
             "- Keep artifact-refresh, source-edit, report, Julia, references, and release lanes separate.",
             "",
@@ -264,7 +267,10 @@ def render_chatgpt_pro_prompt(*, archive_name: str, objective: str, manifest: di
             "",
             "Blocked-condition rules:",
             "- Stop and report if any listed required-reading file path is absent from the bundle.",
-            "- Stop and report if the task depends on ignored raw resolved-3D inputs, local caches, or private mirrors.",
+            (
+                "- Stop and report if the task depends on ignored raw resolved-3D inputs beyond the tracked "
+                "Canic case3 bundle, local caches, or private mirrors."
+            ),
             "- Stop and report if protected artifacts would need refresh without explicit artifact-refresh scope.",
             "- Stop and report any conflict between metadata/status/diff evidence and repo file evidence.",
         ]

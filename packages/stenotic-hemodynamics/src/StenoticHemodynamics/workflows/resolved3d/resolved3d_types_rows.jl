@@ -8,6 +8,7 @@ struct SectionComparisonRow
     dt_s::Float64
     initial_condition::String
     backend::String
+    spatial_method::String
     run_status::String
     coordinate_mode::String
     z_cm::Float64
@@ -51,6 +52,7 @@ struct RadialProfileRow
     dt_s::Float64
     initial_condition::String
     backend::String
+    spatial_method::String
     run_status::String
     coordinate_mode::String
     z_slice_cm::Float64
@@ -91,6 +93,7 @@ struct NodeSlabSensitivityRow
     dt_s::Float64
     initial_condition::String
     backend::String
+    spatial_method::String
     run_status::String
     coordinate_mode::String
     half_width_cm::Float64
@@ -121,6 +124,7 @@ struct ComparisonSummaryRow
     dt_s::Float64
     initial_condition::String
     backend::String
+    spatial_method::String
     run_status::String
     coordinate_mode::String
     section_count::Int
@@ -188,6 +192,7 @@ struct GridSensitivitySummaryRow
     dt_s::Float64
     initial_condition::String
     backend::String
+    spatial_method::String
     run_status::String
     coordinate_mode::String
     target_time_s::Float64

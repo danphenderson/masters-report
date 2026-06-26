@@ -43,27 +43,28 @@ pipenv run ops-experiment simulate --help
 
 ## Workflow Documentation
 
-- `../../public/docs/stenotic-hemodynamics/workflows.md`: public workflow hub
+- `../../public/docs/markdown/stenotic-hemodynamics/workflows.md`: public workflow hub
   for package studies, verification, validation, comparison, benchmark, and
   native resolved-FSI planning surfaces.
-- `../../public/docs/stenotic-hemodynamics/web-visualization.md`: static
+- `../../public/docs/markdown/stenotic-hemodynamics/web-visualization.md`: static
   browser visualization contract for `visualization export-web` and the Vite
   viewer.
-- `../../public/docs/julia-cli-workflows.md`: command-oriented Julia CLI guide.
-- `../../public/docs/resolved3d-workflows.md`: optional resolved-3D data root,
-  skip behavior, and report-asset publication boundaries.
-- `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-design.md`:
+- `../../public/docs/markdown/julia-cli-workflows.md`: command-oriented Julia CLI guide.
+- `../../public/docs/markdown/resolved3d-workflows.md`: tracked Canic
+  resolved-3D data root, skip behavior, and report-asset publication
+  boundaries.
+- `../../public/docs/markdown/stenotic-hemodynamics/native-resolved-fsi-design.md`:
   current native resolved-FSI tier split, sidecars, restart metadata, and
   deferred surfaces.
-- `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`:
+- `../../public/docs/markdown/stenotic-hemodynamics/native-resolved-fsi-section-4-1-reproduction.md`:
   bounded Section 4.1 generated-artifact and local observation-operator note.
-- `../../public/docs/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`:
+- `../../public/docs/markdown/stenotic-hemodynamics/native-resolved-fsi-restart-resume-design.md`:
   schema-v3 checkpoint metadata and qualified internal split-run resume only;
   public/default resume remains fail-closed.
-- `../../public/docs/stenotic-hemodynamics/section-4-1-production-validation-plan.md`:
+- `../../public/docs/markdown/stenotic-hemodynamics/section-4-1-production-validation-plan.md`:
   future production-scale evidence gates with optional imported-data parity
   skipped safely when local upstream bundles are absent.
-- `../../public/docs/stenotic-hemodynamics/canic-2024-replication.md`:
+- `../../public/docs/markdown/stenotic-hemodynamics/canic-2024-replication.md`:
   source-artifact comparison workflow for the Canic et al. 2024 Section 4.1
   numerical findings.
 
@@ -246,8 +247,8 @@ The severity-50 direct-bundle example above is an inspection/export example
 only. It uses the imported `1.4995` s bundle time and does not by itself
 establish Section 4.1 replication evidence.
 
-Canic et al. 2024 Section 4.1 source-artifact comparison when the upstream
-bundles are available:
+Canic et al. 2024 Section 4.1 source-artifact comparison using the tracked
+upstream bundles:
 
 ```bash
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
@@ -261,8 +262,9 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication secti
   --overwrite
 ```
 
-Without restored raw inputs, the same command family reports an expected
-`canic_replication_status,skipped_missing_data` skip instead of failing.
+With an explicitly missing data root, the same command family reports an
+expected `canic_replication_status,skipped_missing_data` skip instead of
+failing.
 By default, the local 1D solve targets the imported final time for each case:
 approximately `0.9995` s for cases `77` and `60`, and `1.4995` s for case
 `50`. Supplying `--tfinal` is an explicit global override; rows whose override

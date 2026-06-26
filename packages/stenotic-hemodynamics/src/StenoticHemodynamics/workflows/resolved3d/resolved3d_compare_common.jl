@@ -41,6 +41,7 @@ function resolved3d_run_fields(case::Resolved3DCaseSpec, params::Params, backend
         dt_s=params.dt,
         initial_condition=initial_condition_name(params.initial_condition),
         backend=backend_name(backend),
+        spatial_method=spatial_method_name(params.space),
         run_status="ok",
         time_atol_s=case.time_atol,
     )

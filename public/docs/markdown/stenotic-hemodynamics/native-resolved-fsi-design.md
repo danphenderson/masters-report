@@ -42,9 +42,9 @@ The implemented native resolved-FSI surface is split into these tiers:
 | Restart metadata | `native_resolved_fsi_read_restart_metadata(...)` validates current and legacy package-written restart metadata, including versioned `state_payload` audit data and schema-v3 durable checkpoints when present. | Schema-v3 checkpoints support qualified internal split-run resume only; `native_resolved_fsi_resume_partitioned_production(...)` still fails closed for public callers. |
 | Observation artifacts | Production parity writes `section41_observations.csv` and `section41_observation_summary.csv`. | Local velocity/pressure observation rows and optional imported-bundle comparison only; pressure discrepancies use the common Section 4.1 outlet-quadrature gauge and remain diagnostic, not clinical, FFR, or paper-grade native FSI reproduction evidence. |
 
-External importer support is retained. Legacy or explicitly supplied
-XDMF/HDF5 resolved-3D bundles still enter through the existing importer and
-remain skip-safe when optional local data is absent.
+External importer support is retained. Legacy, tracked Canic, or explicitly
+supplied XDMF/HDF5 resolved-3D bundles still enter through the existing importer
+and remain skip-safe when a selected data root is absent.
 
 ## Locked design choices
 

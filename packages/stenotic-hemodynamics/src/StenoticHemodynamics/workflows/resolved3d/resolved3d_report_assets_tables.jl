@@ -56,7 +56,7 @@ end
     write_report_production_diagnostics_dat(path, rows; overwrite=false)
 
 Write the report-facing production-diagnostics `.dat` table from comparison
-summary rows without changing the existing column order or filenames.
+summary rows.
 """
 function write_report_production_diagnostics_dat(
     path::String,
@@ -69,6 +69,7 @@ function write_report_production_diagnostics_dat(
             join(
                 [
                     "case",
+                    "spatial_method",
                     "dt_min",
                     "dt_max",
                     "cfl_max",
@@ -92,7 +93,8 @@ function write_report_production_diagnostics_dat(
                 io,
                 join(
                     report_fmt.([
-                        report_case_percent_tex(row.severity),
+                        report_case_dat_label(row.case_label, row.severity),
+                        row.spatial_method,
                         row.accepted_dt_min,
                         row.accepted_dt_max,
                         row.realized_cfl_max,
@@ -136,7 +138,7 @@ function write_report_area_audit_dat(
     base_params::Params;
     overwrite::Bool = false,
 )
-    cases = sort(collect(unique(row.severity for row in rows)))
+    cases = sort(collect(unique((row.case_label, row.severity) for row in rows)); by=case -> (case[2], case[1]))
     guarded_open_write(path, overwrite) do io
         headers = [
             "case",
@@ -151,9 +153,12 @@ function write_report_area_audit_dat(
             "aref_max_cm2",
         ]
         println(io, join(headers, " "))
-        for severity in cases
+        for (case_label, severity) in cases
             case_rows = [
-                row for row in rows if row.severity == severity && row.area_valid && isfinite(row.area_cm2)
+                row for row in rows if row.case_label == case_label &&
+                row.severity == severity &&
+                row.area_valid &&
+                isfinite(row.area_cm2)
             ]
             params = params_with(base_params; severity=severity)
             epsilons = Float64[]
@@ -169,7 +174,7 @@ function write_report_area_audit_dat(
                 end
             end
             values = Any[
-                report_case_percent_tex(severity),
+                report_case_dat_label(case_label, severity),
                 length(epsilons),
                 100.0 * minimum_or_nan(epsilons),
                 100.0 * median_or_nan(epsilons),

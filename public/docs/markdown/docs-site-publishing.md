@@ -9,24 +9,27 @@ source also lives under `public/docs/`, including `package.json`,
 
 ## Local Commands
 
-Run the docs site from the repository root:
+Install the docs dependencies from the repository root:
 
 ```sh
 npm --prefix public/docs ci
-npm --prefix public/docs run docs:build
 ```
 
-For local inspection, use:
+For the production preview, use:
 
 ```sh
-npm --prefix public/docs run docs:serve -- --port 3025
+pipenv run docs-serve
 ```
 
 Then open `http://localhost:3025/masters-report/`. The explicit port keeps the
 preview stable for browser screenshots and avoids colliding with other local
-development servers. `npm run docs:start` remains useful for live-editing the
-site when run from `public/docs/`, but the production preview should use the
-built `public/docs/build/` directory.
+development servers. The root `docs-serve` wrapper runs the production build
+and then serves `public/docs/build/`. For live-editing instead of the built
+preview, use:
+
+```sh
+npm --prefix public/docs run docs:start
+```
 
 The Docusaurus build reads `public/docs/markdown/**.md` directly. It does not
 copy the whole `public/` tree, so ignored simulation data, local logs, private

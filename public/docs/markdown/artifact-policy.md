@@ -21,7 +21,7 @@ receipts.
   checked.
 - Do not delete private reference mirrors merely because they appear duplicated.
 - Do not commit local environments, caches, scratch simulation outputs, LaTeX
-  byproducts, raw 3D data, or ignored experiment outputs.
+  byproducts, unapproved raw 3D data, or ignored experiment outputs.
 - Do not refresh `public/final-report.pdf` except through a passing report build
   gate and an explicitly scoped artifact-refresh or publication task.
 - Do not refresh report-consumed rendered assets unless the current TeX source
@@ -158,7 +158,7 @@ pipenv run ops-experiment benchmark --profile smoke \
 - Use `public/docs/markdown/ops-tooling.md` for audit and renderer commands.
 - Use `public/docs/markdown/julia-cli-workflows.md` for Julia workflow commands.
 - Use `public/docs/markdown/report-assets-and-provenance.md` before report asset refresh.
-- Use `public/docs/markdown/resolved3d-workflows.md` before optional resolved-3D work.
+- Use `public/docs/markdown/resolved3d-workflows.md` before resolved-3D work.
 - Use `public/docs/markdown/benchmark-pipeline.md` before generating package benchmark
   outputs or report-consumed benchmark assets.
 - Use `public/docs/markdown/publication-readiness.md` before public export or release

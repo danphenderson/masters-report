@@ -20,7 +20,7 @@ support/provenance even when they are absent from `consumed_inputs`.
 | `report/assets/tables/stenosis-comparison/**` | Comparison and operator-validation LaTeX tables. | `compare-3d` and `operator-validation`. | Owning workflow plus validation-only report build. |
 | `report/assets/data/canic-replication/**` | Canic Section 4.1 source-artifact comparison provenance, parameter audit, summary, section comparison, radial-velocity, and 3D diagnostic rows. | `canic-replication section41 --publish-report-assets`. | Focused Canic workflow tests, owning Julia command, and validation-only report build. |
 | `report/assets/tables/canic-replication/**` | Canic Section 4.1 source-artifact comparison summary and parameter-audit LaTeX fragments. | `canic-replication section41 --publish-report-assets`. | Focused Canic workflow tests, owning Julia command, and validation-only report build. |
-| `report/assets/data/stenosis-geometry/**` | Geometry, mesh, envelope, and resolved velocity node CSVs. | `export-assets` and optional resolved-3D exports. | Owning Julia workflow plus renderer checks. |
+| `report/assets/data/stenosis-geometry/**` | Geometry, mesh, envelope, and resolved velocity node CSVs. | `export-assets` and resolved-3D exports when a figure-refresh lane includes them. | Owning Julia workflow plus renderer checks. |
 | `report/assets/data/package-benchmark/**` | Published package benchmark CSVs and manifest. | `benchmark --publish-report-assets`. | Benchmark post-run checks plus validation-only report build. |
 | `report/assets/tables/package-benchmark/**` | Package benchmark summary table. | `ops-render-package-benchmark-figures`. | Renderer command plus validation-only report build. |
 | `report/assets/rendered/**` | Rendered PDF/PNG figures consumed by TeX. | Python renderers or manually scoped figure refresh. | Owning renderer plus validation-only report build. |
@@ -53,8 +53,10 @@ Use `rg` against `report/**/*.tex` when a consumer is unclear.
 - Refresh rendered assets only when the current TeX source consumes them and the
   task explicitly scopes the rendered path.
 - Keep ordinary run outputs under `tmp/**` or `tmp/simulations/output/**`.
-- Keep raw optional XDMF/HDF5 input checksum audits under `/tmp` unless a
-  separate data-release strategy is approved.
+- Keep raw XDMF/HDF5 inputs out of `report/assets/**`. The approved Canic case3
+  bundle lives under `public/var/data/simulations/canic_case3/**` as tracked
+  source data with checksum provenance; keep any scratch checksum audits under
+  `/tmp` unless a separate data-release strategy is approved.
 - Do not refresh `public/final-report.pdf` after an asset update unless release
   publication is explicitly in scope.
 

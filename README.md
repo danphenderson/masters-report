@@ -13,8 +13,10 @@ current report source and excludes final PDFs from source tracking. A local
 ignored `public/final-report.pdf` may exist as a release-artifact candidate, but
 ordinary report builds should write to scratch space unless the task explicitly
 refreshes that PDF. The repository does not track third-party full-text
-reference mirrors, private review notes, local caches, raw optional resolved-3D
-inputs, or ordinary simulation outputs.
+reference mirrors, private review notes, local caches, unapproved raw 3D data,
+or ordinary simulation outputs. The approved Canic case3 XDMF/HDF5 bundle is
+tracked as source data under `public/var/data/simulations/canic_case3/**` with
+checksum provenance.
 
 ## Prerequisites
 
@@ -23,8 +25,9 @@ inputs, or ordinary simulation outputs.
 - Python 3 with Pipenv for auxiliary report audits and figure renderers.
 - A TeX distribution with `latexmk` and `biber` for report builds.
 
-Optional resolved-3D comparison workflows require local XDMF/HDF5 inputs that
-are not tracked in this repository.
+Resolved-3D comparison workflows use the tracked Canic case3 XDMF/HDF5 source
+inputs. Additional external resolved-3D bundles remain out of ordinary source
+commits unless a separate data-release policy approves them.
 
 ## What Reproduces from a Clean Clone?
 
@@ -34,8 +37,8 @@ are not tracked in this repository.
 | Report build | Yes | Uses tracked TeX inputs and derived report assets; writes scratch outputs. |
 | Solver smoke simulation | Yes | Writes local output under the requested scratch path. |
 | Python audits and render helpers | Yes | Requires `PIPENV_VENV_IN_PROJECT=1 pipenv install --dev` first. |
-| Figure rendering | Mostly | Analytic and package-benchmark figures use tracked or locally generated inputs; some resolved-3D assets require optional local data. |
-| Full resolved-3D comparison | No | Requires untracked XDMF/HDF5 inputs under `public/var/data/simulations/canic_case3/`. |
+| Figure rendering | Mostly | Analytic and package-benchmark figures use tracked or locally generated inputs; retained Canic resolved-3D inputs are tracked, while additional external data remains optional. |
+| Full resolved-3D comparison | Yes | The approved Canic case3 XDMF/HDF5 bundle is tracked under `public/var/data/simulations/canic_case3/`; explicit missing-root checks still exercise skip behavior. |
 
 ## Reviewer Quick Start
 
@@ -142,7 +145,7 @@ pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-bu
 - [`public/docs/markdown/report-assets-and-provenance.md`](public/docs/markdown/report-assets-and-provenance.md):
   report asset ownership, TeX consumers, and refresh gates.
 - [`public/docs/markdown/resolved3d-workflows.md`](public/docs/markdown/resolved3d-workflows.md):
-  optional resolved-3D data, skip behavior, and publication boundaries.
+  tracked Canic resolved-3D data, skip behavior, and publication boundaries.
 - [`public/docs/markdown/artifact-policy.md`](public/docs/markdown/artifact-policy.md):
   artifact classes and cleanup guardrails.
 - [`public/docs/markdown/agent-workflows.md`](public/docs/markdown/agent-workflows.md): bounded
@@ -150,13 +153,15 @@ pipenv run ops-release-check --mode patch --report-outdir /tmp/masters-report-bu
 - [`public/docs/markdown/publication-readiness.md`](public/docs/markdown/publication-readiness.md):
   public export and release checks.
 
-## Optional Resolved-3D Inputs
+## Resolved-3D Source Inputs
 
-Resolved-3D XDMF/HDF5 inputs under `public/var/data/simulations/canic_case3/` are
-intentionally untracked. Workflows that depend on them either skip cleanly or
-emit skipped rows when the files are absent. Published report assets derived
-from available resolved-3D inputs are tracked only when consumed by the TeX
-source.
+The approved Canic case3 XDMF/HDF5 inputs under
+`public/var/data/simulations/canic_case3/` are tracked source-data inputs for
+regenerating derived comparison assets. They are not duplicated under
+`report/assets/**`; that tree remains for TeX-consumed or documented published
+derived assets. Workflows still skip cleanly or emit skipped rows when pointed
+at an explicit missing data root. Additional raw resolved-3D bundles remain out
+of ordinary source commits until an archival policy approves them.
 
 ## Native Resolved-FSI Status
 
@@ -218,8 +223,9 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics export-assets --overwri
 pipenv run ops-render-stenosis-geometry-figures
 ```
 
-The exporter also checks for optional resolved-3D data under
-`public/var/data/simulations/canic_case3/` when local inputs are available.
+The exporter also checks the tracked Canic resolved-3D data under
+`public/var/data/simulations/canic_case3/` when resolved-flow figure inputs are
+in scope.
 
 ## Package Benchmark Pipeline
 

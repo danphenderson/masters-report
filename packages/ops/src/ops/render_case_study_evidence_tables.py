@@ -16,12 +16,14 @@ REST_METHOD_ORDER = {
     "fv-muscl": 1,
     "fv-weno3": 2,
     "fv-lax-wendroff": 3,
+    "fv-wb-geometry-rest": 4,
 }
 REST_METHOD_LABELS = {
     "fv-first-order": "FV first-order",
     "fv-muscl": "FV MUSCL",
     "fv-weno3": "FV WENO3",
     "fv-lax-wendroff": "FV Lax--Wendroff",
+    "fv-wb-geometry-rest": "FV geometry-rest balanced",
 }
 
 
@@ -50,6 +52,7 @@ class ComparisonTimeStepRow:
     case_label: str
     case_display: str
     severity: float
+    spatial_method: str
     nx: int
     dt_cap_s: float
     accepted_dt_min_s: float
@@ -289,6 +292,7 @@ def summarize_comparison_csv(path: Path) -> list[ComparisonTimeStepRow]:
                 case_label=row["case_label"],
                 case_display=direct_comparison_case_display(row["case_label"], severity),
                 severity=severity,
+                spatial_method=row.get("spatial_method", "not-recorded"),
                 nx=as_int(row["nx"], field="nx", path=path),
                 dt_cap_s=as_float(row["dt_s"], field="dt_s", path=path),
                 accepted_dt_min_s=as_float(row["accepted_dt_min"], field="accepted_dt_min", path=path),
@@ -365,6 +369,7 @@ def comparison_rows_for_csv(rows: list[ComparisonTimeStepRow]) -> list[dict[str,
             "case_label": row.case_label,
             "case": row.case_display,
             "severity": finite_or_blank(row.severity),
+            "spatial_method": row.spatial_method,
             "nx": str(row.nx),
             "dt_cap_s": finite_or_blank(row.dt_cap_s),
             "accepted_dt_min_s": finite_or_blank(row.accepted_dt_min_s),
@@ -519,6 +524,7 @@ def render_tables(
             "case_label",
             "case",
             "severity",
+            "spatial_method",
             "nx",
             "dt_cap_s",
             "accepted_dt_min_s",
