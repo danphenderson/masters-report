@@ -70,14 +70,14 @@ The worked stenosis example demonstrates the distinction. Its manufactured
 solution checks one implemented forced operator using shared manufactured
 states and lower-level operator utilities. Its geometry-rest test addresses
 equilibrium-preservation testing for the chosen discretization and boundary
-approximation, and an opt-in geometry-rest-balanced finite-volume variant now
-shows how the named rest family can be preserved separately from the historical
-MUSCL/Rusanov comparator. Its 1D--3D comparison becomes meaningful only after both models
-are reduced to the same section-mean velocity observable and discrepancy metric.
-These checks support a bounded diagnostic cross-model comparison. The positive
-MMS result, negative rest-state result, and final-time comparator are useful
-precisely because they belong to different parts of the same interpretive chain
-rather than to one validation grade.
+approximation; the selected geometry-rest-balanced finite-volume realization
+preserves the named rest family to roundoff, while the historical MUSCL/Rusanov
+row remains useful as nonselected context. Its 1D--3D comparison becomes
+meaningful only after both models are reduced to the same section-mean velocity
+observable and discrepancy metric. These checks support a bounded diagnostic
+cross-model comparison. The positive MMS result, rest-preservation result, and
+final-time comparator are useful precisely because they belong to different
+parts of the same interpretive chain rather than to one validation grade.
 
 \subsection{Contribution and Limitations}
 \label{subsec:discussion-contribution-limitations}
@@ -89,7 +89,7 @@ metrics, and evidence types in view at the same time. The idealized stenosis
 case study matters because it does not merely restate that principle
 abstractly; it carries it through one specified model and shows how different
 kinds of numerical evidence sit alongside one another. In that sense, the
-positive MMS result, the negative geometry-rest result, and the bounded
+positive MMS result, the geometry-rest preservation result, and the bounded
 1D--3D comparison are jointly informative.
 
 The limitations follow from the same discipline. The review is narrative and
@@ -117,15 +117,14 @@ and evidence standards.
 
 The idealized stenosis case study shows what that discipline looks like in
 practice. For the reported 1D realization, the manuscript supports
-implementation-verification evidence for the forced operator, identifies a
-non-well-balanced geometry-rest limitation that remains visible on the
-production grid, and reports final-time section-mean velocity discrepancies
-under a specified 1D--3D observation map. Those findings are meaningful
-precisely because they are bounded. The new opt-in rest-balanced diagnostic
-closes the narrow geometry-rest preservation gap for the declared zero-flow
-family, but it does not retroactively validate the historical comparison runs.
-Future work should strengthen the same chain where the present evidence remains
-limited: decide whether a well-balanced method should replace the comparator in
-production studies, obtain matched wall and boundary metadata for resolved
-comparisons, report uncertainty separately from model discrepancy, and specify
-validation observables before predictive or clinical claims are made.
+implementation-verification evidence for the forced operator, records
+geometry-rest preservation for the selected finite-volume comparison method,
+and reports final-time section-mean velocity discrepancies under a specified
+1D--3D observation map. Those findings are meaningful precisely because they
+are bounded. The older non-well-balanced MUSCL/Rusanov row remains a useful
+nonselected diagnostic, but it is no longer the numerical method behind the
+reported comparison rows. Future work should strengthen the same chain where
+the present evidence remains limited: obtain matched wall and boundary metadata
+for resolved comparisons, report uncertainty separately from model discrepancy,
+and specify validation observables before predictive or clinical claims are
+made.

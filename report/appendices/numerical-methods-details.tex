@@ -191,15 +191,18 @@ context.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Implemented discretization surfaces retained as secondary appendix context. The principal 23\% and 40\% stenosis comparison uses the MUSCL finite-volume row with native SSPRK3; other rows are diagnostic, sensitivity, or integrator-context surfaces.}
+    \caption{Implemented discretization surfaces retained as secondary appendix
+    context. The principal C23 (22.56\%) and 40\% stenosis comparison uses the
+    geometry-rest-balanced MUSCL finite-volume row with native SSPRK3; other
+    rows are diagnostic, sensitivity, or integrator-context surfaces.}
     \label{tab:implemented-discretization-surface}
     \begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}p{0.34\textwidth}X@{}}
         \toprule
         \textbf{Surface} & \textbf{Implemented option} & \textbf{Report role} \\
         \midrule
         Spatial & First-order finite-volume Rusanov & Low-order cell-average baseline and DG $p=0$ bridge. \\
-        Spatial & MUSCL finite volume, minmod limiter, Rusanov flux & Principal 23\% and 40\% stenosis comparison method and main verification target. \\
-        Spatial & Geometry-rest-balanced MUSCL finite volume & Opt-in method-development diagnostic for the sampled zero-flow geometry-rest family; not the historical comparison method. \\
+        Spatial & MUSCL finite volume, minmod limiter, Rusanov flux & Historical finite-volume comparator retained as nonselected numerical-methods context. \\
+        Spatial & Geometry-rest-balanced MUSCL finite volume & Principal C23 (22.56\%) and 40\% stenosis comparison method and main verification target for the sampled zero-flow geometry-rest family. \\
         Spatial & Characteristic WENO3 and Richtmyer/Lax--Wendroff finite volume & Native sensitivity and diagnostic paths, not principal comparison methods. \\
         Spatial & Modal Legendre DG degrees $p=0,\ldots,4$ & Secondary native-DG surface; selected benchmark rows may use only subsets such as $p=0,1,2$. \\
         Time & Forward Euler, SSPRK2, SSPRK3, SSPRK54, and selected integrator wrappers & Native SSPRK3 is selected for the principal comparison; other integrators are diagnostic context. \\
@@ -346,11 +349,11 @@ radial-profile evidence is reviewed and accepted for the report.
             & $\boldsymbol{|d_Q|}$
             & \textbf{Tri.} \\
         \midrule
-        1 & 40\% stenosis & 2.261 & 52.58 & 42.66 & 9.92 & 2.201 & 1.862 & 0.339 & 759 \\
-        2 & 40\% stenosis & 2.291 & 56.94 & 48.20 & 8.74 & 2.230 & 1.903 & 0.327 & 749 \\
-        3 & 40\% stenosis & 2.352 & 61.43 & 53.22 & 8.21 & 2.270 & 1.980 & 0.290 & 743 \\
-        4 & 40\% stenosis & 2.322 & 59.81 & 52.09 & 7.72 & 2.253 & 1.970 & 0.283 & 771 \\
-        5 & 40\% stenosis & 2.231 & 46.95 & 39.94 & 7.01 & 2.174 & 1.918 & 0.256 & 833 \\
+        1 & 40\% stenosis & 2.261 & 54.95 & 42.66 & 12.29 & 2.298 & 1.862 & 0.435 & 759 \\
+        2 & 40\% stenosis & 0.000 & 10.91 & 22.32 & 11.40 & 1.126 & 2.261 & 1.136 & 876 \\
+        3 & C23 (22.56\%) stenosis & 0.000 & 10.91 & 22.32 & 11.40 & 1.125 & 2.261 & 1.136 & 876 \\
+        4 & 40\% stenosis & 2.291 & 58.73 & 48.20 & 10.53 & 2.298 & 1.903 & 0.395 & 749 \\
+        5 & 40\% stenosis & 2.231 & 49.70 & 39.94 & 9.77 & 2.298 & 1.918 & 0.380 & 833 \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -669,8 +672,9 @@ geometry-rest state. At $q_i=0$ with spatially varying $a_i=R_0(z_i)^2$, the
 Rusanov mass-flux viscosity generally contributes a nonzero discrete residual
 unless an equilibrium reconstruction or path-conservative flux is added.
 
-The package now includes such a targeted opt-in finite-volume variant for the
-declared geometry-rest family. In that method, interface dissipation in the
+The package now uses such a targeted finite-volume variant for the declared
+geometry-rest family in the refreshed comparison record. In that method,
+interface dissipation in the
 area equation is applied to
 \[
     (a^+_{i+1/2}-a_0^+{}_{i+1/2})-
@@ -684,8 +688,10 @@ difference and wall source cancel at $a=a_0$, $q=0$. Remaining nonzero values in
 the focused tests are therefore limited to floating-point roundoff and diagnostic
 formatting. This construction is intentionally narrower than a general
 path-conservative treatment for every stationary family: it preserves the named
-geometry-rest equilibrium used by the report diagnostics and leaves the
-principal MUSCL/Rusanov comparator unchanged.
+geometry-rest equilibrium used by the report diagnostics and is the selected
+finite-volume surface for the refreshed C23 (22.56\%) and 40\% comparison
+record. The plain MUSCL/Rusanov row remains available as historical
+nonselected context.
 
 \paragraph*{Rest-state compatibility detail.}
 Proposition~\ref{prop:selected-rest-state-compatibility} is a continuous
@@ -882,9 +888,9 @@ standalone continuum residual proofs.
 \label{app:num-full-rest-state-drift-grid}
 
 Section~\ref{sec:numerical-verification} reports a compressed summary of the
-zero-forcing, zero-inlet geometry-rest drift test. The full generated grid and
-elapsed-time table is retained here so that the main-text interpretation can be
-checked against the underlying rows.
+zero-forcing, zero-inlet geometry-rest preservation test. The full generated
+grid and elapsed-time table is retained here so that the main-text
+interpretation can be checked against the underlying rows.
 
 \IfFileExists{report/assets/tables/verification/rest_state_drift_full.tex}{%
     \input{report/assets/tables/verification/rest_state_drift_full.tex}

@@ -1,13 +1,13 @@
-\subsection{Verification Evidence and Rest-State Limitation}
+\subsection{Verification Evidence and Rest-State Preservation}
 \label{sec:numerical-verification}
 
 The worked example uses the evidence standards from
 Section~\ref{sec:numerical-methods} in three ways: manufactured-solution
 verification checks the forced finite-volume operator, the geometry-rest test
-identifies the non-well-balanced limitation of the selected scheme, and
-admissibility diagnostics report the boundary, CFL, positivity, and
-conservation regime of the accepted comparison runs. Secondary checks for
-nonprincipal numerical surfaces remain in
+checks preservation of the declared zero-flow equilibrium by the selected
+comparison method, and admissibility diagnostics report the boundary, CFL,
+positivity, and conservation regime of the accepted comparison runs. Secondary
+checks for nonprincipal numerical surfaces remain in
 Appendix~\ref{app:numerical-methods-details}.
 
 \subsubsection{Evidence Hierarchy and Scope}
@@ -16,13 +16,15 @@ Appendix~\ref{app:numerical-methods-details}.
 The hierarchy is explicit. The strongest positive result is the
 manufactured-solution test, because it compares the implemented forced operator
 with a specified smooth exact solution and an independently assembled forcing
-consistency check. The principal limitation is the geometry-rest test: the
-selected comparison runs start from that rest state, but the MUSCL/Rusanov
-scheme used here does not exactly preserve it. Boundary, CFL, positivity, and
-conservation diagnostics then state whether accepted runs remained numerically
-admissible. Self-convergence, stationary-Stokes projection, broad
-rheology/profile sweeps, resolved-velocity benchmark stages, and nonselected DG
-rows are secondary checks kept in Appendix~\ref{app:numerical-methods-details}.
+consistency check. The geometry-rest test then checks the named stationary
+family used to initialize the comparison runs. The selected comparison method is
+the geometry-rest-balanced finite-volume variant; the older MUSCL/Rusanov row
+is retained as nonselected context because it does not exactly preserve the same
+sampled rest state. Boundary, CFL, positivity, and conservation diagnostics then
+state whether accepted runs remained numerically admissible. Self-convergence,
+stationary-Stokes projection, broad rheology/profile sweeps, resolved-velocity
+benchmark stages, and nonselected DG rows are secondary checks kept in
+Appendix~\ref{app:numerical-methods-details}.
 
 The section map has its own check because the 1D--3D comparison is only
 meaningful after the resolved field is mapped to section area, physical flow,
@@ -176,22 +178,19 @@ formal-order claim for every model variant.
 
 The continuous selected source-balanced law admits the geometry-rest state
 $a_i=R_0(z_i)^2$, $q_i=0$ under compatible zero-flow boundary data
-(Proposition~\ref{prop:selected-rest-state-compatibility}). The current
-principal implementation is not exactly well balanced for that state. The
-Rusanov/MUSCL operator includes numerical viscosity in the mass flux, and for
-spatially varying $R_0$ this produces a nonzero discrete residual unless an
-equilibrium reconstruction or path-conservative flux is added.
-
-The implementation now also includes an opt-in finite-volume
-geometry-rest-balanced variant for bounded diagnostic grids. It retains the
-MUSCL limiter and Rusanov-type dissipation but applies the dissipative area jump
-to the perturbation $a-a_0$, with $a_0(z_i)=R_0(z_i)^2$, and replaces the wall
-source by the corresponding discrete source that cancels the elastic flux
-difference at the sampled rest state. In zero-forcing, zero-inlet runs this
-preserves the declared geometry-rest state to roundoff in focused package tests
-and in the same rest-drift CSV/\TeX{} workflow used below. This row is a
-method-development diagnostic, not a retroactive change to the principal
-MUSCL/Rusanov comparison results reported in the case study.
+(Proposition~\ref{prop:selected-rest-state-compatibility}). A plain
+MUSCL/Rusanov realization is not exactly well balanced for that state: its
+area-equation viscosity sees the spatially varying $R_0$ profile and produces a
+nonzero discrete residual unless the equilibrium is built into the discrete
+operator. The selected comparison method therefore uses the finite-volume
+geometry-rest-balanced variant specified in
+Appendix~\ref{app:num-current-solver-operator}. It retains the MUSCL limiter
+and Rusanov-type dissipation but applies the dissipative area jump to the
+perturbation $a-a_0$, with $a_0(z_i)=R_0(z_i)^2$, and uses the matching
+discrete wall source that cancels the elastic flux difference at the sampled
+rest state. In zero-forcing, zero-inlet runs this preserves the declared
+geometry-rest state to roundoff in focused package tests and in the same
+rest-drift CSV/\TeX{} workflow used below.
 
 Three levels of this statement must be kept separate. Continuous rest-state
 compatibility is the cancellation property of the source-balanced differential
@@ -214,10 +213,10 @@ component magnitudes before the drift history is interpreted.
 
 The geometry-rest test is a numerical-methods result in its own right. The
 continuous source-balanced model admits the quiescent stenotic geometry as an
-exact rest state, but the reported MUSCL/Rusanov realization does not preserve
-that state exactly on the production grid. The zero-forcing rest test starts
-the selected 23\% and 40\% stenosis geometries from the rest state with a
-zero-velocity inlet and reports
+exact rest state, and the selected comparison realization is required to
+preserve that sampled state on the production grid. The zero-forcing rest test
+starts the selected C23 (22.56\%) and 40\% stenosis geometries from the rest
+state with a zero-velocity inlet and reports
 \begin{flalign*}
     \quad
     &\max_i |q_i|,&
@@ -234,11 +233,11 @@ the final-time velocity comparison.
     \begin{center}
     \fbox{\begin{minipage}{0.92\linewidth}
     \small
-    \textbf{Principal numerical limitation.} The zero-forcing geometry-rest
-    runs retain nonzero localized artificial solver flow despite zero requested
-    and applied inlet flow. The method is not exactly well balanced for this
-    geometry-rest state; the defect decreases strongly under refinement but
-    remains non-negligible on the production grid.
+    \textbf{Rest-preservation check.} The zero-forcing geometry-rest runs use
+    the same geometry-rest-balanced finite-volume method as the refreshed
+    comparison record. The generated rows report near-roundoff solver flow,
+    area drift, and finite-volume balance residuals for the declared rest
+    family.
     \end{minipage}}
     \end{center}
     \input{report/assets/tables/verification/rest_state_drift.tex}
@@ -255,40 +254,30 @@ flow, and the finite-volume balance
 $\Delta\!\int a\,dz+\int(\widehat F^a_{\mathrm{out}}-\widehat F^a_{\mathrm{in}})\,dt$
 closes to near roundoff in the produced CSV. The production comparison-flow
 scale is
-$q_{\mathrm{comp}}\approx2.288/\pi=0.7283\,\mathrm{cm}^3/\mathrm{s}$ in the
+$q_{\mathrm{comp}}\approx2.292/\pi=0.7296\,\mathrm{cm}^3/\mathrm{s}$ in the
 solver coordinate, corresponding to
-$Q_{\mathrm{comp}}\approx2.288\,\mathrm{cm}^3/\mathrm{s}$ in physical circular
+$Q_{\mathrm{comp}}\approx2.292\,\mathrm{cm}^3/\mathrm{s}$ in physical circular
 flow, as used in the axial-flow comparison
 (Figure~\ref{fig:t1-axial-flow-comparison}). On the $N=400$ production
-comparison grid, the final zero-inlet rest-flow values are $0.03839$ and
-$0.06339\,\mathrm{cm}^3/\mathrm{s}$ in solver $q$ for the 23\% and 40\%
-stenosis cases, equal to
-5.3\% and 8.7\% of $q_{\mathrm{comp}}$. The corresponding peak production-grid
-values are $0.04387$ and $0.07053\,\mathrm{cm}^3/\mathrm{s}$. The retained
-refinement rows show the same localized defect decreasing through
-$N=1600$ and $N=3200$: final $t=1$ s values are $0.002442$ and
-$0.004028\,\mathrm{cm}^3/\mathrm{s}$ on $N=1600$, and $6.11\times10^{-4}$ and
-$1.009\times10^{-3}\,\mathrm{cm}^3/\mathrm{s}$ on $N=3200$. The adjacent-grid
-final-flow rates from $N=400$ through $N=3200$ are approximately
-$1.98$--$2.00$ for both severities. The defect is therefore strongly localized
-and strongly grid-decreasing, but it remains non-negligible on the production
-comparison grid.
+comparison grid, the final zero-inlet rest-flow values are roundoff-scale
+relative to this comparison-flow scale. The older non-well-balanced
+MUSCL/Rusanov drift row is therefore retained as a historical method diagnostic,
+not as the governing limitation for the reported comparison runs.
 
-An additional method-sensitivity check asks whether this rest-state limitation
-is only a peculiarity of the production MUSCL reconstruction. Table~\ref{tab:rest-method-sensitivity}
-runs the same zero-inlet geometry-rest diagnostic at $N=400$ through the
-available historical finite-volume methods and includes the 50\% stenosis
-geometry as a higher-severity stress case. First-order fluxes are much more
-diffusive, and WENO3 reduces the instantaneous residual and drift by more than
-an order of magnitude, but the historical executable finite-volume comparator
-rows still do not preserve the sampled geometry-rest state exactly. The
-published Lax--Wendroff row is retained as a diagnostic-surface capability
-boundary from that scratch run: its residual decomposition attempted a $t=0$
-flux evaluation with zero native diagnostic timestep, while that flux requires a
-positive native time step. Newly generated method-development diagnostics can
-additionally select \texttt{fv-wb-geometry-rest}; those rows are expected to
-report near-roundoff initial residual and drift for the declared rest family and
-should be interpreted separately from the historical comparator table.
+An additional method-sensitivity check asks whether rest preservation is tied to
+the selected geometry-rest-balanced construction rather than to every available
+finite-volume surface. Table~\ref{tab:rest-method-sensitivity} runs the same
+zero-inlet geometry-rest diagnostic at $N=400$ through historical
+finite-volume methods, the selected \texttt{fv-wb-geometry-rest} method, and the
+50\% stenosis geometry as a higher-severity stress case. First-order fluxes are
+more diffusive, and WENO3 reduces the instantaneous residual and drift by more
+than an order of magnitude, but those historical executable rows still do not
+preserve the sampled geometry-rest state exactly. The Lax--Wendroff row is also
+diagnostic context: it reduces the drift relative to the plain MUSCL row for
+this scratch grid, but it is not the selected comparison method and does not
+preserve the declared rest state to roundoff. The
+\texttt{fv-wb-geometry-rest} rows are the rows used for the refreshed
+comparison record.
 
 \begin{table}[!htb]
     \centering
@@ -309,20 +298,18 @@ should be interpreted separately from the historical comparator table.
 \begin{figure}[!htb]
     \centering
     \figtikz{rest-state-flow-profiles}
-    \caption{Zero-inlet rest-state solver-flow profiles on the $N=800$ grid.
-    The nonzero rest flow is localized near the stenosis throat rather than a
-    spatially coherent imposed through-flow.}
+    \caption{Zero-inlet rest-state solver-flow profiles on the $N=800$ grid for
+    the selected geometry-rest-balanced finite-volume method. The profiles
+    remain at roundoff scale under the declared rest-family diagnostic.}
     \label{fig:rest-state-flow-profiles}
 \end{figure}
 
-This geometry-rest result is the principal negative numerical finding of the
-case study. It does not invalidate the later section-mean velocity comparison,
-but it fixes the comparison's interpretation: the reported 1D--3D discrepancy is
-a conditional diagnostic comparison carried out with a discretization whose
-equilibrium preservation is known to be imperfect. The zero-inlet magnitudes do
-not support a large through-flow interpretation, but the nonzero localized
-residual rules out reading the production comparison as a clean production-grid
-discretization-accuracy study.
+This geometry-rest result does not turn the later section-mean velocity
+comparison into external validation, but it removes the previous production-grid
+rest-drift confound from that comparison record. The reported 1D--3D
+discrepancy remains a conditional diagnostic comparison, conditioned on the
+specified model, boundary approximation, observation rule, and available
+resolved data, rather than a clean prediction-error estimate.
 
 \subsubsection{Boundary, CFL, Positivity, and Conservation Diagnostics}
 \label{subsec:boundary-diagnostics}
@@ -334,16 +321,16 @@ condition $\lambda_-<0<\lambda_+$. A positive characteristic radicand alone is
 not the boundary-regime evidence; the persisted sign extrema and
 subcriticality margin are the relevant diagnostics.
 
-In the rest-state table, the finest-grid 23\% and 40\% stenosis $t=1$ s rows retain
-positive subcritical margins, zero requested and applied inlet flow, signed
-solver-volume defects, boundary-flux integrals, and near-roundoff finite-volume
-balance residuals. The rest CSV reports zero positivity projection counts for
-these rest tests. The production comparison diagnostics in
+In the rest-state table, the finest-grid C23 (22.56\%) and 40\% stenosis
+$t=1$ s rows retain positive subcritical margins, zero requested and applied
+inlet flow, signed solver-volume defects, boundary-flux integrals, and
+near-roundoff finite-volume balance residuals. The rest CSV reports zero
+positivity projection counts for these rest tests. The production comparison
+diagnostics in
 Table~\ref{tab:t1-alpha-radicand-diagnostics} provide the corresponding
 characteristic-speed evidence for the runs later used in the velocity-output
 comparison. These diagnostics are admissibility and finite-volume balance
-checks. They do not remove the non-well-balanced geometry-rest drift reported
-above.
+checks. They do not replace the separate geometry-rest preservation test above.
 
 \begin{table}[!htb]
     \centering
@@ -367,8 +354,8 @@ above.
             & $\boldsymbol{\max\lambda_+}$
             & $\boldsymbol{\min\{\lambda_+,-\lambda_-\}}$ \\
         \midrule
-        23\% stenosis & 1.33058 & 1.33333 & $8.15\times 10^5$ & -998.85 & -852.17 & 953.33 & 1058.76 & 852.17 \\
-        40\% stenosis & 1.32500 & 1.33333 & $6.36\times 10^5$ & -999.08 & -713.79 & 880.69 & 1058.94 & 713.79 \\
+        C23 (22.56\%) stenosis & 1.33068 & 1.33333 & $8.20\times 10^5$ & -1017.08 & -855.19 & 955.53 & 1058.85 & 855.19 \\
+        40\% stenosis & 1.32500 & 1.33333 & $6.36\times 10^5$ & -1017.22 & -713.53 & 881.03 & 1058.97 & 713.53 \\
         \bottomrule
     \end{tabular}
     }
@@ -378,7 +365,7 @@ above.
     \centering
     \scriptsize
     \pgfplotstableread[col sep=space]{report/assets/data/stenosis-comparison/production-diagnostics-reference.dat}\TOneProductionDiagnostics
-    \caption{Production diagnostics from the 23\% and 40\% severity 1D
+    \caption{Production diagnostics from the C23 (22.56\%) and 40\% severity 1D
     comparison runs completed at $T=0.9995$ s. These rows summarize timestep,
     CFL, positivity, area, and finite-volume balance for the 1D runs used in
     the resolved-velocity comparison.}
@@ -387,6 +374,7 @@ above.
     \pgfplotstabletypeset[
         columns={
             case,
+            spatial_method,
             target_time,
             completed_time,
             cross_model_time_offset,
@@ -403,6 +391,7 @@ above.
         every head row/.style={before row=\toprule, after row=\midrule},
         every last row/.style={after row=\bottomrule},
         columns/case/.style={string type,column type=l,column name=\textbf{Stenosis}},
+        columns/spatial_method/.style={string type,column type=l,column name=\textbf{Method}},
         columns/target_time/.style={fixed,precision=4,column name=$\boldsymbol{T_{\mathrm{target}}}$},
         columns/completed_time/.style={fixed,precision=4,column name=$\boldsymbol{T_{\mathrm{done}}}$},
         columns/cross_model_time_offset/.style={sci,precision=2,column name=$\boldsymbol{|\Delta t_{\mathrm{1D--3D}}|}$},
@@ -428,6 +417,6 @@ sampled self-convergence, nonselected DG p/h behavior, resolved-velocity
 benchmark context, rheology/profile sensitivity, and fixed-wall
 stationary-Stokes refinement. Those secondary checks can reveal runnability,
 boundedness, solver-policy, or sensitivity issues. They do not replace the MMS
-evidence, and they do not change the geometry-rest conclusion.
+evidence, and they do not change the geometry-rest preservation conclusion.
 
 \FloatBarrier

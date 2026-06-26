@@ -21,16 +21,16 @@
       at (axis cs:2.6,62) {throat zone};
 
     \addplot+[bloodred, mark=none, line width=1.15pt]
-      table[x=z, y=u3dseverity23] {report/assets/data/stenosis-comparison/section-quadrature-reference.dat};
-    \addlegendentry{23\% stenosis 3D quadrature}
+      table[x=z, y=uax3dseverity23] {report/assets/data/stenosis-comparison/section-quadrature-reference.dat};
+    \addlegendentry{C23 (22.56\%) 3D quadrature}
     \addplot+[bloodred, mark=none, dashed, line width=1.15pt]
-      table[x=z, y=u1dseverity23] {report/assets/data/stenosis-comparison/section-quadrature-reference.dat};
-    \addlegendentry{23\% stenosis 1D}
+      table[x=z, y=uax1dseverity23] {report/assets/data/stenosis-comparison/section-quadrature-reference.dat};
+    \addlegendentry{C23 (22.56\%) 1D}
     \addplot+[accentTeal, mark=none, line width=1.15pt]
-      table[x=z, y=u3dseverity40] {report/assets/data/stenosis-comparison/section-quadrature-reference.dat};
+      table[x=z, y=uax3dseverity40] {report/assets/data/stenosis-comparison/section-quadrature-reference.dat};
     \addlegendentry{40\% stenosis 3D quadrature}
     \addplot+[accentTeal, mark=none, dashed, line width=1.15pt]
-      table[x=z, y=u1dseverity40] {report/assets/data/stenosis-comparison/section-quadrature-reference.dat};
+      table[x=z, y=uax1dseverity40] {report/assets/data/stenosis-comparison/section-quadrature-reference.dat};
     \addlegendentry{40\% stenosis 1D}
   \end{axis}
 \end{tikzpicture}

@@ -1,7 +1,7 @@
 severity,case,coordinate_mode,z_slice_cm,radial_bin_count,area_mismatch_rel,reconstructed_mean_abs_error_cm_s,summary_mean_abs_delta_cm_s,status,message
-23.0,severity23,deformed,1.951,20,NaN,0.6293298260240618,0.0,failed,radial area closure exceeds 1%
-23.0,severity23,deformed,2.451,20,NaN,4.310826669296789,0.0,failed,radial area closure exceeds 1%
-23.0,severity23,deformed,2.951,20,NaN,4.318299445604594,0.0,failed,radial area closure exceeds 1%
-40.0,severity40,deformed,1.951,20,NaN,0.6587697449094644,0.0,failed,radial area closure exceeds 1%
-40.0,severity40,deformed,2.451,20,NaN,9.149973125569547,0.0,failed,radial area closure exceeds 1%
-40.0,severity40,deformed,2.951,20,NaN,12.23528969329742,0.0,failed,radial area closure exceeds 1%
+22.555555555555554,severity23,deformed,1.951,20,NaN,0.6370758838064379,0.0,not_evaluated,matching section row unavailable at radial z-slice; section area unavailable; section flow unavailable
+22.555555555555554,severity23,deformed,2.451,20,NaN,4.078894745665203,0.0,not_evaluated,matching section row unavailable at radial z-slice; section area unavailable; section flow unavailable
+22.555555555555554,severity23,deformed,2.951,20,NaN,4.4022437099263225,0.0,not_evaluated,matching section row unavailable at radial z-slice; section area unavailable; section flow unavailable
+40.0,severity40,deformed,1.951,20,NaN,0.6411272890063623,0.0,not_evaluated,matching section row unavailable at radial z-slice; section area unavailable; section flow unavailable
+40.0,severity40,deformed,2.451,20,NaN,9.202060322344101,0.0,not_evaluated,matching section row unavailable at radial z-slice; section area unavailable; section flow unavailable
+40.0,severity40,deformed,2.951,20,NaN,12.310956886342396,0.0,not_evaluated,matching section row unavailable at radial z-slice; section area unavailable; section flow unavailable

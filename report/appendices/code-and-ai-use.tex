@@ -93,7 +93,8 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify mms \
   --overwrite
 
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics verify rest \
-  --severities 23,40 \
+  --space fv-wb-geometry-rest \
+  --severities 22.555555555555554,40 \
   --nxs 100,200,400,800,1600,3200 \
   --elapsed-times 0,0.001,0.01,0.1,1.0 \
   --output-dir report/assets/tables/verification \
@@ -115,7 +116,7 @@ and then rendered into report CSV/\TeX{} fragments:
 pipenv run ops-experiment --dirty-policy warn \
   --run-id additional-rest-fv-first-order -- \
   verify rest --space fv-first-order \
-  --severities 23,40,50 \
+  --severities 22.555555555555554,40,50 \
   --nxs 400 \
   --elapsed-times 0,0.001,0.01,0.1 \
   --output-dir tmp/simulations/output/additional-evidence/rest-fv-first-order \
@@ -124,7 +125,7 @@ pipenv run ops-experiment --dirty-policy warn \
 pipenv run ops-experiment --dirty-policy warn \
   --run-id additional-rest-fv-muscl -- \
   verify rest --space fv-muscl \
-  --severities 23,40,50 \
+  --severities 22.555555555555554,40,50 \
   --nxs 400 \
   --elapsed-times 0,0.001,0.01,0.1 \
   --output-dir tmp/simulations/output/additional-evidence/rest-fv-muscl \
@@ -133,16 +134,25 @@ pipenv run ops-experiment --dirty-policy warn \
 pipenv run ops-experiment --dirty-policy warn \
   --run-id additional-rest-fv-weno3 -- \
   verify rest --space fv-weno3 \
-  --severities 23,40,50 \
+  --severities 22.555555555555554,40,50 \
   --nxs 400 \
   --elapsed-times 0,0.001,0.01,0.1 \
   --output-dir tmp/simulations/output/additional-evidence/rest-fv-weno3 \
   --overwrite
 
 pipenv run ops-experiment --dirty-policy warn \
+  --run-id additional-rest-fv-wb-geometry-rest -- \
+  verify rest --space fv-wb-geometry-rest \
+  --severities 22.555555555555554,40,50 \
+  --nxs 400 \
+  --elapsed-times 0,0.001,0.01,0.1 \
+  --output-dir tmp/simulations/output/additional-evidence/rest-fv-wb-geometry-rest \
+  --overwrite
+
+pipenv run ops-experiment --dirty-policy warn \
   --run-id additional-rest-fv-lax-wendroff -- \
   verify rest --space fv-lax-wendroff \
-  --severities 23,40,50 \
+  --severities 22.555555555555554,40,50 \
   --nxs 400 \
   --elapsed-times 0,0.001,0.01,0.1 \
   --output-dir tmp/simulations/output/additional-evidence/rest-fv-lax-wendroff \
@@ -150,11 +160,10 @@ pipenv run ops-experiment --dirty-policy warn \
 
 pipenv run ops-render-case-study-evidence-tables
 \end{lstlisting}
-The Lax--Wendroff rows are retained as a diagnostic-surface capability result:
-the archived scratch residual decomposition called the method flux at zero
-native diagnostic timestep, while that flux requires a positive native
-timestep.
-The resolved-velocity comparison uses the 23\% and 40\% stenosis-severity
+The well-balanced row is the promoted geometry-rest-preserving finite-volume
+method used by the refreshed comparison record. The Lax--Wendroff rows are
+retained as diagnostic-surface context rather than selected comparison evidence.
+The resolved-velocity comparison uses the C23 (22.56\%) and 40\% stenosis-severity
 descriptions in the main text. These correspond to local source IDs 77 and 60,
 respectively. The retained raw 3D fields are tracked source-data inputs rather
 than report assets; the detailed input root and upstream pointer are recorded
@@ -168,6 +177,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
   --output-dir tmp/simulations/output/3d_comparison/reference_wall_evidence_nx400 \
   --nx 400 \
+  --space fv-wb-geometry-rest \
   --coordinate-mode reference \
   --target-time 0.9995 \
   --time-atol 1e-6 \
@@ -186,6 +196,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
   --output-dir tmp/simulations/output/3d_comparison/deformed_wall_evidence_nx400 \
   --nx 400 \
+  --space fv-wb-geometry-rest \
   --coordinate-mode deformed \
   --target-time 0.9995 \
   --time-atol 1e-6 \
@@ -224,6 +235,7 @@ pipenv run ops-experiment --dirty-policy warn \
   --output-dir tmp/simulations/output/additional-evidence/compare-dt-2e-5 \
   --coordinate-mode reference \
   --nx 400 \
+  --space fv-wb-geometry-rest \
   --dt 2e-5 \
   --target-time 0.9995 \
   --time-atol 1e-6 \
@@ -239,6 +251,7 @@ pipenv run ops-experiment --dirty-policy warn \
   --output-dir tmp/simulations/output/additional-evidence/compare-dt-5e-6 \
   --coordinate-mode reference \
   --nx 400 \
+  --space fv-wb-geometry-rest \
   --dt 5e-6 \
   --target-time 0.9995 \
   --time-atol 1e-6 \
@@ -257,7 +270,7 @@ transient-history matching, not the final timestamp.
 
 \paragraph*{Canic Section 4.1 reproducibility comparison.}
 The package also provides a separate source-based diagnostic comparison for Canic
-et al.\ Section~4.1. It is distinct from the main 23\%/40\% manuscript
+et al.\ Section~4.1. It is distinct from the main C23 (22.56\%)/40\% manuscript
 comparator above: it reconstructs local 1D outputs, compares section-mean
 velocity against tracked upstream 3D bundles, emits outlet-gauge pressure
 diagnostics, and writes parameter and upstream-provenance comparisons. The 50\%
@@ -317,7 +330,7 @@ policy landed, so they are current reproducibility diagnostic assets.
         \toprule
         Case & Imported bundle time & Default local target & Time-alignment role & Pressure role \\
         \midrule
-        23\% & \(0.9995\,\mathrm{s}\) & \(0.9995\,\mathrm{s}\) & time-aligned reproducibility comparison & outlet-gauged diagnostic \\
+        C23 (22.56\%) & \(0.9995\,\mathrm{s}\) & \(0.9995\,\mathrm{s}\) & time-aligned reproducibility comparison & outlet-gauged diagnostic \\
         40\% & \(0.9995\,\mathrm{s}\) & \(0.9995\,\mathrm{s}\) & time-aligned reproducibility comparison & outlet-gauged diagnostic \\
         50\% & \(1.4995\,\mathrm{s}\) & \(1.4995\,\mathrm{s}\) & time-aligned reproducibility comparison & outlet-gauged diagnostic \\
         \bottomrule
@@ -382,6 +395,7 @@ Using the tracked raw 3D input root, the reported grid sensitivity is:
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
   --output-dir tmp/simulations/output/3d_comparison/grid_sensitivity_severity23_severity40 \
+  --space fv-wb-geometry-rest \
   --target-time 0.9995 \
   --time-atol 1e-3 \
   --nxs 200,400,800,1600,3200 \
@@ -393,7 +407,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --grid-summary-tex report/assets/tables/stenosis-comparison/grid_sensitivity_summary.tex
 \end{lstlisting}
 The manuscript treats this as output-sensitivity evidence for the reported
-23\% and 40\% severity section means and physical flows, with $N=1600$ kept as
+C23 (22.56\%) and 40\% severity section means and physical flows, with $N=1600$ kept as
 the intermediate refinement and $N=3200$ as the finest reported grid. It does
 not change the matched-data boundary: wall, boundary, material,
 current-geometry, and transient-history metadata for the resolved cases remain

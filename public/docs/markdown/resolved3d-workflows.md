@@ -86,6 +86,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
   --output-dir tmp/simulations/output/3d_comparison/reference_wall_evidence_nx400 \
   --nx 400 \
+  --space fv-wb-geometry-rest \
   --coordinate-mode reference \
   --target-time 0.9995 \
   --time-atol 1e-6 \
@@ -115,7 +116,7 @@ Then run a validation-only report build.
 
 | Block | Command | Raw 3D inputs? | Published outputs |
 | --- | --- | --- | --- |
-| Reference-coordinate comparison | `compare-3d --coordinate-mode reference --publish-report-assets --report-assets-dir report/assets/data/stenosis-comparison` with `--target-time 0.9995`, `--time-atol 1e-6`, `--nx 400`, `--section-count 200`, `--profile-slices 1.951,2.451,2.951`, `--radial-bin-counts 20`, and `--radial-radius-modes current,reference` | Yes | Reference suffixed data assets plus legacy unsuffixed compatibility copies. |
+| Reference-coordinate comparison | `compare-3d --space fv-wb-geometry-rest --coordinate-mode reference --publish-report-assets --report-assets-dir report/assets/data/stenosis-comparison` with `--target-time 0.9995`, `--time-atol 1e-6`, `--nx 400`, `--section-count 200`, `--profile-slices 1.951,2.451,2.951`, `--radial-bin-counts 20`, and `--radial-radius-modes current,reference` | Yes | Reference suffixed data assets plus legacy unsuffixed compatibility copies. |
 | Deformed-coordinate comparison | Same command with `--coordinate-mode deformed` and a distinct scratch `--output-dir` | Yes, including displacement companions | Deformed suffixed data assets. |
 | Table fragments | `pipenv run ops-render-resolved3d-comparison-tables` | No | `coordinate_mode_comparison.tex` and `radial_profile_audit.tex` from tracked data assets. |
 | Operator validation | `operator-validation` with explicit `--summary-csv` and `--summary-tex` paths | No | Synthetic operator CSV and TeX table. |
@@ -136,6 +137,11 @@ Then run a validation-only report build.
 | `cross-section-operator-validation.csv` | `operator-validation`. | Synthetic quadrature validation data. |
 | `grid-sensitivity-summary.csv` | Grid-sensitivity comparison. | Output-sensitivity rows for the retained comparison protocol. |
 
+Published comparison and sensitivity rows carry the spatial method string
+(`spatial_method`) and preserve the imported C23 severity
+(`22.555555555555554`) in source CSV metadata; tables may display it as
+`C23 (22.56%)`.
+
 The tracked TeX fragments under `report/assets/tables/stenosis-comparison/`
 are:
 
@@ -155,6 +161,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
   --output-dir tmp/simulations/output/3d_comparison/grid_sensitivity_severity23_severity40 \
   --nxs 200,400,800,1600,3200 \
+  --space fv-wb-geometry-rest \
   --target-time 0.9995 \
   --time-atol 1e-3 \
   --case-workers 2 \

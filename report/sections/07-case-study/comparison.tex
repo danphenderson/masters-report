@@ -4,15 +4,17 @@
 \subsubsection{Available Resolved Data and Matching Limits}
 \label{subsec:preliminary-cross-model-velocity-comparison}
 
-The resolved-velocity comparison reports the 23\% and 40\% stenosis final-time
-section comparisons at $T=0.9995\,\mathrm{s}$ under reference-coordinate and
-deformed-coordinate section maps. In reference coordinates, the 23\% case has
+The resolved-velocity comparison reports the C23 (22.56\%) and 40\% stenosis
+final-time section comparisons at $T=0.9995\,\mathrm{s}$ under
+reference-coordinate and deformed-coordinate section maps. In reference
+coordinates, the C23 (22.56\%) case has
 mean absolute section-velocity discrepancy
-$0.505\,\mathrm{cm}/\mathrm{s}$ and relative RMS discrepancy $2.77\%$; the
-40\% case has $0.966\,\mathrm{cm}/\mathrm{s}$ and $6.88\%$. The larger
-discrepancies occur near the throat, and the available matching data do not
-isolate one closure, wall, boundary, or geometry cause. Both cases are sampled
-at $T=0.9995\,\mathrm{s}$; the measured 1D--3D final-time offset is
+$0.604\,\mathrm{cm}/\mathrm{s}$ and relative RMS discrepancy $4.47\%$; the
+40\% case has $1.13\,\mathrm{cm}/\mathrm{s}$ and $8.44\%$. The 40\% case has
+the larger discrepancy and its maximum section difference is near the throat;
+both cases also show an upstream first-section mismatch. The available matching
+data do not isolate one closure, wall, boundary, or geometry cause. Both cases
+are sampled at $T=0.9995\,\mathrm{s}$; the measured 1D--3D final-time offset is
 $5.47\times10^{-14}\,\mathrm{s}$ in each case. This timestamp agreement is a
 final-time alignment check, not a complete transient-history match. The
 numerical results are interpreted through the case-study specification in
@@ -62,17 +64,18 @@ two-case velocity comparison.
             & \textbf{Pressure}
             & \textbf{Displacement} \\
         \midrule
-        23\% stenosis & 77 & 22691 & 110420 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & applied in deformed-coordinate cuts \\
+        C23 (22.56\%) stenosis & 77 & 22691 & 110420 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & applied in deformed-coordinate cuts \\
         40\% stenosis & 60 & 21975 & 106547 & 0.9995 & $5.47\times10^{-14}$ & node-centered & node-centered & applied in deformed-coordinate cuts \\
         \bottomrule
     \end{tabular}%
     }
 \end{table}
 
-The 40\% case is therefore both larger in relative RMS discrepancy and more
-localized near the throat. That localization is tied to the specified section
-observation rule, but the available data do not assign the difference to one
-closure, wall, boundary, or geometry mechanism.
+The 40\% case is therefore larger in both absolute and relative RMS
+discrepancy, with its maximum discrepancy localized near the throat. The C23
+(22.56\%) maximum occurs at the upstream first section. These locations are tied
+to the specified section observation rule, and the available data do not assign
+the differences to one closure, wall, boundary, or geometry mechanism.
 
 \begin{figure}[!htb]
     \centering
@@ -83,7 +86,7 @@ closure, wall, boundary, or geometry mechanism.
         \fbox{\parbox{0.82\linewidth}{\centering Resolved velocity-field
         asset unavailable in this source snapshot.}}
     }
-    \caption{Final-time resolved velocity samples used by the 23\% and 40\%
+    \caption{Final-time resolved velocity samples used by the C23 (22.56\%) and 40\%
     stenosis comparisons. The panels show node-centered $u_z$ values; the
     40\% case carries the larger throat-localized velocity discrepancy after
     the shared section map is applied.}
@@ -119,7 +122,7 @@ displacement field.
 The stenosis throat is the minimizer $z^\star=\argmin_z R_0(z)$ of the smooth
 reference-radius profile in Eq.~\ref{eq:1d-stenosis-profile}. For the comparison
 geometry this gives $z^\star\approx2.451\,\mathrm{cm}$, with
-$R_{\min}=0.1386\,\mathrm{cm}$ for the 23\% stenosis case and
+$R_{\min}=0.1394\,\mathrm{cm}$ for the C23 (22.56\%) stenosis case and
 $R_{\min}=0.1080\,\mathrm{cm}$ for the 40\% stenosis case.
 The area check below is a limitation on the velocity interpretation, not a
 tolerance proof. Across the reported rows the maximum section-area discrepancy
@@ -146,8 +149,8 @@ section-observation diagnostic conditioned on the reported area check.
             & $\boldsymbol{\mathrm{mean}\ \epsilon_A}$
             & $\boldsymbol{\max \epsilon_A}$ \\
         \midrule
-        23\% stenosis & reference & 0.045 & 0.281 & 0.389 & 2.94 \\
-        23\% stenosis & deformed & 0.001 & 0.254 & 0.336 & 3.03 \\
+        C23 (22.56\%) stenosis & reference & 0.012 & 0.277 & 0.330 & 2.62 \\
+        C23 (22.56\%) stenosis & deformed & 0.001 & 0.248 & 0.270 & 2.50 \\
         40\% stenosis & reference & 0.005 & 0.291 & 0.397 & 4.46 \\
         40\% stenosis & deformed & 0.003 & 0.286 & 0.417 & 4.60 \\
         \bottomrule
@@ -159,12 +162,13 @@ section-observation diagnostic conditioned on the reported area check.
 
 The reference-coordinate comparison is the baseline final-time
 velocity comparison. The section means are
-$\langle Q_{1D}\rangle=2.288\,\mathrm{cm}^3/\mathrm{s}$ and
-$\langle Q_{3D}\rangle=2.241\,\mathrm{cm}^3/\mathrm{s}$ for the 23\% stenosis
-case, and $\langle Q_{1D}\rangle=2.287\,\mathrm{cm}^3/\mathrm{s}$ and
+$\langle Q_{1D}\rangle=2.292\,\mathrm{cm}^3/\mathrm{s}$ and
+$\langle Q_{3D}\rangle=2.241\,\mathrm{cm}^3/\mathrm{s}$ for the C23 (22.56\%) stenosis
+case, and $\langle Q_{1D}\rangle=2.292\,\mathrm{cm}^3/\mathrm{s}$ and
 $\langle Q_{3D}\rangle=2.219\,\mathrm{cm}^3/\mathrm{s}$ for the 40\% stenosis
 case. The discrepancy summaries below show that the 40\% case has the larger
-section-mean velocity gap, concentrated near the stenosis throat.
+section-mean velocity gap and a throat-localized maximum; the C23 (22.56\%)
+maximum is the upstream first-section row.
 Interpretation of these summaries follows the limits in
 Table~\ref{tab:t1-metric-interpretive-limits}; the rows support only aggregate
 discrepancies under the specified model specification, discretization,
@@ -194,8 +198,8 @@ attribution.
             & $\boldsymbol{\max |d_u|}$
             & $\boldsymbol{z_{\max |d_u|}}$ \\
         \midrule
-        23\% stenosis & 200 & 24.11 & 23.63 & 0.480 & 0.505 & 0.664 & 0.0277 & 2.35 & 2.291 \\
-        40\% stenosis & 200 & 26.43 & 25.52 & 0.909 & 0.966 & 1.87 & 0.0688 & 9.92 & 2.261 \\
+        C23 (22.56\%) stenosis & 200 & 24.12 & 23.63 & 0.486 & 0.604 & 1.07 & 0.0447 & 11.40 & 0.000 \\
+        40\% stenosis & 200 & 26.51 & 25.52 & 0.993 & 1.13 & 2.29 & 0.0844 & 12.29 & 2.261 \\
         \bottomrule
     \end{tabular}
     }
@@ -214,9 +218,11 @@ attribution.
     \label{fig:t1-section-mean-comparison}
 \end{figure}
 
-The larger 40\% discrepancy is therefore throat-localized under the specified
-section observation rule. The available matched data do not identify a unique
-closure, wall, boundary, geometry, or numerical source.
+The larger 40\% maximum discrepancy is therefore throat-localized under the
+specified section observation rule. The C23 (22.56\%) case has a smaller
+aggregate discrepancy but its maximum row is the upstream first section. The
+available matched data do not identify a unique closure, wall, boundary,
+geometry, or numerical source.
 
 \paragraph{Interpretive limits of discrepancy metrics}
 \label{subsec:metric-interpretive-limits}
@@ -294,8 +300,8 @@ discrepancy or area-denominator difference; it is not causal attribution.
             & $\boldsymbol{|d_u|_{\max}}$
             & \textbf{Larger term at max} \\
         \midrule
-        23\% stenosis & 0.529 & 0.112 & 2.291 & 2.35 & Flow term \\
-        40\% stenosis & 1.012 & 0.133 & 2.261 & 9.92 & Flow term \\
+        C23 (22.56\%) stenosis & 0.677 & 0.094 & 0.000 & 11.40 & Flow term \\
+        40\% stenosis & 1.180 & 0.133 & 2.261 & 12.29 & Flow term \\
         \bottomrule
     \end{tabular}%
     }
@@ -330,8 +336,8 @@ discrepancy or area-denominator difference; it is not causal attribution.
             & $\boldsymbol{D_{u,1}}$ \textbf{(cm/s)}
             & \textbf{rel. }$\boldsymbol{D_{u,2}}$ \\
         \midrule
-        23\% stenosis & 5.27\% & 2.11\% & 0.505 & 2.77\% \\
-        40\% stenosis & 8.71\% & 3.10\% & 0.966 & 6.88\% \\
+        C23 (22.56\%) stenosis & 0.00\% & 2.73\% & 0.604 & 4.47\% \\
+        40\% stenosis & 0.00\% & 3.71\% & 1.13 & 8.44\% \\
         \bottomrule
     \end{tabular}
     \end{table}

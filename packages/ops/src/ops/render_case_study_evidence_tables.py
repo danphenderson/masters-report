@@ -31,7 +31,7 @@ REST_METHOD_LABELS = {
 class RestMethodRow:
     method: str
     method_label: str
-    severity: int
+    severity: float
     nx: int
     final_requested_time_s: float
     initial_total_flow_residual_max_abs: float
@@ -149,6 +149,8 @@ def case_token(severity: float) -> str:
 
 
 def latex_case_token(severity: float) -> str:
+    if round(severity) == 23 and not math.isclose(severity, 23.0, abs_tol=1.0e-9):
+        return f"C23 ({severity:.2f}\\%)"
     return case_token(severity)
 
 
@@ -192,6 +194,7 @@ def summarize_rest_method_csv(path: Path) -> list[RestMethodRow]:
 
     summaries: list[RestMethodRow] = []
     for severity, group in sorted(group_by_severity(rows, path).items()):
+        display_severity = as_float(group[0]["severity"], field="severity", path=path)
         ok_rows = [row for row in group if row.get("status") == "ok"]
         nx_values = {as_int(row["nx"], field="nx", path=path) for row in group if row.get("nx", "").strip()}
         nx = min(nx_values) if len(nx_values) == 1 else 0
@@ -219,7 +222,7 @@ def summarize_rest_method_csv(path: Path) -> list[RestMethodRow]:
                 RestMethodRow(
                     method=method,
                     method_label=label,
-                    severity=severity,
+                    severity=display_severity,
                     nx=nx,
                     final_requested_time_s=as_float(final_row["requested_time_s"], field="requested_time_s", path=path),
                     initial_total_flow_residual_max_abs=residual_value,
@@ -244,7 +247,7 @@ def summarize_rest_method_csv(path: Path) -> list[RestMethodRow]:
                 RestMethodRow(
                     method=method,
                     method_label=label,
-                    severity=severity,
+                    severity=display_severity,
                     nx=nx,
                     final_requested_time_s=math.nan,
                     initial_total_flow_residual_max_abs=residual_value,
