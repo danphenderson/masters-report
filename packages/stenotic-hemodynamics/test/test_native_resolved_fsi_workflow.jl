@@ -1958,6 +1958,173 @@ end
         @test parsed_resume_metadata["current_snapshot_index"] == 2
     end
 
+    function assert_partitioned_restart_resume_equivalence(
+        uninterrupted_result::NativeResolvedFSIPartitionedProductionResult,
+        prefix_result::NativeResolvedFSIPartitionedProductionResult,
+        resume_result::NativeResolvedFSIPartitionedProductionResult,
+        split_after::Int,
+    )
+        snapshot_count = length(uninterrupted_result.snapshot_times_s)
+        @test prefix_result.restart_metadata["current_snapshot_index"] == split_after
+        @test prefix_result.restart_metadata["next_pending_snapshot_index"] == split_after + 1
+        @test resume_result.restart_metadata["resume_run_role"] == "forked_internal_resume"
+        @test resume_result.restart_metadata["completed_parent_snapshot_count"] == split_after
+        @test resume_result.restart_metadata["current_snapshot_index"] == snapshot_count
+        @test resume_result.restart_metadata["next_pending_snapshot_index"] === nothing
+        @test resume_result.restart_metadata["public_resume_supported"] == false
+        @test resume_result.restart_metadata["default_process_resume_supported"] == false
+        @test length(resume_result.restart_metadata["snapshot_outputs"]) == snapshot_count
+        @test [snapshot["time_step_count"] for snapshot in resume_result.restart_metadata["snapshot_outputs"]] ==
+              collect(1:snapshot_count)
+        @test [snapshot.snapshot_time_s for snapshot in uninterrupted_result.snapshot_results] ==
+              uninterrupted_result.snapshot_times_s
+        @test [snapshot["snapshot_time_s"] for snapshot in resume_result.restart_metadata["snapshot_outputs"]] ==
+              uninterrupted_result.snapshot_times_s
+
+        uninterrupted_final = uninterrupted_result.smoke_result
+        resumed_final = resume_result.smoke_result
+        @test resumed_final.saved_time_s ≈ uninterrupted_final.saved_time_s atol = 1.0e-12
+        @test resumed_final.time_step_count == uninterrupted_final.time_step_count
+        @test resumed_final.max_coupling_iterations_used == uninterrupted_final.max_coupling_iterations_used
+        @test isapprox(
+            resumed_final.final_coupling_displacement_residual_cm,
+            uninterrupted_final.final_coupling_displacement_residual_cm;
+            atol=1.0e-10,
+            rtol=1.0e-10,
+        )
+        for field in (
+            :wall_displacement_cm,
+            :wall_velocity_cm_s,
+            :wall_pressure_dyn_cm2,
+            :current_radii_cm,
+            :loaded_velocity,
+            :loaded_pressure,
+            :loaded_displacement,
+            :loaded_deformed_coordinates,
+        )
+            @test isapprox(
+                getfield(resumed_final, field),
+                getfield(uninterrupted_final, field);
+                atol=1.0e-10,
+                rtol=1.0e-10,
+            )
+        end
+
+        uninterrupted_final_row = uninterrupted_result.diagnostic_rows[end]
+        resumed_final_row = resume_result.diagnostic_rows[end]
+        @test resumed_final_row.snapshot_index == uninterrupted_final_row.snapshot_index
+        @test resumed_final_row.snapshot_time_s ≈ uninterrupted_final_row.snapshot_time_s atol = 1.0e-12
+        @test resumed_final_row.time_step_count == uninterrupted_final_row.time_step_count
+        @test resumed_final_row.status == uninterrupted_final_row.status == "ready"
+        @test isapprox(
+            resumed_final_row.wall_displacement_max_cm,
+            uninterrupted_final_row.wall_displacement_max_cm;
+            atol=1.0e-10,
+            rtol=1.0e-10,
+        )
+        @test isapprox(
+            resumed_final_row.wall_pressure_max_dyn_cm2,
+            uninterrupted_final_row.wall_pressure_max_dyn_cm2;
+            atol=1.0e-10,
+            rtol=1.0e-10,
+        )
+    end
+
+    mktempdir() do dir
+        restart_validation_cases = (
+            (
+                label="sev23-early-split",
+                case_id=:sev23,
+                split_after=1,
+                snapshot_times_s=[1.0e-4, 2.0e-4, 3.0e-4],
+            ),
+            (
+                label="sev40-late-split",
+                case_id=:sev40,
+                split_after=2,
+                snapshot_times_s=[1.0e-4, 2.0e-4, 3.0e-4],
+            ),
+        )
+        broader_resolution = NativeResolvedFSIMeshResolution(axial=2, radial=2, angular=8)
+        @test length(unique(validation_case.split_after for validation_case in restart_validation_cases)) > 1
+
+        missing_imported_plan = only(native_resolved_fsi_production_workflow_plans(
+            case_ids=(:sev23,),
+            resolution=broader_resolution,
+            output_root=joinpath(dir, "missing-imported-production"),
+            dt_s=1.0e-4,
+            tfinal_s=3.0e-4,
+            snapshot_times_s=[1.0e-4, 2.0e-4, 3.0e-4],
+            time_atol=1.0e-12,
+        ))
+        missing_imported_dry_run = native_resolved_fsi_partitioned_production_dry_run(
+            missing_imported_plan;
+            imported_data_root=joinpath(dir, "optional-imported-data-absent"),
+        )
+        @test !missing_imported_dry_run.imported_available
+        @test occursin("imported bundle expected-skip", missing_imported_dry_run.status)
+        @test !ispath(missing_imported_dry_run.output_dir)
+
+        for validation_case in restart_validation_cases
+            uninterrupted_spec = NativeResolvedFSIPartitionedProductionSpec(
+                case_id=validation_case.case_id,
+                resolution=broader_resolution,
+                output_root=joinpath(dir, validation_case.label, "uninterrupted"),
+                dt_s=1.0e-4,
+                tfinal_s=last(validation_case.snapshot_times_s),
+                snapshot_times_s=validation_case.snapshot_times_s,
+                time_atol=1.0e-12,
+            )
+            uninterrupted_result = run_native_resolved_fsi_partitioned_production(uninterrupted_spec)
+            @test uninterrupted_result.output_status.ready
+            @test uninterrupted_result.restart_status.ready
+            @test length(uninterrupted_result.snapshot_results) == length(validation_case.snapshot_times_s)
+
+            prefix_spec = NativeResolvedFSIPartitionedProductionSpec(
+                case_id=validation_case.case_id,
+                resolution=broader_resolution,
+                output_root=joinpath(dir, validation_case.label, "prefix"),
+                dt_s=1.0e-4,
+                tfinal_s=last(validation_case.snapshot_times_s),
+                snapshot_times_s=validation_case.snapshot_times_s,
+                time_atol=1.0e-12,
+            )
+            prefix_result = run_native_resolved_fsi_partitioned_production(
+                prefix_spec;
+                _qualified_internal_resume=true,
+                _internal_stop_after_snapshot_index=validation_case.split_after,
+            )
+            @test prefix_result.output_status.ready
+            @test prefix_result.restart_status.ready
+            @test length(prefix_result.snapshot_results) == validation_case.split_after
+
+            resume_spec = NativeResolvedFSIPartitionedProductionSpec(
+                case_id=validation_case.case_id,
+                resolution=broader_resolution,
+                output_root=joinpath(dir, validation_case.label, "resumed"),
+                dt_s=1.0e-4,
+                tfinal_s=last(validation_case.snapshot_times_s),
+                snapshot_times_s=validation_case.snapshot_times_s,
+                time_atol=1.0e-12,
+            )
+            resume_result = run_native_resolved_fsi_partitioned_production(
+                resume_spec;
+                _qualified_internal_resume=true,
+                _resume_checkpoint_path=prefix_result.restart_metadata_json,
+            )
+            @test resume_result.output_status.ready
+            @test resume_result.restart_status.ready
+            @test length(resume_result.snapshot_results) ==
+                  length(validation_case.snapshot_times_s) - validation_case.split_after
+            assert_partitioned_restart_resume_equivalence(
+                uninterrupted_result,
+                prefix_result,
+                resume_result,
+                validation_case.split_after,
+            )
+        end
+    end
+
     mktempdir() do dir
         legacy_output_dir = joinpath(dir, "legacy-snapshot")
         mkpath(legacy_output_dir)
