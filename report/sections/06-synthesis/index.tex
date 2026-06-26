@@ -2,29 +2,26 @@
 \label{sec:literature-synthesis}
 \label{sec:literature-synthesis-open-challenges}
 
-The preceding chapters introduced the review axes one at a time: continuum
-fields, model hierarchy, closure choices, observables, numerical methods, and
-evidence standards. This chapter compares across those axes. Its purpose is not
-to add another catalog of sources; it states what the landscape collectively
-shows. The central finding is that blood-flow models are interpretable only
-when retained state, resolved scale, data, closure choices, observables,
-numerical evidence, and validation status are aligned with the question being
-asked.
-
-The synthesis can be organized into four proposition families used throughout
-the remainder of the report:
+The preceding chapters assembled the ingredients needed to read blood-flow
+models carefully: continuum description, model hierarchy, closure choices,
+observables, numerical methods, and evidence standards. What emerges from that
+review is not a single preferred model class, but a rule for interpretation. A
+hemodynamic result becomes meaningful only when the retained state, modeling
+assumptions, data requirements, observation rule, and evidentiary support are
+aligned with the question being asked. The synthesis below states that rule in
+four parts and uses it as the bridge to the idealized stenosis case study:
 \begin{enumerate}
     \item \textbf{Model state.} Model hierarchy is a hierarchy of retained
-    state and observation operators rather than a monotone hierarchy of accuracy;
-    dimension reduction changes closure requirements and native observables, not merely
-    computational cost.
+    state and observation rules rather than a monotone hierarchy of accuracy;
+    dimension reduction changes closure requirements and native observables,
+    not merely computational cost.
     \item \textbf{Closures and observables.} Local stenosis hemodynamics depends
     on omitted circulation through boundary or multiscale coupling models, and
     rheology, wall, and geometry sensitivity must be reported relative to a
     specified observable and regime.
     \item \textbf{Evidence and validation.} Agreement between 1D and 3D models
-    is interpretable only under matched model specifications and a common observation
-    operator; manufactured solutions, grid studies, equilibrium tests,
+    is interpretable only under matched model specifications and a common
+    output map; manufactured solutions, grid studies, equilibrium tests,
     benchmarks, cross-model comparisons, external validation, UQ, and
     reproducibility support different claims.
     \item \textbf{Learned and identifiable maps.} Practical identifiability

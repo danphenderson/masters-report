@@ -1,13 +1,13 @@
 \subsection{Case-Study Role and Model Specification}
 \label{sec:methodology}
 
-This section states the mathematical specification used by the worked stenosis
-example. It fixes the model tier, state variables, closure choices, boundary
-approximation, finite-volume method, observation map, and comparison limits
-before any result is interpreted. Detailed operator formulas, secondary
-numerical checks, and reconstruction commands remain in the appendices unless
-they are needed for a main-text claim. Table~\ref{tab:t1-case-study-contract}
-gives the compact case-study specification used by the subsections below.
+The worked stenosis example begins by fixing the model tier, state variables,
+closure choices, boundary approximation, finite-volume method, observation map,
+and comparison limits before any result is interpreted. Detailed operator
+formulas, secondary numerical checks, and reconstruction commands remain in the
+appendices unless they are needed for a main-text claim.
+Table~\ref{tab:t1-case-study-contract} gives the compact case-study
+specification used by the subsections below.
 
 \begin{center}
 \fbox{\begin{minipage}{0.90\linewidth}
@@ -529,11 +529,11 @@ Radial-profile rows remain supplemental to the reported comparison metrics.
 \label{subsec:numerical-experiments-metrics-provenance}
 
 The resolved-velocity comparison evaluates the selected 1D solution against two
-available resolved 3D velocity comparison datasets at the matched final-time
-sample $T=0.9995$ s. The reported cases are described by their 23\% and 40\%
-stenosis severities. The comparison is a diagnostic cross-model velocity
-comparison under the specified observation operator. Source identifiers, input
-policy, and static asset ownership are kept in
+available resolved 3D velocity datasets at the matched final-time sample
+$T=0.9995$ s. The reported cases are described by their 23\% and 40\% stenosis
+severities. The comparison is a diagnostic cross-model velocity comparison
+under the specified observation rule. Data availability, reconstruction
+details, and static asset ownership are kept in
 Appendix~\ref{app:code-and-ai-use}.
 
 Velocity and flow differences are reported as sample discrepancy measures over

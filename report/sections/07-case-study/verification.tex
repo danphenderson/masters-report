@@ -1,34 +1,32 @@
 \subsection{Verification Evidence and Rest-State Limitation}
 \label{sec:numerical-verification}
 
-This section applies the evidence standards from
-Section~\ref{sec:numerical-methods} to the worked example. The main numerical
-evidence has three parts: manufactured-solution verification supports the
-forced finite-volume operator, the geometry-rest test exposes the
-non-well-balanced limitation of the selected scheme, and the admissibility
-diagnostics show that the accepted comparison runs stayed within the specified
-boundary, CFL, positivity, and conservation regime. Secondary checks for
+The worked example uses the evidence standards from
+Section~\ref{sec:numerical-methods} in three ways: manufactured-solution
+verification checks the forced finite-volume operator, the geometry-rest test
+identifies the non-well-balanced limitation of the selected scheme, and
+admissibility diagnostics report the boundary, CFL, positivity, and
+conservation regime of the accepted comparison runs. Secondary checks for
 nonprincipal numerical surfaces remain in
 Appendix~\ref{app:numerical-methods-details}.
 
 \subsubsection{Evidence Hierarchy and Scope}
 \label{subsec:verification-scope-convergence-stability}
 
-The hierarchy used below is explicit. The strongest positive evidence is the
+The hierarchy is explicit. The strongest positive result is the
 manufactured-solution test, because it compares the implemented forced operator
 with a specified smooth exact solution and an independently assembled forcing
 consistency check. The principal limitation is the geometry-rest test: the
 selected comparison runs start from that rest state, but the MUSCL/Rusanov
-scheme used here does not exactly preserve it. Boundary, CFL,
-positivity, and conservation diagnostics then state whether accepted runs
-remained numerically admissible. Self-convergence, stationary-Stokes projection,
-broad rheology/profile sweeps, resolved-velocity benchmark stages, and
-nonselected DG rows are secondary checks kept in
-Appendix~\ref{app:numerical-methods-details}.
+scheme used here does not exactly preserve it. Boundary, CFL, positivity, and
+conservation diagnostics then state whether accepted runs remained numerically
+admissible. Self-convergence, stationary-Stokes projection, broad
+rheology/profile sweeps, resolved-velocity benchmark stages, and nonselected DG
+rows are secondary checks kept in Appendix~\ref{app:numerical-methods-details}.
 
-The observation operator has its own check because the 1D--3D
-comparison is only meaningful after the resolved field is mapped to section
-area, physical flow, and mean axial velocity. The synthetic check in
+The section map has its own check because the 1D--3D comparison is only
+meaningful after the resolved field is mapped to section area, physical flow,
+and mean axial velocity. The synthetic check in
 Table~\ref{tab:t1-cross-section-operator-validation} reports the workflow rows
 for constant and affine node-centered axial fields. The package tests also check
 closed-form single-tetrahedron and disjoint two-tetrahedron cuts with
@@ -202,16 +200,20 @@ component magnitudes before the drift history is interpreted.
     \end{center}
 }
 
-The zero-forcing rest test starts the selected 23\% and 40\% stenosis
-geometries from the rest state with a zero-velocity inlet and reports
+The geometry-rest test is a numerical-methods result in its own right. The
+continuous source-balanced model admits the quiescent stenotic geometry as an
+exact rest state, but the reported MUSCL/Rusanov realization does not preserve
+that state exactly on the production grid. The zero-forcing rest test starts
+the selected 23\% and 40\% stenosis geometries from the rest state with a
+zero-velocity inlet and reports
 \begin{flalign*}
     \quad
     &\max_i |q_i|,&
     &\max_i |a_i-R_0(z_i)^2|,&
     &\left|\sum_i a_i\Delta z-\sum_i a_i(0)\Delta z\right| &&
 \end{flalign*}
-as functions of grid size and elapsed time. This test is required context for
-any comparison run initialized from the same geometry-rest state.
+as functions of grid size and elapsed time. This test fixes the interpretation
+of any comparison run initialized from the same geometry-rest state.
 
 \IfFileExists{report/assets/tables/verification/rest_state_drift.tex}{%
     \begin{center}
@@ -264,11 +266,12 @@ on the production comparison grid.
 \end{figure}
 
 This geometry-rest result is the principal negative numerical finding of the
-chapter. The selected 23\% and 40\% stenosis comparison runs are initialized
-from the same geometry-rest state and use the same operator. The zero-inlet
-magnitudes do not support a large through-flow interpretation, but the nonzero
-localized residual means the production comparison is read as a diagnostic
-section-mean velocity comparison, not as a clean production-grid
+case study. It does not invalidate the later section-mean velocity comparison,
+but it fixes the comparison's interpretation: the reported 1D--3D discrepancy is
+a conditional diagnostic comparison carried out with a discretization whose
+equilibrium preservation is known to be imperfect. The zero-inlet magnitudes do
+not support a large through-flow interpretation, but the nonzero localized
+residual rules out reading the production comparison as a clean production-grid
 discretization-accuracy study.
 
 \subsubsection{Boundary, CFL, Positivity, and Conservation Diagnostics}
@@ -328,7 +331,7 @@ above.
     \caption{Production diagnostics from the 23\% and 40\% severity 1D
     comparison runs completed at $T=0.9995$ s. These rows summarize timestep,
     CFL, positivity, area, and finite-volume balance for the 1D runs used in
-    the resolved-comparator evidence.}
+    the resolved-velocity comparison.}
     \label{tab:t1-production-diagnostics}
     \resizebox{\textwidth}{!}{%
     \pgfplotstabletypeset[

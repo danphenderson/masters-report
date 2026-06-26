@@ -2,26 +2,23 @@
 \label{sec:case-study}
 \label{sec:idealized-stenosis-case-study}
 
-This chapter applies the review framework to a controlled stenosis computation.
-The example uses a smooth idealized vessel geometry and a one-dimensional
-area--flow model with specified wall, profile, rheology, boundary, and numerical
-choices. Its purpose is to show how a reduced-model comparison should be read
-once the model state, discrete operator, observation map, and discrepancy metric
-are fixed.
-
-The evidence has three parts. A manufactured-solution test checks the forced
-finite-volume operator against a known smooth solution. A geometry-rest test
-evaluates whether the MUSCL/Rusanov scheme used here preserves the quiescent
-stenotic equilibrium admitted by the continuous source-balanced model. A
-final-time resolved-velocity comparison maps both the one-dimensional solution
-and available three-dimensional velocity data to common section-mean
-observables. These checks support a bounded diagnostic comparison, not a
-clinical prediction or a full transient FSI validation study.
+This chapter applies the review framework to one controlled stenosis example.
+The purpose is not to treat the case as an independent validation study, but to
+show how a reduced-model result should be read once the model state, boundary
+approximation, discretization, observation rule, and metrics have been fixed.
+Three findings matter most. First, the manufactured-solution test provides
+positive implementation-verification evidence for the forced finite-volume
+operator. Second, the geometry-rest test shows that the reported
+MUSCL/Rusanov realization is not exactly well balanced for the quiescent
+stenotic equilibrium of the continuous model. Third, the final-time 1D--3D
+comparison reports section-mean velocity discrepancies only after both states
+are mapped to the same observables. The rest of the chapter makes those three
+findings interpretable.
 
 Figure~\ref{fig:stenosis-fem-fvm-meshes} orients the case study only: it
-previews the stationary-Stokes finite-element sampling geometry and the
-one-dimensional finite-volume grid before the model specification and evidence
-categories are stated.
+previews the stationary-Stokes finite-element sampling geometry, the section
+cuts, and the one-dimensional finite-volume grid before the model
+specification and result hierarchy are stated.
 
 \begin{figure}[!htb]
     \centering
@@ -36,7 +33,9 @@ categories are stated.
     $\mathcal Q_j$, and the three barycentric quadrature points used by the
     specified cross-section quadrature operator. Panel (b) shows the 1D
     finite-volume partition $I_i=[z_{i-1/2},z_{i+1/2}]$ with centers
-    $z_i=(i-\frac12)\Delta z$, sampled along $R_0(z)$.}
+    $z_i=(i-\frac12)\Delta z$, sampled along $R_0(z)$. The figure keeps the
+    section cuts and finite-volume grid visible before the evidence hierarchy
+    begins.}
     \label{fig:stenosis-fem-fvm-meshes}
 \end{figure}
 

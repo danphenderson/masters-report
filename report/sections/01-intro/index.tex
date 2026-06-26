@@ -21,8 +21,8 @@ results across model tiers. It organizes the literature around the ingredients
 that make a computed hemodynamic quantity meaningful: the continuum description,
 model class, closures, boundary data, reported observable, and supporting
 numerical or empirical evidence. The idealized stenosis computation developed
-later in the report is a worked application of that framework; the literature
-review remains broader than the example.
+later is a worked application of that reading discipline; the literature review
+remains broader than the example.
 
 \subsection{Literature Review Scope}
 \label{subsec:narrative-review-scope}
@@ -108,20 +108,16 @@ review-oriented questions:
 \label{subsec:intro-notation-guide}
 \label{subsec:report-organization}
 
-The report's contribution is a structured review framework for mathematical
-hemodynamics. It first establishes the continuum vocabulary, then compares model
-tiers by state variables, closure burden, boundary data, and native observables.
-It next treats numerical methods through evidence standards: conservation,
-stability, positivity, well-balancing, verification, validation,
-reproducibility, and cross-dimensional observation operators. The synthesis
-chapter turns those ingredients into explicit propositions about model
-interpretation.
-
-Only after that review and synthesis does the report turn to the idealized
-stenosis case study. The case is a worked example of how a reduced model
-specification, closure choices, numerical evidence, and a 1D--3D velocity observation
-operator constrain interpretation. It illustrates the review framework; it does
-not expand the report into a clinical validation study.
+The report proceeds in two stages. Sections~\ref{sec:continuum-description}--%
+\ref{sec:literature-synthesis} build the reading framework by fixing the
+continuum vocabulary, comparing model tiers, making closure and observable
+choices explicit, and separating numerical evidence categories that are often
+blurred together in hemodynamics. Section~\ref{sec:case-study} then uses an
+idealized stenosis example to show how those distinctions matter in practice:
+the model, boundary approximation, discretization, verification evidence, and
+1D--3D observation rule are specified before any comparison is interpreted. The
+final discussion returns from that example to the review questions and states
+the bounded methodological contribution directly.
 
 The main continuum symbols are used in their standard units unless a generated
 numerical table states otherwise: $\rho$ denotes density, $u_z$ axial velocity,
@@ -134,10 +130,6 @@ $A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and the section-mean
 velocity is $\bar u=q/a$. Appendix~\ref{app:domain-specific-notation} collects
 the full symbol and unit table used by the report.
 
-Section~\ref{sec:continuum-description} supplies the continuum definitions used
-later. Sections~\ref{sec:model-hierarchy}--\ref{sec:numerical-methods} compare
-model tiers, closures, observables, discretizations, and evidence standards.
-Section~\ref{sec:literature-synthesis} states the resulting synthesis
-propositions before Section~\ref{sec:case-study} applies the framework to one
-idealized stenosis example. The final discussion answers the research questions
-directly and closes with the bounded review contribution.
+The rest of the manuscript follows that sequence: continuum definitions,
+model hierarchy, closure choices, numerical evidence, synthesis, case-study
+application, and integrated discussion.

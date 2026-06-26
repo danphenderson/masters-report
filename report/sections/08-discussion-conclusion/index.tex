@@ -5,13 +5,13 @@
 \label{subsec:discussion-model-hierarchy-question-matching}
 
 The first research question asked how blood-flow model classes are organized
-and what distinguishes them. The answer is that the hierarchy is a set of
-retained-state, closure, coupling, and observation choices, not a ranking of
-accuracy. Formaggia, Lamponi, and Quarteroni show that section-averaging and
-wall simplification define different 1D operators; Shi, Lawford, and Hose
-distinguish lumped global pressure--flow interactions from distributed 1D pulse
-propagation; and Quarteroni--Veneziani multiscale coupling shows that boundary
-data can be a reduced model of omitted circulation
+and what distinguishes them. The review supports the conclusion that the
+hierarchy is a set of retained-state, closure, coupling, and observation
+choices, not a ranking of accuracy. Formaggia, Lamponi, and Quarteroni show
+that section-averaging and wall simplification define different 1D operators;
+Shi, Lawford, and Hose distinguish lumped global pressure--flow interactions
+from distributed 1D pulse propagation; and Quarteroni--Veneziani multiscale
+coupling shows that boundary data can be a reduced model of omitted circulation
 \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,ShiEtAl2011BloodFlowModelReview,QuarteroniVeneziani2003GeometricalMultiscale}.
 Thus 0D, 1D, and 2D formulations should not be described as weaker versions of
 3D CFD; they retain different states and require different observation operators.
@@ -28,8 +28,8 @@ observations.
 
 The second research question asked how rheology, wall mechanics, geometry,
 boundary data, numerical discretization, evidence standards, and observation
-operators affect interpretation. The answer is that these choices define the
-quantity being reported. Blanco and coauthors support this point for
+operators affect interpretation. These choices define the quantity being
+reported. Blanco and coauthors support this point for
 FFR-specific 1D--3D comparison under matched pressure boundary conditions and
 dedicated loss closures; Liu and coauthors show observable-dependent rheology
 sensitivity in an intracranial stenosis setting; John and coauthors show that
@@ -55,10 +55,10 @@ evidence.
 \label{subsec:discussion-numerical-evidence-observation}
 
 The third research question asked what limitations remain when resolved scale,
-cost, identifiability, validation status, reproducibility, and
-uncertainty are compared. The answer is that interpretation depends on the specified equation,
-state variables, discretization, observation operator, and metric, and each
-evidence type checks only part of that chain.
+cost, identifiability, validation status, reproducibility, and uncertainty are
+compared. The review supports the conclusion that interpretation depends on the
+specified equation, state variables, discretization, output map, and metric, and
+each evidence type checks only part of that chain.
 ASME VVUQ terminology separates verification, validation, and uncertainty
 quantification; Boileau and coauthors provide benchmark comparison evidence;
 Pimentel-Garcia and coauthors show that a well-balanced claim must name the
@@ -80,40 +80,48 @@ rather than to one validation grade.
 \subsection{Contribution and Limitations}
 \label{subsec:discussion-contribution-limitations}
 
-The contribution is a review framework for reading mathematical hemodynamics
-across model tiers. It connects state variables, closures, boundary data,
-discretization, observation operator, metric, and evidence standard in one
-interpretive chain, then applies that chain once in an idealized stenosis
-computation.
+The contribution of this report is methodological rather than clinical. It
+offers a way to read mathematical hemodynamics across model tiers by keeping
+state variables, closures, boundary data, discretization, observation rules,
+metrics, and evidence types in view at the same time. The idealized stenosis
+case study matters because it does not merely restate that principle
+abstractly; it carries it through one specified model and shows how different
+kinds of numerical evidence sit alongside one another. In that sense, the
+positive MMS result, the negative geometry-rest result, and the bounded
+1D--3D comparison are jointly informative.
 
-The limitations are correspondingly bounded. The review is narrative and
-scoping, not systematic. Some sources remain preprints, software artifacts, or
-metadata entries with roles narrower than peer-reviewed empirical evidence. The
-case geometry, wall law, rheology, and boundary approximation are idealized.
-The numerical evidence distinguishes verification, equilibrium-preservation testing,
-and diagnostic comparison, but it does not provide externally validated
-clinical prediction evidence or a fully matched transient FSI target.
+The limitations follow from the same discipline. The review is narrative and
+scoping rather than systematic. Some sources remain preprints, software
+artifacts, or metadata entries with roles narrower than peer-reviewed empirical
+evidence. The case geometry, wall law, rheology, and boundary approximation are
+idealized. The comparison data are informative but incomplete, especially for
+transient wall and boundary matching. The reproducibility materials are strong
+while stopping short of a fully archived public release with packaged raw 3D
+inputs. These limitations do not diminish the report's main contribution; they
+define it accurately.
 
 \section{Conclusion}
 \label{sec:conclusions-limitations}
 
-This report's main conclusion is that hemodynamic simulation results are
-interpretable only when the equation, state variables, closure assumptions,
-boundary data, discretization, observation operator, and metric are specified
-together and then evaluated with the appropriate evidence standard. Model
-dimension alone does not determine interpretation, and neither a benchmark, a
-grid study, a cross-model comparison, nor a learned surrogate result
-substitutes for validation against an external target for a specified quantity
-and context.
-Likewise, a membrane-wall update, a pressure--area law, and a resolved FSI
-calculation answer different structural questions unless their wall state,
-loads, and observation operators are matched.
+The main conclusion of this report is that blood-flow simulation results cannot
+be read responsibly from model dimension alone. What matters is the full
+interpretive setting: which state is retained, which physics are closed, what
+data are supplied, how numerical outputs are observed, and what kind of
+evidence is available for the claim being made. Read in that way, 3D CFD, FSI,
+lower-dimensional models, multiscale systems, and learned surrogates are not
+simply points on a single accuracy ladder. They are different mathematical
+descriptions whose outputs become comparable only under specified observables
+and evidence standards.
 
-For the idealized stenosis case, the supported contribution is methodological:
-verified forced-operator behavior, an identified rest-state discretization
-limitation, and a section-mean velocity comparison under a specified observation
-map. Future work should strengthen the same chain where the present evidence is
-limited: construct or adopt a well-balanced discretization for the
-geometry-rest state, obtain matched wall and boundary metadata for resolved
-comparisons, report uncertainty separately from model discrepancy, and specify
-validation observables before predictive or clinical claims are made.
+The idealized stenosis case study shows what that discipline looks like in
+practice. For the reported 1D realization, the manuscript supports
+implementation-verification evidence for the forced operator, identifies a
+non-well-balanced geometry-rest limitation that remains visible on the
+production grid, and reports final-time section-mean velocity discrepancies
+under a specified 1D--3D observation map. Those findings are meaningful
+precisely because they are bounded. Future work should strengthen the same
+chain where the present evidence is limited: construct or adopt a well-balanced
+discretization for the geometry-rest state, obtain matched wall and boundary
+metadata for resolved comparisons, report uncertainty separately from model
+discrepancy, and specify validation observables before predictive or clinical
+claims are made.

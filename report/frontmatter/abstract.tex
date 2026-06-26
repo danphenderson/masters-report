@@ -1,30 +1,30 @@
 \medskip
 \noindent\textbf{Abstract.}\par\smallskip
-Hemodynamic results are difficult to compare across resolved, reduced, lumped,
-multiscale, and learned model classes because each class changes the state
-variables, closure assumptions, boundary data, observables, and evidence needed
-to support a claim. This report develops a mathematical reading framework for
-blood-flow simulation, using stenotic flow as the organizing example. The
-framework separates model tier from evidentiary strength: a pressure, flow,
-velocity, WSS, or FFR-style quantity becomes interpretable only after the
-governing state, closure assumptions, boundary approximation, discretization,
-observation map, and metric have been specified.
+Hemodynamic results are often compared as though model dimension alone
+determined credibility or accuracy. In practice, different blood-flow models
+retain different states, impose different closures, require different data, and
+expose different observables, so the meaning of a reported pressure, flow,
+velocity, wall-shear, or FFR-style quantity depends on how that quantity is
+defined and supported.
 
-The review compares resolved 3D CFD/FSI descriptions, axisymmetric and
-two-dimensional reductions, distributed one-dimensional area--flow systems,
-lumped networks, geometrical multiscale couplings, and learned surrogate or
-operator maps. It then applies the framework to an
-idealized stenosis case study. The case study specifies a reduced
-one-dimensional model, finite-volume realization, manufactured-solution
-verification check, geometry-rest preservation test, and plane--tetrahedron
-observation operator for comparison with available resolved velocity data.
+A mathematical reading guide for blood-flow simulation is developed using
+stenotic flow as an organizing example. The review compares resolved 3D CFD and
+FSI descriptions, lower-dimensional reductions, lumped and multiscale models,
+and learned surrogate or operator maps through a common set of questions: what
+state is retained, what is closed, what data are required, what quantity is
+observed, and what evidence supports the interpretation.
 
-The case study is methodological. It provides implementation-verification
-evidence for the forced operator, identifies a non-well-balanced rest-state
-limitation of the reported discretization, and quantifies final-time
-section-mean velocity discrepancies under a specified 1D--3D observation map.
-It does not establish external clinical validation, pressure-ratio validation,
-or equivalence to a fully matched transient FSI computation. The central
-conclusion is that model dimension is not an accuracy ladder: each model tier
-changes the state space, closure burden, native observables, and evidence
-required to support a hemodynamic claim.
+That guide is then applied to an idealized stenosis case study. In that
+setting, a reduced one-dimensional model, its finite-volume
+realization, a manufactured-solution verification test, a geometry-rest
+preservation test, and a plane--tetrahedron 1D--3D observation map are carried
+through as one controlled example. The resulting contribution is
+methodological: the case study supports implementation-verification evidence
+for the forced operator, identifies a non-well-balanced geometry-rest
+limitation of the reported discretization, and reports final-time section-mean
+velocity discrepancies under a specified cross-dimensional observation rule. It
+does not establish external clinical validation, pressure-ratio validation, or
+equivalence to a fully matched transient FSI computation. The central conclusion
+is that model dimension should not be read, by itself, as an accuracy ladder:
+each model tier changes the state space, closure burden, native observables,
+and evidence required to support a hemodynamic claim.
