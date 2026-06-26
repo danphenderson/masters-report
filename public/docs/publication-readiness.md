@@ -20,8 +20,8 @@ resolved-3D input convention.
 
 - Publish from a clean branch or a fresh source export if historical large blobs
   or third-party full-text files have not been reviewed.
-- Do not commit root review/orchestration notes such as
-  `executive-assessment.md` or manuscript workflow YAML files.
+- Do not commit root review/orchestration notes or manuscript workflow YAML
+  files.
 - Keep `public/references/references.bib` and
   `public/references/source-inventory.tsv`.
 - Do not track `public/references/**/*.pdf` or

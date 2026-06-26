@@ -93,8 +93,6 @@ terms aligned with `public/docs/policy-vocabulary.md`.
   GitHub Pages workflow, repository setting, and deferred search follow-up.
 - [Policy vocabulary](policy-vocabulary.md): modal verbs and shared artifact/build
   vocabulary.
-- [Executive assessment](executive-assessment.md): dated public-readiness assessment; do
-  not treat it as current workflow policy.
 
 </div>
 

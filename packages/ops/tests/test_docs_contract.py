@@ -67,6 +67,20 @@ def test_agent_workflow_doc_names_every_profile() -> None:
         assert profile in text
 
 
+def test_docs_index_does_not_link_archived_executive_assessment() -> None:
+    text = (repo_root() / "public/docs/index.md").read_text(encoding="utf-8")
+
+    assert "](executive-assessment.md)" not in text
+
+
+def test_archived_executive_assessment_declares_audited_tree_state() -> None:
+    text = (repo_root() / "public/docs/executive-assessment.md").read_text(encoding="utf-8")
+
+    assert "# Archived Executive Assessment" in text
+    assert "Repository state evaluated: `main...origin/main [ahead 4]` with a dirty working" in text
+    assert "## Repository State Evaluated" in text
+
+
 def test_docs_contract_rejects_stale_active_paths(tmp_path: Path) -> None:
     write_minimal_docs_contract(tmp_path)
     (tmp_path / "README.md").write_text(
