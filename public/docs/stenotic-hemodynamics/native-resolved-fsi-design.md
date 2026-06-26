@@ -77,6 +77,11 @@ Interpretation:
   scalability, or reproduction claims.
 - The exact Section 4.1 boundary mode is explicit, but the weak
   pressure-drop smoke path remains the default smoke evidence path.
+- The bounded `sev23` exact-boundary probe ladder includes a one-step
+  `(80, 4, 24)` mesh probe under
+  `tmp/simulations/output/native-resolved-fsi-exact-boundary-probes/`; its
+  finite-field, positive-geometry, pressure-normalization, importer round-trip,
+  and bounded-coupling statuses are operational evidence only.
 - The moving-wall tier remains partitioned and smoke-backed, not monolithic.
 
 ## Backend decision

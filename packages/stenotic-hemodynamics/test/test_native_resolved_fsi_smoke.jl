@@ -258,6 +258,36 @@ end
         @test occursin("not paper-grade native resolved-FSI Section 4.1 reproduction", exact_dry_run.status)
         @test !ispath(exact_dry_run.output_dir)
     end
+
+    mktempdir() do dir
+        preproduction_probe_plan = only(native_resolved_fsi_production_workflow_plans(
+            case_ids=(:sev23,),
+            resolution=NativeResolvedFSIMeshResolution(axial=80, radial=4, angular=24),
+            output_root=joinpath(dir, "exact-boundary-probe"),
+            dt_s=1.0e-4,
+            tfinal_s=1.0e-4,
+            snapshot_times_s=[1.0e-4],
+            inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+            inlet_umax_cm_s=45.0,
+            pressure_drop_dyn_cm2=0.0,
+        ))
+        preproduction_probe_dry_run = native_resolved_fsi_partitioned_production_dry_run(
+            preproduction_probe_plan;
+            imported_data_root=joinpath(dir, "missing-imported"),
+        )
+        @test preproduction_probe_dry_run.expected_tetrahedron_count == 40320
+        @test occursin(
+            "sev23_preproduction_mesh_exact_boundary_probe_mesh80x4x24_tfinal0p0001_planned",
+            preproduction_probe_dry_run.wall_stability_status,
+        )
+        @test occursin("finite_fields=pending_artifact_review", preproduction_probe_dry_run.wall_stability_status)
+        @test occursin("positive_radii_tets=pending_artifact_review", preproduction_probe_dry_run.wall_stability_status)
+        @test occursin("pressure_normalization=pending_artifact_review", preproduction_probe_dry_run.wall_stability_status)
+        @test occursin("importer_round_trip=pending_artifact_review", preproduction_probe_dry_run.wall_stability_status)
+        @test occursin("coupling_status=pending_execution", preproduction_probe_dry_run.wall_stability_status)
+        @test occursin("not paper-grade Section 4.1 parity", preproduction_probe_dry_run.wall_stability_status)
+        @test occursin("not paper-grade Section 4.1 parity", preproduction_probe_dry_run.status)
+    end
 end
 
 @testset "StenoticHemodynamics native resolved-FSI radial wall velocity helper" begin

@@ -140,6 +140,13 @@ function native_resolved_fsi_partitioned_wall_stability_status(spec::NativeResol
     if spec.inlet_outlet_boundary_mode === :poiseuille_inlet_zero_outlet_stress_section41
         known_probe_status =
             spec.case_spec.case_id === :sev23 &&
+            spec.resolution.axial == 80 &&
+            spec.resolution.radial == 4 &&
+            spec.resolution.angular == 24 &&
+            isapprox(spec.dt_s, 1.0e-4; atol=0.0, rtol=1.0e-12) &&
+            isapprox(spec.tfinal_s, 1.0e-4; atol=0.0, rtol=1.0e-12) ?
+            "sev23_preproduction_mesh_exact_boundary_probe_mesh80x4x24_tfinal0p0001_planned: finite_fields=pending_artifact_review; positive_radii_tets=pending_artifact_review; pressure_normalization=pending_artifact_review; importer_round_trip=pending_artifact_review; coupling_status=pending_execution; stationary wall-on-deformed-geometry handoff only; not paper-grade Section 4.1 parity, moving-wall ALE validation, or production-scale all-case validation" :
+            spec.case_spec.case_id === :sev23 &&
             isapprox(spec.dt_s, 1.0e-4; atol=0.0, rtol=1.0e-12) ?
             "sev23_development_exact_boundary_artifact_gate_passed_tfinal0p01: finite fields, positive radii, positive tetrahedra, direct wall-pressure sampling, and sidecars observed with stationary wall-on-deformed-geometry handoff; one-iteration coupling remains bounded evidence, not production/preproduction validation" :
             "pressure_load_stability_requires_execution_gate"

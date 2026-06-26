@@ -164,12 +164,13 @@ audit metadata, schema-v3 durable checkpoint sidecars, qualified internal
 split-run resume into forked output roots, and local/imported observation
 surfaces. Current evidence is bounded: exact Section 4.1 boundary-mode support,
 the mathematical-contract gate, checkpoint metadata validation, and split-run
-resume have focused smoke/contract-test coverage. The source tree documents
-`sev23` preproduction as a qualified internal workflow with explicit output
-ownership and claim-boundary review, not as an active run. The repository does
-not yet claim public/default resume, public native production CLI execution,
-production-scale Section 4.1 reproduction, imported-data parity, monolithic ALE
-FSI, moving-wall fidelity, paper-grade reproduction, or clinical validation.
+resume have focused smoke/contract-test coverage. The source tree documents a
+bounded one-step `sev23` exact-boundary probe at the `(80, 4, 24)` mesh target
+with explicit output ownership and claim-boundary review; it is not full
+preproduction execution. The repository does not yet claim public/default
+resume, public native production CLI execution, production-scale Section 4.1
+reproduction, imported-data parity, monolithic ALE FSI, moving-wall fidelity,
+paper-grade reproduction, or clinical validation.
 
 Use `fsi native-status` for status-only planning; it does not run production:
 
