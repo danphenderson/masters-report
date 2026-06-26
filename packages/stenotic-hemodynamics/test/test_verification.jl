@@ -307,7 +307,7 @@ end
 
         drift = StenoticHemodynamics.run_rest_state_drift(StenoticHemodynamics.RestStateDriftSpec(;
             output_dir=dir,
-            severities=[23.0],
+            severities=[22.555555555555554],
             nxs=[8, 12],
             elapsed_times=[0.0, 1.0e-5],
             overwrite=true,
@@ -368,9 +368,15 @@ end
         @test parse(Float64, drift_csv_row["terminal_time_error_s"]) <= 1.0e-12
         @test parse(Float64, drift_csv_row["requested_q_in"]) ≈ 0.0
         @test parse(Float64, drift_csv_row["applied_q_in"]) ≈ 0.0
-        @test occursin("final balance residual", read(drift.summary_tex, String))
-        @test occursin("R_q^{\\mathrm{tot}}", read(drift.residual_tex, String))
-        @test occursin("final balance residual", read(replace(drift.summary_tex, r"\\.tex$" => "_full.tex"), String))
+        summary_tex = read(drift.summary_tex, String)
+        residual_tex = read(drift.residual_tex, String)
+        full_tex = read(replace(drift.summary_tex, r"\\.tex$" => "_full.tex"), String)
+        @test occursin("final balance residual", summary_tex)
+        @test occursin("C23 (22.56\\%)", summary_tex)
+        @test occursin("R_q^{\\mathrm{tot}}", residual_tex)
+        @test occursin("C23 (22.56\\%)", residual_tex)
+        @test occursin("final balance residual", full_tex)
+        @test occursin("C23 (22.56\\%)", full_tex)
 
         balanced_drift = StenoticHemodynamics.run_rest_state_drift(StenoticHemodynamics.RestStateDriftSpec(;
             output_dir=joinpath(dir, "balanced-rest-state"),

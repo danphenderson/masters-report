@@ -151,9 +151,9 @@ function write_rest_state_drift_tex(path::String, rows::Vector{RestStateDriftRow
         println(io, "    \\scriptsize")
         println(io, "    \\caption{Zero-forcing, zero-inlet geometry-rest drift summary. The table reports the combined requested/applied inlet-flow status, the largest cell flow over positive elapsed times, and the final balance residual; the full diagnostic table remains in Appendix~\\ref{app:num-full-rest-state-drift-grid}.}")
         println(io, "    \\resizebox{\\textwidth}{!}{%")
-        println(io, "    \\begin{tabular}{@{}rrlrrrrr@{}}")
+        println(io, "    \\begin{tabular}{@{}lrlrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        Severity & \$N\$ & inlet \$q_{\\mathrm{in}}\$ req./appl. & \$t_{\\mathrm{peak}}\$ & peak \$\\max |q_i|\$ & \$z_{\\max |q|}\$ & final \$\\max |q_i|\$ & final balance residual \\\\")
+        println(io, "        Case & \$N\$ & inlet \$q_{\\mathrm{in}}\$ req./appl. & \$t_{\\mathrm{peak}}\$ & peak \$\\max |q_i|\$ & \$z_{\\max |q|}\$ & final \$\\max |q_i|\$ & final balance residual \\\\")
         println(io, "        \\midrule")
         for row in rest_state_drift_summary_rows(rows)
             println(io, rest_state_drift_summary_latex_row(row))
@@ -201,9 +201,9 @@ function write_rest_state_drift_full_tex(path::String, rows::Vector{RestStateDri
         println(io, "    \\scriptsize")
         println(io, "    \\caption{Full zero-forcing, zero-inlet geometry-rest drift diagnostics. The volume-defect column is the signed solver-coordinate integral \$\\Delta\\!\\int a\\,dz\$; the balance residual is \$\\Delta\\!\\int a\\,dz+\\int(\\widehat F^a_{\\mathrm{out}}-\\widehat F^a_{\\mathrm{in}})\\,dt\$.}")
         println(io, "    \\resizebox{\\textwidth}{!}{%")
-        println(io, "    \\begin{tabular}{@{}rrrrrrrrrrr@{}}")
+        println(io, "    \\begin{tabular}{@{}lrrrrrrrrrr@{}}")
         println(io, "        \\toprule")
-        println(io, "        Severity & \$N\$ & \$t\$ & requested \$q_{\\mathrm{in}}\$ & applied \$q_{\\mathrm{in}}\$ & \$\\widehat F^a_{\\mathrm{in}}\$ & \$\\widehat F^a_{\\mathrm{out}}\$ & \$\\max |q_i|\$ & \$z_{\\max |q|}\$ & \$\\Delta\\!\\int a\\,dz\$ & balance residual \\\\")
+        println(io, "        Case & \$N\$ & \$t\$ & requested \$q_{\\mathrm{in}}\$ & applied \$q_{\\mathrm{in}}\$ & \$\\widehat F^a_{\\mathrm{in}}\$ & \$\\widehat F^a_{\\mathrm{out}}\$ & \$\\max |q_i|\$ & \$z_{\\max |q|}\$ & \$\\Delta\\!\\int a\\,dz\$ & balance residual \\\\")
         println(io, "        \\midrule")
         for row in rows
             row.status == "ok" || continue
@@ -266,9 +266,17 @@ end
 
 rest_state_comparison_flow_scale() = 2.288 / pi
 
+function rest_state_case_label_tex(severity::Real)
+    value = Float64(severity)
+    if !isapprox(value, round(value); rtol=0.0, atol=1.0e-9)
+        return "C$(round(Int, value)) ($(report_percent_text(value))\\%)"
+    end
+    return "C$(round(Int, value))"
+end
+
 function rest_state_drift_summary_latex_row(row)
     return join((
-        string(round(Int, row.severity)),
+        rest_state_case_label_tex(row.severity),
         string(row.nx),
         "\$(\\mathrm{$(latex_number(row.peak_requested_q_in))})/(\\mathrm{$(latex_number(row.peak_applied_q_in))})\$",
         latex_number(row.peak_time_s),
@@ -281,7 +289,7 @@ end
 
 function rest_state_residual_components_latex_row(row::RestStateResidualComponentRow)
     return join((
-        "C$(round(Int, row.severity))",
+        rest_state_case_label_tex(row.severity),
         string(row.nx),
         latex_number(row.mass_flux_rusanov_max_abs),
         latex_number(row.mass_flux_rusanov_z_cm),
@@ -294,7 +302,7 @@ end
 
 function rest_state_drift_latex_row(row::RestStateDriftRow)
     return join((
-        string(round(Int, row.severity)),
+        rest_state_case_label_tex(row.severity),
         string(row.nx),
         latex_number(row.elapsed_time_s),
         latex_number(row.requested_q_in),
