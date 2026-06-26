@@ -5,7 +5,7 @@
 The preceding chapters introduced the review axes one at a time: continuum
 fields, model hierarchy, closure choices, observables, numerical methods, and
 evidence standards. This chapter compares across those axes. Its purpose is not
-to add another catalog of sources, but to state what the landscape collectively
+to add another catalog of sources; it states what the landscape collectively
 shows. The central finding is that blood-flow models are interpretable only
 when retained state, resolved scale, data, closure choices, observables,
 numerical evidence, and validation status are aligned with the question being
@@ -15,8 +15,8 @@ The synthesis can be organized into four proposition families used throughout
 the remainder of the report:
 \begin{enumerate}
     \item \textbf{Model state.} Model hierarchy is a hierarchy of retained
-    state and observation operators, not a monotone hierarchy of accuracy; dimension
-    reduction changes closure requirements and native observables, not merely
+    state and observation operators rather than a monotone hierarchy of accuracy;
+    dimension reduction changes closure requirements and native observables, not merely
     computational cost.
     \item \textbf{Closures and observables.} Local stenosis hemodynamics depends
     on omitted circulation through boundary or multiscale coupling models, and
@@ -48,10 +48,9 @@ simplifications change the one-dimensional differential operator itself; and
 the 0D/1D review literature shows what is deliberately compressed into axial
 or lumped pressure--flow variables
 \cite{FormaggiaEtAl2003OneDimensionalBloodFlow,FormaggiaEtAl2007FSICoupling,QuarteroniVeneziani2003GeometricalMultiscale,ShiEtAl2011BloodFlowModelReview}.
-The reduced tiers are not weaker by definition. They are appropriate when the
-question concerns pulse propagation, network pressure--flow behavior, rapid
-screening, or parameter studies for which fully resolved data and boundary
-conditions are unavailable or unnecessary.
+Reduced tiers are appropriate when the question concerns pulse propagation,
+network pressure--flow behavior, rapid screening, or parameter studies for which
+fully resolved data and boundary conditions are unavailable or unnecessary.
 
 The cost of that compression is interpretive. A 1D model may have fewer state
 variables than a 3D model, but it can still be underdetermined if wall, profile,
@@ -106,8 +105,8 @@ Boundary-condition uncertainty is one of the most persistent barriers to
 interpretable hemodynamics. Inlet waveforms, outlet impedances, terminal
 resistances, and coupled-domain histories can change the local solution as much
 as the internal discretization. In a multiscale setting, these quantities are
-not auxiliary inputs; they are the mechanism by which upstream and downstream
-vascular beds communicate with the modeled region
+the mechanism by which upstream and downstream vascular beds communicate with
+the modeled region
 \cite{QuarteroniVeneziani2003GeometricalMultiscale,FormaggiaEtAl2007FSICoupling}.
 A reduced stenosis result that does not declare its boundary approximation
 therefore cannot be cleanly compared with a resolved result, even if both
@@ -142,7 +141,7 @@ registration, current-versus-reference configuration, and wall-motion state can
 dominate the modeling specification. Idealized geometry removes many of those
 ambiguities and exposes controlled severity and refinement parameters, but it
 cannot by itself answer patient-specific questions. The useful distinction is
-not realistic versus artificial. It is whether the geometry serves the claim:
+whether the geometry serves the claim:
 patient-specific geometry for patient-specific interpretation, and idealized
 geometry for isolating numerical, closure, and comparison behavior. Gambaruto
 and coauthors provide a bounded example: in one aneurysm case, reconstruction
@@ -167,7 +166,7 @@ support reproducibility and comparison across workflows
 contributes shared cases and scheme comparison; OpenBF contributes an
 inspectable open finite-volume workflow. Resolved-flow platforms and model
 repositories extend that reproducibility lesson to 3D workflows by making
-geometry, meshing, solver, and repository materials easier to inspect
+geometry, meshing, solver, and model materials easier to inspect
 \cite{SimVascular2026Platform,SimVascular2026VascularModelRepository}. None of
 these materials is automatically a validation claim unless the model, data,
 observable, and accepted reference match the target question.
@@ -197,10 +196,9 @@ evidence. Benchmark studies help by fixing common cases and comparison
 quantities, but stenosis studies also need persisted geometry definitions,
 boundary histories, closure parameters, solver settings, diagnostics, and output
 maps \cite{BoileauEtAl2015Benchmark,BenemeritoEtAl2024OpenBF}. The lesson from
-the benchmark/open-solver pair is not that every stenosis study must use the
-same code. It is that disagreement between two models is hard to assign to
-physics, parameters, numerics, or data handling unless the comparison design is
-inspectable.
+the benchmark/open-solver pair is that disagreement between two models is hard
+to assign to physics, parameters, numerics, or data handling unless the
+comparison design is inspectable.
 
 Learned methods do not remove this requirement. Physics-informed neural networks
 offer a framework for solving and inverting PDE-constrained problems

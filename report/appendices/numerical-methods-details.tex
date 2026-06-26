@@ -217,7 +217,7 @@ configuration the modal limiter is disabled, so the fixed-grid p-sweep is read
 as smooth-verification evidence for the DG polynomial representation and
 operator wiring. This does not change the conservative limited DG default used
 outside this verification configuration, and it is not evidence for native
-resolved-FSI execution, imported parity, or Section 4.1 source-artifact
+resolved-FSI execution, imported parity, or Section 4.1 reproducibility
 alignment.
 
 \IfFileExists{report/assets/tables/verification/p_h_refinement_demo.tex}{%
@@ -245,11 +245,12 @@ alignment.
     \label{fig:ph-refinement-demo}
 \end{figure}
 
-\paragraph{Self-convergence, integrator comparison, and closure sensitivity.}
-The remaining package-benchmark figures are retained as compact
-secondary numerical diagnostics. They can expose grid sensitivity,
-integration-policy discrepancies, or closure-family wiring problems, but they do not
-establish a convergence theorem for the nonlinear operator. The benchmark
+\paragraph{Additional benchmark diagnostics.}
+The remaining package-benchmark figures cover self-convergence, integrator
+comparison, and closure sensitivity as compact secondary numerical diagnostics.
+They can expose grid sensitivity, integration-policy discrepancies, or
+closure-family wiring problems, but they do not establish a convergence theorem
+for the nonlinear operator. The benchmark
 pressure traces are legacy local-denominator diagnostics
 $p_{\mathrm{loc},\mathrm g}^{\mathrm{diag}}$ from the implementation helpers,
 not selected evolution wall-law pressure observations.
@@ -413,7 +414,7 @@ convention recorded in the workflow manifest. Outlet-gauge normalization is a
 diagnostic and export convention rather than the forcing convention for the
 partitioned membrane update. The implementation also accepts a named positive,
 sufficiently smooth reference-radius callback, so the membrane-FSI solve is not
-tied to the default Canic stenosis profile. The retained report comparison
+tied to the default Canic stenosis profile. The selected report comparison
 promotes the quasi-static summary table, wall-profile curves, and fixed-point
 history into Section~\ref{subsec:membrane-fsi-comparator}; the scratch output
 directory and manifest remain provenance records for regenerating the
@@ -428,7 +429,7 @@ package-level mathematical-contract diagnostics. They do not establish
 production resolved-FSI execution, parity with imported resolved data,
 moving-wall/ALE fidelity, durable restart or resume support, or radial-profile
 report evidence for the native Gridap-based solver. The manuscript-grade
-Section~4.1 source-artifact reconstruction and diagnostic comparison is instead
+Section~4.1 source-based diagnostic comparison is instead
 the separate \texttt{canic-replication section41} workflow documented in
 Appendix~\ref{app:code-and-ai-use}; it compares local 1D outputs with restored
 upstream 3D bundles and lists the parameter comparison. Accordingly,
@@ -448,7 +449,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi validate \
 \end{lstlisting}
 The workflow writes a summary CSV, a \TeX{} table fragment, per-case wall
 profiles, per-case coupling histories, and a JSON manifest under the selected
-output directory, with the retained report assets copied to
+output directory, with the report assets copied to
 \path{report/assets/data/membrane-fsi/} and
 \path{report/assets/tables/membrane-fsi/}. Dynamic wall mode is a reduced radial
 membrane time integrator coupled to repeated quasi-steady Stokes solves, not a

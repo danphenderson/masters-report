@@ -2,11 +2,11 @@
 \label{sec:numerical-verification}
 
 This section applies the evidence standards from
-Section~\ref{sec:numerical-methods} to the worked example. The retained
-main-body evidence has three parts: manufactured-solution verification supports
-the forced finite-volume operator, the geometry-rest test exposes the
-non-well-balanced limitation of the current method, and the admissibility
-diagnostics show that the accepted comparison runs stayed within the declared
+Section~\ref{sec:numerical-methods} to the worked example. The main numerical
+evidence has three parts: manufactured-solution verification supports the
+forced finite-volume operator, the geometry-rest test exposes the
+non-well-balanced limitation of the selected scheme, and the admissibility
+diagnostics show that the accepted comparison runs stayed within the specified
 boundary, CFL, positivity, and conservation regime. Secondary checks for
 nonprincipal numerical surfaces remain in
 Appendix~\ref{app:numerical-methods-details}.
@@ -16,17 +16,17 @@ Appendix~\ref{app:numerical-methods-details}.
 
 The hierarchy used below is explicit. The strongest positive evidence is the
 manufactured-solution test, because it compares the implemented forced operator
-with a declared smooth exact solution and an independently assembled forcing
+with a specified smooth exact solution and an independently assembled forcing
 consistency check. The principal limitation is the geometry-rest test: the
-selected comparison runs start from that rest state, but the current
-MUSCL/Rusanov realization does not exactly preserve it. Boundary, CFL,
+selected comparison runs start from that rest state, but the MUSCL/Rusanov
+scheme used here does not exactly preserve it. Boundary, CFL,
 positivity, and conservation diagnostics then state whether accepted runs
 remained numerically admissible. Self-convergence, stationary-Stokes projection,
 broad rheology/profile sweeps, resolved-velocity benchmark stages, and
 nonselected DG rows are secondary checks kept in
 Appendix~\ref{app:numerical-methods-details}.
 
-The observation operator has its own check because the retained 1D--3D
+The observation operator has its own check because the 1D--3D
 comparison is only meaningful after the resolved field is mapped to section
 area, physical flow, and mean axial velocity. The synthetic check in
 Table~\ref{tab:t1-cross-section-operator-validation} reports the workflow rows
@@ -39,7 +39,7 @@ geometry, not matched-data validation of the available 3D cases.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Synthetic verification check for the declared cross-section
+    \caption{Synthetic verification check for the specified cross-section
     quadrature operator. Differences are measured against analytic constant or
     affine references on the synthetic tetrahedron; the
     plane-shift rows report changes relative to the $z=0.5$ affine cut.}
@@ -122,7 +122,7 @@ The forcing consistency check uses separately expanded formulas rather than a
 stored table replay, but it shares the manufactured states, geometry and
 material parameters, and lower-level flux/source utilities used by the selected
 operator. The table reports its maximum absolute mismatch. The run therefore
-checks the implemented forced operator against a declared manufactured state; it
+checks the implemented forced operator against a specified manufactured state; it
 is implementation-verification evidence, not independent solver validation and
 not a physical stenosis experiment.
 
@@ -164,7 +164,7 @@ study.
     \end{center}
 }
 The spatial rows provide bounded, positive implementation-verification evidence
-for the declared forced operator. Over this grid range, the area orders are
+for the specified forced operator. Over this grid range, the area orders are
 about $1.96$ in $L^1$, $1.70$--$1.75$ in $L^2$, and $1.33$--$1.37$ in
 $L^\infty$. The flow orders are about $1.81$--$1.93$ in $L^1$, about $1.50$ in
 $L^2$, and about $1.00$ in $L^\infty$. The maximum-norm columns therefore
@@ -366,7 +366,7 @@ above.
     }
 \end{table}
 
-\subsubsection{Appendix-Held Secondary Checks}
+\subsubsection{Secondary Numerical Checks}
 \label{subsec:verification-summary}
 
 The fourth evidence tier is kept out of the main argument.

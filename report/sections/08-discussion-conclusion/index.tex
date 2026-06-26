@@ -17,11 +17,11 @@ Thus 0D, 1D, and 2D formulations should not be described as weaker versions of
 3D CFD; they retain different states and require different observation operators.
 
 The case study demonstrates this answer by using a distributed 1D
-area--flow state only for quantities it can natively or reconstructively
-support: area, flow, section-mean velocity, a wall-law pressure representative,
-and a specified velocity observation operator. It does not ask that state to
-produce native WSS, secondary flow, wall stress, or clinical pressure-ratio
-evidence.
+area--flow state for quantities it can natively or reconstructively support:
+area, flow, section-mean velocity, a wall-law pressure representative, and a
+specified velocity observation operator. Native WSS, secondary flow, wall
+stress, and clinical pressure-ratio evidence require different states or
+observations.
 
 \subsection{RQ2: Observables and Closure Choices}
 \label{subsec:discussion-closures-interpretability}
@@ -38,23 +38,24 @@ geometry reconstruction can be a material sensitivity source in a patient
 aneurysm case
 \cite{Blanco2018FFR1D3D,LiuEtAl2021ICASRheology,JohnEtAl2017WallShearStressVectorForm,GambarutoEtAl2011GeometryRheologySensitivity}.
 
-The case study therefore presents its closure list as mathematical information,
-not as implementation detail: Newtonian principal rheology, parabolic
-profile closure, an elastic pressure--area wall law, analytic reference
-geometry, fixed-area characteristic boundary approximation, and a
-plane--tetrahedron velocity observation operator. The resulting comparison is a
-velocity-observation comparison under those assumptions, not a WSS,
-wall-displacement, or FFR evidence claim.
+The case study therefore presents its closure list as mathematical information:
+Newtonian principal rheology, parabolic profile closure, an elastic
+pressure--area wall law, analytic reference geometry, fixed-area characteristic
+boundary approximation, and a plane--tetrahedron velocity observation operator.
+The resulting comparison is a velocity-observation comparison under those
+assumptions; WSS, wall-displacement, and FFR claims require separate observable
+definitions and evidence.
 The membrane discussion sharpens the same boundary: Newtonian or
 generalized-Newtonian terminology belongs to the fluid stress law, while the
-membrane model is a structural wall closure and the quasi-static comparator is
-not evidence for a full transient moving-boundary FSI model.
+membrane model is a structural wall closure and the quasi-static comparator
+provides wall-motion scale rather than full transient moving-boundary FSI
+evidence.
 
 \subsection{RQ3: Numerical Evidence and Cross-Dimensional Interpretation}
 \label{subsec:discussion-numerical-evidence-observation}
 
 The third research question asked what limitations remain when resolved scale,
-cost, identifiability, validation status, source traceability, and
+cost, identifiability, validation status, reproducibility, and
 uncertainty are compared. The answer is that interpretation depends on the specified equation,
 state variables, discretization, observation operator, and metric, and each
 evidence type checks only part of that chain.
@@ -71,10 +72,10 @@ states and lower-level operator utilities. Its geometry-rest test addresses
 equilibrium-preservation testing for the chosen discretization and boundary
 approximation. Its 1D--3D comparison becomes meaningful only after both models
 are reduced to the same section-mean velocity observable and discrepancy metric.
-These checks support a bounded diagnostic cross-model comparison, not an
-external validation result. The positive MMS result, negative rest-state result,
-and final-time comparator are useful precisely because they belong to different
-parts of the same interpretive chain rather than to one validation grade.
+These checks support a bounded diagnostic cross-model comparison. The positive
+MMS result, negative rest-state result, and final-time comparator are useful
+precisely because they belong to different parts of the same interpretive chain
+rather than to one validation grade.
 
 \subsection{Contribution and Limitations}
 \label{subsec:discussion-contribution-limitations}
@@ -108,9 +109,10 @@ Likewise, a membrane-wall update, a pressure--area law, and a resolved FSI
 calculation answer different structural questions unless their wall state,
 loads, and observation operators are matched.
 
-The report does not claim externally validated clinical prediction for the
-idealized stenosis case or universal superiority of any model tier. Future work
-should strengthen the same chain where the present evidence is intentionally
+For the idealized stenosis case, the supported contribution is methodological:
+verified forced-operator behavior, an identified rest-state discretization
+limitation, and a section-mean velocity comparison under a specified observation
+map. Future work should strengthen the same chain where the present evidence is
 limited: construct or adopt a well-balanced discretization for the
 geometry-rest state, obtain matched wall and boundary metadata for resolved
 comparisons, report uncertainty separately from model discrepancy, and specify

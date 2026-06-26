@@ -1,24 +1,19 @@
 \subsection{Case-Study Role and Model Specification}
 \label{sec:methodology}
 
-This section applies the review framework to one controlled stenosis example.
-The model tier, state variables, closure choices, boundary approximation,
-finite-volume operator, observation rule, and matching limits are stated before
-any result is interpreted. Dense operator formulas, secondary numerical
-surfaces, and source-artifact reconstruction commands remain in the appendices
-unless they are needed to understand a main-body claim. The paragraphs below
-therefore name mathematical roles first; implementation labels appear only as
-traceability tags for reconstructing the selected runs. The stack map in
-Section~\ref{subsec:numerical-contract-stack} is used throughout this
-methodology, with symbol roles summarized in
-Notation~\ref{def:contract-role-symbol-map}. Table~\ref{tab:t1-case-study-contract}
-states the comparison contract before the individual assumptions are used.
+This section states the mathematical specification used by the worked stenosis
+example. It fixes the model tier, state variables, closure choices, boundary
+approximation, finite-volume method, observation map, and comparison limits
+before any result is interpreted. Detailed operator formulas, secondary
+numerical checks, and reconstruction commands remain in the appendices unless
+they are needed for a main-text claim. Table~\ref{tab:t1-case-study-contract}
+gives the compact case-study specification used by the subsections below.
 
 \begin{center}
 \fbox{\begin{minipage}{0.90\linewidth}
 \small
 \textbf{Solver-coordinate convention.} In the comparison outputs, the stored
-solver state \texttt{A} is $a=R^2$, not physical circular area. The physical
+solver coordinate \texttt{A} is $a=R^2$, not physical circular area. The physical
 map is Definition~\ref{def:physical-to-solver-map}:
 $A_{\mathrm{phys}}=\pi a$, $Q_{\mathrm{phys}}=\pi q$, and
 $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
@@ -29,8 +24,7 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
     \centering
     \scriptsize
     \caption{Case-study specification for the 23\% and 40\%
-    stenosis-severity numerical comparison. The table states how the worked
-    example should be read before the numerical results are interpreted.}
+    stenosis-severity numerical comparison.}
     \label{tab:t1-case-study-contract}
     \begin{tabularx}{\textwidth}{@{}
         >{\raggedright\arraybackslash}p{0.20\textwidth}
@@ -41,21 +35,18 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             & \textbf{Main-body statement}
             & \textbf{Interpretation boundary} \\
         \midrule
-        Case-study purpose
-            & A controlled idealized stenosis example applies the review
-            framework to a selected 1D area--flow model and two resolved
-            velocity fields.
-            & The chapter illustrates verification, equilibrium-preservation testing, and
-            diagnostic cross-model velocity comparison; it is not a
-            pressure-ratio study or patient-specific interpretation. \\
+        Purpose
+            & Controlled idealized stenosis example for one selected 1D
+            area--flow model and two resolved velocity fields.
+            & Supports a methodological velocity comparison, not
+            patient-specific interpretation. \\
         Model and closures
             & The main comparison uses the $R_{\max}$-normalized
             Canic-derived extended 1D member with Newtonian
             $\nu=0.04$ cm$^2$/s, parabolic profile closure, $N=400$ MUSCL
             finite-volume cells, Rusanov flux, and SSPRK3 time
             integration.
-            & Other variants are secondary sensitivity
-            context rather than the principal two-case comparison method. \\
+            & Other variants provide secondary sensitivity context. \\
         Observation operator
             & The 3D velocity field is reduced by the specified
             cross-section quadrature operator; the 1D state is observed as
@@ -64,26 +55,25 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             comparison applies the resolved displacement field before forming
             the same plane cuts. Both coordinate modes use
             $T=0.9995$ s for the 23\% and 40\% stenosis cases.
-            & The comparison supports a claim only for these common section
-            observables. Radial-profile diagnostic rows are supplemental
-            diagnostic artifacts, not localization evidence; Appendix~\ref{app:code-and-ai-use}
-            documents the separate Section~4.1 source-artifact workflow. \\
+            & The comparison supports claims for these common section
+            observables. Radial-profile rows remain supplemental diagnostics;
+            Appendix~\ref{app:code-and-ai-use} records data availability and
+            reconstruction details. \\
         Numerical evidence
             & The main text reports manufactured-solution behavior,
             output-operator verification, geometry-rest drift, subcritical
             boundary diagnostics, CFL, positivity, and finite-volume
             balance.
             & These checks support run admissibility and numerical
-            interpretation; they do not identify a physical prediction target. \\
-        Matching limits
+            interpretation. \\
+        Comparison limits
             & The analytic reference profile is shared and the static cut-area
             check is reported for both reference and deformed coordinates. A
             quasi-static membrane-FSI comparator is also included for the
             radial wall displacement solve.
-            & Velocity differences cannot be attributed uniquely to a specific
-            closure, wall, boundary, or geometry mechanism because the resolved
-            data available here do not carry matched boundary histories or full
-            transient wall history. \\
+            & The resolved data provide final-time velocity and displacement
+            fields without matched boundary histories or full transient wall
+            history. \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -299,7 +289,7 @@ follows standard compliant-artery and dimension-reduced modeling arguments
     pressure variation.
 \end{definition}
 
-\subsubsection{Reduced Balance Law and Rest-State Contract}
+\subsubsection{Reduced Balance Law and Rest-State Equilibrium}
 \label{subsec:conservative-form-source-terms}
 
 The selected 1D model is an area--flow balance law closed by the profile,
@@ -350,22 +340,21 @@ in Section~\ref{subsec:numerical-contract-stack};
 Section~\ref{subsec:rest-state-drift} then evaluates the discrete residual and
 drift generated by the selected numerical operator.
 
-Continuous compatibility does not imply discrete preservation: the current
-MUSCL/Rusanov method exhibits the reported non-well-balanced geometry-rest
-drift.
+Continuous compatibility does not imply discrete preservation: the
+MUSCL/Rusanov scheme used here exhibits the reported non-well-balanced
+geometry-rest drift.
 
-\subsubsection{Source-to-Implementation Differences}
+\subsubsection{Relation to the Source Model}
 \label{subsec:source-to-implementation-variant}
 
-The selected realization is a documented Canic-derived extended model, not
-an exact executable copy of every source-paper parameter and normalization in
-\cite{CanicEtAl2024Extended1DStenosis}. The report therefore uses the phrase
-\emph{$R_{\max}$-normalized Canic-derived extended model} when source fidelity
-matters. The main differences are the $R_{\max}^{-2}$ elastic normalization,
-the parabolic principal velocity-profile closure, the fixed-area characteristic
-boundary approximation, and the locally frozen-viscosity treatment used for the
+The selected realization is a documented Canic-derived extended model. It uses
+the phrase \emph{$R_{\max}$-normalized Canic-derived extended model} when the
+distinction from \cite{CanicEtAl2024Extended1DStenosis} matters. The main
+differences are the $R_{\max}^{-2}$ elastic normalization, the parabolic
+principal velocity-profile closure, the fixed-area characteristic boundary
+approximation, and the locally frozen-viscosity treatment used for the
 diagnostic $p_2$ derivative. Appendix~\ref{app:num-source-implementation-map}
-contains the detailed source-to-realization table. The diagnostic extended
+contains the detailed source-model comparison. The diagnostic extended
 pressure correction is
 \begin{flalign*}
     \quad
@@ -454,10 +443,10 @@ to the continuous model alone.
 This is therefore an implemented boundary approximation, not an exact
 invariant derivation for the full variable-radius balance law.
 
-\subsubsection{Principal MUSCL/Rusanov/SSPRK3 Method}
+\subsubsection{Principal Finite-Volume Method}
 \label{subsec:muscl-ssprk3-discretization}
 
-Only the principal comparison method belongs in the main narrative. The reported
+The reported
 two-case severity comparison advances the radius-squared state $(a,q)$ on a
 one-dimensional finite-volume grid using the MUSCL/Rusanov/SSPRK3 operator
 specified in Appendix~\ref{app:num-current-solver-operator}.
@@ -470,7 +459,7 @@ approximation defined in
 Appendix~\ref{app:num-boundary-state-realization}. Other finite-volume, modal-DG,
 time-stepper, and ODE-integration surfaces are secondary sensitivity context
 summarized in Table~\ref{tab:implemented-discretization-surface};
-they are not the principal two-case comparison method.
+they are secondary to the principal two-case comparison method.
 
 \subsubsection{Plane--Tetrahedron Observation Operator}
 \label{subsec:cross-sectional-velocity-reconstruction}
@@ -491,9 +480,8 @@ displacement before forming the plane cuts. The reference-coordinate and
 deformed-coordinate section comparisons are reported in
 Sections~\ref{subsec:section-mean-velocity-discrepancies}
 and~\ref{subsec:deformed-coordinate-comparison}, respectively.
-Appendix~\ref{app:code-and-ai-use} records the raw-input policy and the
-separate Section~4.1 source-artifact workflow; those diagnostics are not part
-of the primary two-case localization claim.
+Appendix~\ref{app:code-and-ai-use} records data availability and reconstruction
+details for the resolved inputs and supplementary Section~4.1 comparison.
 
 For a target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the default
 cross-section quadrature operator intersects every tetrahedron with $S_j$,
@@ -535,7 +523,7 @@ coordinate:
     =
     q(z_j,t)/a(z_j,t). &&
 \end{flalign*}
-Radial-profile rows are not part of the retained comparison metrics.
+Radial-profile rows remain supplemental to the reported comparison metrics.
 
 \subsubsection{Comparison Design and Discrepancy Metrics}
 \label{subsec:numerical-experiments-metrics-provenance}

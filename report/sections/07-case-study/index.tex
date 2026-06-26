@@ -2,28 +2,21 @@
 \label{sec:case-study}
 \label{sec:idealized-stenosis-case-study}
 
-This chapter uses one controlled stenosis computation to show how the
-review framework is applied in practice. It fixes a smooth idealized geometry,
-states the one-dimensional area--flow model specification, declares the closure and
-boundary assumptions, identifies the principal finite-volume realization,
-checks the evidence categories introduced in Section~\ref{sec:numerical-methods},
-and compares one-dimensional output with available resolved three-dimensional
-velocity data through a declared observation operator. The chapter is a worked
-example of model interpretation, not a standalone solver-development report.
+This chapter applies the review framework to a controlled stenosis computation.
+The example uses a smooth idealized vessel geometry and a one-dimensional
+area--flow model with specified wall, profile, rheology, boundary, and numerical
+choices. Its purpose is to show how a reduced-model comparison should be read
+once the model state, discrete operator, observation map, and discrepancy metric
+are fixed.
 
-The result is deliberately bounded. The manufactured-solution run gives
-positive implementation-verification evidence for the forced operator; the
-geometry-rest run shows that the current MUSCL/Rusanov realization is not
-exactly well balanced for the stenotic rest state; and the final-time
-comparison localizes section-mean velocity differences for the 23\% and 40\%
-stenosis cases. These findings support the review framework: they show how a
-model specification, a numerical evidence category, and an observation rule determine
-what a stenosis comparison can mean.
-Read the chapter in that order: the methodology defines the mathematical model
-and observation rule, the verification subsection separates the positive
-MMS evidence from the rest-state limitation, and the comparison subsection
-interprets the 23\% and 40\% final-time velocity discrepancies under the
-declared section observation rule.
+The evidence has three parts. A manufactured-solution test checks the forced
+finite-volume operator against a known smooth solution. A geometry-rest test
+evaluates whether the MUSCL/Rusanov scheme used here preserves the quiescent
+stenotic equilibrium admitted by the continuous source-balanced model. A
+final-time resolved-velocity comparison maps both the one-dimensional solution
+and available three-dimensional velocity data to common section-mean
+observables. These checks support a bounded diagnostic comparison, not a
+clinical prediction or a full transient FSI validation study.
 
 Figure~\ref{fig:stenosis-fem-fvm-meshes} orients the case study only: it
 previews the stationary-Stokes finite-element sampling geometry and the
@@ -41,7 +34,7 @@ categories are stated.
     $\mathcal T_h$ against the wall curves $r=\pm R_0(z)$; the inset sketches a
     section $S_j=\Omega_{3D}\cap\{z=z_j\}$, the centroid-fan cut triangles
     $\mathcal Q_j$, and the three barycentric quadrature points used by the
-    declared cross-section quadrature operator. Panel (b) shows the 1D
+    specified cross-section quadrature operator. Panel (b) shows the 1D
     finite-volume partition $I_i=[z_{i-1/2},z_{i+1/2}]$ with centers
     $z_i=(i-\frac12)\Delta z$, sampled along $R_0(z)$.}
     \label{fig:stenosis-fem-fvm-meshes}

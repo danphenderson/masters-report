@@ -13,7 +13,7 @@ interpret blood-flow simulations: verification, validation, stability,
 positivity, conservation, well-balancing, reproducibility, and observation
 operators.
 
-\subsection{Numerical contract stack}
+\subsection{Numerical Interpretation Chain}
 \label{subsec:numerical-contract-stack}
 
 The report uses the following common template for numerical claims:
@@ -63,7 +63,7 @@ The resulting interpretive chain is
     \mathcal R_{\mathrm{metric}}.
 \]
 
-\subsection{Local stencil and coupling map}
+\subsection{Local Stencils and Coupling Maps}
 \label{subsec:numerical-methods-stencil-contract}
 
 The same semidiscrete notation also names the local coupling pattern. For a
@@ -115,11 +115,10 @@ discrete divergence control. SUPG and grad-div terms do not by themselves
 repair an inf-sup-unstable pressure space. Galdi and coauthors are useful here
 not as a generic FEM citation, but because their hemodynamical-flow treatment
 ties continuum equations, mixed discretization, stabilization, and simulation
-evidence together \cite{GaldiEtAl2008HemodynamicalFlows}. Package-facing Gridap
-wording in this report is therefore bounded to focused formulation-level and
-smoke-test evidence for continuous P2-velocity/P1-pressure routes. That
-evidence checks the local mathematical specification; it is not a
-manuscript-grade reproduction or
+evidence together \cite{GaldiEtAl2008HemodynamicalFlows}. Gridap-based tests in
+this report provide formulation-level evidence for continuous
+P2-velocity/P1-pressure routes. They check the local mathematical
+specification; they do not constitute a manuscript-grade reproduction or
 production-execution claim.
 At the algebraic level, this local dependency appears as sparsity. For
 element-local Galerkin terms, a stiffness or coupling block associated with

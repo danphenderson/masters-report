@@ -1,10 +1,10 @@
-\subsection{Resolved Comparator Evidence}
+\subsection{Diagnostic Comparison with Resolved Velocity Data}
 \label{sec:resolved-3d-comparison}
 
 \subsubsection{Available Resolved Data and Matching Limits}
 \label{subsec:preliminary-cross-model-velocity-comparison}
 
-This section reports the retained resolved-3D comparison: the 23\% and 40\%
+This section reports the resolved-velocity comparison: the 23\% and 40\%
 stenosis final-time section comparisons at
 $T=0.9995\,\mathrm{s}$ under the reference-coordinate and deformed-coordinate
 observation operators. Under the reference-coordinate section observation
@@ -16,9 +16,9 @@ isolate one closure, wall, boundary, or geometry cause. Both cases are sampled
 at $T=0.9995\,\mathrm{s}$; the measured 1D--3D final-time offset is
 $5.47\times10^{-14}\,\mathrm{s}$ in each case. This timestamp agreement is a
 final-time alignment check, not a complete transient-history match.
-Appendix~\ref{app:code-and-ai-use} records the raw-input policy, reconstruction
-commands, and the separate Canic et al.\ Section~4.1 source-artifact workflow,
-which remains supplemental to this chapter's two-case comparator.
+Appendix~\ref{app:code-and-ai-use} records the resolved-data availability and
+reconstruction details for this comparison and the supplementary Canic
+et al.\ Section~4.1 diagnostic comparison.
 Table~\ref{tab:t1-case-study-contract} states the case-study contract, and
 Figure~\ref{fig:stenosis-fem-fvm-meshes} orients the finite-element and
 finite-volume sampling geometry used by the observation operator.
@@ -28,7 +28,7 @@ well-balanced preservation checklist in Definition~\ref{def:well-balanced-checkl
 and the interpretive-limits table in
 Table~\ref{tab:t1-metric-interpretive-limits}.
 
-The comparison below separates three resolved-comparator questions. First, the
+The comparison below separates three questions. First, the
 reference-coordinate velocity comparison maps the 1D and 3D fields to common
 section-mean observables. Second, the deformed-coordinate comparison applies the
 available node-centered displacement field before forming plane cuts. Third,
@@ -37,17 +37,16 @@ comparator based on the membrane relation used by Canic et al.\ for their wall
 model \cite[Eq.~(35)]{CanicEtAl2024Extended1DStenosis}. The third item is a
 Canic-style resolved comparator for this report, not a recreation of the full
 transient FSI calculation in that paper. The metadata table identifies the
-resolved files used for these three questions; the scientific comparison is
+resolved fields used for these three questions; the scientific comparison is
 reported by stenosis severity.
 
 Resolved incompressible pressure is gauge-dependent unless a common pressure
 gauge is applied. No such gauge is established for the primary two-case 1D--3D
 velocity comparison, so absolute pressure differences are not interpreted there
-as cross-model pressure errors. The separate Canic Section~4.1 workflow uses
-outlet-gauged pressure diagnostics only, as recorded in
-Appendix~\ref{app:code-and-ai-use}; those rows remain source-artifact
-diagnostics interpreted under Section~\ref{subsec:metric-interpretive-limits}
-rather than primary evidence in the two-case comparison.
+as cross-model pressure errors. The supplementary Canic Section~4.1 comparison
+uses outlet-gauged pressure diagnostics only, as recorded in
+Appendix~\ref{app:code-and-ai-use}; those rows remain outside the primary
+two-case velocity comparison.
 
 \begin{table}[!htb]
     \centering
@@ -77,7 +76,7 @@ rather than primary evidence in the two-case comparison.
 \end{table}
 
 The 40\% case is therefore both larger in relative RMS discrepancy and more
-localized near the throat. That localization is tied to the declared section
+localized near the throat. That localization is tied to the specified section
 observation rule, but the available data do not assign the difference to one
 closure, wall, boundary, or geometry mechanism.
 
@@ -92,7 +91,7 @@ closure, wall, boundary, or geometry mechanism.
     }
     \caption{Final-time resolved velocity samples used by the 23\% and 40\%
     stenosis comparisons. The panels show node-centered $u_z$ values; the
-    quantitative comparison enters only after applying the declared
+    quantitative comparison enters only after applying the specified
     cross-sectional observation operator.}
     \label{fig:resolved-3d-flow-field}
 \end{figure}
@@ -100,7 +99,7 @@ closure, wall, boundary, or geometry mechanism.
 \subsubsection{Observation Operator and Deformed Coordinates}
 \label{subsec:cross-sectional-sampling-protocol-results}
 
-The comparison uses the declared cross-section quadrature operator. For a
+The comparison uses the specified cross-section quadrature operator. For a
 target plane $S_j=\Omega_{\mathrm{3D}}\cap\{z=z_j\}$, the operator intersects
 the tetrahedral mesh with the plane, triangulates the cut polygon, and computes
 \begin{flalign*}
@@ -129,7 +128,7 @@ geometry this gives $z^\star\approx2.451\,\mathrm{cm}$, with
 $R_{\min}=0.1386\,\mathrm{cm}$ for the 23\% stenosis case and
 $R_{\min}=0.1080\,\mathrm{cm}$ for the 40\% stenosis case.
 The area check below is a limitation on the velocity interpretation, not a
-tolerance proof. Across the retained rows the maximum section-area discrepancy
+tolerance proof. Across the reported rows the maximum section-area discrepancy
 is 4.60\% (4.46\% in the reference-coordinate 40\% case and 4.60\% in the
 deformed-coordinate 40\% case). No tolerance or sensitivity result in this
 report proves that this area mismatch is negligible. Because
@@ -164,7 +163,7 @@ section-observation diagnostic conditioned on the reported area check.
 \subsubsection{Reference-Coordinate Velocity Comparison}
 \label{subsec:section-mean-velocity-discrepancies}
 
-The reference-coordinate comparison is retained as the baseline final-time
+The reference-coordinate comparison is the baseline final-time
 velocity comparison. The section means are
 $\langle Q_{1D}\rangle=2.288\,\mathrm{cm}^3/\mathrm{s}$ and
 $\langle Q_{3D}\rangle=2.241\,\mathrm{cm}^3/\mathrm{s}$ for the 23\% stenosis
@@ -174,7 +173,7 @@ case. The discrepancy summaries below show that the 40\% case has the larger
 section-mean velocity gap, concentrated near the stenosis throat.
 Interpretation of these summaries follows the limits in
 Table~\ref{tab:t1-metric-interpretive-limits}; the rows support only aggregate
-discrepancies under the declared model specification, discretization,
+discrepancies under the specified model specification, discretization,
 observation rule, boundary approximation, and metric choices, not causal
 attribution.
 
@@ -220,33 +219,33 @@ attribution.
     \label{fig:t1-section-mean-comparison}
 \end{figure}
 
-The larger 40\% discrepancy is therefore throat-localized under the declared
+The larger 40\% discrepancy is therefore throat-localized under the specified
 section observation rule. The available matched data do not identify a unique
 closure, wall, boundary, geometry, or numerical source.
 
 \paragraph{Interpretive limits of discrepancy metrics}
 \label{subsec:metric-interpretive-limits}
-For interpretive accounting, rather than causal decomposition, the retained
+For interpretive accounting, rather than causal decomposition, the reported
 metrics are read against the places where discrepancy may enter the comparison:
 equation and closure choice, discrete evolution, observation rule, boundary
 approximation, and final aggregation. Those entries are not independently
 defined or computed as additive section-level components, so no additive
 component equation is asserted. Table~\ref{tab:t1-metric-interpretive-limits}
-therefore states which separations the retained metrics cannot identify.
+therefore states which separations the metrics cannot identify.
 
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Interpretive limits of the retained discrepancy metrics.
+    \caption{Interpretive limits of the reported discrepancy metrics.
     Each family uses the same shared section index set; the third column records
-    what is not identifiable from the retained comparison metrics.}
+    what is not identifiable from the comparison metrics.}
     \label{tab:t1-metric-interpretive-limits}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}l>{\raggedright\arraybackslash}p{0.45\linewidth}p{0.42\linewidth}@{}}
         \toprule
         \textbf{Metric family}
             & \textbf{Interpretive summary}
-            & \textbf{Not identifiable from the retained comparison metrics} \\
+            & \textbf{Not identifiable from the comparison metrics} \\
         \midrule
         mean
             & $\overline d_u$ and $\overline d_Q$ summarize the signed offset in
@@ -288,7 +287,7 @@ discrepancy or area-denominator difference; it is not causal attribution.
     \caption{Section-wise decomposition of the reference-coordinate
     mean-velocity discrepancy into physical-flow and area-denominator
     contributions. Values are in cm/s. This algebraic split is tied to the
-    declared section observation rule and is not a causal error attribution.}
+    specified section observation rule and is not a causal error attribution.}
     \label{tab:t1-flow-area-decomposition}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}lrrrrl@{}}
@@ -383,7 +382,7 @@ final displacement field, not the resolved wall history or boundary histories.
 \subsubsection{Quasi-static Membrane-FSI Comparator}
 \label{subsec:membrane-fsi-comparator}
 
-The resolved wall comparator solves a quasi-static fixed point between the
+The wall comparator solves a quasi-static fixed point between the
 Stokes lumen solve and the radial membrane update. In the notation of
 Appendix~\ref{app:num-membrane-fsi-validation}, the wall equation is the
 inertia-free form
@@ -397,14 +396,14 @@ inertia-free form
 \end{flalign*}
 This is the Canic-style membrane relation used for the resolved comparator
 \cite[Eq.~(35)]{CanicEtAl2024Extended1DStenosis}. It is separate from the
-selected 1D pressure--area closure used in the reduced model. The retained
+selected 1D pressure--area closure used in the reduced model. The
 comparator is a quasi-static radial membrane update coupled to repeated Stokes
-solves; it informs wall-motion scale under the declared comparator.
+solves; it informs wall-motion scale under the specified comparator.
 
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Quasi-static membrane-FSI fixed-point results on the retained
+    \caption{Quasi-static membrane-FSI fixed-point results on the selected
     finer mesh. The reported displacement is the radial wall displacement
     $\eta_r$; the minimum radius is the deformed lumen radius
     $R_0+\eta_r$. This comparator informs wall-motion scale only and does not
@@ -447,14 +446,14 @@ localization and discrepancy interpretation.
 \subsubsection{Interpretation Limits}
 \label{subsec:spatial-localization-discrepancies}
 
-The retained comparisons are diagnostic: they evaluate section-mean velocity
-and quasi-static wall-motion scale under the declared operators. Their
+The comparisons are diagnostic: they evaluate section-mean velocity
+and quasi-static wall-motion scale under the specified operators. Their
 interpretation is conditional on the numerical contract in
 Section~\ref{subsec:numerical-contract-stack}, the metric limits in
 Table~\ref{tab:t1-metric-interpretive-limits}, and the evidence hierarchy in
 Section~\ref{subsec:verification-scope-convergence-stability}.
-Appendix~\ref{app:code-and-ai-use} records the raw-input policy and separate
-Section~4.1 source-artifact workflow. Because the resolved inputs lack matched
+Appendix~\ref{app:code-and-ai-use} records data availability and supplementary
+Section~4.1 comparison details. Because the resolved inputs lack matched
 transient wall and boundary histories, the results should not be read as
 clinical validation, pressure-ratio evidence, or reproduction of a full
 transient FSI calculation.
