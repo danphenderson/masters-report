@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 from ops import build_report
@@ -158,3 +159,54 @@ def test_scan_log_text_counts_unclassified_warning_lines() -> None:
         "hyperref_pdf_string": 1,
         "other_warnings": 1,
     }
+
+
+def test_visible_fallback_hits_normalize_pdf_text_line_breaks() -> None:
+    assert build_report.visible_fallback_hits("Asset unavailable in this\nsource snapshot.") == [
+        "unavailable in this source snapshot"
+    ]
+
+
+def test_audit_visible_fallback_text_reports_rendered_pdf_hits(monkeypatch, tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    outdir = tmp_path / "out"
+    repo.mkdir()
+    outdir.mkdir()
+    pdf_path = outdir / "final-report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.7\n")
+    text_path = outdir / "final-report.txt"
+
+    monkeypatch.setattr(
+        build_report,
+        "pdf_text_extraction_command",
+        lambda pdf, text: ("fake-extractor", ["fake-extractor", pdf.as_posix(), text.as_posix()]),
+    )
+
+    def fake_run_command(command: list[str], repo_path: Path) -> subprocess.CompletedProcess[str]:
+        assert command[0] == "fake-extractor"
+        assert repo_path == repo
+        text_path.write_text("Resolved velocity-field asset unavailable in this source snapshot.", encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(build_report, "run_command", fake_run_command)
+
+    audit = build_report.audit_visible_fallback_text(pdf_path, outdir, repo)
+
+    assert audit == {
+        "status": "failed",
+        "extractor": "fake-extractor",
+        "text_path": text_path.as_posix(),
+        "fallback_hits": ["unavailable in this source snapshot"],
+        "failure_reason": "visible_fallback_text",
+    }
+
+
+def test_audit_visible_fallback_text_requires_pdf_text_extractor(monkeypatch, tmp_path: Path) -> None:
+    pdf_path = tmp_path / "final-report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.7\n")
+    monkeypatch.setattr(build_report, "pdf_text_extraction_command", lambda pdf, text: None)
+
+    audit = build_report.audit_visible_fallback_text(pdf_path, tmp_path, tmp_path)
+
+    assert audit["status"] == "failed"
+    assert audit["failure_reason"] == "pdf_text_extractor_unavailable"

@@ -16,7 +16,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 DEFAULT_ENTRYPOINT = "report/final-report.tex"
 DEFAULT_OUTDIR = "/tmp/masters-report-build"
 DEFAULT_FINAL_PDF = "public/final-report.pdf"
@@ -32,6 +31,11 @@ CONSUMED_INPUT_ROOTS = (
     "report/assets/data/",
     "report/assets/tables/",
     "report/assets/rendered/",
+)
+
+VISIBLE_FALLBACK_PHRASES = (
+    "unavailable in this source snapshot",
+    "absent from the local report assets",
 )
 
 STABILIZATION_PATTERNS = (
@@ -235,6 +239,59 @@ def scan_log_file(log_path: Path) -> LogScan:
     return scan_log_text(log_path.read_text(encoding="utf-8", errors="replace"))
 
 
+def normalize_visible_text(text: str) -> str:
+    return re.sub(r"\s+", " ", text).casefold()
+
+
+def visible_fallback_hits(text: str) -> list[str]:
+    normalized = normalize_visible_text(text)
+    return [phrase for phrase in VISIBLE_FALLBACK_PHRASES if phrase in normalized]
+
+
+def pdf_text_extraction_command(pdf_path: Path, text_path: Path) -> tuple[str, list[str]] | None:
+    pdftotext = shutil.which("pdftotext")
+    if pdftotext is not None:
+        return "pdftotext", [pdftotext, "-layout", pdf_path.as_posix(), text_path.as_posix()]
+
+    mutool = shutil.which("mutool")
+    if mutool is not None:
+        return "mutool", [mutool, "draw", "-F", "text", "-o", text_path.as_posix(), pdf_path.as_posix()]
+
+    return None
+
+
+def audit_visible_fallback_text(pdf_path: Path, outdir: Path, repo: Path) -> dict[str, Any]:
+    text_path = outdir / f"{pdf_path.stem}.txt"
+    audit: dict[str, Any] = {
+        "status": "not_run",
+        "extractor": None,
+        "text_path": text_path.as_posix(),
+        "fallback_hits": [],
+        "failure_reason": None,
+    }
+
+    command = pdf_text_extraction_command(pdf_path, text_path)
+    if command is None:
+        audit["status"] = "failed"
+        audit["failure_reason"] = "pdf_text_extractor_unavailable"
+        return audit
+
+    extractor, argv = command
+    audit["extractor"] = extractor
+    result = run_command(argv, repo)
+    if result.returncode != 0:
+        audit["status"] = "failed"
+        audit["failure_reason"] = "pdf_text_extraction_failed"
+        return audit
+
+    hits = visible_fallback_hits(text_path.read_text(encoding="utf-8", errors="replace"))
+    audit["fallback_hits"] = hits
+    audit["status"] = "failed" if hits else "passed"
+    if hits:
+        audit["failure_reason"] = "visible_fallback_text"
+    return audit
+
+
 def run_command(command: list[str], repo: Path) -> subprocess.CompletedProcess[str]:
     print(f"+ {' '.join(command)}", flush=True)
     return subprocess.run(command, cwd=repo, text=True, capture_output=True, check=False)
@@ -336,6 +393,13 @@ def build_initial_summary(
         "untracked_consumed_inputs": [],
         "blocking_log_issues": [],
         "warning_counts": {},
+        "visible_fallback_audit": {
+            "status": "not_run",
+            "extractor": None,
+            "text_path": None,
+            "fallback_hits": [],
+            "failure_reason": None,
+        },
         "status": "not_started",
         "failure_reasons": [],
         "verbose": verbose,
@@ -401,6 +465,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if not paths["pdf"].exists():
         summary["failure_reasons"].append("missing_pdf")
+    else:
+        summary["visible_fallback_audit"] = audit_visible_fallback_text(paths["pdf"], outdir, repo)
 
     if latex_result.returncode != 0:
         summary["failure_reasons"].append("latexmk_failed")
@@ -408,6 +474,8 @@ def main(argv: list[str] | None = None) -> int:
         summary["failure_reasons"].append("untracked_consumed_inputs")
     if summary["blocking_log_issues"]:
         summary["failure_reasons"].append("blocking_log_issues")
+    if summary["visible_fallback_audit"]["failure_reason"] is not None:
+        summary["failure_reasons"].append(summary["visible_fallback_audit"]["failure_reason"])
 
     summary["status"] = "failed" if summary["failure_reasons"] else "passed"
     if summary["status"] == "passed" and final_pdf is not None:
@@ -422,6 +490,12 @@ def main(argv: list[str] | None = None) -> int:
         print("Blocking LaTeX log issues:", file=sys.stderr)
         for issue in summary["blocking_log_issues"]:
             print(f"  {issue}", file=sys.stderr)
+    if summary["visible_fallback_audit"]["fallback_hits"]:
+        print("Visible fallback text found in rendered PDF:", file=sys.stderr)
+        for hit in summary["visible_fallback_audit"]["fallback_hits"]:
+            print(f"  {hit}", file=sys.stderr)
+    elif summary["visible_fallback_audit"]["failure_reason"] == "pdf_text_extractor_unavailable":
+        print("No PDF text extractor found for visible fallback audit.", file=sys.stderr)
     if summary["synced_pdf"] is not None:
         print(f"Synced final PDF: {summary['synced_pdf']['path']}")
     print(f"Report build status: {summary['status']}")
