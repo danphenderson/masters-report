@@ -1,5 +1,7 @@
 using Test
 using Distributed
+using Gridap
+using SparseArrays
 using StenoticHemodynamics
 
 const NativeResolvedFSIWorkflowSpec = StenoticHemodynamics.NativeResolvedFSIWorkflowSpec
@@ -139,6 +141,126 @@ end
     @test previous_probe.previous_rhs_digest != probe.previous_rhs_digest
     @test previous_probe.boundary_rhs_digest == probe.boundary_rhs_digest
     @test previous_probe.full_rhs_digest != probe.full_rhs_digest
+end
+
+@testset "StenoticHemodynamics native resolved-FSI Gridap cache digest contract" begin
+    mesh = native_resolved_fsi_mesh(:sev23, NativeResolvedFSIMeshResolution(axial=1, radial=1, angular=3))
+    gridap_context = StenoticHemodynamics.build_native_resolved_fsi_gridap_context(
+        mesh;
+        inlet_outlet_boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+        quadrature_degree=2,
+    )
+    solver = LUSolver()
+    rhs = [1.0, 2.0]
+    base_matrix = sparse([4.0 1.0; 1.0 3.0])
+    changed_value_matrix = sparse([4.0 1.0; 1.0 5.0])
+    base_context = (
+        gridap_context=gridap_context,
+        coordinate_value_digest=StenoticHemodynamics.native_resolved_fsi_coordinate_value_digest(mesh.coordinates),
+        boundary_mode=:poiseuille_inlet_zero_outlet_stress_section41,
+        pressure_constraint="none",
+        pressure_reference="none",
+        quadrature_degree=2,
+    )
+
+    phase_timing = StenoticHemodynamics.native_resolved_fsi_phase_timing_accumulator()
+    first_diagnostics = StenoticHemodynamics.native_resolved_fsi_solver_diagnostics(
+        base_matrix,
+        rhs;
+        context=base_context,
+    )
+    first_symbolic, first_symbolic_diagnostics =
+        StenoticHemodynamics.native_resolved_fsi_symbolic_setup_with_cache!(
+            solver,
+            base_matrix,
+            phase_timing,
+            first_diagnostics,
+            gridap_context,
+        )
+    first_numeric, first_numeric_diagnostics =
+        StenoticHemodynamics.native_resolved_fsi_numeric_setup_with_cache!(
+            first_symbolic,
+            base_matrix,
+            phase_timing,
+            first_symbolic_diagnostics,
+            gridap_context,
+        )
+    @test first_diagnostics.gridap_symbolic_factorization_eligible == "unknown"
+    @test first_symbolic_diagnostics.gridap_symbolic_factorization_cache_status ==
+          "symbolic_factorization_cache_initialized"
+    @test first_numeric_diagnostics.gridap_numeric_factorization_cache_status ==
+          "numeric_factorization_cache_initialized"
+    @test !first_numeric_diagnostics.gridap_numeric_factorization_reused
+    @test first_numeric_diagnostics.gridap_numeric_factorization_setup_count == 1
+
+    repeat_diagnostics = StenoticHemodynamics.native_resolved_fsi_solver_diagnostics(
+        base_matrix,
+        rhs;
+        context=base_context,
+    )
+    repeat_symbolic, repeat_symbolic_diagnostics =
+        StenoticHemodynamics.native_resolved_fsi_symbolic_setup_with_cache!(
+            solver,
+            base_matrix,
+            phase_timing,
+            repeat_diagnostics,
+            gridap_context,
+        )
+    repeat_numeric, repeat_numeric_diagnostics =
+        StenoticHemodynamics.native_resolved_fsi_numeric_setup_with_cache!(
+            repeat_symbolic,
+            base_matrix,
+            phase_timing,
+            repeat_symbolic_diagnostics,
+            gridap_context,
+        )
+    @test repeat_diagnostics.gridap_symbolic_factorization_eligible == "yes"
+    @test repeat_symbolic_diagnostics.gridap_symbolic_factorization_reused
+    @test repeat_numeric === first_numeric
+    @test repeat_numeric_diagnostics.gridap_numeric_factorization_reused
+    @test repeat_numeric_diagnostics.gridap_numeric_factorization_cache_status ==
+          "numeric_factorization_reused_exact_matrix_value_digest"
+    @test repeat_numeric_diagnostics.gridap_numeric_factorization_cache_key ==
+          first_numeric_diagnostics.gridap_numeric_factorization_cache_key
+    @test repeat_numeric_diagnostics.gridap_numeric_factorization_matrix_value_digest ==
+          first_numeric_diagnostics.gridap_numeric_factorization_matrix_value_digest
+    @test repeat_numeric_diagnostics.gridap_numeric_factorization_setup_count == 1
+    @test repeat_numeric_diagnostics.gridap_numeric_factorization_reuse_count == 1
+
+    changed_diagnostics = StenoticHemodynamics.native_resolved_fsi_solver_diagnostics(
+        changed_value_matrix,
+        rhs;
+        context=base_context,
+    )
+    changed_symbolic, changed_symbolic_diagnostics =
+        StenoticHemodynamics.native_resolved_fsi_symbolic_setup_with_cache!(
+            solver,
+            changed_value_matrix,
+            phase_timing,
+            changed_diagnostics,
+            gridap_context,
+        )
+    changed_numeric, changed_numeric_diagnostics =
+        StenoticHemodynamics.native_resolved_fsi_numeric_setup_with_cache!(
+            changed_symbolic,
+            changed_value_matrix,
+            phase_timing,
+            changed_symbolic_diagnostics,
+            gridap_context,
+        )
+    @test changed_diagnostics.gridap_symbolic_factorization_eligible == "yes"
+    @test changed_symbolic === first_symbolic
+    @test changed_symbolic_diagnostics.gridap_symbolic_factorization_reused
+    @test changed_diagnostics.gridap_matrix_structure_digest == repeat_diagnostics.gridap_matrix_structure_digest
+    @test changed_diagnostics.gridap_matrix_value_digest != repeat_diagnostics.gridap_matrix_value_digest
+    @test changed_numeric !== first_numeric
+    @test !changed_numeric_diagnostics.gridap_numeric_factorization_reused
+    @test changed_numeric_diagnostics.gridap_numeric_factorization_cache_status ==
+          "numeric_factorization_cache_miss_matrix_value_changed"
+    @test changed_numeric_diagnostics.gridap_numeric_factorization_matrix_value_digest !=
+          repeat_numeric_diagnostics.gridap_numeric_factorization_matrix_value_digest
+    @test changed_numeric_diagnostics.gridap_numeric_factorization_setup_count == 2
+    @test changed_numeric_diagnostics.gridap_numeric_factorization_reuse_count == 1
 end
 
 @testset "StenoticHemodynamics native resolved-FSI phase timing helper contract" begin

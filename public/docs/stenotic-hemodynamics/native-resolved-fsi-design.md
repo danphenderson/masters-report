@@ -201,6 +201,25 @@ wall-clock elapsed time. Cache and reuse status fields likewise indicate what
 the current smoke harness observed; they are not standalone speedup,
 production-scale, or paper-grade reproduction evidence.
 
+### Gridap rebuild and cache semantics
+
+The Gridap reuse telemetry separates four different questions. Treat the fields
+as a maintainer-facing contract for diagnostics, not as a solver-default
+promotion or performance claim.
+
+| Surface | Eligibility contract | Invalidated by | Diagnostic fields |
+| --- | --- | --- | --- |
+| Persistent Gridap objects (`model`, FE spaces, measures) | Not reused by the current path. `gridap_rebuild_status = rebuild_unconditionally_current_path` means the model/space/measure/operator objects are rebuilt even when a context is present. | Any solve on this path rebuilds them; coordinate capture, boundary-function capture, and Gridap object mutability remain unproven for persistent reuse. | `gridap_rebuild_status`, `gridap_model_reused`, `gridap_fe_spaces_reused`, `gridap_measures_reused`, `gridap_reuse_miss_reason` |
+| Symbolic factorization | Eligible only after a `NativeResolvedFSIGridapContext` has a baseline and the matrix structure digest, dimensions, nonzero count, boundary mode, and quadrature degree match that context. This says the sparsity pattern is compatible; it does not say matrix values are unchanged. | Mesh/topology or context changes that alter the structure digest, dimensions, nonzero count, boundary mode, or quadrature degree. | `gridap_matrix_structure_stable`, `gridap_symbolic_factorization_eligible`, `gridap_symbolic_factorization_reused`, `gridap_symbolic_factorization_cache_status` |
+| Numeric factorization | Reused only when the cache key, matrix structure digest, and exact matrix-value digest match the cached factorization. A stable symbolic structure alone is insufficient. | Any matrix-value digest change, structure change, or cache-key change, including changes from state-dependent convection terms or other operator values. | `gridap_numeric_factorization_reused`, `gridap_numeric_factorization_cache_status`, `gridap_numeric_factorization_cache_key`, `gridap_numeric_factorization_matrix_value_digest`, `gridap_matrix_value_digest_*` |
+| RHS and operator component assumptions | There is no RHS cache contract. Component digests can show that a sub-operator or RHS contribution was unchanged in a probe, but they do not authorize persistent RHS reuse. | Previous velocity/state changes invalidate previous-state RHS assumptions; inlet/outlet/wall boundary data changes invalidate boundary RHS assumptions; advector velocity changes invalidate convection matrix assumptions; geometry, `dt`, material parameters, pressure mode/reference, boundary mode, or quadrature changes can invalidate broader operator assumptions. | `gridap_rhs_digest`, block-probe stable/convection/previous-RHS/boundary-RHS digests, `gridap_operator_component_status` |
+
+`gridap_reuse_status =
+structured_reuse_diagnostics_symbolic_and_exact_numeric_cache_probe` therefore
+means the run emitted symbolic-eligibility diagnostics and exercised the exact
+numeric-factorization cache gate. It does not mean persistent Gridap object
+reuse occurred, that RHS reuse is safe, or that the run demonstrated a speedup.
+
 ## Fluid model
 
 ### Unknowns and spaces
