@@ -125,7 +125,7 @@ function choose_dt_record_timestep!(
 
         Threads.@threads :static for slot in 1:thread_count
             lo = firstindex(A) + fld((slot - 1) * length(A), thread_count)
-            hi = firstindex(A) + fld(slot * length(A), thread_count) - 1
+            hi = slot == thread_count ? lastindex(A) : firstindex(A) + fld(slot * length(A), thread_count) - 1
             for i in lo:hi
                 lambda_minus, lambda_plus, _, _ = characteristic_speeds(A[i], Q[i], z[i], p)
                 max_speeds[slot] = max(max_speeds[slot], abs(lambda_minus), abs(lambda_plus))

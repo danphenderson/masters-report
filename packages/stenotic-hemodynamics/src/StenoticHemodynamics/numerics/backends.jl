@@ -94,7 +94,7 @@ function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
 
     start_ns = telemetry_start_ns()
     threaded = native_solver_threading_enabled(backend)
-    @telemetry_info "simulation started" event="simulation_started" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="started" solver_threads=backend.solver_threads julia_threads=Threads.nthreads()
+    @telemetry_info "simulation started" event="simulation_started" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="started" solver_threads=solver_thread_count(backend) julia_threads=Threads.nthreads()
     try
         validate(p)
 
@@ -122,10 +122,10 @@ function simulate(p::Params, backend::NativeRK3Backend; progress_every::Int = 0)
         end
 
         result = SimulationResult(z, A, Q, t, step, initial.summary, finalize_diagnostics(diagnostics))
-        @telemetry_info "simulation completed" event="simulation_completed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(A) solver_threads=backend.solver_threads julia_threads=Threads.nthreads()
+        @telemetry_info "simulation completed" event="simulation_completed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="ok" elapsed_s=telemetry_elapsed_s(start_ns) rows=length(A) solver_threads=solver_thread_count(backend) julia_threads=Threads.nthreads()
         return result
     catch err
-        @telemetry_error "simulation failed" event="simulation_failed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="error" elapsed_s=telemetry_elapsed_s(start_ns) reason=sprint(showerror, err) solver_threads=backend.solver_threads julia_threads=Threads.nthreads()
+        @telemetry_error "simulation failed" event="simulation_failed" stage="simulate" backend=backend_name(backend) method=spatial_method_name(p.space) nx=p.nx tfinal=p.tfinal status="error" elapsed_s=telemetry_elapsed_s(start_ns) reason=sprint(showerror, err) solver_threads=solver_thread_count(backend) julia_threads=Threads.nthreads()
         rethrow()
     end
 end
