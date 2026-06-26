@@ -57,6 +57,9 @@ jobs:
       - name: Install dependencies
         run: pipenv install --dev
 
+      - name: Instantiate Julia project
+        run: packages/stenotic-hemodynamics/bin/julia-release -e 'using Pkg; Pkg.instantiate()'
+
       - name: Run coverage suite
         run: pipenv run ops-coverage-suite
 
@@ -73,6 +76,7 @@ jobs:
           files: tmp/coverage/ops/coverage.xml
           flags: ops
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
 
       - name: Upload Julia coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -80,3 +84,4 @@ jobs:
           files: tmp/coverage/julia/lcov.info
           flags: julia
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true

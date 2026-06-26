@@ -72,8 +72,25 @@ def main(argv: list[str] | None = None) -> int:
             "packages/ops/tests",
         ]
 
+    pytest_status = run(pytest_command, repo, env)
+    if args.coverage:
+        xml_status = run(
+            [sys.executable, "-m", "coverage", "xml", "-o", display_path(repo, coverage_dir / "coverage.xml")],
+            repo,
+            env,
+        )
+        json_status = run(
+            [sys.executable, "-m", "coverage", "json", "-o", display_path(repo, coverage_dir / "coverage.json")],
+            repo,
+            env,
+        )
+        for status in (pytest_status, xml_status, json_status):
+            if status != 0:
+                return status
+    elif pytest_status != 0:
+        return pytest_status
+
     commands = [
-        pytest_command,
         [sys.executable, "-m", "ruff", "check", "packages/ops"],
         [sys.executable, "-m", "black", "--check", "packages/ops"],
     ]
@@ -81,22 +98,6 @@ def main(argv: list[str] | None = None) -> int:
         status = run(command, repo, env)
         if status != 0:
             return status
-
-    if args.coverage:
-        xml_status = run(
-            [sys.executable, "-m", "coverage", "xml", "-o", display_path(repo, coverage_dir / "coverage.xml")],
-            repo,
-            env,
-        )
-        if xml_status != 0:
-            return xml_status
-        json_status = run(
-            [sys.executable, "-m", "coverage", "json", "-o", display_path(repo, coverage_dir / "coverage.json")],
-            repo,
-            env,
-        )
-        if json_status != 0:
-            return json_status
     return 0
 
 

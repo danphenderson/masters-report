@@ -151,6 +151,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.coverage:
         tracefiles = sorted((coverage_dir / "raw").glob("*.info"))
         merge_lcov_files(tracefiles, coverage_dir / "lcov.info", coverage_dir / "coverage-summary.json")
+        if status == 0 and not tracefiles:
+            print(f"Julia coverage produced no tracefiles under {coverage_dir / 'raw'}", file=sys.stderr)
+            return 1
     return status
 
 
