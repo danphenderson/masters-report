@@ -117,8 +117,9 @@ fluid solve.
   - Ignored scratch outputs under `tmp/simulations/output/3d_comparison/**`
   - Optional report-consumed assets under `report/assets/data/stenosis-comparison/**` and `report/assets/tables/stenosis-comparison/**`
 - Optional-data behavior:
-  - Depends on ignored local XDMF/HDF5 inputs under `public/var/data/simulations/**`
-  - Missing inputs must produce skips, not failures, for public-clone validation
+  - Depends on tracked Canic case3 XDMF/HDF5 inputs under
+    `public/var/data/simulations/canic_case3/**`
+  - Missing explicit data roots must produce skips, not failures, for validation
 - Focused validation command:
   - `packages/stenotic-hemodynamics/bin/julia-release --project=packages/stenotic-hemodynamics -e 'using Test, HDF5, StenoticHemodynamics; include("packages/stenotic-hemodynamics/test/test_resolved3d_writer.jl")'`
 
@@ -143,8 +144,7 @@ contract, skip behavior, and report publication boundaries.
   - Optional published TeX fragments under
     `report/assets/tables/canic-replication/**`
 - Optional-data behavior:
-  - Depends on ignored local upstream XDMF/HDF5 bundles for cases `77`, `60`,
-    and `50`
+  - Depends on tracked upstream XDMF/HDF5 bundles for cases `77`, `60`, and `50`
   - Missing raw inputs print `canic_replication_status,skipped_missing_data`
   - Upstream MATLAB code is provenance/comparator material only and is not
     copied into the package implementation

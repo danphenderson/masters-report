@@ -397,8 +397,8 @@ validation, or monolithic ALE FSI.
 
 ## Resolved-3D Comparison Data
 
-Resolved-3D comparison workflows read optional upstream XDMF/HDF5 velocity
-inputs from this ignored local root:
+Resolved-3D comparison workflows read the tracked Canic case3 XDMF/HDF5 velocity
+inputs from this data root:
 
 ```text
 public/var/data/simulations/canic_case3/
@@ -409,7 +409,7 @@ The default comparison cases are:
 - upstream case `77`, severity `23`, expected XDMF time near `0.9995`
 - upstream case `60`, severity `40`, expected XDMF time near `0.9995`
 
-Expected local files include:
+Expected tracked files include:
 
 ```text
 public/var/data/simulations/canic_case3/77/velocity.xdmf

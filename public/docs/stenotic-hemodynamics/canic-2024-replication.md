@@ -21,13 +21,18 @@ MIT-licensed package implementation.
 
 ## Raw Data Policy
 
-Raw XDMF/HDF5 inputs remain ignored local data under:
+The approved Canic case3 XDMF/HDF5 inputs are tracked under:
 
 ```text
 public/var/data/simulations/canic_case3/
 ```
 
-A clean public clone should print an expected skip:
+The recorded file sizes and checksums live in
+`report/assets/data/canic-replication/canic-section41-provenance.json`. Other
+raw resolved-3D data remains ignored unless a separate data-release policy
+approves it.
+
+The explicit missing-data check should print an expected skip:
 
 ```sh
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics canic-replication section41 \
@@ -40,7 +45,7 @@ Expected output begins with:
 canic_replication_status,skipped_missing_data
 ```
 
-To restore the optional upstream inputs locally:
+To verify or restore the upstream inputs from source:
 
 ```sh
 git clone https://github.com/qcutexu/Extended-1D-AQ-system.git /tmp/canic-2024

@@ -18,5 +18,6 @@ repos:
             report/assets/data/|
             report/assets/rendered/|
             report/assets/tables/|
+            public/var/data/simulations/canic_case3/|
             packages/stenotic-hemodynamics-viewer/public/data/demo/
           )

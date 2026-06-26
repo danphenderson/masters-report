@@ -55,7 +55,12 @@ LocalPreferences.toml
 # Generated report and simulation outputs
 output/
 tmp/
-public/var/data/simulations/
+public/var/data/simulations/*
+!public/var/data/simulations/canic_case3/
+public/var/data/simulations/canic_case3/*
+!public/var/data/simulations/canic_case3/*/
+!public/var/data/simulations/canic_case3/**/*.h5
+!public/var/data/simulations/canic_case3/**/*.xdmf
 public/var/logs/*.json
 public/var/logs/*.jsonl
 report/assets/generated/

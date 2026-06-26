@@ -246,11 +246,11 @@ pipenv run ops-experiment --dirty-policy warn \
 
 pipenv run ops-render-case-study-evidence-tables
 \end{lstlisting}
-A checkout containing these generated comparison data can rebuild the manuscript
-and can verify absent raw resolved-3D inputs as an expected skip; it cannot
-regenerate the raw-data-dependent comparison assets until the ignored XDMF/HDF5
-inputs are restored locally. The remaining timing limitation is transient-history
-matching, not the final timestamp.
+A checkout containing the tracked Canic case3 XDMF/HDF5 inputs can rebuild the
+manuscript, regenerate the retained raw-data-dependent comparison assets, and
+verify absent raw resolved-3D inputs as an expected skip by pointing the command
+at a deliberately missing root. The remaining timing limitation is
+transient-history matching, not the final timestamp.
 
 \paragraph*{Canic Section 4.1 reproducibility comparison.}
 The package also provides a separate source-based diagnostic comparison for Canic
@@ -290,10 +290,11 @@ canic_replication_status,skipped_missing_data
 \end{lstlisting}
 Reviewed Canic derived outputs are stored in
 \path{report/assets/data/canic-replication/} and
-\path{report/assets/tables/canic-replication/}; the raw XDMF/HDF5 bundles
-remain ignored local inputs. The generated Canic fragments used in this revision
-were regenerated after the imported-time and outlet-gauge pressure policy
-landed, so they are current reproducibility diagnostic assets.
+\path{report/assets/tables/canic-replication/}; the retained raw XDMF/HDF5
+bundles are tracked under \path{public/var/data/simulations/canic_case3/} with
+checksums recorded in the provenance JSON. The generated Canic fragments used in
+this revision were regenerated after the imported-time and outlet-gauge pressure
+policy landed, so they are current reproducibility diagnostic assets.
 
 \begin{table}[!htb]
     \centering
@@ -416,8 +417,8 @@ comparison method.
 
 \paragraph*{Raw 3D inputs and manifest.}
 The raw upstream XDMF/HDF5 velocity, pressure, and displacement bundles used for
-Section~\ref{sec:resolved-3d-comparison} are not archived in this report
-package. The expected local input root is:
+Section~\ref{sec:resolved-3d-comparison} are tracked in this source package for
+the retained Canic case3 labels. The input root is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 public/var/data/simulations/canic_case3/
 \end{lstlisting}

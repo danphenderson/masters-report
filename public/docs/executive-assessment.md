@@ -40,9 +40,10 @@ release-preparation cleanup, not a research or manuscript rewrite.
   `public/final-report.pdf`.
 - Viewer install, manifest validation, typecheck, production build, and browser
   smoke checks passed.
-- No tracked private reference mirrors, raw resolved-3D inputs, log artifacts,
-  caches, LaTeX byproducts, or obvious secret literals were found by the audit
-  scans.
+- No tracked private reference mirrors, unapproved raw resolved-3D inputs, log
+  artifacts, caches, LaTeX byproducts, or obvious secret literals were found by
+  the audit scans. The approved Canic case3 XDMF/HDF5 inputs are tracked with
+  checksums in `report/assets/data/canic-replication/canic-section41-provenance.json`.
 
 ## Blocking Fixes Before Public Source Sharing
 
@@ -61,8 +62,8 @@ release-preparation cleanup, not a research or manuscript rewrite.
   pipenv run ops-release-check --mode release --report-outdir /tmp/masters-report-build
   ```
 
-- Keep optional raw resolved-3D inputs, local logs, full-text reference mirrors,
-  and review handoff artifacts out of ordinary source commits.
+- Keep unapproved raw resolved-3D inputs, local logs, full-text reference
+  mirrors, and review handoff artifacts out of ordinary source commits.
 
 ## Evidence Summary
 

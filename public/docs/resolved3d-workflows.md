@@ -1,13 +1,13 @@
 # Resolved-3D Workflows
 
-Resolved-3D workflows are optional because the XDMF/HDF5 inputs are not tracked
-in public Git releases. Missing inputs must produce skipped evidence or skipped
-commands, not false failures.
+Resolved-3D workflows consume the tracked Canic case3 XDMF/HDF5 inputs for cases
+`50`, `60`, and `77`. Missing explicit data roots must still produce skipped
+evidence or skipped commands, not false failures.
 
 A clean public clone can rebuild the manuscript from tracked derived report
-assets and can run the missing-input skip check below. It cannot regenerate the
-raw-data-dependent comparison assets until the ignored XDMF/HDF5 files are
-restored locally.
+assets, regenerate raw-data-dependent comparison assets for the retained Canic
+case3 inputs, and run the missing-input skip check below against an explicit
+absent root.
 
 For the broader `StenoticHemodynamics` workflow map, including native
 resolved-FSI planning notes that stay inside package-owned schema/parity lanes,
@@ -21,7 +21,7 @@ The default optional data root is:
 public/var/data/simulations/canic_case3/
 ```
 
-Expected local case files include:
+Expected tracked case files include:
 
 ```text
 public/var/data/simulations/canic_case3/77/velocity.xdmf
@@ -36,16 +36,20 @@ public/var/data/simulations/canic_case3/60/pressure.xdmf
 public/var/data/simulations/canic_case3/60/pressure.h5
 public/var/data/simulations/canic_case3/60/displace.xdmf
 public/var/data/simulations/canic_case3/60/displace.h5
+public/var/data/simulations/canic_case3/50/velocity.xdmf
+public/var/data/simulations/canic_case3/50/velocity.h5
+public/var/data/simulations/canic_case3/50/pressure.xdmf
+public/var/data/simulations/canic_case3/50/pressure.h5
+public/var/data/simulations/canic_case3/50/displace.xdmf
+public/var/data/simulations/canic_case3/50/displace.h5
 ```
 
-Case `50` may be used as supplemental scratch evidence when the same velocity,
-pressure, and displacement companions are present and pass the loader checks.
-
-Keep raw resolved-3D files ignored. Record source, checksum, and expected local
-path before relying on them for evidence.
-For local handoff checks, generate checksum lists under `/tmp`, such as
+Keep other raw resolved-3D files ignored. The tracked Canic case3 files are
+bounded by the provenance and checksum record in
+`report/assets/data/canic-replication/canic-section41-provenance.json`. For
+local handoff checks, generate scratch checksum lists under `/tmp`, such as
 `/tmp/raw-3d-inputs-files.txt` and `/tmp/raw-3d-inputs-sha256.txt`; do not
-commit those scratch audits or the raw XDMF/HDF5 inputs.
+commit those scratch audits.
 
 ## Comparison Workflow
 

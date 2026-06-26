@@ -30,8 +30,9 @@ resolved-3D input convention.
 - Publish `public/final-report.pdf` as a release artifact when a rendered PDF is
   needed. Keep `report/final-report.tex` plus tracked inputs as the source of
   record, and keep final PDFs out of source-only public export.
-- Keep raw resolved-3D inputs out of Git unless a separate data-release strategy
-  with checksums is approved.
+- Keep broad raw resolved-3D inputs out of Git. The approved Canic case3 data
+  release is tracked under `public/var/data/simulations/canic_case3/**` with
+  checksums in `report/assets/data/canic-replication/canic-section41-provenance.json`.
 - Keep local raw-input checksum audits in `/tmp` unless that separate
   data-release strategy is approved.
 
