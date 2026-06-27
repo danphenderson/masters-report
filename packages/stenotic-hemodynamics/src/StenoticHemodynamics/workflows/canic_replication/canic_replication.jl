@@ -993,7 +993,7 @@ function write_canic_section41_summary_tex(path::String, rows; overwrite::Bool =
         for row in rows
             println(
                 io,
-                "$(tex_escape_cell(row[1])) & $(tex_escape_cell(row[4])) & " *
+                "$(canic_section41_case_tex_label(row[1])) & $(tex_escape_cell(row[4])) & " *
                 "$(round(100.0 * row[19]; digits=2))\\% & \\($(canic_section41_pressure_tex(row[21]))\\) & " *
                 "$(tex_escape_cell(canic_section41_status_tex_label(row[24]))) \\\\",
             )
@@ -1002,4 +1002,12 @@ function write_canic_section41_summary_tex(path::String, rows; overwrite::Bool =
         println(io, "\\end{tabular}")
     end
     return path
+end
+
+function canic_section41_case_tex_label(case_id)
+    token = string(case_id)
+    token == "sev23" && return "C23 (22.56\\%)"
+    token == "sev40" && return "40\\%"
+    token == "sev50" && return "50\\%"
+    return tex_escape_cell(token)
 end

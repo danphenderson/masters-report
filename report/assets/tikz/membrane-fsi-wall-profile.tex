@@ -14,7 +14,7 @@
       (axis cs:2.4,0) rectangle (axis cs:2.8,3.3e-5);
     \addplot+[bloodred, mark=none, line width=1.1pt]
       table[x=z, y=displacement] {report/assets/data/membrane-fsi/wall-profile-severity23.dat};
-    \addlegendentry{23\% stenosis}
+    \addlegendentry{C23 (22.56\%)}
     \addplot+[accentTeal, mark=none, line width=1.1pt]
       table[x=z, y=displacement] {report/assets/data/membrane-fsi/wall-profile-severity40.dat};
     \addlegendentry{40\% stenosis}
@@ -38,10 +38,10 @@
       (axis cs:2.4,0.105) rectangle (axis cs:2.8,0.184);
     \addplot+[bloodred, mark=none, line width=1.1pt]
       table[x=z, y=current_radius] {report/assets/data/membrane-fsi/wall-profile-severity23.dat};
-    \addlegendentry{23\% deformed radius}
+    \addlegendentry{C23 (22.56\%) deformed radius}
     \addplot+[bloodred, mark=none, dashed, line width=0.9pt]
       table[x=z, y=reference_radius] {report/assets/data/membrane-fsi/wall-profile-severity23.dat};
-    \addlegendentry{23\% reference radius}
+    \addlegendentry{C23 (22.56\%) reference radius}
     \addplot+[accentTeal, mark=none, line width=1.1pt]
       table[x=z, y=current_radius] {report/assets/data/membrane-fsi/wall-profile-severity40.dat};
     \addlegendentry{40\% deformed radius}

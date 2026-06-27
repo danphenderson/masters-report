@@ -74,7 +74,7 @@ function write_membrane_fsi_summary_tex(
         println(io, "\\midrule")
         for row in rows
             println(io, join((
-                report_case_label_tex(row.severity),
+                membrane_report_case_label_tex(row),
                 membrane_mesh_label(row),
                 string(row.mesh_nodes),
                 string(row.iterations),
@@ -106,7 +106,7 @@ function write_membrane_fsi_report_summary_tex(
         println(io, "\\midrule")
         for row in rows
             println(io, join((
-                report_case_label_tex(row.severity),
+                membrane_report_case_label_tex(row),
                 membrane_mesh_label(row),
                 string(row.iterations),
                 membrane_tex_number(row.residual_cm),
@@ -191,6 +191,13 @@ function write_membrane_fsi_report_history_dat_files(
 end
 
 membrane_mesh_label(row::MembraneFSIValidationRow) = "\$$(row.mesh_nz)\\times$(row.mesh_nr)\\times$(row.mesh_ntheta)\$"
+
+function membrane_report_case_label_tex(row::MembraneFSIValidationRow)
+    if isapprox(Float64(row.severity), 23.0; rtol=0.0, atol=1.0e-9)
+        return "C23 (22.56\\%)"
+    end
+    return report_case_label_tex(row.severity)
+end
 
 function membrane_tex_number(value)
     value isa Real || return string(value)

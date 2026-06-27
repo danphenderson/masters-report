@@ -4,7 +4,7 @@
 This report is built from the \LaTeX{} sources rooted at
 \path{report/final-report.tex}. The solver package is the Julia package
 \texttt{StenoticHemodynamics}. The package identity, dependency record, entry
-point, and command-line surface are:
+point, and command-line interfaces are:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/Project.toml
 packages/stenotic-hemodynamics/Manifest.toml
@@ -13,33 +13,32 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics
 \end{lstlisting}
 
 \paragraph*{Source snapshot and archive status.}
-For a submitted version, the thesis source should be identified by a release tag
-or archived source snapshot corresponding to the submitted PDF. This appendix
-records the local reproducibility materials available at source-preparation
-time; it does not assert that any source copy outside that snapshot is clean,
-submission-ready, or identical to a later archived release. The local release
-manifest is a source-preparation record:
+This advisor-review source record is local rather than a public archived
+release. It corresponds to the manuscript source rooted at
+\path{report/final-report.tex}, the local reproducibility manifest below, the
+generated manuscript assets under \path{report/assets/}, and the retained Canic
+case3 source-data bundle under
+\path{public/var/data/simulations/canic_case3/}. The local release manifest is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 public/reproducibility/release-manifest.json
 \end{lstlisting}
-This appendix therefore describes local source records without claiming a
-public archive. It does not assert a public repository URL, immutable archive
-URL, or DOI unless such metadata is added in the release record.
+That manifest records \texttt{release\_tag=not\_declared\_for\_this\_local\_copy},
+\texttt{public\_repository\_url=not\_declared}, and
+\texttt{archival\_doi=not\_declared}. This appendix therefore describes a
+locally reproducible advisor-review source copy without asserting a public
+repository URL, immutable archive URL, or DOI.
 
 \paragraph*{Archive contents.}
-A thesis source snapshot should contain the tracked manuscript source, package
-source, dependency manifests or lockfiles, accepted report assets, and
-reproducibility records needed to rebuild the submitted copy. It should not
-embed local virtual environments, Julia depots, caches, editor state, or other
-machine-specific rebuild products such as \path{.venv/}. Those environments are
-recreated from the recorded manifests and commands. Full Git history is useful
-for a repository-history handoff, for example through a tagged repository or
-Git bundle, but it is not required inside an ordinary manuscript source
-archive. Large raw inputs should remain separate from the thesis PDF/source
-archive unless a release plan explicitly assigns a data archive, checksum
-record, and size budget. The retained Canic case3 XDMF/HDF5 bundle is tracked
-in this source package as source-data input with checksum provenance; it is not
-duplicated as a report asset.
+The local source record contains the tracked manuscript source, package source,
+dependency manifests or lockfiles, accepted report assets, and reproducibility
+records needed to rebuild this copy. It excludes local virtual environments,
+Julia depots, caches, editor state, and other machine-specific rebuild products
+such as \path{.venv/}; those environments are recreated from the recorded
+manifests and commands. The retained Canic case3 XDMF/HDF5 bundle is tracked in
+this source package as source-data input with checksum provenance and is not
+duplicated as a report asset. Any later public release can add a tag, archive
+URL, DOI, or separate data-archive record without changing this local
+advisor-review boundary.
 
 \paragraph*{AI-assisted drafting and code work.}
 Substantive AI assistance, including OpenAI ChatGPT and Codex, was used during
@@ -56,7 +55,7 @@ author, credited as a contributor capable of final approval or accountability,
 or cited as a primary source.
 
 \paragraph*{Computational environment.}
-The repository README states the intended portable execution surface as a macOS
+The repository README states the intended portable execution environment as a macOS
 or Linux shell with Julia 1.12 or newer, Python/Pipenv for auxiliary tooling,
 and a TeX distribution with \texttt{latexmk} and \texttt{biber}. Concrete
 launcher versions, dependency versions, and hardware records belong in the
@@ -110,10 +109,10 @@ velocity-comparison workflow below instead targets the imported final-time
 sample at $0.9995$ s for cases 77 and 60; this imported-data matching time is
 not substituted into the rest-state drift diagnostic.
 The additional method-sensitivity rest-state rows in
-Table~\ref{tab:rest-method-sensitivity} were generated as scratch experiments
+Table~\ref{tab:rest-method-sensitivity} were generated as auxiliary experiments
 and then rendered into report CSV/\TeX{} fragments:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-pipenv run ops-experiment --dirty-policy warn \
+pipenv run ops-experiment \
   --run-id additional-rest-fv-first-order -- \
   verify rest --space fv-first-order \
   --severities 22.555555555555554,40,50 \
@@ -122,7 +121,7 @@ pipenv run ops-experiment --dirty-policy warn \
   --output-dir tmp/simulations/output/additional-evidence/rest-fv-first-order \
   --overwrite
 
-pipenv run ops-experiment --dirty-policy warn \
+pipenv run ops-experiment \
   --run-id additional-rest-fv-muscl -- \
   verify rest --space fv-muscl \
   --severities 22.555555555555554,40,50 \
@@ -131,7 +130,7 @@ pipenv run ops-experiment --dirty-policy warn \
   --output-dir tmp/simulations/output/additional-evidence/rest-fv-muscl \
   --overwrite
 
-pipenv run ops-experiment --dirty-policy warn \
+pipenv run ops-experiment \
   --run-id additional-rest-fv-weno3 -- \
   verify rest --space fv-weno3 \
   --severities 22.555555555555554,40,50 \
@@ -140,7 +139,7 @@ pipenv run ops-experiment --dirty-policy warn \
   --output-dir tmp/simulations/output/additional-evidence/rest-fv-weno3 \
   --overwrite
 
-pipenv run ops-experiment --dirty-policy warn \
+pipenv run ops-experiment \
   --run-id additional-rest-fv-wb-geometry-rest -- \
   verify rest --space fv-wb-geometry-rest \
   --severities 22.555555555555554,40,50 \
@@ -149,7 +148,7 @@ pipenv run ops-experiment --dirty-policy warn \
   --output-dir tmp/simulations/output/additional-evidence/rest-fv-wb-geometry-rest \
   --overwrite
 
-pipenv run ops-experiment --dirty-policy warn \
+pipenv run ops-experiment \
   --run-id additional-rest-fv-lax-wendroff -- \
   verify rest --space fv-lax-wendroff \
   --severities 22.555555555555554,40,50 \
@@ -162,7 +161,7 @@ pipenv run ops-render-case-study-evidence-tables
 \end{lstlisting}
 The well-balanced row is the promoted geometry-rest-preserving finite-volume
 method used by the refreshed comparison record. The Lax--Wendroff rows are
-retained as diagnostic-surface context rather than selected comparison evidence.
+retained as diagnostic-method context rather than selected comparison evidence.
 The resolved-velocity comparison uses the C23 (22.56\%) and 40\% stenosis-severity
 descriptions in the main text. These correspond to local source IDs 77 and 60,
 respectively. The retained raw 3D fields are tracked source-data inputs rather
@@ -190,7 +189,7 @@ packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --report-assets-dir report/assets/data/stenosis-comparison
 \end{lstlisting}
 The deformed-coordinate companion run changes only the coordinate mode and
-scratch output directory:
+output directory:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
@@ -228,7 +227,7 @@ The additional timestep-cap sensitivity table in
 Table~\ref{tab:t1-time-step-sensitivity} was generated with the live direct
 comparison workflow and the same renderer:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
-pipenv run ops-experiment --dirty-policy warn \
+pipenv run ops-experiment \
   --run-id additional-compare-dt-2e-5 -- \
   compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
@@ -244,7 +243,7 @@ pipenv run ops-experiment --dirty-policy warn \
   --no-svg \
   --overwrite
 
-pipenv run ops-experiment --dirty-policy warn \
+pipenv run ops-experiment \
   --run-id additional-compare-dt-5e-6 -- \
   compare-3d \
   --data-root public/var/data/simulations/canic_case3 \
@@ -361,7 +360,7 @@ policy landed, so they are current reproducibility diagnostic assets.
 
 The package also contains the selected quasi-static membrane-FSI comparator. It
 solves the radial membrane update on the current lumen geometry and publishes
-the report-owned wall profile, fixed-point history, and summary table:
+the generated manuscript wall profile, fixed-point history, and summary table:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize,breaklines=true]
 packages/stenotic-hemodynamics/bin/stenotic-hemodynamics fsi validate \
   --wall-mode quasi-static \

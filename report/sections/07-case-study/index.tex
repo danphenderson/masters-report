@@ -16,6 +16,39 @@ comparison reports section-mean velocity discrepancies only after both states
 are mapped to the same observables. The rest of the chapter makes those three
 findings interpretable.
 
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \caption{Case-study claim, evidence, and limitation map. Each row states
+    the manuscript claim supported by the reported case-study evidence and the
+    boundary that prevents overinterpretation.}
+    \label{tab:case-study-claim-evidence-limitation}
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{0.33\textwidth}
+        >{\raggedright\arraybackslash}p{0.29\textwidth}
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Claim} & \textbf{Evidence} & \textbf{Limitation} \\
+        \midrule
+        Forced finite-volume operator is implemented consistently
+            & Manufactured-solution tables
+            & Implementation verification, not clinical validation \\
+        Selected method preserves the declared geometry-rest state
+            & Balanced-rest residual and drift tables
+            & Only the named sampled rest family is tested \\
+        1D--3D section means differ by the reported amounts
+            & Reference-coordinate observation-operator comparison
+            & Final-time comparator only \\
+        Area denominator changes can affect velocity interpretation
+            & Reference and deformed cut-area audit
+            & Diagnostic denominator check, not a causal decomposition \\
+        Displacement-aware cuts change results modestly
+            & Deformed-coordinate comparison table
+            & No matched transient FSI history \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
 Figure~\ref{fig:stenosis-fem-fvm-meshes} orients the case study only: it
 previews the stationary-Stokes finite-element sampling geometry, the section
 cuts, and the one-dimensional finite-volume grid before the model

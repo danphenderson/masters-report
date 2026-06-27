@@ -119,6 +119,14 @@ def int_severity(value: str | float) -> int:
     return int(round(float(value)))
 
 
+def resolved_case_display(case_label: str, severity: int) -> str:
+    if case_label == "77" and severity == 23:
+        return "C23 (22.56%)"
+    if case_label == "60" and severity == 40:
+        return "C40"
+    return f"C{severity}"
+
+
 def read_summary(data_dir: Path) -> dict[int, dict[str, float]]:
     summary: dict[int, dict[str, float]] = {}
     for row in rows_from_csv(data_dir / "analytic_summary.csv"):
@@ -785,7 +793,7 @@ def render_resolved_envelopes(data_dir: Path, output_dir: Path, formats: list[st
         severity = int_severity(rows[0]["severity"])
         setup_3d_axis(
             ax,
-            f"case {case_label}, {severity}% node envelope (not wall surface)",
+            f"{resolved_case_display(case_label, severity)} node envelope (not wall surface)",
         )
         stem = f"resolved-envelope-case{case_label}-sev{severity}"
         paths.extend(save_figure(fig, output_dir, stem, formats))
@@ -920,7 +928,7 @@ def render_resolved_velocity_field(data_dir: Path, output_dir: Path, formats: li
         )
         setup_3d_axis(
             ax,
-            f"({chr(96 + index)}) C{severity}, {severity}% velocity nodes",
+            f"({chr(96 + index)}) {resolved_case_display(case_label, severity)} velocity nodes",
         )
         try:
             ax.set_box_aspect((6.0, 0.68, 0.68), zoom=1.95)

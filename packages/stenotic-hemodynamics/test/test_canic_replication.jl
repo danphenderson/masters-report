@@ -222,6 +222,9 @@ end
         @test occursin("mismatch_requires_classification", read(result.parameter_audit_csv, String))
         @test occursin("source_time_differs_from_paper_text", read(result.parameter_audit_csv, String))
         @test occursin("canic-extended-1d", read(result.summary_csv, String))
+        summary_tex = read(result.summary_tex, String)
+        @test occursin("C23 (22.56\\%)", summary_tex)
+        @test !occursin("sev23 &", summary_tex)
         @test occursin("qualitative_3d_velocity_field_diagnostic", read(result.figure6_diagnostics_csv, String))
 
         comparison_lines = split(chomp(read(result.comparison_csv, String)), '\n')

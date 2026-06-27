@@ -7,7 +7,7 @@ verification checks the forced finite-volume operator, the geometry-rest test
 checks preservation of the declared zero-flow equilibrium by the selected
 comparison method, and admissibility diagnostics report the boundary, CFL,
 positivity, and conservation regime of the accepted comparison runs. Secondary
-checks for nonprincipal numerical surfaces remain in
+checks for nonprincipal numerical variants remain in
 Appendix~\ref{app:numerical-methods-details}.
 
 \subsubsection{Evidence Hierarchy and Scope}
@@ -178,8 +178,8 @@ formal-order claim for every model variant.
 
 The continuous selected source-balanced law admits the geometry-rest state
 $a_i=R_0(z_i)^2$, $q_i=0$ under compatible zero-flow boundary data
-(Proposition~\ref{prop:selected-rest-state-compatibility}). A plain
-MUSCL/Rusanov realization is not exactly well balanced for that state: its
+(Proposition~\ref{prop:selected-rest-state-compatibility}). The historical
+plain MUSCL/Rusanov row is not exactly well balanced for that state: its
 area-equation viscosity sees the spatially varying $R_0$ profile and produces a
 nonzero discrete residual unless the equilibrium is built into the discrete
 operator. The selected comparison method therefore uses the finite-volume
@@ -266,7 +266,7 @@ not as the governing limitation for the reported comparison runs.
 
 An additional method-sensitivity check asks whether rest preservation is tied to
 the selected geometry-rest-balanced construction rather than to every available
-finite-volume surface. Table~\ref{tab:rest-method-sensitivity} runs the same
+finite-volume variant. Table~\ref{tab:rest-method-sensitivity} runs the same
 zero-inlet geometry-rest diagnostic at $N=400$ through historical
 finite-volume methods, the selected \texttt{fv-wb-geometry-rest} method, and the
 50\% stenosis geometry as a higher-severity stress case. First-order fluxes are
@@ -274,7 +274,7 @@ more diffusive, and WENO3 reduces the instantaneous residual and drift by more
 than an order of magnitude, but those historical executable rows still do not
 preserve the sampled geometry-rest state exactly. The Lax--Wendroff row is also
 diagnostic context: it reduces the drift relative to the plain MUSCL row for
-this scratch grid, but it is not the selected comparison method and does not
+this auxiliary grid, but it is not the selected comparison method and does not
 preserve the declared rest state to roundoff. The
 \texttt{fv-wb-geometry-rest} rows are the rows used for the refreshed
 comparison record.

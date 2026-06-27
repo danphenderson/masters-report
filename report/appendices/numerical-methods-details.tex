@@ -2,10 +2,10 @@
 \label{app:numerical-methods-details}
 This appendix gives the numerical-method details needed to interpret the
 implemented solver specification, the verification evidence, and the diagnostic
-1D--3D velocity comparison. Secondary solver surfaces are included only where
+1D--3D velocity comparison. Secondary numerical variants are included only where
 they support retained secondary numerical diagnostics; the principal comparison
-method remains MUSCL finite volume with minmod limiting, Rusanov flux, source
-splitting, and native SSPRK3.
+method remains the geometry-rest-balanced MUSCL finite-volume variant with
+minmod limiting, Rusanov-type dissipation, source splitting, and native SSPRK3.
 
 \begin{convention}[Computed realization record]
 \label{conv:computed-realization-record}
@@ -149,13 +149,15 @@ frozen effective-viscosity treatment in the $p_2$ derivative.
         Radial velocity reconstruction
             & Canic-style formulas may reconstruct a radial velocity component
             from the reduced fields.
-            & The current axial-profile helper reconstructs axial velocity
+            & The current axial-profile postprocessing routine reconstructs axial velocity
             distributions only; it is not a Canic-style $u_r$ reconstruction. \\
         Discrete well balancing
             & Continuous rest equilibrium is a model-level property.
-            & Rusanov/MUSCL is not exactly well balanced for spatially varying
-            $R_0$; Section~\ref{sec:numerical-verification} reports
-            zero-forcing rest-state drift. \\
+            & The historical plain MUSCL/Rusanov row is not exactly well
+            balanced for spatially varying $R_0$; the selected
+            geometry-rest-balanced MUSCL finite-volume method reports
+            roundoff-level zero-forcing rest preservation in
+            Section~\ref{sec:numerical-verification}. \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -170,7 +172,7 @@ Julia solver: closure-catalog health, sampled self-convergence,
 native/integrator discrepancy, stationary-Stokes projection rows,
 rheology/profile sensitivity, OpenBF-style boundary handling, and
 resolved-velocity output diagnostics. These diagnostics keep documented solver
-surfaces runnable and generated assets schema-consistent. They do not supersede
+variants reproducible and generated assets schema-consistent. They do not supersede
 the MMS or geometry-rest evidence in Section~\ref{sec:numerical-verification},
 and they are not the principal two-case comparison method. When a secondary
 diagnostic lacks a declared reference solution, hardware-normalized runtime
@@ -191,20 +193,20 @@ context.
 \begin{table}[!htb]
     \centering
     \scriptsize
-    \caption{Implemented discretization surfaces retained as secondary appendix
+    \caption{Implemented discretization variants retained as secondary appendix
     context. The principal C23 (22.56\%) and 40\% stenosis comparison uses the
     geometry-rest-balanced MUSCL finite-volume row with native SSPRK3; other
-    rows are diagnostic, sensitivity, or integrator-context surfaces.}
+    rows are diagnostic, sensitivity, or integrator-context variants.}
     \label{tab:implemented-discretization-surface}
     \begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}p{0.34\textwidth}X@{}}
         \toprule
-        \textbf{Surface} & \textbf{Implemented option} & \textbf{Report role} \\
+        \textbf{Variant class} & \textbf{Implemented option} & \textbf{Report role} \\
         \midrule
         Spatial & First-order finite-volume Rusanov & Low-order cell-average baseline and DG $p=0$ bridge. \\
         Spatial & MUSCL finite volume, minmod limiter, Rusanov flux & Historical finite-volume comparator retained as nonselected numerical-methods context. \\
         Spatial & Geometry-rest-balanced MUSCL finite volume & Principal C23 (22.56\%) and 40\% stenosis comparison method and main verification target for the sampled zero-flow geometry-rest family. \\
         Spatial & Characteristic WENO3 and Richtmyer/Lax--Wendroff finite volume & Native sensitivity and diagnostic paths, not principal comparison methods. \\
-        Spatial & Modal Legendre DG degrees $p=0,\ldots,4$ & Secondary native-DG surface; selected benchmark rows may use only subsets such as $p=0,1,2$. \\
+        Spatial & Modal Legendre DG degrees $p=0,\ldots,4$ & Secondary native-DG variant; selected benchmark rows may use only subsets such as $p=0,1,2$. \\
         Time & Forward Euler, SSPRK2, SSPRK3, SSPRK54, and selected integrator wrappers & Native SSPRK3 is selected for the principal comparison; other integrators are diagnostic context. \\
         \bottomrule
     \end{tabularx}
@@ -212,7 +214,7 @@ context.
 
 \paragraph{Nonselected DG p/h demonstration.}
 The manufactured-solution p/h demonstration is a secondary smooth-solution
-implementation check for the native modal-DG surface. The implementation
+implementation check for the native modal-DG variant. The implementation
 supports modal Legendre DG degrees $p=0,\ldots,4$; selected closure-catalog or
 package-benchmark rows may exercise only subsets such as $p=0,1,2$, while the
 p-refinement verification workflow runs through $p=4$. The table records the
@@ -243,7 +245,7 @@ alignment.
         asset unavailable in this source snapshot.}}
     }
     \caption{Manufactured-solution p- and h-refinement demonstration for the
-    secondary modal-DG surface. The displayed p-sweep uses the explicit
+    secondary modal-DG variant. The displayed p-sweep uses the explicit
     limiter-disabled smooth MMS policy recorded in the table; it is not a claim
     that the conservative limited DG default has production p-convergence.}
     \label{fig:ph-refinement-demo}
@@ -256,7 +258,7 @@ They can expose grid sensitivity, integration-policy discrepancies, or
 closure-family wiring problems, but they do not establish a convergence theorem
 for the nonlinear operator. The benchmark
 pressure traces are legacy local-denominator diagnostics
-$p_{\mathrm{loc},\mathrm g}^{\mathrm{diag}}$ from the implementation helpers,
+$p_{\mathrm{loc},\mathrm g}^{\mathrm{diag}}$ from the postprocessing routines,
 not selected evolution wall-law pressure observations.
 
 \begin{figure}[!htb]
@@ -422,9 +424,9 @@ partitioned membrane update. The implementation also accepts a named positive,
 sufficiently smooth reference-radius callback, so the membrane-FSI solve is not
 tied to the default Canic stenosis profile. The selected report comparison
 promotes the quasi-static summary table, wall-profile curves, and fixed-point
-history into Section~\ref{subsec:membrane-fsi-comparator}; the scratch output
-directory and manifest remain provenance records for regenerating the
-report-owned assets.
+history into Section~\ref{subsec:membrane-fsi-comparator}; the workflow output
+directory and manifest remain provenance records for regenerating the generated
+manuscript assets.
 
 The native resolved-FSI exact-boundary path remains outside the evidence used
 in this manuscript. Focused package tests check the density-consistent transient
@@ -689,7 +691,7 @@ the focused tests are therefore limited to floating-point roundoff and diagnosti
 formatting. This construction is intentionally narrower than a general
 path-conservative treatment for every stationary family: it preserves the named
 geometry-rest equilibrium used by the report diagnostics and is the selected
-finite-volume surface for the refreshed C23 (22.56\%) and 40\% comparison
+finite-volume variant for the refreshed C23 (22.56\%) and 40\% comparison
 record. The plain MUSCL/Rusanov row remains available as historical
 nonselected context.
 
@@ -772,7 +774,7 @@ The $\widehat{\pd_z p_2}_i$ term is the density-scaled discrete derivative of
 the Canic variable-radius viscous pressure correction and is inactive when
 $\iota_{\mathcal M}=0$.
 
-Other implemented surfaces include lower-order finite volume, WENO3 finite
+Other implemented variants include lower-order finite volume, WENO3 finite
 volume, a Lax--Wendroff variant, modal Legendre DG with $p=0,\ldots,4$, and
 selected integrator wrappers. They remain numerical-diagnostic context unless a
 retained table or figure explicitly invokes them.
@@ -863,7 +865,7 @@ and the ghost flow is
     a_{\mathrm{out}}w_+
     -4c_0a_{\mathrm{out}}^{5/4}. &&
 \end{flalign*}
-Boundary-quality plots and reflected-wave sidecars are diagnostics until
+Boundary-quality plots and reflected-wave diagnostic output files are diagnostics until
 explicit thresholds are admitted.
 
 This fixed-area characteristic rule is intentionally narrower than common
@@ -880,7 +882,7 @@ report.
 \label{app:num-residual-diagnostics}
 
 Stored residuals, CFL summaries, positivity records, conservation summaries,
-and boundary-quality sidecars are post-processing diagnostics on sampled fields.
+and boundary-quality output files are post-processing diagnostics on sampled fields.
 They are interpreted through the recorded discrete operators and grids, not as
 standalone continuum residual proofs.
 

@@ -1,31 +1,28 @@
-\medskip
 \noindent\textbf{Abstract.}\par\smallskip
 Hemodynamic results are often compared as though model dimension alone
-determined credibility or accuracy. In practice, different blood-flow models
-retain different states, impose different closures, require different data, and
-expose different observables, so the meaning of a reported pressure, flow,
-velocity, wall-shear, or FFR-style quantity depends on how that quantity is
+determined credibility or accuracy. In practice, model tiers retain different
+states, closures, data requirements, and observables, so a reported pressure,
+flow, velocity, wall-shear, or FFR-style quantity depends on how that quantity is
 defined and supported.
 
-A mathematical reading guide for blood-flow simulation is developed using
-stenotic flow as an organizing example. The review compares resolved 3D CFD and
-FSI descriptions, lower-dimensional reductions, lumped and multiscale models,
-and learned surrogate or operator maps through a common set of questions: what
-state is retained, what is closed, what data are required, what quantity is
-observed, and what evidence supports the interpretation.
+This report develops a mathematical reading guide for stenotic flow. It compares
+resolved 3D CFD and FSI descriptions, lower-dimensional reductions, lumped and
+multiscale models, and learned surrogate or operator maps by asking what state
+is retained, what is closed, what data are required, what is observed, and what
+evidence supports the interpretation.
 
-That guide is then applied to an idealized stenosis case study. In that
-setting, a reduced one-dimensional model, its finite-volume
-realization, a manufactured-solution verification test, a geometry-rest
-preservation test, and a plane--tetrahedron 1D--3D observation map are carried
-through as one controlled example. The resulting contribution is
-methodological: the case study supports implementation-verification evidence
-for the forced operator, reports roundoff-level geometry-rest preservation for
-the selected finite-volume comparison method, and reports final-time
-section-mean velocity discrepancies under a specified cross-dimensional
-observation rule. It
-does not establish external clinical validation, pressure-ratio validation, or
-equivalence to a fully matched transient FSI computation. The central conclusion
-is that model dimension should not be read, by itself, as an accuracy ladder:
-each model tier changes the state space, closure burden, native observables,
-and evidence required to support a hemodynamic claim.
+The guide is then applied to an idealized stenosis case study. A reduced
+one-dimensional model, finite-volume realization, manufactured-solution
+verification, geometry-rest preservation, and a plane--tetrahedron 1D--3D
+observation map form one controlled example. The manufactured-solution rows
+show the expected implementation refinement behavior for the forced operator,
+and the selected geometry-rest-balanced finite-volume method preserves the
+declared rest family to roundoff. Under the reference-coordinate observation
+map, the C23 (22.56\%) and 40\% cases give mean absolute section-velocity
+discrepancies of 0.604 and 1.13 cm/s, with relative RMS discrepancies of 4.47\%
+and 8.44\%, respectively; the largest reported cut-area discrepancy is 4.60\%.
+These are diagnostic final-time discrepancies, not clinical validation errors,
+pressure-ratio validation, or evidence of equivalence to a fully matched
+transient FSI computation. The central conclusion is that model dimension is not
+an accuracy ladder: each model tier changes the state space, closure burden,
+native observables, and evidence required to support a hemodynamic claim.

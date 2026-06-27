@@ -276,6 +276,60 @@ def collect_rest_method_rows(rest_root: Path) -> list[RestMethodRow]:
     return sorted(rows, key=lambda row: (REST_METHOD_ORDER.get(row.method, 99), row.severity))
 
 
+def rest_profile_column_name(severity: float, requested_time_s: float) -> str:
+    case = "C23" if round(severity) == 23 else f"C{round(severity):d}"
+    time_tokens = {
+        0.001: "t0001",
+        0.01: "t001",
+        0.1: "t01",
+        1.0: "t1",
+    }
+    for value, token in time_tokens.items():
+        if math.isclose(requested_time_s, value, rel_tol=0.0, abs_tol=1.0e-12):
+            return f"q{case}_{token}"
+    raise ValueError(f"unsupported rest-profile requested_time_s: {requested_time_s}")
+
+
+def write_rest_state_flow_profiles_dat(profile_csv: Path, output_path: Path, *, nx: int = 800) -> Path:
+    rows = [
+        row
+        for row in read_csv(profile_csv)
+        if as_int(row["nx"], field="nx", path=profile_csv) == nx
+        and as_float(row["requested_time_s"], field="requested_time_s", path=profile_csv) > 0.0
+    ]
+    if not rows:
+        raise ValueError(f"no rest-state profile rows for N={nx} in {profile_csv}")
+
+    columns = [
+        "qC23_t0001",
+        "qC23_t001",
+        "qC23_t01",
+        "qC23_t1",
+        "qC40_t0001",
+        "qC40_t001",
+        "qC40_t01",
+        "qC40_t1",
+    ]
+    z_values = sorted({as_float(row["z_cm"], field="z_cm", path=profile_csv) for row in rows})
+    values_by_z = {z: {column: math.nan for column in columns} for z in z_values}
+    for row in rows:
+        severity = as_float(row["severity"], field="severity", path=profile_csv)
+        requested_time_s = as_float(row["requested_time_s"], field="requested_time_s", path=profile_csv)
+        column = rest_profile_column_name(severity, requested_time_s)
+        if column not in columns:
+            continue
+        z_cm = as_float(row["z_cm"], field="z_cm", path=profile_csv)
+        values_by_z[z_cm][column] = as_float(row["q_cm3_s"], field="q_cm3_s", path=profile_csv)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8", newline="") as handle:
+        handle.write(" ".join(["z_cm", *columns]) + "\n")
+        for z_cm in z_values:
+            values = [finite_or_blank(values_by_z[z_cm][column]) for column in columns]
+            handle.write(" ".join([finite_or_blank(z_cm), *values]) + "\n")
+    return output_path
+
+
 def direct_comparison_case_display(case_label: str, severity: float) -> str:
     rounded = case_token(severity)
     if case_label == "77" and not math.isclose(severity, 23.0, abs_tol=1.0e-9):
@@ -496,6 +550,8 @@ def render_tables(
     verification_table_path = verification_table_dir / "rest_method_sensitivity.tex"
     comparison_data_path = comparison_data_dir / "comparison_time_step_sensitivity.csv"
     comparison_table_path = comparison_table_dir / "comparison_time_step_sensitivity.tex"
+    rest_profile_source_path = verification_table_dir / "rest_state_drift_profiles.csv"
+    rest_profile_dat_path = verification_data_dir / "rest-state-flow-profiles-n800.dat"
 
     write_dict_csv(
         verification_data_path,
@@ -546,7 +602,10 @@ def render_tables(
     comparison_table_dir.mkdir(parents=True, exist_ok=True)
     verification_table_path.write_text(rest_method_table(rest_rows), encoding="utf-8")
     comparison_table_path.write_text(comparison_time_step_table(comparison_rows), encoding="utf-8")
-    return [verification_data_path, verification_table_path, comparison_data_path, comparison_table_path]
+    paths = [verification_data_path, verification_table_path, comparison_data_path, comparison_table_path]
+    if rest_profile_source_path.is_file():
+        paths.append(write_rest_state_flow_profiles_dat(rest_profile_source_path, rest_profile_dat_path))
+    return paths
 
 
 def main(argv: list[str] | None = None) -> int:

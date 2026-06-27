@@ -1,8 +1,9 @@
+import csv
 import subprocess
 import sys
 from pathlib import Path
 
-from ops.render_case_study_evidence_tables import render_tables
+from ops.render_case_study_evidence_tables import render_tables, write_rest_state_flow_profiles_dat
 
 
 REST_HEADER = (
@@ -256,3 +257,43 @@ def test_render_case_study_evidence_tables_reports_missing_inputs(tmp_path: Path
 
     assert result.returncode == 1
     assert "no rest-state method CSVs found" in result.stdout
+
+
+def test_write_rest_state_flow_profiles_dat_uses_roundoff_profile_rows(tmp_path: Path) -> None:
+    profile_csv = tmp_path / "rest_state_drift_profiles.csv"
+    fieldnames = [
+        "severity",
+        "nx",
+        "requested_time_s",
+        "elapsed_time_s",
+        "z_cm",
+        "a_cm2",
+        "q_cm3_s",
+        "u_cm_s",
+    ]
+    rows = []
+    for z_cm in ("0.0", "1.0"):
+        for severity, base in (("22.555555555555554", "1.0e-14"), ("40.0", "2.0e-14")):
+            for time_s in ("0.001", "0.01", "0.1", "1.0"):
+                rows.append(
+                    {
+                        "severity": severity,
+                        "nx": "800",
+                        "requested_time_s": time_s,
+                        "elapsed_time_s": time_s,
+                        "z_cm": z_cm,
+                        "a_cm2": "0.0324",
+                        "q_cm3_s": base,
+                        "u_cm_s": "0.0",
+                    }
+                )
+    with profile_csv.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    output_path = write_rest_state_flow_profiles_dat(profile_csv, tmp_path / "rest-state-flow-profiles-n800.dat")
+    text = output_path.read_text(encoding="utf-8")
+
+    assert text.startswith("z_cm qC23_t0001 qC23_t001 qC23_t01 qC23_t1 qC40_t0001")
+    assert "0 1e-14 1e-14 1e-14 1e-14 2e-14 2e-14 2e-14 2e-14" in text

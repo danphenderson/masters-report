@@ -61,7 +61,7 @@ $\bar u=q/a=Q_{\mathrm{phys}}/A_{\mathrm{phys}}$.
             reconstruction details. \\
         Numerical evidence
             & The main text reports manufactured-solution behavior,
-            output-operator verification, geometry-rest drift, subcritical
+            output-operator verification, geometry-rest preservation, subcritical
             boundary diagnostics, CFL, positivity, and finite-volume
             balance.
             & These checks support run admissibility and numerical
@@ -437,9 +437,9 @@ terms tied to $\partial_A\alpha_{\mathrm{eff}}$ or enforce the full
 variable-radius characteristic coupling at the ghost-state solve, so boundary
 sensitivity can appear in the reported numerical discrepancies.
 The approximation error enters at the boundary-state operator before
-$\Psi_{\Delta t,h,\lambda_h}$, so boundary sensitivity and geometry-rest drift are
-reported as part of the declared boundary approximation rather than attributed
-to the continuous model alone.
+$\Psi_{\Delta t,h,\lambda_h}$, so boundary sensitivity and the geometry-rest
+preservation check are reported as part of the declared boundary approximation
+rather than attributed to the continuous model alone.
 \end{definition}
 
 This is therefore an implemented boundary approximation, not an exact
@@ -464,7 +464,7 @@ diagnostic in Section~\ref{subsec:rest-state-drift}. The boundary-state
 approximation is the fixed-area characteristic
 approximation defined in
 Appendix~\ref{app:num-boundary-state-realization}. Other finite-volume, modal-DG,
-time-stepper, and ODE-integration surfaces are secondary sensitivity context
+time-stepper, and ODE-integration variants are secondary sensitivity context
 summarized in Table~\ref{tab:implemented-discretization-surface};
 they are secondary to the principal two-case comparison method.
 

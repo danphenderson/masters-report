@@ -5,15 +5,17 @@
     xlabel={axial coordinate $z$ (cm)},
     ylabel={solver flow $q$ (cm$^3$/s)},
     xmin=0, xmax=6,
-    ymin=-0.020, ymax=0.020,
+    ymin=-8.0e-14, ymax=8.0e-14,
+    ytick={-8.0e-14,-4.0e-14,0,4.0e-14,8.0e-14},
+    scaled y ticks=true,
     grid=both,
     legend columns=4,
     legend style={font=\scriptsize, at={(0.5,-0.20)}, anchor=north},
   ]
     \path[fill=wallgraylight, fill opacity=0.36, text opacity=1, draw=none]
-      (axis cs:2.4,-0.020) rectangle (axis cs:2.8,0.020);
+      (axis cs:2.4,-8.0e-14) rectangle (axis cs:2.8,8.0e-14);
     \draw[wallgray!65!black, densely dashed, line width=0.45pt]
-      (axis cs:2.451,-0.020) -- (axis cs:2.451,0.020)
+      (axis cs:2.451,-8.0e-14) -- (axis cs:2.451,8.0e-14)
       node[pos=0.94, right=1pt, font=\scriptsize, fill=white,
            fill opacity=0.9, text opacity=1, inner sep=1pt]
         {$z_\star$};
